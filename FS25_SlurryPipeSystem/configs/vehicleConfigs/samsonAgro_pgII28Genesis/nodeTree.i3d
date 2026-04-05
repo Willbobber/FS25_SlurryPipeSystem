@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.11"/>
+  </Asset>
+
+  <Files>
+  </Files>
+
+
+  <Materials>
+    <Material name="lambert1" materialId="1941" diffuseColor="0.8 0.8 0.8 1" specularColor="0.501961 1 0">
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="nodeTree.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="SPS_pgII28Genesis" nodeId="8">
+      <TransformGroup name="fillArmNodes" nodeId="9">
+        <TransformGroup name="turretSAP2PipeVar01" translation="-1.28455 1.83419 3.8758" rotation="-0.00325074 -0.0032492 0.021616" nodeId="10">
+          <TransformGroup name="SPS_fillArmTip01" translation="0.262573 -1.2084 0.0735378" rotation="0.772264 -4.93688 -8.88644" nodeId="11"/>
+        </TransformGroup>
+        <TransformGroup name="turretSAP2PipeVar02" translation="-1.32977 1.89186 3.85672" rotation="-0.00325074 -0.0032492 0.021616" nodeId="12">
+          <TransformGroup name="SPS_fillArmCentre01" translation="-0.157613 -1.15712 0.0675103" rotation="-3.15864 0.0381697 -8.45087" nodeId="17"/>
+        </TransformGroup>
+        <TransformGroup name="turretPTArm04" translation="0.0523642 3.5809 0.497057" nodeId="19">
+          <TransformGroup name="SPS_fillArmCentre02" translation="-0.127982 0.143406 -3.65976" rotation="90 -0 0" nodeId="20"/>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="pipeCouplers" nodeId="26">
+        <TransformGroup name="turretSAP2" translation="-0.072741 2.12412 -0.108904" nodeId="27">
+          <TransformGroup name="SPS_pipeCoupler01" translation="1.05989 -0.792428 3.12624" rotation="-42.7299 -90 0" nodeId="28">
+            <TransformGroup name="SPS_pipeCoupler01Arcs" translation="-1.05783e-07 0 0" rotation="136.577 -0 -180" nodeId="29">
+              <TransformGroup name="SPS_pipeCoupler01Arc01" translation="1.5 0 2.5" nodeId="2560"/>
+              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="-1.5 0 2.5" nodeId="2561"/>
+            </TransformGroup>
+          </TransformGroup>
+          <TransformGroup name="SPS_pipeCoupler02" translation="-1.30453 -0.8927 3.22671" rotation="-180 90 -164.091" nodeId="32">
+            <TransformGroup name="SPS_pipeCoupler02Arcs" translation="-7.26186e-08 0 0" rotation="164.091 0 -180" nodeId="33">
+              <TransformGroup name="SPS_pipeCoupler02Arc01" translation="1.5 1.67697e-06 2.5" rotation="8.54233e-13 0 -1.16786e-05" nodeId="2557"/>
+              <TransformGroup name="SPS_pipeCoupler02Arc02" translation="-1.5 2.5034e-06 2.5" nodeId="2558"/>
+            </TransformGroup>
+          </TransformGroup>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="rubberBootPorts" nodeId="36">
+        <TransformGroup name="pgII28Genesis_vis" nodeId="37">
+          <TransformGroup name="SPS_rubberBootLower01" translation="-0.704521 3.4587 -4.447" nodeId="38"/>
+          <TransformGroup name="SPS_rubberBootUpper01" translation="-0.704521 3.6237 -4.44654" nodeId="39"/>
+        </TransformGroup>
+        <Shape name="dockingStationCol1" translation="-0.704521 3.51135 -4.44654" shapeId="1" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" nodeId="1955" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1941"/>
+      </TransformGroup>
+      <TransformGroup name="pumpControls" nodeId="40">
+        <TransformGroup name="drawbar" translation="0 1.0964 1.8972" rotation="5.67109 -0 0" nodeId="41">
+          <TransformGroup name="SPS_pumpControl01" translation="1.00314 0.733681 2.51731" rotation="-5.67109 -0 0" nodeId="42"/>
+        </TransformGroup>
+      </TransformGroup>
+    </TransformGroup>
+  </Scene>
+
+</i3D>

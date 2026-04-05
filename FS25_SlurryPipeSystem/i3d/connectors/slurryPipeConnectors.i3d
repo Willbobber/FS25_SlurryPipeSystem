@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="slurryPipeConnectors.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.11"/>
+  </Asset>
+
+  <Files>
+    <File fileId="4" filename="$data/shaders/vehicleShader.xml"/>
+    <File fileId="12" filename="$data/shared/connectionHoses/hosesAtlas_diffuse.dds"/>
+    <File fileId="13" filename="$data/shared/connectionHoses/hosesAtlas_normal.dds"/>
+    <File fileId="14" filename="$data/shared/connectionHoses/hosesAtlas_vmask.dds"/>
+    <File fileId="2" filename="$data/shared/default_normal.dds"/>
+    <File fileId="3" filename="$data/shared/default_vmask.dds"/>
+    <File fileId="6" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="19" filename="$data/shared/detailLibrary/metallic/scratched_diffuse.png"/>
+    <File fileId="18" filename="$data/shared/detailLibrary/metallic/scratched_specular.png"/>
+    <File fileId="7" filename="$data/shared/detailLibrary/metallic/silverScratched_diffuse.png"/>
+    <File fileId="5" filename="$data/shared/detailLibrary/metallic/silverScratched_specular.png"/>
+    <File fileId="21" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_diffuse.png"/>
+    <File fileId="20" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_specular.png"/>
+    <File fileId="22" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubberBlack_diffuse.png"/>
+    <File fileId="17" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_diffuse.dds"/>
+    <File fileId="16" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_normal.png"/>
+    <File fileId="15" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_specular.png"/>
+    <File fileId="1" filename="$data/shared/white_diffuse.dds"/>
+  </Files>
+
+
+  <Materials>
+    <Material name="brassScratched_mat" materialId="67" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="18"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="19"/>
+      <CustomParameter name="colorScale" value="0.9647 0.7913 0.3095"/>
+    </Material>
+    <Material name="plasticPainted_mat" materialId="69" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="20"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="21"/>
+      <CustomParameter name="colorScale" value="1 0 0"/>
+    </Material>
+    <Material name="rubberBlack_mat" materialId="70" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="15"/>
+      <Custommap name="detailNormal" fileId="16"/>
+      <Custommap name="detailDiffuse" fileId="22"/>
+      <CustomParameter name="porosity" value="0.5"/>
+    </Material>
+    <Material name="silverScratched_mat" materialId="71" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="5"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="7"/>
+    </Material>
+    <Material name="slurryPipe_mat" materialId="72" customShaderId="4">
+      <Texture fileId="12"/>
+      <Normalmap fileId="13"/>
+      <Glossmap fileId="14"/>
+      <Custommap name="detailSpecular" fileId="15"/>
+      <Custommap name="detailNormal" fileId="16"/>
+      <Custommap name="detailDiffuse" fileId="17"/>
+      <CustomParameter name="porosity" value="0.5"/>
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="slurryPipeConnectors.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="slurryPipeConnectors" nodeId="86">
+      <TransformGroup name="slurryPipeConnector01" nodeId="87">
+        <Shape name="slurryPipeConnectorMale" shapeId="1" clipDistance="150" nodeId="88" castsShadows="true" receiveShadows="true" materialIds="71">
+          <TransformGroup name="slurryPipeConnector01Target" translation="-7.86192e-08 0 -0.241281" nodeId="89"/>
+          <Shape name="slurryHoseConnetorMaleRubber" shapeId="2" clipDistance="150" nodeId="91" castsShadows="true" receiveShadows="true" materialIds="72"/>
+        </Shape>
+      </TransformGroup>
+      <TransformGroup name="slurryPipeConnector02" nodeId="92">
+        <Shape name="slurryPipeConnectorFemale" shapeId="3" clipDistance="150" nodeId="93" castsShadows="true" receiveShadows="true" materialIds="71">
+          <TransformGroup name="slurryPipeConnector02Target" translation="0 0 -0.175332" nodeId="94"/>
+          <Shape name="slurryHoseConnetorFemaleRubber" shapeId="4" clipDistance="150" nodeId="96" castsShadows="true" receiveShadows="true" materialIds="72"/>
+        </Shape>
+      </TransformGroup>
+      <TransformGroup name="slurryPipeConnectors03" nodeId="97">
+        <Shape name="slurryPipeConnectors03Coupler" rotation="-0 -90 0" shapeId="5" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="98" castsShadows="true" receiveShadows="true" materialIds="71,67,69,70">
+          <Shape name="slurryPipeConnectors03Pipe01" shapeId="6" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="99" castsShadows="true" receiveShadows="true" materialIds="71"/>
+          <Shape name="slurryPipeConnectors03Pipe02" shapeId="7" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="100" castsShadows="true" receiveShadows="true" materialIds="71"/>
+          <TransformGroup name="slurryPipeConnectors03Target" translation="0.657152 0.531865 -0.001495" rotation="90 -90 -110" nodeId="101"/>
+        </Shape>
+      </TransformGroup>
+      <TransformGroup name="slurryPipeConnectors04" nodeId="102">
+        <Shape name="slurryPipeConnectors04Coupler" rotation="-0 90 0" shapeId="8" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="103" castsShadows="true" receiveShadows="true" materialIds="71,67,70,69">
+          <Shape name="slurryPipeConnectors04CouplerPipe01" shapeId="9" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="104" castsShadows="true" receiveShadows="true" materialIds="71"/>
+          <Shape name="slurryPipeConnectors04CouplerPipe02" shapeId="10" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="105" castsShadows="true" receiveShadows="true" materialIds="71"/>
+          <TransformGroup name="slurryPipeConnectors04Target" translation="-0.642689 0.60205 -0.00219989" rotation="-90 90 -74.7913" nodeId="106"/>
+        </Shape>
+      </TransformGroup>
+    </TransformGroup>
+  </Scene>
+
+</i3D>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<connectionHoses>
+    <!--
+        Registers the slurryPipe hose type using our custom rubber mesh.
+        The mesh is 3m long, runs along +Z, uses localCatmullRom_uvTransform shader.
+        diameter=0.25 gives a realistic slurry hose size.
+        Multiple length entries allow the engine to pick the best fit.
+    -->
+    <basicHoses>
+        <basicHose filename="i3d/pipes/slurryPipe.i3d" node="0|0"
+            length="3" realLength="3" diameter="0.25"
+            startStraightening="2" endStraightening="2" minCenterPointAngle="120"/>
+        <basicHose filename="i3d/pipes/slurryPipe.i3d" node="0|0"
+            length="6" realLength="3" diameter="0.25"
+            startStraightening="3" endStraightening="3" minCenterPointAngle="120"/>
+    </basicHoses>
+
+    <connectionHoseTypes>
+        <connectionHoseType name="slurryPipe">
+            <material name="DEFAULT"
+                filename="$data/shared/connectionHoses/hoseMaterialHolder.i3d"
+                materialNode="0"
+                uvMinMax="0 0.125"
+                materialTemplateName="rubberBlackHoses"/>
+        </connectionHoseType>
+    </connectionHoseTypes>
+</connectionHoses>

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.11"/>
+  </Asset>
+
+  <Files>
+    <File fileId="4" filename="$data/shaders/vehicleShader.xml"/>
+    <File fileId="2" filename="$data/shared/default_normal.png"/>
+    <File fileId="3" filename="$data/shared/default_vmask.dds"/>
+    <File fileId="6" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="13" filename="$data/shared/detailLibrary/metallic/scratched_diffuse.png"/>
+    <File fileId="12" filename="$data/shared/detailLibrary/metallic/scratched_specular.png"/>
+    <File fileId="7" filename="$data/shared/detailLibrary/metallic/silverScratched_diffuse.png"/>
+    <File fileId="5" filename="$data/shared/detailLibrary/metallic/silverScratched_specular.png"/>
+    <File fileId="18" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_diffuse.png"/>
+    <File fileId="17" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_specular.png"/>
+    <File fileId="16" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubberBlack_diffuse.png"/>
+    <File fileId="15" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_normal.png"/>
+    <File fileId="14" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_specular.png"/>
+    <File fileId="1" filename="$data/shared/white_diffuse.dds"/>
+  </Files>
+
+
+  <Materials>
+    <Material name="brassScratched_mat" materialId="5" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="12"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="13"/>
+      <CustomParameter name="colorScale" value="0.9647 0.7913 0.3095"/>
+    </Material>
+    <Material name="plasticPainted_mat" materialId="6" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="17"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="18"/>
+      <CustomParameter name="colorScale" value="1 0 0"/>
+    </Material>
+    <Material name="rubberBlack_mat" materialId="7" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="14"/>
+      <Custommap name="detailNormal" fileId="15"/>
+      <Custommap name="detailDiffuse" fileId="16"/>
+      <CustomParameter name="porosity" value="0.5"/>
+    </Material>
+    <Material name="silverScratched_mat" materialId="8" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="5"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="7"/>
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="nodeTree.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="SPS_liquidManureTank" nodeId="12">
+      <TransformGroup name="pipeCouplers" nodeId="13">
+        <TransformGroup name="liquidManureTankLODs" nodeId="14">
+          <TransformGroup name="SPS_pipeCoupler01" translation="-8.62184 0.945006 4.69008" rotation="-179.999 59.0485 180" nodeId="15">
+            <TransformGroup name="SPS_pipeCoupler01Arcs" rotation="-2.60551e-11 180 0" nodeId="16">
+              <TransformGroup name="SPS_pipeCoupler01Arc01" translation="0.3 0 2.5" nodeId="17"/>
+              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="-1.5 -5.96046e-08 2.5" nodeId="18"/>
+            </TransformGroup>
+            <Shape name="slurryPipeConnectors04Coupler" translation="-0.00219917 -0.602039 0.6427" rotation="-4.83353e-06 -90 0" shapeId="1" kinematic="true" compoundChild="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="19" castsShadows="true" receiveShadows="true" materialIds="8,5,7,6">
+              <Shape name="slurryPipeConnectors04CouplerPipe02" shapeId="2" kinematic="true" compoundChild="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="20" castsShadows="true" receiveShadows="true" materialIds="8"/>
+            </Shape>
+          </TransformGroup>
+          <TransformGroup name="SPS_pipeCoupler02" translation="-8.19524 0.945006 5.40144" rotation="-179.999 59.0485 180" nodeId="21">
+            <TransformGroup name="SPS_pipeCoupler02Arcs" rotation="2.60551e-11 180 -5.21102e-11" nodeId="22">
+              <TransformGroup name="SPS_pipeCoupler02Arc01" translation="1.5 5.96046e-08 2.5" nodeId="23"/>
+              <TransformGroup name="SPS_pipeCoupler02Arc02" translation="-0.300001 0 2.5" nodeId="24"/>
+            </TransformGroup>
+            <Shape name="slurryPipeConnectors04Coupler" translation="-0.00219941 -0.602038 0.6427" rotation="5.21102e-11 -90 0" shapeId="1" kinematic="true" compoundChild="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="25" castsShadows="true" receiveShadows="true" materialIds="8,5,7,6">
+              <Shape name="slurryPipeConnectors04CouplerPipe02" shapeId="2" kinematic="true" compoundChild="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="26" castsShadows="true" receiveShadows="true" materialIds="8"/>
+            </Shape>
+          </TransformGroup>
+        </TransformGroup>
+      </TransformGroup>
+    </TransformGroup>
+  </Scene>
+
+</i3D>
