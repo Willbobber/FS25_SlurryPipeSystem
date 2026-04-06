@@ -158,11 +158,6 @@ function Vehicle:onFinishedLoading()
 
     print("[SPS] Vehicle registered: " .. tostring(self.configFileName))
 
-    if self.spec_turnOnVehicle ~= nil then
-        self.spec_turnOnVehicle.turnOnText  = g_i18n:getText("action_slurryPumpOn")
-        self.spec_turnOnVehicle.turnOffText = g_i18n:getText("action_slurryPumpOff")
-    end
-
     -- ---------------------------------------------------------------------------
     -- Samson PG II 28 Genesis: patch turretSAP2Arm02 rotationBasedLimits.
     -- ---------------------------------------------------------------------------
@@ -191,7 +186,10 @@ end
 
 -- ---------------------------------------------------------------------------
 -- Vehicle:registerActionEvents hook
--- Only add SPS action events to active tankers (have TurnOnVehicle).
+-- Registers all three SPS actions using our own custom input actions so they
+-- appear in the controls menu and are rebindable. The vanilla spec_turnOnVehicle
+-- action event is removed after origRegisterActionEvents to prevent a duplicate
+-- HUD entry for the pump key.
 -- ---------------------------------------------------------------------------
 local origRegisterActionEvents = Vehicle.registerActionEvents
 function Vehicle:registerActionEvents(excludedVehicle)
@@ -205,17 +203,51 @@ function Vehicle:registerActionEvents(excludedVehicle)
     if not self.isClient then return end
     if not self:getIsActiveForInput(true) then return end
 
+    -- Remove the vanilla spec_turnOnVehicle action event so the pump key does not
+    -- appear twice in the HUD. origRegisterActionEvents already registered it on
+    -- spec.toggleTurnOnInputBinding (defaults to IMPLEMENT_EXTRA). We replace it
+    -- with SPS_TOGGLE_PUMP below.
+    local specTOV = self.spec_turnOnVehicle
+    if specTOV.actionEvents ~= nil and specTOV.toggleTurnOnInputBinding ~= nil then
+        local vanillaEvent = specTOV.actionEvents[specTOV.toggleTurnOnInputBinding]
+        if vanillaEvent ~= nil then
+            g_inputBinding:removeActionEvent(vanillaEvent.actionEventId)
+            specTOV.actionEvents[specTOV.toggleTurnOnInputBinding] = nil
+        end
+    end
+
     print("[SPS] registerActionEvents: adding SPS actions to " .. tostring(self.configFileName))
 
     local spsEvents = {}
+    local pumpEventId = nil
     local flowEventId = nil
 
-    -- Action 2 (flow/hydraulic valve) only shown for vehicles with fill arms.
-    -- Pipe coupling uses a manual valve opened from outside — not cab controlled.
+    -- SPS_TOGGLE_PUMP: replaces the vanilla spec_turnOnVehicle binding.
+    -- Calls setIsTurnedOn directly, same as TurnOnVehicle.actionEventTurnOn.
+    local _, pid = self:addPoweredActionEvent(
+        spsEvents,
+        InputAction.SPS_TOGGLE_PUMP,
+        self,
+        function(vehicle, actionName, inputValue, callbackState, isAnalog)
+            vehicle:setIsTurnedOn(not vehicle:getIsTurnedOn())
+        end,
+        false, true, false, true, nil
+    )
+    if pid ~= nil then
+        local pumpTxt = self:getIsTurnedOn()
+            and g_i18n:getText("action_slurryPumpOff")
+            or  g_i18n:getText("action_slurryPumpOn")
+        g_inputBinding:setActionEventText(pid, pumpTxt)
+        g_inputBinding:setActionEventTextPriority(pid, GS_PRIO_NORMAL)
+        pumpEventId = pid
+    end
+
+    -- SPS_TOGGLE_FLOW: only shown for vehicles with fill arms.
+    -- Pipe coupling valve is operated on foot, not from the cab.
     if g_slurryPipeManager:vehicleHasFillArms(self) then
         local _, id = self:addPoweredActionEvent(
             spsEvents,
-            InputAction.IMPLEMENT_EXTRA2,
+            InputAction.SPS_TOGGLE_FLOW,
             self,
             function(vehicle, actionName, inputValue, callbackState, isAnalog)
                 if g_slurryPipeManager ~= nil then
@@ -235,9 +267,10 @@ function Vehicle:registerActionEvents(excludedVehicle)
         end
     end
 
+    -- SPS_TOGGLE_DIRECTION
     local _, dirEventId = self:addPoweredActionEvent(
         spsEvents,
-        InputAction.IMPLEMENT_EXTRA3,
+        InputAction.SPS_TOGGLE_DIRECTION,
         self,
         function(vehicle, actionName, inputValue, callbackState, isAnalog)
             if g_slurryPipeManager ~= nil then
@@ -255,7 +288,7 @@ function Vehicle:registerActionEvents(excludedVehicle)
         g_inputBinding:setActionEventTextPriority(dirEventId, GS_PRIO_NORMAL)
     end
 
-    self.spsActionEvents = { flowEventId = flowEventId, dirEventId = dirEventId }
+    self.spsActionEvents = { pumpEventId = pumpEventId, flowEventId = flowEventId, dirEventId = dirEventId }
 end
 
 -- ---------------------------------------------------------------------------
