@@ -37,4 +37,22 @@ transfer, slurry pipes, and nurse tank operation.</en>
 	</extraSourceFiles>
 
     <connectionHoses filename="connectionHoses/slurryPipe.xml"/>
+	
+	<actions>
+		<action name="SPS_TOGGLE_PUMP"      axisType="HALF" category="VEHICLE" />
+		<action name="SPS_TOGGLE_FLOW"      axisType="HALF" category="VEHICLE" />
+		<action name="SPS_TOGGLE_DIRECTION" axisType="HALF" category="VEHICLE" />
+	</actions>
+	
+	<inputBinding>
+		<actionBinding action="SPS_TOGGLE_PUMP">
+			<binding device="KB_MOUSE_DEFAULT" input="KEY_b" axisComponent="+" index="1" />
+		</actionBinding>
+		<actionBinding action="SPS_TOGGLE_FLOW">
+			<binding device="KB_MOUSE_DEFAULT" input="KEY_x" axisComponent="+" index="1" />
+		</actionBinding>
+		<actionBinding action="SPS_TOGGLE_DIRECTION">
+			<binding device="KB_MOUSE_DEFAULT" input="KEY_y" axisComponent="+" index="1" />
+		</actionBinding>
+	</inputBinding>
 </modDesc>
