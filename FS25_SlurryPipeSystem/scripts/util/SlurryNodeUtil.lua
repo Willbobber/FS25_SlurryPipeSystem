@@ -57,7 +57,7 @@ function SlurryNodeUtil.buildFillVolumeSource(vehicle, fillUnitIndex)
     }
 end
 
-function SlurryNodeUtil.buildStoragePlaneSource(placeable, fillPlaneNode, minY, maxY, fillType)
+function SlurryNodeUtil.buildStoragePlaneSource(placeable, fillPlaneNode, minY, maxY, fillType, planeBounds)
     if fillPlaneNode == nil or fillPlaneNode == 0 then
         SlurryDebug.log("buildStoragePlaneSource: invalid fillPlaneNode")
         return nil
@@ -114,6 +114,7 @@ function SlurryNodeUtil.buildStoragePlaneSource(placeable, fillPlaneNode, minY, 
         minY          = minY,
         maxY          = maxY,
         fillType      = fillType,
+        planeBounds   = planeBounds,
         debugLabel    = tostring(placeable.configFileName):match("([^/]+)%.xml$") or "placeable",
     }
 end
