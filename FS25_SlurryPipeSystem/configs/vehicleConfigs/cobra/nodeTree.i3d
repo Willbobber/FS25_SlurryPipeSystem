@@ -11,7 +11,7 @@
 
 
   <Materials>
-    <Material name="default_mat" materialId="749" diffuseColor="0.501961 0.501961 0.501961 1">
+    <Material name="default_mat" materialId="5" diffuseColor="0.501961 0.501961 0.501961 1">
       <Normalmap fileId="2"/>
     </Material>
   </Materials>
@@ -21,36 +21,36 @@
   </Shapes>
 
   <Scene>
-    <TransformGroup name="SPS_Cobra_vis" nodeId="8">
-      <TransformGroup name="fillArmNodes" nodeId="9">
-        <TransformGroup name="BrasOption1" translation="1.13891 1.38565 1.74998" nodeId="12">
-          <TransformGroup name="SPS_fillArmCentre01" translation="0 -0.75 0" nodeId="13"/>
+    <TransformGroup name="SPS_Cobra_vis" nodeId="9">
+      <TransformGroup name="fillArmNodes" nodeId="10">
+        <TransformGroup name="BrasOption1" translation="1.13891 1.38565 1.74998" nodeId="11">
+          <TransformGroup name="SPS_fillArmCentre01" translation="0 -0.75 0" nodeId="12"/>
         </TransformGroup>
-        <TransformGroup name="BrasOption2" translation="-0.50137 2.14577e-06 0" nodeId="10">
-          <TransformGroup name="SPS_fillArmTip01" translation="1.64028 1.91693 1.74998" nodeId="11"/>
-        </TransformGroup>
-      </TransformGroup>
-      <TransformGroup name="pipeCouplers" nodeId="16">
-        <TransformGroup name="Cobra_vis" translation="-0.072741 2.12412 -0.108904" nodeId="17">
-          <TransformGroup name="SPS_pipeCoupler01" translation="0.990605 -0.96624 0.608172" rotation="-39.2855 -90 0" nodeId="18">
-            <TransformGroup name="SPS_pipeCoupler01Arcs" translation="-1.05783e-07 0 0" rotation="136.577 -0 -180" nodeId="19">
-              <TransformGroup name="SPS_pipeCoupler01Arc01" translation="1.5 0 2.5" nodeId="20"/>
-              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="-1.5 0 2.5" nodeId="21"/>
-            </TransformGroup>
-          </TransformGroup>
-          <TransformGroup name="SPS_pipeCoupler02" translation="-1.03963 -0.986158 1.80097" rotation="-15.909 90 0" nodeId="22">
-            <TransformGroup name="SPS_pipeCoupler02Arcs" translation="-7.26186e-08 0 0" rotation="164.091 0 -180" nodeId="23">
-              <TransformGroup name="SPS_pipeCoupler02Arc01" translation="1.5 1.67697e-06 2.5" rotation="8.54233e-13 0 -1.16786e-05" nodeId="24"/>
-              <TransformGroup name="SPS_pipeCoupler02Arc02" translation="-1.5 2.5034e-06 2.5" nodeId="25"/>
-            </TransformGroup>
-          </TransformGroup>
+        <TransformGroup name="BrasOption2" translation="-0.50137 2.14577e-06 0" nodeId="13">
+          <TransformGroup name="SPS_fillArmTip01" translation="1.64028 1.91693 1.74998" nodeId="14"/>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="pipeEffects" nodeId="766">
-        <TransformGroup name="BrasOption1" translation="1.13891 1.38565 1.74998" nodeId="767">
-          <TransformGroup name="effect" translation="0.00196629 -1.0419 -0.00252661" nodeId="768">
-            <Shape name="pipeEffect" translation="-0.000407 -3.08981e-10 0.00353433" rotation="-90 0 180" shapeId="1" clipDistance="100" nodeId="769" castsShadows="true" receiveShadows="true" materialIds="749"/>
-            <Shape name="pipeEffectSmoke" translation="1.13457e-07 -3.25029 0" rotation="0 0 2e-06" shapeId="2" visibility="false" clipDistance="100" nodeId="770" castsShadows="true" receiveShadows="true" materialIds="749"/>
+      <TransformGroup name="pipeCouplers" nodeId="15">
+        <TransformGroup name="Cobra_vis" nodeId="374">
+          <TransformGroup name="SPS_pipeCoupler01" translation="0.917864 1.15788 0.499268" rotation="-39.2855 -90 0" nodeId="17">
+            <TransformGroup name="SPS_pipeCoupler01Arcs" translation="-1.05783e-07 0 0" rotation="136.577 -0 -180" nodeId="18">
+              <TransformGroup name="SPS_pipeCoupler01Arc01" translation="1.5 0 2.5" nodeId="19"/>
+              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="-1.5 0 2.5" nodeId="20"/>
+            </TransformGroup>
+          </TransformGroup>
+          <TransformGroup name="SPS_pipeCoupler02" translation="-1.11237 1.13796 1.69207" rotation="-15.909 90 0" nodeId="21">
+            <TransformGroup name="SPS_pipeCoupler02Arcs" translation="-7.26186e-08 0 0" rotation="164.091 0 -180" nodeId="22">
+              <TransformGroup name="SPS_pipeCoupler02Arc01" translation="1.5 1.67697e-06 2.5" rotation="8.54233e-13 0 -1.16786e-05" nodeId="23"/>
+              <TransformGroup name="SPS_pipeCoupler02Arc02" translation="-1.5 2.5034e-06 2.5" nodeId="24"/>
+            </TransformGroup>
+          </TransformGroup>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="pipeEffects" nodeId="25">
+        <TransformGroup name="BrasOption1" translation="1.13891 1.38565 1.74998" nodeId="26">
+          <TransformGroup name="effect" translation="0.00196629 -1.0419 -0.00252661" nodeId="27">
+            <Shape name="pipeEffect" translation="-0.000407 -3.08981e-10 0.00353433" rotation="-90 0 180" shapeId="1" clipDistance="100" nodeId="28" castsShadows="true" receiveShadows="true" materialIds="5"/>
+            <Shape name="pipeEffectSmoke" translation="1.13457e-07 -3.25029 0" rotation="0 0 2e-06" shapeId="2" visibility="false" clipDistance="100" nodeId="29" castsShadows="true" receiveShadows="true" materialIds="5"/>
           </TransformGroup>
         </TransformGroup>
       </TransformGroup>
