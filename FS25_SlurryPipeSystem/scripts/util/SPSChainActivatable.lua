@@ -248,6 +248,13 @@ function SPSChainActivatable:_onLongPress()
             if cc.connectedPartnerCoupling ~= nil then
                 cc.connectedPartnerCoupling.valveOpen = true
             end
+            -- Propagate open back to anchor so hasActiveCouplingConnection fires for the vehicle
+            if self.chain.anchorCoupling ~= nil then
+                self.chain.anchorCoupling.valveOpen = true
+                if self.chain.anchorCoupling.connectedPartnerCoupling ~= nil then
+                    self.chain.anchorCoupling.connectedPartnerCoupling.valveOpen = true
+                end
+            end
         end
     elseif state == "connectedValveOpen" then
         local seg = self.chain.segments[self.arcIndex]
@@ -259,6 +266,17 @@ function SPSChainActivatable:_onLongPress()
                 if g_slurryPipeManager ~= nil then
                     local v, _ = g_slurryPipeManager:_findCouplingOwner(cc.connectedPartnerCoupling)
                     if v ~= nil then g_slurryPipeManager:stopFlow(v) end
+                end
+            end
+            -- Propagate close back to anchor to stop the vehicle flow session
+            if self.chain.anchorCoupling ~= nil then
+                self.chain.anchorCoupling.valveOpen = false
+                if self.chain.anchorCoupling.connectedPartnerCoupling ~= nil then
+                    self.chain.anchorCoupling.connectedPartnerCoupling.valveOpen = false
+                end
+                if g_slurryPipeManager ~= nil then
+                    local anchorVehicle, _ = g_slurryPipeManager:_findCouplingOwner(self.chain.anchorCoupling)
+                    if anchorVehicle ~= nil then g_slurryPipeManager:stopFlow(anchorVehicle) end
                 end
             end
         end

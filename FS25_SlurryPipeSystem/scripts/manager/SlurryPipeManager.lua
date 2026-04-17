@@ -2100,13 +2100,14 @@ function SlurryPipeManager:findOverlappingCoupler(coupling)
         if ct ~= coupling and not ct.isConnected then
             local isOwnChain
             if ct.isChainStart then
-                -- chainStart can only be connected by its own anchor coupling.
-                -- Vehicle anchor: allow reconnect when bez is disconnected (isConnected=false).
-                -- Placeable anchor: always skip — placeable chains have no bez to reconnect.
                 if ct.chain ~= nil and ct.chain.anchorCoupling == coupling then
+                    -- This coupling is the current anchor — block if already connected
+                    -- or if it's a placeable (placeables don't reconnect)
                     isOwnChain = coupling.placeable ~= nil or ct.isConnected
                 else
-                    isOwnChain = true
+                    -- Chain start is disconnected — any vehicle coupling may pick it up.
+                    -- Only block placeable couplings from connecting to a chain start.
+                    isOwnChain = coupling.placeable ~= nil
                 end
             else
                 -- chainEnd: skip if caller is the own chain anchor
@@ -2213,6 +2214,27 @@ function SlurryPipeManager:applyConnectCouplings(couplingA, couplingB, ownerA, o
     couplingB.isConnected              = true
     couplingB.connectedTarget          = ownerA
     couplingB.connectedPartnerCoupling = couplingA
+
+    -- If a vehicle coupling is connecting to a chainStartCoupling, re-anchor the chain
+    -- to the new vehicle coupling so any coupling on the tanker can own the chain.
+    local function reAnchorIfNeeded(vehicleCoupling, chainStartCoupling)
+        if chainStartCoupling == nil or not chainStartCoupling.isChainStart then return end
+        if chainStartCoupling.chain == nil then return end
+        local chain = chainStartCoupling.chain
+        local oldAnchor = chain.anchorCoupling
+        if oldAnchor == vehicleCoupling then return end
+        if oldAnchor ~= nil and oldAnchor.chainActivatable ~= nil then
+            oldAnchor.chainActivatable.chain = nil
+        end
+        chain.anchorCoupling = vehicleCoupling
+        if vehicleCoupling.chainActivatable ~= nil then
+            vehicleCoupling.chainActivatable.chain = chain
+        end
+        print("[SPS] applyConnectCouplings: chain re-anchored from coupling id="
+            .. tostring(oldAnchor and oldAnchor.id) .. " to id=" .. tostring(vehicleCoupling.id))
+    end
+    reAnchorIfNeeded(couplingA, couplingB)
+    reAnchorIfNeeded(couplingB, couplingA)
 
     if g_spsPipeVisual ~= nil and g_spsPipeVisual:isReady() then
         local nodeA = couplingA.mountNode
@@ -2514,19 +2536,42 @@ end
 -- ---------------------------------------------------------------------------
 function SlurryPipeManager:update(dt)
 	self._updateCount = (self._updateCount or 0) + 1
-
+    if self._updateCount == 1 then print("[SPS] update() is running") end
+    
     -- Conduit HUD: addInfoExtension must be called every frame.
-    -- Walk registered conduit vehicles and add the HUD extension when
-    -- that vehicle is the active input vehicle (player is in its cab or
-    -- in the tractor it is attached to).
-    for _, entry in ipairs(self.registeredVehicles) do
-        if entry.conduit and entry.hudExtension ~= nil and entry.vehicle.isClient then
-            if entry.vehicle:getIsActiveForInput(false) then
+    -- The controlled vehicle is the tractor — walk its attached implements
+    -- to find a registered conduit pump.
+    if g_currentMission ~= nil and g_currentMission.controlledVehicle ~= nil then
+        local cv = g_currentMission.controlledVehicle
+        if self._updateCount % 60 == 0 then
+            print("[SPS HUD] cv=" .. tostring(cv.configFileName))
+            print("[SPS HUD] isConduit(cv)=" .. tostring(self:isVehicleConduit(cv)))
+            if cv.getChildVehicles ~= nil then
+                for _, child in ipairs(cv:getChildVehicles()) do
+                    print("[SPS HUD] child=" .. tostring(child.configFileName) .. " isConduit=" .. tostring(self:isVehicleConduit(child)))
+                end
+            else
+                print("[SPS HUD] getChildVehicles nil on cv")
+            end
+        end
+        local conduitVehicle = nil
+        if self:isVehicleConduit(cv) then
+            conduitVehicle = cv
+        elseif cv.getChildVehicles ~= nil then
+            for _, child in ipairs(cv:getChildVehicles()) do
+                if self:isVehicleConduit(child) then
+                    conduitVehicle = child
+                    break
+                end
+            end
+        end
+        if conduitVehicle ~= nil then
+            local entry = self:getVehicleEntry(conduitVehicle)
+            if entry ~= nil and entry.hudExtension ~= nil then
                 g_currentMission.hud:addInfoExtension(entry.hudExtension)
             end
         end
     end
-
  
     -- Retry pending connection/chain resolution for the first ~5 seconds after load.
     -- Vehicle positions are not finalised at onFinishedLoading time so the coupling
@@ -3266,6 +3311,32 @@ function SlurryPipeManager:resolveExternalSource(vehicle)
         if coupling.isConnected and coupling.valveOpen then
             local partner = coupling.connectedPartnerCoupling
             if partner ~= nil and partner.isChainTerminus then
+                if partner.isChainStart then
+                    -- Vehicle-anchored chain: the near-end sourceEntry is the vehicle's own fill
+                    -- volume — wrong for external source resolution. Traverse to the far end of
+                    -- the chain and return whatever the last chainCoupling is connected to.
+                    local chain = partner.chain
+                    if chain ~= nil and #chain.segments > 0 then
+                        local farCoupling = chain.segments[#chain.segments].chainCoupling
+                        if farCoupling ~= nil and farCoupling.connectedPartnerCoupling ~= nil then
+                            local farPartner = farCoupling.connectedPartnerCoupling
+                            for _, pEntry in ipairs(self.registeredPlaceables) do
+                                if pEntry.storeCouplings ~= nil then
+                                    for _, sc in ipairs(pEntry.storeCouplings) do
+                                        if sc == farPartner then return pEntry.sourceEntry end
+                                    end
+                                end
+                            end
+                            for _, vEntry in ipairs(self.registeredVehicles) do
+                                for _, vc in ipairs(vEntry.couplingEntries) do
+                                    if vc == farPartner then
+                                        return self:resolveVehicleSource(vEntry.vehicle)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
                 if partner.sourceEntry ~= nil then return partner.sourceEntry end
             end
             if coupling.connectedTarget ~= nil then
