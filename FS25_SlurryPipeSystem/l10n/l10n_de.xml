@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<l10n>
+    <texts>
+        <!-- Inputs -->
+        <text name="input_SPS_TOGGLE_PUMP"              text="SPS Pumpe Ein/Aus" />
+        <text name="input_SPS_TOGGLE_FLOW"              text="SPS Durchfluss Öffnen/Schließen" />
+        <text name="input_SPS_TOGGLE_DIRECTION"         text="SPS Durchflussrichtung" />
+
+        <!-- Settings menu -->
+        <text name="sps_settingsHeader"                 text="GÜLLE-ROHRSYSTEM" />
+        <text name="sps_settingsSlurryPipe"             text="Güllerohr" />
+        <text name="sps_settingsSlurryPipeTooltip"      text="Rohrfarbe auswählen" />
+
+        <!-- Pump on/off -->
+        <text name="action_slurryPumpOn"                text="Zapfwelle: Pumpe AUS" />
+        <text name="action_slurryPumpOff"               text="Zapfwelle: Pumpe EIN" />
+
+        <!-- Valve open/close -->
+        <text name="action_slurryFlowOpen"              text="Hydraulikventil GESCHLOSSEN" />
+        <text name="action_slurryFlowClose"             text="Hydraulikventil GEÖFFNET" />
+
+        <!-- Pump direction -->
+        <text name="action_slurryDirectionFill"         text="Pumpe auf FÖRDERN eingestellt" />
+        <text name="action_slurryDirectionDischarge"    text="Pumpe auf FÜLLEN eingestellt" />
+
+        <!-- Pipe actions -->
+        <text name="action_spsConnectPipe"              text="Rohr verbinden" />
+        <text name="action_spsDisconnectOrOpenValve"    text="Trennen [R] | Ventil öffnen [R halten]" />
+        <text name="action_spsCloseValve"               text="Ventil schließen [R halten]" />
+        <text name="warning_slurryCloseValveFirst"      text="Ventil vor dem Trennen schließen" />
+        <text name="action_spsLayFirstPipe"             text="Erstes Rohr verlegen" />
+        <text name="action_spsLayPipe"                  text="Rohr verlegen | Dockingstation [R halten]" />
+        <text name="action_spsRemovePipe"               text="Rohr entfernen" />
+        <text name="action_spsRemoveDockingStation"     text="Dockingstation entfernen" />
+        <text name="action_spsDisconnectPipe"           text="Rohr trennen" />
+        <text name="action_spsFinalisePipe"             text="Rohr abschließen [R] | Abbrechen [R halten]" />
+        <text name="action_spsDeployCoupling"           text="Rohrkupplung ausfahren [R halten]" />
+        <text name="action_spsRemoveCoupling"           text="Rohrkupplung entfernen [R halten]" />
+        <text name="action_spsRearValveOpen"            text="Ventil öffnen [R]" />
+        <text name="action_spsRearValveClose"           text="Ventil schließen [R]" />
+
+        <!-- Warnings -->
+        <text name="warning_slurryNoConnection"         text="Keine aktive Gülleleitung" />
+        <text name="warning_slurryCloseFlowFirst"       text="Ventil schließen vor Richtungswechsel" />
+        <text name="warning_slurryNoPipeTarget"         text="Kein Rohranschlusspunkt in Reichweite" />
+        <text name="warning_slurryEngineOff"            text="Zuerst den Motor starten" />
+        <text name="warning_spsPipeTooShort"            text="Weiter gehen um das Rohr abzuschließen" />
+        <text name="warning_spsConnectHydraulics"       text="Zuerst Hydraulikschläuche anschließen" />
+
+        <!-- PTO Slurry Pump vehicle -->
+        <text name="function_slurryPump"                text="Güllenpumpe" />
+        <text name="typeDesc_manurePump"                text="Zapfwellen-Güllenpumpe" />
+
+        <!-- Conduit pump HUD and direction -->
+        <text name="hud_spsConduitPumped"               text="Gepumpt: %d L" />
+        <text name="action_spsConduitDirAtoB"           text="Fluss: Anschluss 1 → Anschluss 2" />
+        <text name="action_spsConduitDirBtoA"           text="Fluss: Anschluss 2 → Anschluss 1" />
+
+        <!-- Spreader valve -->
+        <text name="input_SPS_TOGGLE_SPREADER"          text="SPS Streuventil" />
+        <text name="action_spsSpreaderOpen"             text="Streuventil GESCHLOSSEN" />
+        <text name="action_spsSpreaderClose"            text="Streuventil GEÖFFNET" />
+    </texts>
+</l10n>
