@@ -3009,7 +3009,8 @@ function SlurryPipeManager:detectArmConnection(vehicle, entry, arm)
         local valveOpen   = state ~= nil and state.valveOpen or false
         local isDischarge = state ~= nil and state.direction == SPS_DIRECTION_DISCHARGE or false
         local pumpOn      = vehicle.getIsTurnedOn ~= nil and vehicle:getIsTurnedOn() or false
-        local shouldPlay  = arm.isConnected and valveOpen and isDischarge and pumpOn
+        local fillLevel   = vehicle.getFillUnitFillLevel ~= nil and vehicle:getFillUnitFillLevel(arm.fillUnitIndex) or 0
+        local shouldPlay  = arm.isConnected and valveOpen and isDischarge and pumpOn and fillLevel > 0
         if shouldPlay then
             if not arm.effectPlaying then
                 g_effectManager:setEffectTypeInfo(entry.pipeEffects, FillType.LIQUIDMANURE)
