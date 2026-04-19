@@ -1,5 +1,10 @@
 ## Fill Arm Setup
 
+Add a new folder into configs/vehicleConfigs. 
+##ATTENTION## 
+##THIS FOLDER MUST BE NAMED THE EXACT NAME OF THE VEHICLE XML OR IT WILL NOT WORK. 
+##YOU CAN ADD A FOLDER IN A FOLDER BUT THE NODETREE AND FILLPOINTS XML MUST BE INSIDE THE FOLDER THAT HAS THE VEHICLE XML NAME.
+
 1. Select the vehicle you are adding SPS to and open the example i3d, the example xml, and the vehicle xml.
 
 2. Import the vehicle into the example i3d. If the vehicle has multiple configurations, 
@@ -24,3 +29,9 @@ position and rotation as the node it is linked to, otherwise it will not work.
 move the SPS_fillArmTip01 or SPS_fillArmCentre01 to the correct position on tip of the arm. 
 
 ![SPS node dropped back to fillArms, keeping the loadingArm03 rotation and position](images/Pic6.png)
+
+6. Then remove the vehicle from the i3d and save as nodeTree.i3d in your newly created folder.
+
+7. Now add in the parts of the fillPoints xml that are relevent for you vehicle (follow other files) and add the fill speed from the veh xml.
+
+![Set fill speed from the vehicle xml](images/Pic7.png)
