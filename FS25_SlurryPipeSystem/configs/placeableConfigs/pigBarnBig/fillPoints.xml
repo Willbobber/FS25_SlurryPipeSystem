@@ -25,11 +25,13 @@
 
     <hideNodes>
         <node name="fillMaster"/>
+		<node name="fillMaster_LOD"/>
     </hideNodes>
 
     <hideCollisions>
         <node name="fillMaster"/>
         <node name="fence"/>
+		<node name="collision"/>
     </hideCollisions>
 
 </slurryPipeSystem>
