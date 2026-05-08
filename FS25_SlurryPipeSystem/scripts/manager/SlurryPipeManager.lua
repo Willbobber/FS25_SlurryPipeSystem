@@ -60,6 +60,7 @@ function SlurryPipeManager.new()
     self.chainTerminusEntries  = {}   -- chain end arcs checked in findOverlappingCoupler
     self.pendingChains              = {}   -- saved chain data waiting for anchor coupling to register
     self.pendingDeployedCouplings   = {}   -- saved deployed couplings waiting for placeable to register
+    self._pendingCouplerAnims       = {}   -- saved coupler animation states waiting to be applied
     self.pipeColors                 = {}   -- {name, r, g, b} loaded from spsColors.xml
     self.currentPipeColorIndex      = 1
     self.currentPipeColor           = { r = 0, g = 0.05, b = 0 }  -- default green until XML loads
@@ -347,7 +348,6 @@ function SlurryPipeManager:registerVehicle(vehicle)
         agitatorOnly          = xmlFile:getBool(kp .. "slurryPipeSystem#agitatorOnly", false),
         nodeTreeRoot          = nil,
         sourceEntry           = nil,
-        animationLibrary      = nil,   -- set below: per-vehicle for embedded, bundled for manifest
         xmlFileOwned          = xmlFileOwned,
         state = {
             pumpRunning       = false,
@@ -656,20 +656,12 @@ function SlurryPipeManager:registerVehicle(vehicle)
             -- Bind coupler animations if either id is declared on this coupling.
             if SPSCouplerAnimator ~= nil
             and (couplingEntry.connectorAnimationId ~= nil or couplingEntry.valveAnimationId ~= nil) then
-                if entry.animationLibrary == nil then
-                    if config.isEmbedded then
-                        -- Modder ships their own <couplerAnimations> block inside <slurryPipeSystem>
-                        entry.animationLibrary = SPSCouplerAnimator.loadFromXml(xmlFile, kp .. "slurryPipeSystem.couplerAnimations")
-                    else
-                        SPSCouplerAnimator.ensureLoaded(self.modDirectory)
-                        entry.animationLibrary = SPSCouplerAnimator._library
-                    end
-                end
+                SPSCouplerAnimator.ensureLoaded(self.modDirectory)
                 if couplingEntry.connectorAnimationId ~= nil then
-                    couplingEntry.connectorAnim = SPSCouplerAnimator.bind(couplingEntry.mountNode, couplingEntry.connectorAnimationId, entry.animationLibrary)
+                    couplingEntry.connectorAnim = SPSCouplerAnimator.bind(couplingEntry.mountNode, couplingEntry.connectorAnimationId)
                 end
                 if couplingEntry.valveAnimationId ~= nil then
-                    couplingEntry.valveAnim = SPSCouplerAnimator.bind(couplingEntry.mountNode, couplingEntry.valveAnimationId, entry.animationLibrary)
+                    couplingEntry.valveAnim = SPSCouplerAnimator.bind(couplingEntry.mountNode, couplingEntry.valveAnimationId)
                 end
             end
             table.insert(entry.couplingEntries, couplingEntry)
@@ -1152,12 +1144,6 @@ function SlurryPipeManager:registerPlaceable(placeable)
         end
     end
 
-    -- Per-placeable animation library: lazy-initialised on the first coupling
-    -- that declares an animation. Embedded configs get their own library
-    -- parsed from inline <couplerAnimations>; bundled configs share the
-    -- SPS-bundled library loaded from configs/couplerAnimations.xml.
-    local animationLibrary = nil
-
     while true do
         local cKey = string.format(kp .. "slurryPipeSystem.pipeCouplings.pipeCoupling(%d)", couplingIndex)
         if not xmlFile:hasProperty(cKey) then break end
@@ -1250,19 +1236,12 @@ function SlurryPipeManager:registerPlaceable(placeable)
             -- Bind coupler animations if either id is declared on this coupling.
             if SPSCouplerAnimator ~= nil
             and (sc.connectorAnimationId ~= nil or sc.valveAnimationId ~= nil) then
-                if animationLibrary == nil then
-                    if config.isEmbedded then
-                        animationLibrary = SPSCouplerAnimator.loadFromXml(xmlFile, kp .. "slurryPipeSystem.couplerAnimations")
-                    else
-                        SPSCouplerAnimator.ensureLoaded(self.modDirectory)
-                        animationLibrary = SPSCouplerAnimator._library
-                    end
-                end
+                SPSCouplerAnimator.ensureLoaded(self.modDirectory)
                 if sc.connectorAnimationId ~= nil then
-                    sc.connectorAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.connectorAnimationId, animationLibrary)
+                    sc.connectorAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.connectorAnimationId)
                 end
                 if sc.valveAnimationId ~= nil then
-                    sc.valveAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.valveAnimationId, animationLibrary)
+                    sc.valveAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.valveAnimationId)
                 end
             end
             -- Deployable couplings start hidden; undeployedVisibleNodes start visible
@@ -1406,7 +1385,6 @@ function SlurryPipeManager:registerPlaceable(placeable)
         pipeAnimRY       = math.rad(xmlFile:getFloat(kp .. "slurryPipeSystem.pipeAnimNode#ry", 0)),
         pipeAnimRZ       = math.rad(xmlFile:getFloat(kp .. "slurryPipeSystem.pipeAnimNode#rz", 0)),
         config           = config,
-        animationLibrary = animationLibrary,
         xmlFileOwned     = xmlFileOwned,
     }
     table.insert(self.registeredPlaceables, pEntry)
