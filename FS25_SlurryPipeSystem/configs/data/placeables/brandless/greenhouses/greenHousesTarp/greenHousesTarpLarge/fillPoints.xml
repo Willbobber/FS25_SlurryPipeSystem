@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- greenHousesTarpLarge -->
+
+<!-- FS25_SlurryPipeSystem — Placeable fillPoints.xml -->
+<!-- Author: Oscar Mods -->
+<!-- Version: 1.0.0.0 -->
+
+<slurryPipeSystem agitator="false">
+
+    <nodeTree filename="nodeTree.i3d"/>
+	
+    <pipeCouplings>
+
+        <pipeCoupling
+            id="1"
+            mountNodeName="SPS_pipeCoupler01"
+            flowDirection="BOTH"
+            valveType="MANUAL"
+            deployable="false"
+            maxPipeLength="4.0"
+			connector="male"
+			connectorAnimation="1"
+			valveAnimation="2"
+        />
+
+    </pipeCouplings>
+
+</slurryPipeSystem>

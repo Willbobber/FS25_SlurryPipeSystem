@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.11"/>
+  </Asset>
+
+  <Files>
+    <File fileId="19" filename="$data/placeables/rudolfHormann/shared/grate_diffuse.dds"/>
+    <File fileId="20" filename="$data/placeables/rudolfHormann/shared/grate_normal.dds"/>
+    <File fileId="21" filename="$data/placeables/rudolfHormann/shared/grate_specular.dds"/>
+    <File fileId="4" filename="$data/shaders/vehicleShader.xml"/>
+    <File fileId="2" filename="$data/shared/default_normal.dds"/>
+    <File fileId="3" filename="$data/shared/default_vmask.dds"/>
+    <File fileId="6" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="13" filename="$data/shared/detailLibrary/metallic/scratched_diffuse.png"/>
+    <File fileId="12" filename="$data/shared/detailLibrary/metallic/scratched_specular.png"/>
+    <File fileId="7" filename="$data/shared/detailLibrary/metallic/silverScratched_diffuse.png"/>
+    <File fileId="5" filename="$data/shared/detailLibrary/metallic/silverScratched_specular.png"/>
+    <File fileId="18" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_diffuse.png"/>
+    <File fileId="17" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_specular.png"/>
+    <File fileId="16" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubberBlack_diffuse.png"/>
+    <File fileId="15" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_normal.dds"/>
+    <File fileId="14" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_specular.dds"/>
+    <File fileId="1" filename="$data/shared/white_diffuse.dds"/>
+  </Files>
+
+
+  <Materials>
+    <Material name="black_plasticPainted_mat" materialId="5" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="17"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="18"/>
+      <CustomParameter name="colorScale" value="0.006 0.006 0.006"/>
+    </Material>
+    <Material name="brassScratched_mat" materialId="6" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="12"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="13"/>
+      <CustomParameter name="colorScale" value="0.9647 0.7913 0.3095"/>
+    </Material>
+    <Material name="grate_mat" materialId="7">
+      <Texture fileId="19"/>
+      <Normalmap fileId="20"/>
+      <Glossmap fileId="21"/>
+    </Material>
+    <Material name="rubberBlack_mat" materialId="8" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="14"/>
+      <Custommap name="detailNormal" fileId="15"/>
+      <Custommap name="detailDiffuse" fileId="16"/>
+      <CustomParameter name="porosity" value="0.5"/>
+    </Material>
+    <Material name="silverScratched_mat" materialId="9" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="5"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="7"/>
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="nodeTree.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="SPS_greenHouseGlassMedium" nodeId="19">
+      <TransformGroup name="pipeCouplers" nodeId="20">
+        <TransformGroup name="storage" translation="0 0.13 0" nodeId="21">
+          <TransformGroup name="SPS_pipeCoupler01" translation="2.13401e-07 0.389023 4.71876" rotation="164.548 2.36783e-05 180" nodeId="22">
+            <TransformGroup name="SPS_pipeCoupler01Arcs" rotation="167.434 1.82134e-05 -180" nodeId="23">
+              <TransformGroup name="SPS_pipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="24"/>
+              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="25"/>
+            </TransformGroup>
+            <Shape name="slurryPipeConnectors04Coupler" translation="-0.000715931 -0.753745 0.479437" rotation="164.548 -1.87988e-05 -180" shapeId="1" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="26" castsShadows="false" receiveShadows="false" materialIds="9,6,8">
+              <Shape name="slurryPipeConnectors04CouplerPipe01" rotation="-0 90 0" shapeId="2" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="27" castsShadows="true" receiveShadows="true" materialIds="9"/>
+              <TransformGroup name="clampHandle" nodeId="28">
+                <Shape name="clampHandle01" translation="0.0150001 0.72639 0.656515" shapeId="3" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="29" castsShadows="false" receiveShadows="false" materialIds="9,5">
+                  <Shape name="clampHandle02" translation="-0.0144154 0.0155911 -0.0473197" shapeId="4" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="30" castsShadows="false" receiveShadows="false" materialIds="9,6">
+                    <Shape name="clampHandle03" translation="-0.00180537 -0.0360379 0.114318" shapeId="5" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="31" castsShadows="false" receiveShadows="false" materialIds="9"/>
+                  </Shape>
+                </Shape>
+              </TransformGroup>
+              <TransformGroup name="valveHandle" nodeId="32">
+                <Shape name="valveHandle01" translation="0.00130626 0.883888 0.654811" shapeId="6" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="33" castsShadows="false" receiveShadows="false" materialIds="9,5">
+                  <Shape name="valveHandle02" translation="-6.52357e-06 0.0128576 -0.130984" shapeId="7" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="34" castsShadows="false" receiveShadows="false" materialIds="9"/>
+                </Shape>
+              </TransformGroup>
+            </Shape>
+            <Shape name="grate" translation="-0.000715931 -0.689993 0.497061" rotation="90 74.5477 90" shapeId="8" visibility="false" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" density="0.0001" clipDistance="150" nodeId="35" castsShadows="true" receiveShadows="true" materialIds="7"/>
+            <TransformGroup name="inNode" nodeId="36"/>
+            <TransformGroup name="outNode" rotation="0 180 0" nodeId="37"/>
+          </TransformGroup>
+        </TransformGroup>
+      </TransformGroup>
+    </TransformGroup>
+  </Scene>
+
+</i3D>

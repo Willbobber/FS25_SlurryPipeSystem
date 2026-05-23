@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<!--
+================================================================================
+  SPS Water Plane Manifest
+================================================================================
+  Maps map titles to water plane i3d file locations.
+  
+  Structure:
+    water/
+    ├── spsWaterManifest.xml        ← This file
+    ├── FS25_Witcombe/
+    │   └── SPS_waterNodes.i3d      ← Water nodes for Witcombe
+    └── FS25_Elmcreek/
+        └── SPS_waterNodes.i3d      ← Water nodes for Elmcreek
+  
+  Each entry requires:
+  - title: Exact map title from map's modDesc.xml <title><en>...</en></title>
+  - mapFolder: Folder name under water/ directory
+  
+  The i3d filename is always: SPS_waterNodes.i3d
+  Full path will be: water/{mapFolder}/SPS_waterNodes.i3d
+  
+  Example:
+    Map modDesc.xml: <title><en>Witcombe Park Farm</en></title>
+    Manifest entry:  <waterPlane title="Witcombe Park Farm" mapFolder="FS25_Witcombe"/>
+    Loaded file:     water/FS25_Witcombe/SPS_waterNodes.i3d
+  
+================================================================================
+-->
+<spsWaterManifest>
+    
+    <!-- Witcombe Park Farm -->
+    <waterPlane title="Witcombe Park Farm" mapFolder="FS25_Witcombe"/>
+    
+    <!-- Add more maps here -->
+    <!-- 
+    <waterPlane title="Elmcreek" mapFolder="FS25_Elmcreek"/>
+    <waterPlane title="Haut-Beyleron" mapFolder="FS25_HautBeyleron"/>
+    -->
+    
+</spsWaterManifest>

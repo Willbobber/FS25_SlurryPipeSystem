@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="SPS_waterNodes.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.11"/>
+  </Asset>
+
+  <Files>
+  </Files>
+
+
+  <Materials>
+  </Materials>
+
+
+  <Shapes>
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="SPS_waterNodes" nodeId="797">
+      <TransformGroup name="waterPlaneLake02" translation="26.2772 94.6 70.5886" nodeId="798">
+        <TransformGroup name="waterPlaneLake_01" translation="-88.798 0 49.7288" rotation="0 40.183 0" nodeId="799">
+          <TransformGroup name="node1" nodeId="800"/>
+          <TransformGroup name="node2" translation="95.8394 6.66134e-16 -26.1828" nodeId="801"/>
+          <TransformGroup name="node3" translation="126.871 -1.42317e-14 130.436" nodeId="802"/>
+          <TransformGroup name="node4" translation="1.00104 -5.32352e-14 112.282" nodeId="803"/>
+        </TransformGroup>
+        <TransformGroup name="waterPlaneLake_02" translation="-32.3249 0 -161.988" rotation="0 5.17106 0" nodeId="804">
+          <TransformGroup name="node1" nodeId="805"/>
+          <TransformGroup name="node2" translation="36.8534 6.66134e-16 -2.55115" nodeId="806"/>
+          <TransformGroup name="node3" translation="75.813 -1.42317e-14 122.751" nodeId="807"/>
+          <TransformGroup name="node4" translation="-7.33851 -5.32352e-14 118.5" nodeId="808"/>
+        </TransformGroup>
+        <TransformGroup name="waterPlaneLake_03" translation="-89.8715 0 61.4578" rotation="0 -49.2517 0" nodeId="809">
+          <TransformGroup name="node1" nodeId="810"/>
+          <TransformGroup name="node2" translation="102.206 6.66134e-16 -1.18734" nodeId="811"/>
+          <TransformGroup name="node3" translation="93.7161 -1.42317e-14 66.4539" nodeId="812"/>
+          <TransformGroup name="node4" translation="14.5868 -5.32352e-14 80.4522" nodeId="813"/>
+        </TransformGroup>
+        <TransformGroup name="waterPlaneLake_04" translation="-141.299 0 125.023" rotation="0 -59.9319 0" nodeId="814">
+          <TransformGroup name="node1" nodeId="815"/>
+          <TransformGroup name="node2" translation="56.9848 6.66134e-16 -1.18734" nodeId="816"/>
+          <TransformGroup name="node3" translation="52.4107 -1.42317e-14 59.0542" nodeId="817"/>
+          <TransformGroup name="node4" translation="-0.164014 -5.32352e-14 58.7769" nodeId="818"/>
+        </TransformGroup>
+        <TransformGroup name="waterPlaneLake_05" translation="-24.3597 0 154.504" rotation="0 -59.9319 0" nodeId="819">
+          <TransformGroup name="node1" nodeId="820"/>
+          <TransformGroup name="node2" translation="14.6779 6.66134e-16 -20.2681" nodeId="821"/>
+          <TransformGroup name="node3" translation="83.5197 -1.42317e-14 -28.0237" nodeId="822"/>
+          <TransformGroup name="node4" translation="-1.6424 -5.32352e-14 53.4518" nodeId="823"/>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="mainWaterPlane" translation="-401.702 70.753 902.615" nodeId="824">
+        <TransformGroup name="mainWaterPlane_01" translation="15.0625 0 7.6039" nodeId="825">
+          <TransformGroup name="node1" nodeId="826"/>
+          <TransformGroup name="node2" translation="-32.4499 0 11.3987" nodeId="827"/>
+          <TransformGroup name="node3" translation="-32.6718 0 -23.2097" nodeId="828"/>
+          <TransformGroup name="node4" translation="-14.1583 0 -18.0617" nodeId="829"/>
+        </TransformGroup>
+        <TransformGroup name="mainWaterPlane_02" translation="-17.6093 0 -15.6058" nodeId="830">
+          <TransformGroup name="node1" nodeId="831"/>
+          <TransformGroup name="node2" translation="-0.700199 0 11.3987" nodeId="832"/>
+          <TransformGroup name="node3" translation="-44.0117 0 7.85877" nodeId="833"/>
+          <TransformGroup name="node4" translation="-40.8095 0 -4.36743" nodeId="834"/>
+        </TransformGroup>
+        <TransformGroup name="mainWaterPlane_03" translation="-101.944 -7.62939e-06 -50.0907" nodeId="835">
+          <TransformGroup name="node1" nodeId="836"/>
+          <TransformGroup name="node2" translation="-11.3912 0 11.3987" nodeId="837"/>
+          <TransformGroup name="node3" translation="-13.309 0 -39.8162" nodeId="838"/>
+          <TransformGroup name="node4" translation="-0.947527 0 -50.4" nodeId="839"/>
+        </TransformGroup>
+        <TransformGroup name="mainWaterPlane_04" translation="-102.892 -7.62939e-06 -100.491" nodeId="840">
+          <TransformGroup name="node1" nodeId="841"/>
+          <TransformGroup name="node2" translation="-14.4116 0 4.88259" nodeId="842"/>
+          <TransformGroup name="node3" translation="-23.1503 0 -6.92748" nodeId="843"/>
+          <TransformGroup name="node4" translation="-17.9794 0 -19.5353" nodeId="844"/>
+        </TransformGroup>
+        <TransformGroup name="mainWaterPlane_05" translation="-120.871 -7.62939e-06 -120.026" nodeId="845">
+          <TransformGroup name="node1" nodeId="846"/>
+          <TransformGroup name="node2" translation="-9.24846 0 9.72214" nodeId="847"/>
+          <TransformGroup name="node3" translation="-40.6008 0 9.80698" nodeId="848"/>
+          <TransformGroup name="node4" translation="-41.8996 0 -3.29939" nodeId="849"/>
+        </TransformGroup>
+        <TransformGroup name="mainWaterPlane_06" translation="-162.771 -7.62939e-06 -123.325" nodeId="850">
+          <TransformGroup name="node1" nodeId="851"/>
+          <TransformGroup name="node2" translation="2.42801 0 12.5226" nodeId="852"/>
+          <TransformGroup name="node3" translation="-30.8374 0 31.1032" nodeId="853"/>
+          <TransformGroup name="node4" translation="-41.8996 0 21.9395" nodeId="854"/>
+        </TransformGroup>
+        <TransformGroup name="mainWaterPlane_07" translation="-204.67 -7.62939e-06 -101.386" rotation="0 43.4151 0" nodeId="855">
+          <TransformGroup name="node1" nodeId="856"/>
+          <TransformGroup name="node2" translation="-1.44189 0 14.54" nodeId="857"/>
+          <TransformGroup name="node3" translation="-86.3332 0 21.3151" nodeId="858"/>
+          <TransformGroup name="node4" translation="-86.6948 0 2.94056" nodeId="859"/>
+        </TransformGroup>
+        <TransformGroup name="mainWaterPlane_08" translation="-265.624 -7.62939e-06 -39.6663" rotation="0 14.8112 0" nodeId="860">
+          <TransformGroup name="node1" nodeId="861"/>
+          <TransformGroup name="node2" translation="-1.44189 0 13.5756" nodeId="862"/>
+          <TransformGroup name="node3" translation="-27.3073 0 6.93035" nodeId="863"/>
+          <TransformGroup name="node4" translation="-22.7179 0 -4.4738" nodeId="864"/>
+        </TransformGroup>
+        <TransformGroup name="mainWaterPlane_09" translation="-288.731 -7.62939e-06 -38.184" rotation="0 -27.8905 0" nodeId="865">
+          <TransformGroup name="node1" nodeId="866"/>
+          <TransformGroup name="node2" translation="-1.44189 0 11.9668" nodeId="867"/>
+          <TransformGroup name="node3" translation="-71.7153 0 0.129568" nodeId="868"/>
+          <TransformGroup name="node4" translation="-69.7524 0 -18.0078" nodeId="869"/>
+        </TransformGroup>
+        <TransformGroup name="mainWaterPlane_10" translation="-359.301 -7.62939e-06 -94.8846" rotation="0 -17.2631 0" nodeId="870">
+          <TransformGroup name="node1" nodeId="871"/>
+          <TransformGroup name="node2" translation="-1.44189 0 16.788" nodeId="872"/>
+          <TransformGroup name="node3" translation="-32.7138 0 24.4631" nodeId="873"/>
+          <TransformGroup name="node4" translation="-41.76 0 9.89111" nodeId="874"/>
+        </TransformGroup>
+        <TransformGroup name="mainWaterPlane_11" translation="-402.115 -7.62939e-06 -97.8318" rotation="0 22.3009 0" nodeId="875">
+          <TransformGroup name="node1" nodeId="876"/>
+          <TransformGroup name="node2" translation="-1.44189 0 16.788" nodeId="877"/>
+          <TransformGroup name="node3" translation="-51.658 0 20.0738" nodeId="878"/>
+          <TransformGroup name="node4" translation="-66.7295 0 2.47916" nodeId="879"/>
+        </TransformGroup>
+        <TransformGroup name="mainWaterPlane_12" translation="-461.852 -7.62939e-06 -67.6316" rotation="0 40.6744 0" nodeId="880">
+          <TransformGroup name="node1" nodeId="881"/>
+          <TransformGroup name="node2" translation="-1.44189 0 16.788" nodeId="882"/>
+          <TransformGroup name="node3" translation="-37.9881 0 22.77" nodeId="883"/>
+          <TransformGroup name="node4" translation="-41.992 0 4.14221" nodeId="884"/>
+        </TransformGroup>
+        <TransformGroup name="mainWaterPlane_13" translation="-491 -7.62939e-06 -37.1214" rotation="0 61.9576 0" nodeId="885">
+          <TransformGroup name="node1" nodeId="886"/>
+          <TransformGroup name="node2" translation="2.10732 0 17.9057" nodeId="887"/>
+          <TransformGroup name="node3" translation="-22.7652 0 22.77" nodeId="888"/>
+          <TransformGroup name="node4" translation="-30.2268 0 7.40629" nodeId="889"/>
+        </TransformGroup>
+        <TransformGroup name="mainWaterPlane_14" translation="-498.674 -7.62939e-06 -6.9613" rotation="180 76.4928 180" nodeId="890">
+          <TransformGroup name="node1" nodeId="891"/>
+          <TransformGroup name="node2" translation="2.10732 0 17.7083" nodeId="892"/>
+          <TransformGroup name="node3" translation="-18.3497 0 19.0544" nodeId="893"/>
+          <TransformGroup name="node4" translation="-30.2268 0 4.38243" nodeId="894"/>
+        </TransformGroup>
+        <TransformGroup name="mainWaterPlane_15" translation="-487.353 -7.62939e-06 21.4059" rotation="-180 39.7785 -180" nodeId="895">
+          <TransformGroup name="node1" nodeId="896"/>
+          <TransformGroup name="node2" translation="2.10732 0 17.7083" nodeId="897"/>
+          <TransformGroup name="node3" translation="-42.675 1.19696e-14 17.0097" nodeId="898"/>
+          <TransformGroup name="node4" translation="-40.6379 1.11022e-15 0.338826" nodeId="899"/>
+        </TransformGroup>
+        <TransformGroup name="mainWaterPlane_16" translation="-455.905 -7.62939e-06 47.1465" rotation="180 59.6343 180" nodeId="900">
+          <TransformGroup name="node1" nodeId="901"/>
+          <TransformGroup name="node2" translation="2.10732 6.66134e-16 15.0445" nodeId="902"/>
+          <TransformGroup name="node3" translation="-38.0382 -1.42317e-14 14.4176" nodeId="903"/>
+          <TransformGroup name="node4" translation="-27.4823 -5.32352e-14 -3.12441" nodeId="904"/>
+        </TransformGroup>
+      </TransformGroup>
+    </TransformGroup>
+  </Scene>
+
+</i3D>

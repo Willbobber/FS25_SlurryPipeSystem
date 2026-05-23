@@ -178,11 +178,16 @@ local function registerOverrides()
             if pTypeEntry.specializations ~= nil then
                 for _, spec in ipairs(pTypeEntry.specializations) do
                     if spec == PlaceableInfoTrigger then
-                        SpecializationUtil.registerOverwrittenFunction(
-                            pTypeEntry,
-                            "updateInfo",
-                            SPSPlaceableOverride.updateInfo
-                        )
+                        -- Only register if SPSPlaceableOverride.updateInfo exists
+                        if SPSPlaceableOverride ~= nil and SPSPlaceableOverride.updateInfo ~= nil then
+                            SpecializationUtil.registerOverwrittenFunction(
+                                pTypeEntry,
+                                "updateInfo",
+                                SPSPlaceableOverride.updateInfo
+                            )
+                        else
+                            print("[SPS INIT] WARNING: SPSPlaceableOverride.updateInfo not available")
+                        end
                         break
                     end
                 end
@@ -234,6 +239,9 @@ function SPSMod:loadMap(filename)
     g_slurryPipeManager:loadPipeColors(SPS_MOD_DIRECTORY)
     g_slurryPipeManager:loadVehicleConfigs(SPS_MOD_DIRECTORY)
     g_slurryPipeManager:loadPlaceableConfigs(SPS_MOD_DIRECTORY)
+
+    -- Create water plane manager (but don't load planes yet - terrain not ready)
+    g_waterPlaneManager = SPSWaterPlaneManager.new(SPS_MOD_DIRECTORY)
 
     local savePath = SlurryPipeManager.getSavePath()
     if savePath ~= nil then
@@ -292,11 +300,32 @@ function SPSMod:deleteMap()
         g_slurryPipeManager:delete()
         g_slurryPipeManager = nil
     end
+
+    -- Delete water pipe activatable
+    if g_waterPipeActivatable ~= nil then
+        g_waterPipeActivatable:delete()
+        g_waterPipeActivatable = nil
+    end
+
+    -- Delete water plane manager
+    if g_waterPlaneManager ~= nil then
+        g_waterPlaneManager:delete()
+        g_waterPlaneManager = nil
+    end
 end
 
 function SPSMod:update(dt)
     if g_slurryPipeManager ~= nil then
         g_slurryPipeManager:update(dt)
+    end
+    
+    -- Deferred water plane loading (wait for terrain to be ready)
+    if g_waterPlaneManager ~= nil and not g_waterPlaneManager.planesLoaded then
+        if g_currentMission ~= nil and g_currentMission.terrainRootNode ~= nil then
+            print("[SPS INIT] Terrain ready, loading water planes now")
+            g_waterPlaneManager:loadWaterPlanes()
+            g_waterPlaneManager.planesLoaded = true
+        end
     end
 end
 

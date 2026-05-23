@@ -81,25 +81,28 @@ Fonctionnalités:
     <l10n filenamePrefix="l10n/l10n" />
 	
 	<extraSourceFiles>
-        <sourceFile filename="scripts/util/SlurryDebug.lua" />
+        <sourceFile filename="scripts/util/SlurryAgitatorEvent.lua"/>
+		<sourceFile filename="scripts/util/SlurryDebug.lua" />
         <sourceFile filename="scripts/util/SlurryNodeUtil.lua" />
-        <sourceFile filename="scripts/util/SPSEvents.lua" />
-		<sourceFile filename="scripts/util/SPSPipeVisual.lua"/>
+        <sourceFile filename="scripts/util/SPSChainActivatable.lua"/>
+		<sourceFile filename="scripts/util/SPSConduitHUDExtension.lua"/>
+		<sourceFile filename="scripts/util/SPSCouplerAnimator.lua"/>
+		<sourceFile filename="scripts/util/SPSCrustVegetation.lua"/>
+		<sourceFile filename="scripts/util/SPSEvents.lua" />
 		<sourceFile filename="scripts/util/SPSPipeActivatable.lua"/>
 		<sourceFile filename="scripts/util/SPSPipeChain.lua"/>
-		<sourceFile filename="scripts/util/SPSChainActivatable.lua"/>
-		<sourceFile filename="scripts/util/SPSCouplerAnimator.lua"/>
+		<sourceFile filename="scripts/util/SPSPipeVisual.lua"/>
 		<sourceFile filename="scripts/util/SPSPumpControlActivatable.lua"/>
-		<sourceFile filename="scripts/util/SPSConduitHUDExtension.lua"/>
-		<sourceFile filename="scripts/util/SlurryAgitatorEvent.lua"/>
-		<sourceFile filename="scripts/util/SPSCrustVegetation.lua"/>
+		
 		<sourceFile filename="scripts/specializations/SlurryAgitator.lua"/>
+		
+		<sourceFile filename="scripts/water/SPSWaterPlaneManager.lua"/>
 		
         <sourceFile filename="scripts/manager/SlurryPipeManager.lua" />
 
         <sourceFile filename="scripts/overrides/ManureBarrelOverride.lua" />
         <sourceFile filename="scripts/overrides/PlaceableOverride.lua" />
-
+		
         <sourceFile filename="scripts/init.lua" />
 		
 	</extraSourceFiles>

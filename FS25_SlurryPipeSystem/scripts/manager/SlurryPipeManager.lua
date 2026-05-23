@@ -816,6 +816,17 @@ function SlurryPipeManager:registerVehicle(vehicle)
         end
     end
 
+    -- Add WATER fillType support for water intake via fill arms
+    -- (SPS-registered vehicles can load water from lakes/ponds using arms)
+    if vehicle.spec_fillUnit ~= nil then
+        for _, fillUnit in ipairs(vehicle.spec_fillUnit.fillUnits) do
+            if fillUnit.supportedFillTypes ~= nil then
+                fillUnit.supportedFillTypes[FillType.WATER] = true
+            end
+        end
+        SlurryDebug.log("registerVehicle - added WATER fillType support to " .. tostring(vehicle.configFileName))
+    end
+
     table.insert(self.registeredVehicles, entry)
     if entry.xmlFileOwned then xmlFile:delete() end
     SlurryDebug.log("SlurryPipeManager:registerVehicle - registered " .. tostring(vehicle.configFileName))
@@ -1608,7 +1619,8 @@ function SlurryPipeManager:saveCouplingConnections(savePath)
     -- Save deployed couplings
     local deployIdx = 0
     for _, pEntry in ipairs(self.registeredPlaceables) do
-        for _, sc in ipairs(pEntry.storeCouplings) do
+        if pEntry.storeCouplings ~= nil then
+            for _, sc in ipairs(pEntry.storeCouplings) do
             if sc.deployable and sc.isDeployed and sc.mountNode ~= nil then
                 local wx, wy, wz = getWorldTranslation(sc.mountNode)
                 local base = string.format("slurryPipeSystem.deployedCouplings.coupling(%d)", deployIdx)
@@ -1619,6 +1631,7 @@ function SlurryPipeManager:saveCouplingConnections(savePath)
                 deployIdx = deployIdx + 1
             end
         end
+        end  -- Close if pEntry.storeCouplings ~= nil
     end
 
     xmlFile:setInt("slurryPipeSystem#selectedColorIndex", self.currentPipeColorIndex)
@@ -1683,7 +1696,9 @@ function SlurryPipeManager:saveCouplingConnections(savePath)
         for _, c in ipairs(vEntry.couplingEntries) do saveCouplingAnim(c, "vehicle") end
     end
     for _, pEntry in ipairs(self.registeredPlaceables) do
-        for _, c in ipairs(pEntry.storeCouplings) do saveCouplingAnim(c, "placeable") end
+        if pEntry.storeCouplings ~= nil then
+            for _, c in ipairs(pEntry.storeCouplings) do saveCouplingAnim(c, "placeable") end
+        end
     end
     for _, c in ipairs(self.chainTerminusEntries) do saveCouplingAnim(c, "chain") end
 
@@ -3478,7 +3493,8 @@ function SlurryPipeManager:update(dt)
  
     -- Drive placeable inlet effects per-coupling — only fires for couplings that have effects declared
     for _, pEntry in ipairs(self.registeredPlaceables) do
-        for _, sc in ipairs(pEntry.storeCouplings) do
+        if pEntry.storeCouplings ~= nil then
+            for _, sc in ipairs(pEntry.storeCouplings) do
             if sc.pipeEffects ~= nil then
                 local shouldPlay = false
                 if sc.isConnected and sc.connectedPartnerCoupling ~= nil then
@@ -3641,6 +3657,7 @@ function SlurryPipeManager:update(dt)
                 end
             end
         end
+        end  -- Close if pEntry.storeCouplings ~= nil
     end
  
     -- Resolve vehicle sources (retry each tick until ready)
@@ -3669,6 +3686,7 @@ function SlurryPipeManager:update(dt)
         local cabValveOpen    = entry.state ~= nil and entry.state.valveOpen or false
         local hasCouplingFlow = self:hasActiveCouplingConnection(vehicle)
         local needsSession    = cabValveOpen or hasCouplingFlow
+        
         if needsSession then
             if self.activeFlows[vehicle] == nil then
                 local session = self:buildFlowSession(vehicle)
@@ -3835,6 +3853,34 @@ function SlurryPipeManager:detectArmConnection(vehicle, entry, arm)
                 newConnected = true
                 foundSource  = sourceEntry
                 break
+            end
+        end
+    end
+
+    -- Water plane detection (only if not already connected)
+    if supportsOpenPit and not newConnected and arm.centreNode ~= nil and g_waterPlaneManager ~= nil then
+        local THRESHOLD = 0.08
+        local centreX, centreY, centreZ = getWorldTranslation(arm.centreNode)
+        
+        -- Find water plane at this position
+        local waterPlane = g_waterPlaneManager:findWaterPlaneAtPosition(centreX, centreZ)
+        
+        if waterPlane ~= nil then
+            local valid = false
+            
+            if direction == SPS_DIRECTION_FILL then
+                -- Fill: centre node must be below water surface (submerged)
+                valid = centreY < waterPlane.waterY - THRESHOLD
+            else
+                -- Discharge: centre node must be above water surface
+                valid = centreY > waterPlane.waterY + THRESHOLD
+            end
+            
+            if valid then
+                -- Create infinite water source
+                local waterSource = g_waterPlaneManager:createWaterSource(waterPlane)
+                newConnected = true
+                foundSource = waterSource
             end
         end
     end
@@ -4026,6 +4072,14 @@ function SlurryPipeManager:tickFlow(session, dt)
 
     local fillType = vehicle:getFillUnitFillType(session.vehicleFillUnit)
     if fillType == nil or fillType == FillType.UNKNOWN then fillType = FillType.LIQUIDMANURE end
+    
+    -- If connected to water source via arm, override fillType to WATER
+    if isArmActive and state.direction == SPS_DIRECTION_FILL then
+        local extSrc = self:resolveExternalSource(vehicle)
+        if extSrc ~= nil and extSrc.type == 3 then  -- SPSWaterPlaneManager.SOURCE_TYPE_WATER
+            fillType = FillType.WATER
+        end
+    end
 
     if isArmActive then
         -- Fill arm: requires both cab hydraulic valve open AND pump running
@@ -4208,6 +4262,11 @@ end
 function SlurryPipeManager:transferFill(vehicle, session, delta, fillType)
     local extSource = self:resolveExternalSource(vehicle)
     if extSource == nil then return end
+    
+    -- Force fillType to WATER when filling from water source
+    if extSource.type == 3 then
+        fillType = FillType.WATER
+    end
 
     local sourceLevel = 0
     if extSource.type == SlurryNodeUtil.SOURCE_TYPE_FILL_VOLUME or extSource.type == "FILL_UNIT_ONLY" then
@@ -4218,6 +4277,8 @@ function SlurryPipeManager:transferFill(vehicle, session, delta, fillType)
         if extSource.storage ~= nil then
             sourceLevel = extSource.storage:getFillLevel(fillType) or 0
         end
+    elseif extSource.type == 3 then  -- Water source (infinite)
+        sourceLevel = 999999  -- Infinite water source
     end
 
     if sourceLevel <= 0 then return end
@@ -4244,6 +4305,8 @@ function SlurryPipeManager:transferDischarge(vehicle, session, delta, fillType)
         if extDest.storage ~= nil then
             freeCapacity = extDest.storage:getFreeCapacity(fillType) or 0
         end
+    elseif extDest.type == 3 then  -- Water source (infinite capacity)
+        freeCapacity = 999999  -- Infinite capacity
     end
 
     if freeCapacity <= 0 then return end
@@ -4335,19 +4398,37 @@ function SlurryPipeManager:resolveExternalSource(vehicle)
                     local chain = partner.chain
                     if chain ~= nil and #chain.segments > 0 then
                         local farCoupling = chain.segments[#chain.segments].chainCoupling
-                        if farCoupling ~= nil and farCoupling.connectedPartnerCoupling ~= nil then
-                            local farPartner = farCoupling.connectedPartnerCoupling
-                            for _, pEntry in ipairs(self.registeredPlaceables) do
-                                if pEntry.storeCouplings ~= nil then
-                                    for _, sc in ipairs(pEntry.storeCouplings) do
-                                        if sc == farPartner then return pEntry.sourceEntry end
+                        if farCoupling ~= nil then
+                            -- Check if far end is connected to something
+                            if farCoupling.connectedPartnerCoupling ~= nil then
+                                local farPartner = farCoupling.connectedPartnerCoupling
+                                for _, pEntry in ipairs(self.registeredPlaceables) do
+                                    if pEntry.storeCouplings ~= nil then
+                                        for _, sc in ipairs(pEntry.storeCouplings) do
+                                            if sc == farPartner then return pEntry.sourceEntry end
+                                        end
                                     end
                                 end
-                            end
-                            for _, vEntry in ipairs(self.registeredVehicles) do
-                                for _, vc in ipairs(vEntry.couplingEntries) do
-                                    if vc == farPartner then
-                                        return self:resolveVehicleSource(vEntry.vehicle)
+                                for _, vEntry in ipairs(self.registeredVehicles) do
+                                    for _, vc in ipairs(vEntry.couplingEntries) do
+                                        if vc == farPartner then
+                                            return self:resolveVehicleSource(vEntry.vehicle)
+                                        end
+                                    end
+                                end
+                            else
+                                -- Far end not connected to anything - check if it's in water
+                                if farCoupling.mountNode ~= nil and entityExists(farCoupling.mountNode) then
+                                    local fx, fy, fz = getWorldTranslation(farCoupling.mountNode)
+                                    if g_waterPlaneManager ~= nil then
+                                        local waterPlane = g_waterPlaneManager:findWaterPlaneAtPosition(fx, fz)
+                                        if waterPlane ~= nil then
+                                            return {
+                                                type = 3,
+                                                storage = waterPlane,
+                                                waterPlane = waterPlane
+                                            }
+                                        end
                                     end
                                 end
                             end
@@ -4367,9 +4448,58 @@ function SlurryPipeManager:resolveExternalSource(vehicle)
             end
         end
     end
-
-    print("[SPS] resolveExternalSource: no source found for " .. tostring(vehicle.configFileName)
-        .. " (no arm/coupling active with valve open)")
+    
+    -- Check strap pipe free end for water (before declaring no source found)
+    for _, coupling in ipairs(entry.couplingEntries) do
+        if coupling.pipeId ~= nil and coupling.valveOpen then
+            local pipeData = self.activePipes[coupling.pipeId]
+            if pipeData ~= nil then
+                -- Determine which end is the free end
+                local freeEndCoupling = nil
+                
+                -- Check if coupling A is from this vehicle
+                local aIsThisVehicle = false
+                for _, vEntry in ipairs(self.registeredVehicles) do
+                    if vEntry.vehicle == vehicle then
+                        for _, vc in ipairs(vEntry.couplingEntries) do
+                            if vc == pipeData.couplingA then
+                                aIsThisVehicle = true
+                                break
+                            end
+                        end
+                        break
+                    end
+                end
+                
+                -- If A is this vehicle's coupling, then B is the free end
+                if aIsThisVehicle then
+                    freeEndCoupling = pipeData.couplingB
+                else
+                    freeEndCoupling = pipeData.couplingA
+                end
+                
+                -- Check if free end is in water
+                if freeEndCoupling ~= nil then
+                    if freeEndCoupling.mountNode ~= nil and entityExists(freeEndCoupling.mountNode) then
+                        local fx, fy, fz = getWorldTranslation(freeEndCoupling.mountNode)
+                        
+                        if g_waterPlaneManager ~= nil then
+                            local waterPlane = g_waterPlaneManager:findWaterPlaneAtPosition(fx, fz)
+                            if waterPlane ~= nil then
+                                return {
+                                    type = 3,
+                                    storage = waterPlane,
+                                    waterPlane = waterPlane
+                                }
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    -- No source found - this is normal when pump runs without valid connection
     return nil
 end
 
@@ -4385,6 +4515,9 @@ function SlurryPipeManager:removeFromSource(sourceEntry, amount, fillType, farmV
         if storage ~= nil then
             storage:setFillLevel(math.max(0, (storage:getFillLevel(fillType) or 0) - amount), fillType)
         end
+    elseif sourceEntry.type == 3 then  -- Water source (infinite)
+        -- Water planes have infinite capacity, no removal needed
+        -- Visual/sound effects could be added here
     end
 end
 
@@ -4402,5 +4535,7 @@ function SlurryPipeManager:addToSource(sourceEntry, amount, fillType, farmVehicl
             local toAdd = math.min(amount, free)
             if toAdd > 0 then storage:setFillLevel((storage:getFillLevel(fillType) or 0) + toAdd, fillType) end
         end
+    elseif sourceEntry.type == 3 then  -- Water source (infinite capacity)
+        -- Water returns to water plane (infinite capacity, no action needed)
     end
 end

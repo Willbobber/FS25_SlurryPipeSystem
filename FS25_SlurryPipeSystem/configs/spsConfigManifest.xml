@@ -71,7 +71,34 @@
 		<placeable path="data/placeables/planET/bga99kw/bga99kw.xml"/>
 		<placeable path="data/placeables/planET/bga250kw/bga250kw.xml"/>
 		<placeable path="data/placeables/planET/bga500kw/bga500kw.xml"/>
-
+		
+		<!-- Greenhouses - Glass -->
+		<placeable path="data/placeables/brandless/greenhouses/greenHouseGlass/greenHouseGlassLarge.xml"
+			configFolder="data/placeables/brandless/greenhouses/greenHouseGlass/greenHouseGlassLarge"/>
+		<placeable path="data/placeables/brandless/greenhouses/greenHouseGlass/greenHouseGlassMedium.xml"
+			configFolder="data/placeables/brandless/greenhouses/greenHouseGlass/greenHouseGlassMedium"/>
+		<placeable path="data/placeables/brandless/greenhouses/greenHouseGlass/greenHouseGlassSmall.xml"
+			configFolder="data/placeables/brandless/greenhouses/greenHouseGlass/greenHouseGlassSmall"/>
+		
+		<!-- Greenhouses - Mushrooms -->
+		<placeable path="data/placeables/brandless/greenhouses/greenHouseMushrooms/greenHouseMushroomsLarge.xml"
+			configFolder="data/placeables/brandless/greenhouses/greenHouseMushrooms/greenHouseMushroomsLarge"/>
+		<placeable path="data/placeables/brandless/greenhouses/greenHouseMushrooms/greenHouseMushroomsMedium.xml"
+			configFolder="data/placeables/brandless/greenhouses/greenHouseMushrooms/greenHouseMushroomsMedium"/>
+		<placeable path="data/placeables/brandless/greenhouses/greenHouseMushrooms/greenHouseMushroomsSmall.xml"
+			configFolder="data/placeables/brandless/greenhouses/greenHouseMushrooms/greenHouseMushroomsSmall"/>
+		
+		<!-- Greenhouses - Saplings (single variant) -->
+		<placeable path="data/placeables/brandless/greenhouses/greenHousesSaplings/greenHousesSaplings.xml"/>
+		
+		<!-- Greenhouses - Tarp -->
+		<placeable path="data/placeables/brandless/greenhouses/greenHousesTarp/greenHousesTarpLarge.xml"
+			configFolder="data/placeables/brandless/greenhouses/greenHousesTarp/greenHousesTarpLarge"/>
+		<placeable path="data/placeables/brandless/greenhouses/greenHousesTarp/greenHousesTarpMedium.xml"
+			configFolder="data/placeables/brandless/greenhouses/greenHousesTarp/greenHousesTarpMedium"/>
+		<placeable path="data/placeables/brandless/greenhouses/greenHousesTarp/greenHousesTarpSmall.xml"
+			configFolder="data/placeables/brandless/greenhouses/greenHousesTarp/greenHousesTarpSmall"/>
+		
         <!-- Mod placeables -->
         <placeable path="FS25_mrhLiquidManureTank/liquidManureTank.xml"
                    configFolder="mods/FS25_mrhLiquidManureTank/liquidManureTank"/>

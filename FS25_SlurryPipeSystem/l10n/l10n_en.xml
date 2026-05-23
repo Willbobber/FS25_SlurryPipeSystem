@@ -70,5 +70,17 @@
         <text name="action_spsAgitatorOff"              text="Agitator: ON — PTO running" />
         <text name="warning_spsAgitatorNotSubmerged"    text="Agitator not submerged" />
         <text name="sps_infoThicknessTitle"             text="Slurry Thickness" />
+		
+		<!-- Water -->
+		<text name="action_spsDeployWaterPipe"			text="Hold R: Deploy Water Pipe" />
+		<text name="action_spsFinalizeWaterPipe"		text="Hold R: Finalize Water Pipe" />
+		<text name="action_spsCancelWaterPipe"			text="Hold R: Cancel Placement" />
+		<text name="action_spsRemoveWaterPipe"			text="Hold R: Remove Water Pipe" />
+		<text name="info_spsPipeWalkToWater"			text="Walk toward water to place pipe" />
+		<text name="info_spsPipeDeployed"				text="Water pipe deployed" />
+		<text name="info_spsPipeCancelled"				text="Pipe placement cancelled" />
+		<text name="info_spsPipeRemoved"				text="Water pipe removed" />
+		<text name="warning_spsPipeTooShort"			text="Pipe too short (minimum 2m)" />
+		<text name="warning_spsPipeTooLong"				text="Pipe too long (maximum 20m)" />
     </texts>
 </l10n>
