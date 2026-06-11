@@ -10,6 +10,8 @@
 
     <flow fillLitersPerSecond="300" emptyLitersPerSecond="900"/>
 	
+	<spreaderAnimation name="sprayerAnimation1" stopDelay="1.5"/>
+	
 	<pump pumpType="vacuum"/>     <!-- vacuum/HVP/conduit/openTop -->
 	
 	<!-- Pressure section optional. Omit entirely to use the SPS defaults shown below.

@@ -30,20 +30,39 @@ function SlurryPipeSystemOverride.isHydraulicsConnected(vehicle)
 end
 
 -- ---------------------------------------------------------------------------
--- isAIControlled
--- Returns true when the vehicle (or its root) is being driven by an AI worker.
--- Uses the canonical Giants method getIsAIActive() from AIJobVehicle which is
--- automatically synced across server/clients via AIJobVehicleStateEvent.
+-- isAIControlled — [SPS AI GATE]
+-- Returns true when the vehicle (or its root) is being driven by ANY AI:
+--   1. Vanilla AI worker — AIJobVehicle:getIsAIActive() is true while a job is
+--      assigned (spec_aiJobVehicle.job ~= nil), synced via AIJobVehicleStateEvent.
+--   2. Courseplay — runs through the Giants job system: CpAIWorker:getIsCpActive()
+--      = getIsAIActive() and job:is_a(CpAIJob), so the getIsAIActive() check
+--      already covers CP (verified against CpAIWorker.lua).
+--   3. AutoDrive — AD OVERWRITES getIsAIActive on every vehicle to additionally
+--      return true while ad.stateModule:isActive() (verified against AD
+--      Specialization.lua line 56 / 1770), so the getIsAIActive() check already
+--      covers AD too.
+-- Direct CP/AD checks are kept below as belt-and-braces in case a future version
+-- of either mod stops reporting through getIsAIActive. Both APIs verified
+-- against current source.
 --
--- Used by activatables to hide player walk-up triggers on AI vehicles. The
--- primary AI bypass is in SlurryPipeManager (isRegistered / isSprayerVehicleRegistered
--- / findSprayerVehicleConfigForVehicle all return falsy for AI vehicles, so every
--- override automatically falls through to vanilla).
+-- Used by the activatables (hide player walk-up triggers), by every overwritten
+-- function in this file (full vanilla pass-through while AI drives), and by
+-- SlurryPipeManager:updateAIGate (per-tick suspend/resume transitions).
 -- ---------------------------------------------------------------------------
 function SlurryPipeSystemOverride.isAIControlled(vehicle)
     if vehicle == nil then return false end
     local root = vehicle.getRootVehicle ~= nil and vehicle:getRootVehicle() or vehicle
-    if root ~= nil and root.getIsAIActive ~= nil and root:getIsAIActive() then
+    if root == nil then return false end
+    if root.getIsAIActive ~= nil and root:getIsAIActive() then
+        return true
+    end
+    -- Courseplay (belt-and-braces — see header)
+    if root.getIsCpActive ~= nil and root:getIsCpActive() then
+        return true
+    end
+    -- AutoDrive (belt-and-braces — see header)
+    if root.ad ~= nil and root.ad.stateModule ~= nil
+       and root.ad.stateModule.isActive ~= nil and root.ad.stateModule:isActive() then
         return true
     end
     return false
@@ -103,6 +122,11 @@ end
 -- When attached to an SPS registered tanker, spreading is only allowed when
 -- the tanker pump is running AND the spreader valve is open.
 function SlurryPipeSystemOverride.getIsWorkAreaActiveAttached(self, superFunc, workArea)
+    -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control:
+    -- full vanilla pass-through, SPS does not interfere.
+    if SlurryPipeSystemOverride.isAIControlled(self) then
+        return superFunc(self, workArea)
+    end
     if g_slurryPipeManager ~= nil and self.getAttacherVehicle ~= nil then
         local attacher = self:getAttacherVehicle()
         if attacher ~= nil and g_slurryPipeManager:isRegistered(attacher) then
@@ -152,6 +176,11 @@ end
 -- Same override for manureBarrel/manureTrailer types that have their own built-in
 -- sprayer (e.g. Cobra) — checks the vehicle's own SPS state.
 function SlurryPipeSystemOverride.getIsWorkAreaActiveSelf(self, superFunc, workArea)
+    -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control:
+    -- full vanilla pass-through, SPS does not interfere.
+    if SlurryPipeSystemOverride.isAIControlled(self) then
+        return superFunc(self, workArea)
+    end
     if g_slurryPipeManager ~= nil and g_slurryPipeManager:isRegistered(self) then
         local state = g_slurryPipeManager:getVehicleState(self)
         if state ~= nil then
@@ -207,6 +236,11 @@ end
 -- deactivates — so the spray tapers off and stops cleanly. Exempt endpoints (open-top
 -- FRC, fert/herb) fall back to pump state inside the helper and so behave as vanilla.
 function SlurryPipeSystemOverride.getIsFillUnitActive(self, superFunc, fillUnitIndex)
+    -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control:
+    -- full vanilla pass-through, SPS does not interfere.
+    if SlurryPipeSystemOverride.isAIControlled(self) then
+        return superFunc(self, fillUnitIndex)
+    end
     if g_slurryPipeManager ~= nil and g_slurryPipeManager:isRegistered(self)
        and not g_slurryPipeManager:isSpreaderImplement(self) then
         if g_slurryPipeManager:vehicleHasSpreader(self) then
@@ -221,6 +255,11 @@ function SlurryPipeSystemOverride.getIsFillUnitActive(self, superFunc, fillUnitI
 end
 
 function SlurryPipeSystemOverride.getIsDischargeNodeActiveAttached(self, superFunc, dischargeNode)
+    -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control:
+    -- full vanilla pass-through, SPS does not interfere.
+    if SlurryPipeSystemOverride.isAIControlled(self) then
+        return superFunc(self, dischargeNode)
+    end
     if g_slurryPipeManager ~= nil and self.getAttacherVehicle ~= nil then
         local attacher = self:getAttacherVehicle()
         if attacher ~= nil and g_slurryPipeManager:isRegistered(attacher) then
@@ -245,6 +284,11 @@ function SlurryPipeSystemOverride.getIsDischargeNodeActiveAttached(self, superFu
 end
 
 function SlurryPipeSystemOverride.getCanToggleDischargeToGround(self, superFunc)
+    -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control:
+    -- full vanilla pass-through, SPS does not interfere.
+    if SlurryPipeSystemOverride.isAIControlled(self) then
+        return superFunc(self)
+    end
     if g_slurryPipeManager ~= nil then
         if g_slurryPipeManager:isRegistered(self) then return false end
         if g_slurryPipeManager:findSprayerVehicleConfigForVehicle(self) ~= nil then return false end
@@ -253,6 +297,11 @@ function SlurryPipeSystemOverride.getCanToggleDischargeToGround(self, superFunc)
 end
 
 function SlurryPipeSystemOverride.getCanToggleDischargeToObject(self, superFunc)
+    -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control:
+    -- full vanilla pass-through, SPS does not interfere.
+    if SlurryPipeSystemOverride.isAIControlled(self) then
+        return superFunc(self)
+    end
     if g_slurryPipeManager ~= nil then
         if g_slurryPipeManager:isRegistered(self) then return false end
         if g_slurryPipeManager:findSprayerVehicleConfigForVehicle(self) ~= nil then return false end
@@ -262,6 +311,11 @@ end
 
 
 function SlurryPipeSystemOverride.getAllowLoadTriggerActivation(self, superFunc, rootVehicle)
+    -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control:
+    -- full vanilla pass-through, SPS does not interfere.
+    if SlurryPipeSystemOverride.isAIControlled(self) then
+        return superFunc(self, rootVehicle)
+    end
     if g_slurryPipeManager ~= nil then
         if g_slurryPipeManager:isRegistered(self) then return false end
         if g_slurryPipeManager:findSprayerVehicleConfigForVehicle(self) ~= nil then return false end
@@ -270,6 +324,11 @@ function SlurryPipeSystemOverride.getAllowLoadTriggerActivation(self, superFunc,
 end
 
 function SlurryPipeSystemOverride.getDrawFirstFillText(self, superFunc)
+    -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control:
+    -- full vanilla pass-through, SPS does not interfere.
+    if SlurryPipeSystemOverride.isAIControlled(self) then
+        return superFunc(self)
+    end
     if g_slurryPipeManager ~= nil and g_slurryPipeManager:isRegistered(self) then
         return false
     end
@@ -277,6 +336,11 @@ function SlurryPipeSystemOverride.getDrawFirstFillText(self, superFunc)
 end
 
 function SlurryPipeSystemOverride.getCanToggleTurnedOn(self, superFunc)
+    -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control:
+    -- full vanilla pass-through, SPS does not interfere.
+    if SlurryPipeSystemOverride.isAIControlled(self) then
+        return superFunc(self)
+    end
     if g_slurryPipeManager ~= nil then
         -- Sprayer-config-registered vehicles (and their attached implements) use
         -- a separate control flow (SPSSprayerPumpControl); never intercept their
@@ -311,6 +375,11 @@ function SlurryPipeSystemOverride.getCanToggleTurnedOn(self, superFunc)
 end
 
 function SlurryPipeSystemOverride.getIsDischargeNodeActive(self, superFunc, dischargeNode)
+    -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control:
+    -- full vanilla pass-through, SPS does not interfere.
+    if SlurryPipeSystemOverride.isAIControlled(self) then
+        return superFunc(self, dischargeNode)
+    end
     -- A spreader implement (dribble bar) is driven via the ATTACHED override against its
     -- tanker's state, not its own — fall through so it isn't gated on a phantom self state.
     if g_slurryPipeManager == nil or not g_slurryPipeManager:isRegistered(self)
@@ -336,6 +405,11 @@ function SlurryPipeSystemOverride.getIsDischargeNodeActive(self, superFunc, disc
 end
 
 function SlurryPipeSystemOverride.setIsTurnedOn(self, superFunc, isTurnedOn, noEventSend)
+    -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control:
+    -- full vanilla pass-through, SPS does not interfere.
+    if SlurryPipeSystemOverride.isAIControlled(self) then
+        return superFunc(self, isTurnedOn, noEventSend)
+    end
     if g_slurryPipeManager ~= nil and g_slurryPipeManager:isRegistered(self)
        and not g_slurryPipeManager:isSpreaderImplement(self) then
         if g_slurryPipeManager:vehicleHasSpreader(self) then
@@ -356,10 +430,47 @@ function SlurryPipeSystemOverride.setIsTurnedOn(self, superFunc, isTurnedOn, noE
             end
         end
     end
-    superFunc(self, isTurnedOn, noEventSend)
+
+    -- [SPS #2] Seamless rear-effect across the PTO-off transition.
+    -- Turning off raises onTurnedOff, and under PF that calls stopEffects on the spray
+    -- effect — halting particle EMISSION for an instant, which leaves a visible break in
+    -- the stream that no restart-after can hide. So we PREVENT the stop: while we are
+    -- entering / in a stored-pressure taper, make getIsTurnedOn() report true for the
+    -- DURATION of superFunc only. PF's onTurnedOff then recomputes the effect as "on" and
+    -- never stops it. The real turn state is still set false and synced inside superFunc,
+    -- so the green icon, PTO and pump sound turn off exactly as before — only the spray
+    -- effect is kept alive. No-op without PF or when not tapering.
+    local keepEffect = false
+    if isTurnedOn == false and g_slurryPipeManager ~= nil
+       and self.getIsPrecisionSprayingRequired ~= nil
+       and g_slurryPipeManager:isRegistered(self)
+       and not g_slurryPipeManager:isSpreaderImplement(self)
+       and g_slurryPipeManager:vehicleHasSpreader(self)
+       and not g_slurryPipeManager:isShearBoltSnapped(self) then   -- never interfere with the snap/repair path
+        local tState = g_slurryPipeManager:getVehicleState(self)
+        if tState ~= nil and tState.spreaderValveOpen == true
+           and g_slurryPipeManager:isSpreaderDischargeActive(self) then
+            keepEffect = true
+        end
+    end
+
+    if keepEffect then
+        local saved = rawget(self, "getIsTurnedOn")
+        rawset(self, "getIsTurnedOn", function() return true end)
+        superFunc(self, isTurnedOn, noEventSend)
+        rawset(self, "getIsTurnedOn", saved)
+        self._spsPfEffectOn = true   -- effect kept alive; manager update() maintains/stops it
+    else
+        superFunc(self, isTurnedOn, noEventSend)
+    end
 end
 
 function SlurryPipeSystemOverride.getCanBeTurnedOn(self, superFunc)
+    -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control:
+    -- full vanilla pass-through, SPS does not interfere.
+    if SlurryPipeSystemOverride.isAIControlled(self) then
+        return superFunc(self)
+    end
     if g_slurryPipeManager ~= nil then
         -- Sprayer-config-registered vehicles (and their attached implements) use
         -- a separate control flow (SPSSprayerPumpControl); never intercept their
@@ -473,6 +584,11 @@ end
 -- Without this, vanilla Sprayer.doCheckSpeedLimit drops the cap as soon as turnOn
 -- goes false and the vehicle speeds up mid-discharge. Applies to both pump types.
 function SlurryPipeSystemOverride.doCheckSpeedLimit(self, superFunc)
+    -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control:
+    -- full vanilla pass-through, SPS does not interfere.
+    if SlurryPipeSystemOverride.isAIControlled(self) then
+        return superFunc(self)
+    end
     local controller = resolveSpreadController(self)
     if controller ~= nil then
         return true
@@ -487,6 +603,11 @@ end
 -- reading (mult 0) so the tractor isn't pinned to a zero speed limit (nothing spreads
 -- at that point anyway).
 function SlurryPipeSystemOverride.getRawSpeedLimit(self, superFunc)
+    -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control:
+    -- full vanilla pass-through, SPS does not interfere.
+    if SlurryPipeSystemOverride.isAIControlled(self) then
+        return superFunc(self)
+    end
     local base = superFunc(self)
     local controller, mult = resolveSpreadController(self)
     if controller ~= nil and mult ~= nil and mult > 0 and base ~= nil then
@@ -508,16 +629,48 @@ end
 -- calc (vanilla superFunc), exactly as an ordinary slurry bar behaves.
 --
 -- Falls through to plain vanilla for any vehicle SPS is not currently governing.
+-- Shared "always turned on" stub for scoped Precision Farming compatibility shims.
+local function spsAlwaysTurnedOn()
+    return true
+end
+
 function SlurryPipeSystemOverride.getSprayerUsage(self, superFunc, fillType, dt)
-    local base = superFunc(self, fillType, dt)
+    -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control:
+    -- full vanilla pass-through, SPS does not interfere.
+    if SlurryPipeSystemOverride.isAIControlled(self) then
+        return superFunc(self, fillType, dt)
+    end
+    local controller, mult = resolveSpreadController(self)
+    if controller == nil or mult == nil then
+        -- Not governed by SPS spreading (fert/herb sprayer, or not discharging).
+        return superFunc(self, fillType, dt)
+    end
+
+    -- Precision Farming compatibility / stored-pressure taper.
+    -- PF's ExtendedSprayer:getSprayerUsage only applies its metered (nitrogen/pH-map) rate
+    -- WHEN self:getIsTurnedOn() is true; turned off it returns the raw vanilla usage, which
+    -- is ~10x larger. SPS deliberately spreads with the implement turned OFF during the
+    -- stored-pressure taper (PTO off, green icon off, pressure still pushing slurry out), so
+    -- without intervention PF would drain the tank ~10x too fast the instant the PTO dropped.
+    -- We scope a getIsTurnedOn=true shim around ONLY this superFunc call, so PF meters as if
+    -- turned on while the REAL turnOn state (and therefore the green icon, PTO engagement and
+    -- sound) is left untouched. Vanilla getSprayerUsage never reads getIsTurnedOn, so this is
+    -- a no-op without PF — behaviour is identical with or without Precision Farming.
+    local base
+    local realOn = (self.getIsTurnedOn ~= nil) and self:getIsTurnedOn()
+    if not realOn then
+        local saved = rawget(self, "getIsTurnedOn")
+        rawset(self, "getIsTurnedOn", spsAlwaysTurnedOn)
+        base = superFunc(self, fillType, dt)
+        rawset(self, "getIsTurnedOn", saved)
+    else
+        base = superFunc(self, fillType, dt)
+    end
+
     if base == nil then
         return base
     end
-    local controller, mult = resolveSpreadController(self)
-    if controller ~= nil and mult ~= nil then
-        return base * mult
-    end
-    return base
+    return base * mult
 end
 
 -- ---------------------------------------------------------------------------
@@ -533,6 +686,11 @@ end
 -- SPS-pressurised fill type row (slurry/digestate/manure/water), preserving the two
 -- spaces of separation by joining onto any existing infoText with ", ".
 function SlurryPipeSystemOverride.getFillLevelInformation(self, superFunc, display)
+    -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control:
+    -- full vanilla pass-through, SPS does not interfere.
+    if SlurryPipeSystemOverride.isAIControlled(self) then
+        return superFunc(self, display)
+    end
     if g_slurryPipeManager == nil or not g_slurryPipeManager:isRegistered(self) then
         return superFunc(self, display)
     end
@@ -609,6 +767,11 @@ end
 -- types in init.lua's registerOverrides (the hasTurnOn block).
 -- ---------------------------------------------------------------------------
 function SlurryPipeSystemOverride.getIsTurnedOnAnimationActive(self, superFunc, turnedOnAnimation)
+    -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control:
+    -- full vanilla pass-through, SPS does not interfere.
+    if SlurryPipeSystemOverride.isAIControlled(self) then
+        return superFunc(self, turnedOnAnimation)
+    end
     if g_slurryPipeManager ~= nil and g_slurryPipeManager:isRegistered(self) then
         local managed = g_slurryPipeManager:getSpreaderAnimationName(self)
         if managed ~= nil and turnedOnAnimation ~= nil and turnedOnAnimation.name == managed then

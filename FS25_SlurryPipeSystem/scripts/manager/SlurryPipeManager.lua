@@ -2894,6 +2894,142 @@ function SlurryPipeManager:getVehicleState(vehicle)
     return nil
 end
 
+-- ---------------------------------------------------------------------------
+-- [SPS AI GATE] — vanilla AI worker / Courseplay / AutoDrive support
+--
+-- While ANY AI drives a vehicle chain, SPS must fully stand down and let the
+-- vanilla trigger system run: no pipes, no fill arms, no pressure, no shear
+-- bolt, no thickness scaling, no blockages. Detection is a single source-
+-- verified check (SlurryPipeSystemOverride.isAIControlled — root
+-- getIsAIActive(), which covers the vanilla helper, Courseplay AND AutoDrive,
+-- see that function's header). Every overwritten function in
+-- ManureBarrelOverride early-outs to superFunc on that check, and the per-tick
+-- edge detector below handles the player<->AI TRANSITIONS:
+--
+--   player -> AI : neutralise live SPS state (pump off, all valves closed,
+--                  synced via existing SPS events), then re-raise
+--                  onRootVehicleChanged on the whole chain so
+--                  TurnOnVehicle:onRootVehicleChanged registers its AI
+--                  controlledAction — its original registration at attach time
+--                  was blocked by the SPS getCanToggleTurnedOn override, and
+--                  AIJobVehicle:aiJobStarted does NOT re-raise the event itself
+--                  (verified against vanilla source). Without this the helper
+--                  can never turn the implement on and sits in the field.
+--   AI -> player : re-raise onRootVehicleChanged again; getCanToggleTurnedOn
+--                  now blocks again, so TurnOnVehicle's else-branch removes the
+--                  controlledAction and full SPS control returns to the player.
+--
+-- Per-tick edge detection (instead of MessageType.AI_VEHICLE_STATE_CHANGE) is
+-- deliberate: pure AutoDrive driving never starts a Giants AI job, so it never
+-- publishes that message — but it DOES flip getIsAIActive (AD overwrites it).
+-- The edge detector covers all three uniformly, on server and clients.
+-- ---------------------------------------------------------------------------
+function SlurryPipeManager:isAIControlled(vehicle)
+    return SlurryPipeSystemOverride ~= nil
+       and SlurryPipeSystemOverride.isAIControlled ~= nil
+       and SlurryPipeSystemOverride.isAIControlled(vehicle)
+end
+
+-- Root + every attached implement of the vehicle's chain.
+function SlurryPipeManager:getAIGateChain(vehicle)
+    local chain = {}
+    if vehicle == nil then return chain end
+    local root = vehicle.getRootVehicle ~= nil and vehicle:getRootVehicle() or vehicle
+    if root == nil then return chain end
+    if root.getChildVehicles ~= nil then
+        for _, v in ipairs(root:getChildVehicles()) do
+            chain[#chain + 1] = v
+        end
+    end
+    local hasRoot = false
+    for _, v in ipairs(chain) do
+        if v == root then hasRoot = true; break end
+    end
+    if not hasRoot then chain[#chain + 1] = root end
+    return chain
+end
+
+-- Per-tick transition detector. Cheap: registeredVehicles is a small list and
+-- isAIControlled is a couple of field reads.
+function SlurryPipeManager:updateAIGate(dt)
+    for _, vEntry in ipairs(self.registeredVehicles) do
+        local v = vEntry.vehicle
+        if v ~= nil then
+            local aiNow = self:isAIControlled(v)
+            if aiNow ~= (vEntry.aiGateActive == true) then
+                vEntry.aiGateActive = aiNow
+                self:onAIGateChanged(v, vEntry, aiNow)
+            end
+        end
+    end
+end
+
+function SlurryPipeManager:onAIGateChanged(vehicle, vEntry, aiNow)
+    print("[SPS AI GATE] " .. (aiNow and "AI took control — SPS suspended for "
+                                      or "AI released control — SPS restored for ")
+        .. tostring(vehicle.configFileName))
+
+    -- Vanilla FillTrigger: SPS disables it at registration so the player must use
+    -- the pipe/arm system to load. AI workers (vanilla / Courseplay / AutoDrive)
+    -- have no pipe and load the vanilla way — at a store's fill trigger — so the
+    -- trigger must be live while AI drives. Restore the SPS-disabled state when the
+    -- player takes back over. Toggled on server and client (the trigger gate is a
+    -- local field; AI fill runs server-side, the activation check reads isEnabled).
+    if vehicle.spec_fillTriggerVehicle ~= nil
+       and vehicle.spec_fillTriggerVehicle.fillTrigger ~= nil then
+        vehicle.spec_fillTriggerVehicle.fillTrigger.isEnabled = aiNow
+        print("[SPS AI GATE]   vanilla fillTrigger " .. (aiNow and "ENABLED (AI loads at stores)"
+                                                               or "disabled (SPS pipe loading)"))
+    end
+
+    if aiNow and g_server ~= nil then
+        -- Neutralise live SPS state so vanilla starts from a clean slate.
+        -- All three setters mirror the player toggle paths exactly (state on the
+        -- server + existing SPS event broadcast for MP sync).
+        local state = vEntry.state
+        if state ~= nil then
+            if state.valveOpen == true then
+                state.valveOpen = false
+                SlurryFlowStateEvent.sendEvent(vehicle, false)
+                print("[SPS AI GATE]   flow valve closed")
+            end
+            if state.spreaderValveOpen == true then
+                state.spreaderValveOpen = false
+                SPSSpreaderValveEvent.sendEvent(vehicle, false)
+                print("[SPS AI GATE]   spreader valve closed")
+            end
+            if state.pumpRunning == true then
+                state.pumpRunning = false
+                SPSSelfPumpStateEvent.sendEvent(vehicle, false)
+                print("[SPS AI GATE]   pump stopped")
+            end
+        end
+        -- Non-spreader pumps run on the vanilla turn-on flag — clear it. The
+        -- setIsTurnedOn override passes straight through to vanilla now that
+        -- the vehicle is AI-controlled, and the AI turns implements on itself
+        -- afterwards through its own controlledAction.
+        if vehicle.getIsTurnedOn ~= nil and vehicle:getIsTurnedOn()
+           and vehicle.setIsTurnedOn ~= nil then
+            vehicle:setIsTurnedOn(false)
+            print("[SPS AI GATE]   turn-on flag cleared")
+        end
+        self:updateActionEventTexts(vehicle)
+    end
+
+    -- Both directions, server AND client: re-evaluate TurnOnVehicle's AI
+    -- controlledAction registration across the whole chain, now that
+    -- getCanToggleTurnedOn answers differently for it. The vanilla handler is
+    -- idempotent (updateParent when already registered / remove when no longer
+    -- allowed), so re-raising is safe for every other listener too — this is
+    -- the same event raised on every attach/detach.
+    for _, v in ipairs(self:getAIGateChain(vehicle)) do
+        if v.rootVehicle ~= nil then
+            SpecializationUtil.raiseEvent(v, "onRootVehicleChanged", v.rootVehicle)
+        end
+    end
+    print("[SPS AI GATE]   onRootVehicleChanged re-raised on chain")
+end
+
 function SlurryPipeManager:getVehicleEntry(vehicle)
     for _, entry in ipairs(self.registeredVehicles) do
         if entry.vehicle == vehicle then return entry end
@@ -3366,8 +3502,10 @@ function SlurryPipeManager:updateBlockages(dt)
             -- whenever pressure is built in the discharge direction — both of which can
             -- hold during a FILL (spreader valve shut), which previously popped the
             -- blockage warning while nothing was being spread. The valve gate fixes that.
+            -- [SPS AI GATE] never roll blockages while AI drives — vanilla spreading.
             if self:isSpreaderDischargeActive(controller)
-               and cstate ~= nil and cstate.spreaderValveOpen == true then
+               and cstate ~= nil and cstate.spreaderValveOpen == true
+               and not self:isAIControlled(controller) then
                 entry.blockageRollTimer = (entry.blockageRollTimer or 0) + dt
                 if entry.blockageRollTimer >= SlurryPipeManager.BLOCKAGE_ROLL_INTERVAL then
                     entry.blockageRollTimer = 0
@@ -3622,18 +3760,30 @@ function SlurryPipeManager:updateSpreaderAnimations(dt)
                 and hasSlurry
 
             if active then
-                -- Flowing: cancel any pending stop, start the clip if not already running
+                -- Flowing: cancel any pending stop, start the clip if not already running.
+                -- Self-healing: vanilla Sprayer:onTurnedOff unconditionally stops/reverses
+                -- its own named animations when SPS issues setIsTurnedOn(false) at PTO-off;
+                -- if the vehicle names this same clip there, our running clip gets killed
+                -- externally. So re-assert whenever the clip is not actually playing.
                 entry._spreadAnimTail = nil
+                local playing = vehicle.getIsAnimationPlaying == nil
+                    or vehicle:getIsAnimationPlaying(entry.spreaderAnimationName)
                 if entry._spreadAnimOn ~= true then
                     entry._spreadAnimOn = true
                     vehicle:playAnimation(entry.spreaderAnimationName, 1,
                         vehicle:getAnimationTime(entry.spreaderAnimationName), true)
                     print("[SPS ANIM] spreaderAnimation play (discharging)")
+                elseif not playing then
+                    vehicle:playAnimation(entry.spreaderAnimationName, 1,
+                        vehicle:getAnimationTime(entry.spreaderAnimationName), true)
                 end
             elseif entry._spreadAnimOn == true then
-                -- Flow stopped: run the tail-off, then stop once it expires
+                -- Flow stopped: run the tail-off, then stop once it expires.
+                -- Keep the clip alive through the tail if something stops it externally.
                 if entry._spreadAnimTail == nil then
                     entry._spreadAnimTail = entry.spreaderAnimationStopDelay or 2000
+                    print("[SPS ANIM] spreaderAnimation tail start ("
+                        .. tostring(entry._spreadAnimTail) .. "ms)")
                 end
                 entry._spreadAnimTail = entry._spreadAnimTail - dt
                 if entry._spreadAnimTail <= 0 then
@@ -3641,6 +3791,13 @@ function SlurryPipeManager:updateSpreaderAnimations(dt)
                     entry._spreadAnimOn = false
                     vehicle:stopAnimation(entry.spreaderAnimationName, true)
                     print("[SPS ANIM] spreaderAnimation stop (tail complete)")
+                else
+                    local playing = vehicle.getIsAnimationPlaying == nil
+                        or vehicle:getIsAnimationPlaying(entry.spreaderAnimationName)
+                    if not playing then
+                        vehicle:playAnimation(entry.spreaderAnimationName, 1,
+                            vehicle:getAnimationTime(entry.spreaderAnimationName), true)
+                    end
                 end
             end
         end
@@ -4792,7 +4949,9 @@ function SlurryPipeManager:updatePressure(dt)
                 local v = vEntry.vehicle
                 local isFert = v ~= nil and v.spec_sprayer ~= nil
                     and v.spec_sprayer.isFertilizerSprayer == true
-                if not isFert and not self:usesPressureModel(vEntry) then
+                -- [SPS AI GATE] no shear wear while AI drives
+                if not isFert and not self:usesPressureModel(vEntry)
+                   and not self:isAIControlled(v) then
                     SPSShearBolt.update(self, vEntry, dt)
                 end
             end
@@ -4803,6 +4962,13 @@ function SlurryPipeManager:updatePressure(dt)
         local vehicle = vEntry.vehicle
         local state   = vEntry.state
         local cfg     = vEntry.pressure
+        -- [SPS AI GATE] AI in control: hold pressure exactly where it is and
+        -- accrue no shear wear — the overrides pass everything through to
+        -- vanilla, so nothing reads pressure while AI drives. Resumes from the
+        -- held value when the player takes back over.
+        if vehicle ~= nil and self:isAIControlled(vehicle) then
+            continue
+        end
         -- Pressure is slurry/water only. A vehicle carrying the sprayer spec may
         -- be a slurry spreader (poo — pressure applies) OR a fert/herb sprayer
         -- (must be shielded). Vanilla Sprayer classifies this at load:
@@ -4928,6 +5094,9 @@ end
 function SlurryPipeManager:update(dt)
 	self._updateCount = (self._updateCount or 0) + 1
 --    if self._updateCount == 1 then print("[SPS] update() is running") end
+	-- [SPS AI GATE] player<->AI transition detection must run before anything
+	-- else this tick so suspend/resume happens ahead of pressure/flow/blockage.
+	self:updateAIGate(dt)
 	self:updateSpreaderAnimations(dt)
 	self:updatePumpSounds(dt)
 	
@@ -5149,7 +5318,8 @@ function SlurryPipeManager:update(dt)
             -- empty self-state (false) and fight the real tanker's pass that wants them on
             -- (the cause of the DB icon never going green). The tanker's pass below drives
             -- them via findAttachedDribbleBars.
-            if not self:isSpreaderImplement(vehicle) and self:vehicleHasSpreader(vehicle) then
+            if not self:isSpreaderImplement(vehicle) and self:vehicleHasSpreader(vehicle)
+               and not self:isAIControlled(vehicle) then
                 local wantOn = self:shouldSpreaderBeOn(vehicle)
                 if vehicle.getIsTurnedOn ~= nil and vehicle.setIsTurnedOn ~= nil
                    and wantOn ~= vehicle:getIsTurnedOn() then
@@ -5159,6 +5329,61 @@ function SlurryPipeManager:update(dt)
                     if bar.getIsTurnedOn ~= nil and bar.setIsTurnedOn ~= nil
                        and wantOn ~= bar:getIsTurnedOn() then
                         bar:setIsTurnedOn(wantOn)
+                    end
+                end
+            end
+        end
+    end
+
+    -- [SPS AI GATE] Deterministic AI spreader turn-on (vanilla / Courseplay).
+    -- Some vehicle configs never turn their spreader on through vanilla's AI
+    -- controlledAction path (no activateOnLowering, folded at start, action
+    -- registered late) — the Joskin Cobra is one: every gate reads "allowed" yet
+    -- isTurnedOn stays false. So under AI we drive the turn state directly from
+    -- the canonical line signal: getIsAIImplementInLine() (spec_aiImplement.
+    -- isLineStarted, set by AIImplement.aiImplementStartLine/EndLine) is true ONLY
+    -- while the worker is actually working a field line and false on headland
+    -- turns and transport. Matching the turn state to it is exactly what vanilla
+    -- intends — and because the vehicles vanilla already turns on correctly derive
+    -- from the same isLineStarted, this agrees with them and is a no-op there
+    -- (setIsTurnedOn fires no SetTurnedOnEvent when the state is unchanged), so it
+    -- never fights the already-working Farmtech/Kaweco. It simply fills the gap for
+    -- the configs vanilla leaves off. AutoDrive (pure route driving, never starts a
+    -- field line) keeps isLineStarted false, so the spreader stays off under AD —
+    -- correct, since AD is transport, not field spreading.
+    if g_server ~= nil then
+        for _, entry in ipairs(self.registeredVehicles) do
+            local vehicle = entry.vehicle
+            if vehicle ~= nil
+               and not self:isSpreaderImplement(vehicle)
+               and self:vehicleHasSpreader(vehicle)
+               and self:isAIControlled(vehicle)
+               and not self:isShearBoltSnapped(vehicle) then
+                local bars = self:findAttachedDribbleBars(vehicle)
+                -- On line if the tanker itself OR any attached dribble bar (the
+                -- actual AI implement on a Kaweco/Bomech-style rig) is in line.
+                local inLine = false
+                if vehicle.getIsAIImplementInLine ~= nil and vehicle:getIsAIImplementInLine() then
+                    inLine = true
+                end
+                if not inLine then
+                    for _, bar in ipairs(bars) do
+                        if bar.getIsAIImplementInLine ~= nil and bar:getIsAIImplementInLine() then
+                            inLine = true
+                            break
+                        end
+                    end
+                end
+                if vehicle.getIsTurnedOn ~= nil and vehicle.setIsTurnedOn ~= nil
+                   and inLine ~= vehicle:getIsTurnedOn() then
+                    vehicle:setIsTurnedOn(inLine)
+                    print("[SPS AI GATE] AI spreader turn " .. (inLine and "ON" or "OFF")
+                        .. " (in-line driver) for " .. tostring(vehicle.configFileName))
+                end
+                for _, bar in ipairs(bars) do
+                    if bar.getIsTurnedOn ~= nil and bar.setIsTurnedOn ~= nil
+                       and inLine ~= bar:getIsTurnedOn() then
+                        bar:setIsTurnedOn(inLine)
                     end
                 end
             end
@@ -5187,6 +5412,77 @@ function SlurryPipeManager:update(dt)
         end
     end
  
+    -- ----------------------------------------------------------------------
+    -- [SPS #2] Precision Farming spray-effect continuity during the taper.
+    -- Runs on ALL peers (spray effects are client-side), so it sits BEFORE the
+    -- server-only gate below. PF only drives its spray effect while
+    -- getIsTurnedOn() is true (its onUpdateTick gate + internal re-check in
+    -- ExtendedSprayer:updateSprayerEffectState), so during the stored-pressure
+    -- taper (PTO off, turnOn off) PF drops the visuals even though slurry is
+    -- still being applied. We drive that rear discharge effect ourselves via
+    -- _driveSprayerEffect (the same g_effectManager/g_soundManager/g_animationManager
+    -- operations PF uses, taken off self.spec_sprayer) while the taper is active, and
+    -- stop it when the valve closes or pressure falls below min. The real turnOn (green
+    -- icon / PTO / sound) is left untouched. Guarded per-implement on PF being present
+    -- (getIsPrecisionSprayingRequired registered) and on having a sprayer; a pure no-op
+    -- without Precision Farming.
+    -- ----------------------------------------------------------------------
+    do
+        for _, vEntry in ipairs(self.registeredVehicles) do
+            local vehicle = vEntry.vehicle
+            local state   = vEntry.state
+            if vehicle ~= nil and state ~= nil
+               and not self:isSpreaderImplement(vehicle)
+               and self:vehicleHasSpreader(vehicle)
+               and not self:isShearBoltSnapped(vehicle)   -- leave snap/repair scenario untouched
+               and not self:isAIControlled(vehicle) then  -- [SPS AI GATE] AI owns the effect (vanilla)
+
+                local discharging = self:isSpreaderDischargeActive(vehicle)
+
+                -- Spreader implement(s): the tanker itself (built-in plate) plus any
+                -- attached dribble bars.
+                local candidates = { vehicle }
+                for _, bar in ipairs(self:findAttachedDribbleBars(vehicle)) do
+                    candidates[#candidates + 1] = bar
+                end
+
+                for _, sv in ipairs(candidates) do
+                    if sv ~= nil and sv.getIsPrecisionSprayingRequired ~= nil then  -- PF present on this implement
+                        local realOn = (sv.getIsTurnedOn ~= nil) and sv:getIsTurnedOn()
+                        if not realOn then
+                            -- Desired effect state during the taper: on while discharging AND
+                            -- PF itself would show it (precision required + effects visible).
+                            -- We evaluate PF's non-turnOn gates directly; turnOn is the only
+                            -- thing we override.
+                            local wantOn = (state.spreaderValveOpen == true) and discharging
+                            if wantOn and sv.getIsPrecisionSprayingRequired ~= nil then
+                                wantOn = sv:getIsPrecisionSprayingRequired()
+                            end
+                            if wantOn and sv.getAreEffectsVisible ~= nil then
+                                wantOn = sv:getAreEffectsVisible()
+                            end
+
+                            if wantOn and sv._spsPfEffectOn ~= true then
+                                -- START the rear discharge effect directly (PF's latch would
+                                -- otherwise block a re-assert through PF's own function).
+                                self:_driveSprayerEffect(sv, true)
+                                sv._spsPfEffectOn = true
+                            elseif (not wantOn) and sv._spsPfEffectOn == true then
+                                -- STOP cleanly when discharging ends or the valve closes.
+                                self:_driveSprayerEffect(sv, false)
+                                sv._spsPfEffectOn = false
+                            end
+                        elseif sv._spsPfEffectOn == true then
+                            -- Real turnOn returned (pump re-engaged): PF owns the effect again
+                            -- (its onTurnedOn already forced an update). Just clear our flag.
+                            sv._spsPfEffectOn = false
+                        end
+                    end
+                end
+            end
+        end
+    end
+
     if g_server == nil then return end
  
     -- Drive placeable inlet effects per-coupling — only fires for couplings that have effects declared
@@ -5237,7 +5533,8 @@ function SlurryPipeManager:update(dt)
                                     break
                                 end
                             end
-							shouldPlay = conduitActive and cabOpen and pumpOn and isDestination
+							print("[SPS PIPE EFFECT TEST] path=conduit resolvedCoupling=" .. tostring(resolvedCoupling ~= nil))
+                            shouldPlay = conduitActive and cabOpen and pumpOn and isDestination
                         elseif sc.valveOpen then
 							local isDischarge = vState ~= nil and vState.direction == SPS_DIRECTION_DISCHARGE
 							local dirOk
@@ -5253,6 +5550,7 @@ function SlurryPipeManager:update(dt)
 									tankerHasSlurry = vehicle:getFillUnitFillLevel(fillUnitIndex) > 0
 								end
 							end
+							print("[SPS PIPE EFFECT TEST] path=direct scValveOpen=" .. tostring(sc.valveOpen))
 							shouldPlay = (self:getPressureFlowScalar(vehicle) > 0) and dirOk and tankerHasSlurry
 						end
                     end
@@ -5444,6 +5742,64 @@ function SlurryPipeManager:update(dt)
     -- Update chain pipe visuals
     for _, chain in ipairs(self.pipeChains) do
         chain:update(dt)
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS #2] Direct sprayer-effect driver (Precision Farming compatibility)
+-- Starts/stops the Sprayer's spray effect, sound and animations using the exact
+-- same operations PF performs in ExtendedSprayer:updateSprayerEffectState, but
+-- driven straight off self.spec_sprayer. This avoids depending on PF's class
+-- table (not visible as a global from this manager) and bypasses PF's
+-- lastSprayerEffectState latch (pinned true while turned off). Used only to keep
+-- the rear discharge effect showing during the stored-pressure taper under PF.
+-- ---------------------------------------------------------------------------
+function SlurryPipeManager:_driveSprayerEffect(sv, on)
+    local specSprayer = sv.spec_sprayer
+    if specSprayer == nil then return end
+    if sv.isClient == false then return end   -- effects are client-side only
+    local sprayType = (sv.getActiveSprayType ~= nil) and sv:getActiveSprayType() or nil
+    if on then
+        local fillType = FillType.UNKNOWN
+        if sv.getFillUnitLastValidFillType ~= nil and sv.getSprayerFillUnitIndex ~= nil then
+            fillType = sv:getFillUnitLastValidFillType(sv:getSprayerFillUnitIndex())
+            if fillType == FillType.UNKNOWN and sv.getFillUnitFirstSupportedFillType ~= nil then
+                fillType = sv:getFillUnitFirstSupportedFillType(sv:getSprayerFillUnitIndex())
+            end
+        end
+        if specSprayer.effects ~= nil then
+            g_effectManager:setEffectTypeInfo(specSprayer.effects, fillType)
+            g_effectManager:startEffects(specSprayer.effects)
+        end
+        if specSprayer.samples ~= nil and specSprayer.samples.spray ~= nil then
+            g_soundManager:playSamples(specSprayer.samples.spray)
+        end
+        if sprayType ~= nil then
+            g_effectManager:setEffectTypeInfo(sprayType.effects, fillType)
+            g_effectManager:startEffects(sprayType.effects)
+            g_animationManager:startAnimations(sprayType.animationNodes)
+            if sprayType.samples ~= nil then
+                g_soundManager:playSamples(sprayType.samples.spray)
+            end
+        end
+        g_animationManager:startAnimations(specSprayer.animationNodes)
+    else
+        if specSprayer.effects ~= nil then
+            g_effectManager:stopEffects(specSprayer.effects)
+        end
+        if specSprayer.samples ~= nil and specSprayer.samples.spray ~= nil then
+            g_soundManager:stopSamples(specSprayer.samples.spray)
+        end
+        if specSprayer.sprayTypes ~= nil then
+            for _, st in ipairs(specSprayer.sprayTypes) do
+                g_effectManager:stopEffects(st.effects)
+                g_animationManager:stopAnimations(st.animationNodes)
+                if st.samples ~= nil then
+                    g_soundManager:stopSamples(st.samples.spray)
+                end
+            end
+        end
+        g_animationManager:stopAnimations(specSprayer.animationNodes)
     end
 end
 

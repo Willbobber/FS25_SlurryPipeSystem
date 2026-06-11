@@ -13,7 +13,7 @@
 	
 	<pump pumpType="vacuum"/>     <!-- vacuum/HVP/conduit/openTop -->
 	
-	<spreaderAnimation name="sprayerAnimation" stopDelay="1.0"/>
+	<spreaderAnimation name="sprayerAnimation" stopDelay="1.5"/>
 	
 	<shearBolt bolt="true"/>
 	
