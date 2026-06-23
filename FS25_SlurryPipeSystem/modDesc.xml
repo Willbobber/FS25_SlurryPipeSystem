@@ -2,12 +2,14 @@
 <modDesc descVersion="109">
 
     <author>Oscar Mods</author>
+	<translationContributors>Nozem_Oil_1982</translationContributors>
     <version>1.0.0.1</version>
     <title>
         <en>Slurry Pipe System</en>
         <de>Gülle-Rohrsystem</de>
         <fr>Système de Tuyau à Lisier</fr>
         <it>Sistema Tubi Liquame</it>
+		<nl>Mestleiding Systeem</nl>
     </title>
     <description>
         <en><![CDATA[Slurry Pipe System
@@ -114,6 +116,32 @@ Caratteristiche:
 - Funziona con LIQUIDMANURE e DIGESTATE
 - Compatibile con Manual Attach
 - Compatibile in multigiocatore]]></it>
+		<nl><![CDATA[Mestleiding Systeem
+
+Vervangt het standaard vullen van mestwagens door een realistisch fysiek leiding- en pompsysteem. Sluit vularmen of leidingen aan op een mestbron, gebruik een aftakas-aangedreven pomp, bouw druk op en regel de doorstroming voordat de mest begint te bewegen.
+
+Bediening:
+- Pomp Aan/Uit: start de pomp. Vereist voor elke gepompte doorstroming.
+- Leidingklep: opent het leidingcircuit voor vullen of lossen.
+- Verdelerklep: opent de uitlaat van de verdeler.
+- Richting: schakelt tussen vullen en lossen.
+
+Functies:
+- Vularmen voor open mestputten met detectie van het mestoppervlak
+- Aansluiting via rubberen vulpoorten
+- Leidingtrajecten met meerdere segmenten en directe leidingkoppelingen
+- Overpompen van tank naar tank en gebruik van buffertanks
+- PTO-pomptrailer voor overdracht tussen leidingnetwerken
+- Drukmodel met vacuüm-, hogecapaciteitspomp- en open tanksystemen
+- Realistische mestfysica: mest dikt in, vormt een korst en kan verdelers verstoppen; mengen of water toevoegen houdt de mest vloeibaar
+- Sleepvoeten en bandverdelers met verstoppingen per uitlaat en een uitgebreide verdeler-HUD
+- Ondersteuning voor kunstmest- en gewasspuiten
+- Wateropname uit meren en vijvers op de kaart
+- Optionele aftakas-breekbout
+- Gekleurde leidingen, opgeslagen per savegame
+- Werkt met LIQUIDMANURE en DIGESTATE
+- Compatibel met Manual Attach
+- Multiplayer-compatibel]]></nl>
     </description>
     <iconFilename>icon_SPS.dds</iconFilename>
 	<multiplayer supported="true"/>

@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<l10n>
+<translationContributors>NozemOil1982</translationContributors>
+
+    <texts>
+		<!-- Inputs -->
+		<text name="input_SPS_TOGGLE_PUMP" text="SPS-pomp Aan/Uit" />
+		<text name="input_SPS_TOGGLE_FLOW" text="SPS-stroom Openen/Sluiten" />
+		<text name="input_SPS_TOGGLE_DIRECTION" text="SPS-stroomrichting" />
+		<text name="input_SPS_TOGGLE_SPREADER" text="SPS-verdeelklep" />
+        
+		<!-- Settings menu -->
+		<text name="sps_settingsHeader" text="MESTSLANG SYSTEEM" />
+		<text name="sps_settingsSlurryPipe" text="Mestslang" />
+		<text name="sps_settingsSlurryPipeTooltip" text="Selecteer slangkleur" />
+		
+		<!-- Pump on/off (TurnOnVehicle override) -->
+		<text name="action_slurryPumpOn" text="Aftakas: Pomp UIT" />
+		<text name="action_slurryPumpOff" text="Aftakas: Pomp AAN" />
+		<text name="action_spsHVPOn" text="Aftakas: HVP UIT" />
+		<text name="action_spsHVPOff" text="Aftakas: HVP AAN" />
+
+        <!-- Valve open/close -->
+		<text name="action_slurryFlowOpen" text="Vularm: Klep GESLOTEN" />
+		<text name="action_slurryFlowClose" text="Vularm: Klep OPEN" />
+		<text name="action_spsConduitFlowOpen" text="Mestpomp: Klep GESLOTEN" />
+		<text name="action_spsConduitFlowClose" text="Mestpomp: Klep OPEN" />
+
+        <!-- Pump direction (shows current, press to switch) -->
+		<text name="action_slurryDirectionFill" text="Pomp: Druk" />
+		<text name="action_slurryDirectionDischarge" text="Pomp: Vacuüm" />
+		<text name="action_spsHVPDirFill" text="Pomp instellen op: Leegmaken" />
+		<text name="action_spsHVPDirDischarge" text="Pomp instellen op: Vullen" />
+
+		<!-- Spreader valve -->
+		<text name="action_spsSpreaderOpen" text="Verdeler: Klep is GESLOTEN" />
+		<text name="action_spsSpreaderClose" text="Verdeler: Klep is OPEN" />
+
+        <!-- Pipe actions -->
+		<text name="action_spsConnectPipe" text="Slang aansluiten" />
+		<text name="action_spsDisconnectOrOpenValve" text="Slang loskoppelen [R] | Klep openen [R ingedrukt houden]" />
+		<text name="action_spsCloseValve" text="Klep sluiten [R ingedrukt houden]" />
+		<text name="warning_slurryCloseValveFirst" text="Sluit eerst de klep voordat je loskoppelt" />
+		<text name="action_spsLayFirstPipe" text="Eerste Slang plaatsen" />
+		<text name="action_spsLayPipe" text="Slang plaatsen | Koppelstation plaatsen [R ingedrukt houden]" />
+		<text name="action_spsRemovePipe" text="Slang verwijderen" />
+		<text name="action_spsRemoveDockingStation" text="Koppelstation verwijderen" />
+		<text name="action_spsDisconnectPipe" text="Slang loskoppelen" />
+		<text name="action_spsFinalisePipe" text="Slang bevestigen [R] | Annuleren [R ingedrukt houden]" />
+		<text name="action_spsDeployCoupling" text="Slangkoppeling plaatsen [R ingedrukt houden]" />
+		<text name="action_spsRemoveCoupling" text="Slangkoppeling verwijderen [R ingedrukt houden]" />
+		<text name="action_spsRearValveOpen" text="Klep openen [R]" />
+		<text name="action_spsRearValveClose" text="Klep sluiten [R]" />
+		
+        <!-- Warnings -->
+		<text name="warning_slurryNoConnection" text="Geen actieve mestverbinding" />
+		<text name="warning_slurryCloseFlowFirst" text="Sluit eerst de klep voordat je de pomprichting wijzigt" />
+		<text name="warning_slurryNoPipeTarget" text="Geen Slangaansluitpunt binnen bereik" />
+		<text name="warning_slurryEngineOff" text="Start eerst de motor" />
+		<text name="warning_spsConnectHydraulics" text="Sluit eerst de hydrauliekslangen aan" />
+		<text name="warning_spsSetToPressure" text="Zet de pomp eerst op druk" />
+		<text name="warning_spsSlurryNeedsMix" text="Mest is bezonken — mengen aanbevolen" />
+		
+        <!-- PTO Slurry Pump vehicle -->
+		<text name="function_slurryPump" text="Mestpomp" />
+		<text name="typeDesc_manurePump" text="Aftakas mestpomp" />
+
+        <!-- Conduit pump HUD and direction -->
+		<text name="hud_spsConduitPumped" text="Gepompt: %d L" />
+		<text name="action_spsConduitDirAtoB" text="Stroom: Poort 1 → Poort 2" />
+		<text name="action_spsConduitDirBtoA" text="Stroom: Poort 2 → Poort 1" />
+		
+        <!-- Slurry thickness / agitation -->
+		<text name="warning_spsSlurryThickening" text="Mest wordt dikker: %d%% — mengen aanbevolen" />
+		<text name="warning_spsSlurryTooThick" text="Mest te dik — water vereist" />
+		<text name="sps_settingsAgitation" text="Mest mengen" />
+		<text name="sps_settingsAgitationTooltip" text="Schakel mestverdikking en mengsysteem in" />
+		<text name="sps_settingsRealism" text="Mestrealisme" />
+		<text name="sps_settingsRealismTooltip" text="Hoofdschakelaar voor mestdikte, korstvorming, verstoppingen en slangverliezen" />
+		<text name="sps_settingsStoreThickening" text="    Verdikking in opslag" />
+		<text name="sps_settingsStoreThickeningTooltip" text="Mest in opslag wordt na verloop van tijd dikker (altijd actief met Realisme)" />
+		<text name="sps_settingsCrust" text="    Korstvorming" />
+		<text name="sps_settingsCrustTooltip" text="Zichtbare korst groeit op dikke mestoppervlakken (altijd actief met Realisme)" />
+		<text name="sps_settingsThicknessFlow" text="    Dikte beïnvloedt doorstroming" />
+		<text name="sps_settingsThicknessFlowTooltip" text="Dikke mest vertraagt vullen, lossen en uitrijden" />
+		<text name="sps_settingsBlockages" text="    Verstoppingen verdeler" />
+		<text name="sps_settingsBlockagesTooltip" text="Dikke mest kan de verdeler verstoppen; loop ernaartoe om deze vrij te maken" />
+		<text name="sps_settingsLengthFalloff" text="    Verlies door slanglengte" />
+		<text name="sps_settingsLengthFalloffTooltip" text="De doorstroming neemt af naarmate de aangesloten mestslang langer wordt" />
+		<text name="warning_spsBlockage" text="Verdeler verstopt — verwijder de verstopping om verder te gaan" />
+		<text name="action_spsAgitatorOn" text="Mixer: UIT — aftakas draait" />
+		<text name="action_spsAgitatorOff" text="Mixer: AAN — aftakas draait" />
+		<text name="warning_spsAgitatorNotSubmerged" text="Mixer niet ondergedompeld" />
+		<text name="sps_infoThicknessTitle" text="Mestdikte" />
+		<text name="sps_infoLiquidTitle" text="Vloeistof" />
+		<text name="sps_infoDryMatterTitle" text="Droge stof" />
+		<text name="sps_infoCrustTitle" text="Korst" />
+		
+		<!-- Water -->
+		<text name="action_spsDeployWaterPipe" text="R ingedrukt houden: Waterslang plaatsen" />
+		<text name="action_spsFinalizeWaterPipe" text="R ingedrukt houden: Waterslang bevestigen" />
+		<text name="action_spsCancelWaterPipe" text="R ingedrukt houden: Plaatsing annuleren" />
+		<text name="action_spsRemoveWaterPipe" text="R ingedrukt houden: Waterslang verwijderen" />
+		<text name="info_spsPipeWalkToWater" text="Loop richting water om de slang te plaatsen" />
+		<text name="info_spsPipeDeployed" text="Waterslang geplaatst" />
+		<text name="info_spsPipeCancelled" text="Plaatsing van slang geannuleerd" />
+		<text name="info_spsPipeRemoved" text="Waterslang verwijderd" />
+		<text name="warning_spsPipeTooShort" text="Slang te kort (minimaal 2 m)" />
+		<text name="warning_spsPipeTooLong" text="Slang te lang (maximaal 20 m)" />
+		
+		<!-- Sprayer -->
+		<text name="input_SPS_TOGGLE_ANIMATION_SPRAYER" text="Deksel openen | Deksel sluiten" />
+		<text name="input_SPS_TOGGLE_PUMP_SPRAYER" text="Stroom starten | Stroom stoppen" />
+		<text name="input_SPS_TOGGLE_DIRECTION_SPRAYER" text="Laden | Lossen" />
+		<text name="action_sprayerCoverClosed" text="Deksel: GESLOTEN" />
+		<text name="action_sprayerCoverOpen" text="Deksel: OPEN" />
+		<text name="action_sprayerFlowOff" text="Stroom: GESTOPT" />
+		<text name="action_sprayerFlowOn" text="Stroom: ACTIEF" />
+		<text name="action_sprayerDirLoad" text="Richting: LADEN" />
+		<text name="action_sprayerDirUnload" text="Richting: LOSSEN" />
+		<!-- SPS spreader HUD -->
+		<text name="sps_hudTitle"                    text="Verdeler" />
+		<text name="sps_hudSlurry"                   text="Mest" />
+		<text name="sps_hudCrust"                    text="Korst" />
+		<text name="sps_hudThickness"                text="Dikte" />
+		<text name="sps_hudRisk"                     text="Verstoppingsrisico" />
+		<text name="sps_hudRiskLow"                  text="Laag" />
+		<text name="sps_hudRiskMed"                  text="Gemiddeld" />
+		<text name="sps_hudRiskHigh"                 text="Hoog" />
+		<text name="sps_hudVacuum"                   text="Vacuüm" />
+		<text name="sps_hudHVP"                      text="HVP" />
+		<text name="sps_hudPump"                     text="Pomp" />
+		<text name="sps_hudEditHint"                 text="Sleep om te verplaatsen - Scroll om te schalen - Middelste muisknop om te vergrendelen" />
+		<text name="action_spsHudEdit"               text="Verdeler-HUD verplaatsen" />
+		<!-- SPS spreader HUD settings -->
+		<text name="sps_hudSettingsHeader"           text="Verdeler-HUD" />
+		<text name="sps_hudSetEnabled"               text="DB-weergave" />
+		<text name="sps_hudSetEnabledTooltip"        text="Toon de verdeler-HUD (DB-pictogram, mestinformatie en secties) bovenaan het scherm." />
+		<text name="sps_hudSetImage"                 text="DB-afbeelding" />
+		<text name="sps_hudSetImageTooltip"          text="Toon de sleepvoetafbeelding op de verdeler-HUD." />
+		<text name="sps_hudSetFill"                  text="Toon mestniveau" />
+		<text name="sps_hudSetCrust"                 text="Toon korst" />
+		<text name="sps_hudSetThick"                 text="Toon dikte" />
+		<text name="sps_hudSetRisk"                  text="Toon verstoppingsrisico" />
+		<text name="sps_hudSetPump"                  text="Toon pomp / druk" />
+		<text name="sps_hudSetFieldTooltip"          text="Toon of verberg deze rij op de verdeler-HUD." />
+		<text name="sps_hudSetScale"                 text="HUD-schaal" />
+		<text name="sps_hudSetScaleTooltip"          text="Grootte van de verdeler-HUD. Kan ook worden aangepast met het scrollwiel tijdens het verplaatsen van de HUD." />
+		<text name="input_SPS_HUD_EDIT"              text="Verdeler-HUD bewerken" />
+		<!-- SPS blockage clearing -->
+		<text name="sps_blockageMacerator"           text="Macerator" />
+		<text name="action_spsClearBlockage"         text="Ingedrukt houden om vrij te maken: %s" />
+		<text name="action_spsClearBlockageWait"     text="Stop de balk om vrij te maken: %s" />
+		<text name="warning_spsClearBlocked"         text="Stop met uitrijden en laat de druk zakken voordat je de verstopping verwijdert." />
+		<text name="warning_spsBlockageMacerator"    text="Macerator verstopt - verdeler gestopt. Maak vrij om verder te gaan." />
+		<text name="warning_spsBlockageSection"      text="Sectie verstopt: %s. Maak vrij om deze strook te herstellen." />
+		
+		<!-- Shear bolt -->
+		<text name="input_SPS_REPAIR_SHEARBOLT"      text="Breekbout vervangen [R ingedrukt houden]" />
+		<text name="action_spsRepairShearBolt"       text="Breekbout vervangen [R ingedrukt houden]" />
+		<text name="action_spsRepairShearBoltWait"   text="Breekbout vervangen (aftakas en motor uitschakelen)" />
+		<text name="warning_spsShearBoltSnapped"     text="Aftakas-breekbout gebroken — pomp losgekoppeld, vervanging vereist" />
+		<text name="warning_spsShearRepairBlocked"   text="Schakel de aftakas uit en zet de motor af om de breekbout te vervangen" />
+		<text name="sps_settingsShearBolt"           text="Aftakas-breekbout" />
+		<text name="sps_settingsShearBoltTooltip"    text="Schakel de aftakas-breekbout in." />
+	</texts>
+</l10n>
