@@ -2,26 +2,67 @@
 
 <i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
   <Asset>
-    <Export program="GIANTS Editor 64bit" version="10.0.11"/>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
   </Asset>
 
   <Files>
+    <File fileId="10" filename="$data/placeables/brandless/liquidManureTanks/shared/alpsFence05_diffuse.dds"/>
+    <File fileId="11" filename="$data/placeables/brandless/liquidManureTanks/shared/alpsFence05_normal.dds"/>
+    <File fileId="12" filename="$data/placeables/brandless/liquidManureTanks/shared/alpsFence05_specular.png"/>
+    <File fileId="1" filename="$data/placeables/brandless/liquidManureTanks/shared/alpsRoadFence02_diffuse.dds"/>
+    <File fileId="2" filename="$data/placeables/brandless/liquidManureTanks/shared/alpsRoadFence02_normal.dds"/>
+    <File fileId="3" filename="$data/placeables/brandless/liquidManureTanks/shared/alpsRoadFence02_specular.dds"/>
+    <File fileId="4" filename="$data/placeables/brandless/liquidManureTanks/shared/bunkerSilo_diffuse.dds"/>
+    <File fileId="7" filename="$data/placeables/brandless/liquidManureTanks/shared/slurryPit_diffuse.dds"/>
+    <File fileId="8" filename="$data/placeables/brandless/liquidManureTanks/shared/slurryPit_normal.dds"/>
+    <File fileId="9" filename="$data/placeables/brandless/liquidManureTanks/shared/slurryPit_specular.dds"/>
+    <File fileId="13" filename="$data/shaders/decalShader.xml"/>
+    <File fileId="5" filename="$data/shared/default_normal.dds"/>
+    <File fileId="6" filename="$data/shared/default_specular.dds"/>
   </Files>
 
 
   <Materials>
+    <Material name="alpsFence05_mat" materialId="226" customShaderId="13">
+      <Texture fileId="10"/>
+      <Normalmap fileId="11"/>
+      <Glossmap fileId="12"/>
+    </Material>
+    <Material name="alpsRoadFence02_mat" materialId="277">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+    </Material>
+    <Material name="bunkerSilo_mat" materialId="268">
+      <Texture fileId="4"/>
+      <Normalmap fileId="5"/>
+      <Glossmap fileId="6"/>
+    </Material>
+    <Material name="lambert1" materialId="230" diffuseColor="0.501961 0.501961 0.501961 1" specularColor="0.501961 1 0">
+    </Material>
+    <Material name="slurryPit_mat" materialId="272">
+      <Texture fileId="7"/>
+      <Normalmap fileId="8"/>
+      <Glossmap fileId="9"/>
+    </Material>
   </Materials>
 
 
-  <Shapes>
+  <Shapes externalShapesFile="nodeTree.i3d.shapes">
   </Shapes>
 
   <Scene>
-    <TransformGroup name="SPS_storage" nodeId="6">
-      <TransformGroup name="pipeCouplers" nodeId="7">
-        <TransformGroup name="siloExtension" nodeId="8">
-          <TransformGroup name="slurryPlaneCentre" nodeId="9"/>
-          <TransformGroup name="slurryPlaneEdge" translation="-14.6016 0 0" nodeId="10"/>
+    <TransformGroup name="SPS_storage" nodeId="239">
+      <TransformGroup name="pipeCouplers" nodeId="240">
+        <TransformGroup name="siloExtension" translation="0 -1.576 0" nodeId="241">
+          <TransformGroup name="SPS_pipeCoupler01" translation="0 1.576 0" nodeId="242">
+            <Shape name="alpsRoadFence02New" translation="0 -1.57631 -6.89028e-08" shapeId="1" clipDistance="300" nodeId="243" castsShadows="true" receiveShadows="true" materialIds="277"/>
+            <Shape name="slurryPit_largeNew" translation="0 -1.57631 -6.89029e-08" shapeId="2" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="300" nodeId="245" castsShadows="true" receiveShadows="true" materialIds="268,272"/>
+            <Shape name="slurryPit_large_fenceNew" translation="0 -1.57631 -6.89028e-08" shapeId="3" clipDistance="300" nodeId="246" castsShadows="true" receiveShadows="true" materialIds="226"/>
+            <Shape name="collisionNew" translation="0 -1.52219 -6.65372e-08" shapeId="4" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" nodeId="247" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="230"/>
+          </TransformGroup>
+          <TransformGroup name="slurryPlaneCentre" nodeId="248"/>
+          <TransformGroup name="slurryPlaneEdge" translation="-14.6016 0 0" nodeId="249"/>
         </TransformGroup>
       </TransformGroup>
     </TransformGroup>

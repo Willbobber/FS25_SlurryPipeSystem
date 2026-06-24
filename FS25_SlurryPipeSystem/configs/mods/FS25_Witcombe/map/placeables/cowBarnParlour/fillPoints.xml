@@ -34,13 +34,16 @@
     </pipeCouplings>
  
     <hideNodes>
+		<node name="slurryPit_fence"/>
+		<node name="slurryPit_alpsRoadFence02"/>
         <node name="slurryPit_props"/>
         <node name="visualFillTower"/>
         <node name="visualGuardRail"/>
     </hideNodes>
  
     <hideCollisions>
-        <node name="collision" node="0>18|0|2|0|5|1"/>
+        <node name="collision" node="0>18|0|2|1|0"/>
+		<node name="collision" node="0>18|0|2|0|5|1"/>
     </hideCollisions>
 	
 	<crust density="0.8">

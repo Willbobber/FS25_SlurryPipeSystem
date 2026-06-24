@@ -19,6 +19,15 @@
         edgeNodeName="slurryPlaneEdge"
     />
 	
+	<hideNodes>
+		<node name="slurryPit_large_fence"/>
+		<node name="alpsRoadFence02"/>
+    </hideNodes>
+ 
+    <hideCollisions>
+        <node name="collision"/>
+	</hideCollisions>
+	
 	<crust density="0.3">
 		<plant stage="1" i3d="i3d/foliage/grass01.i3d"  weight="4"/>
 		<plant stage="2" i3d="i3d/foliage/grass02.i3d"  weight="3"/>

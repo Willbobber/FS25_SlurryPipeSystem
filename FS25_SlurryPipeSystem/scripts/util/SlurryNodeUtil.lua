@@ -128,12 +128,25 @@ end
 
 function SlurryNodeUtil.getSurfaceWorldY(sourceEntry, worldX, worldZ)
     if sourceEntry == nil then return -math.huge end
+    -- [SPS NU] Nil-coordinate guard. A caller can derive worldX/worldZ from a
+    -- detection node whose getWorldTranslation returns nil for a frame (node
+    -- unlinked / mid-rebuild). The nil then reaches worldToLocal as a coordinate
+    -- ("Argument 1 Expected: Float, Actual: Nil") or getFillPlaneHeightAtLocalPos.
+    -- Bail cleanly so a single bad-coordinate frame does not spam script errors.
+    if worldX == nil or worldZ == nil then return -math.huge end
 
     if sourceEntry.type == SlurryNodeUtil.SOURCE_TYPE_FILL_VOLUME then
         local volumeNode = sourceEntry.volumeNode
         local baseNode   = sourceEntry.baseNode
         if volumeNode == nil or volumeNode == 0 then return -math.huge end
         if baseNode == nil or baseNode == 0 then return -math.huge end
+        -- [SPS NU] Dead-handle guard. A FillVolume can be rebuilt or its vehicle
+        -- reloaded after this source was registered, leaving baseNode/volumeNode as
+        -- freed handles: non-nil and non-zero, so the checks above pass, but the
+        -- entity no longer exists. worldToLocal / getFillPlaneHeightAtLocalPos then
+        -- error with "Argument 1 wrong type: Nil". entityExists catches the dead
+        -- handle so we bail cleanly instead of spamming script warnings.
+        if not entityExists(baseNode) or not entityExists(volumeNode) then return -math.huge end
 
         -- Convert world XZ into fill volume local space
         local localX, _, localZ = worldToLocal(baseNode, worldX, 0, worldZ)
@@ -154,6 +167,9 @@ function SlurryNodeUtil.getSurfaceWorldY(sourceEntry, worldX, worldZ)
     elseif sourceEntry.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
         local fillPlaneNode = sourceEntry.fillPlaneNode
         if fillPlaneNode == nil then return -math.huge end
+        -- [SPS NU] Dead-handle guard (see FILL_VOLUME note above): a freed plane
+        -- node is non-nil but errors in getWorldTranslation. Bail cleanly.
+        if fillPlaneNode == 0 or not entityExists(fillPlaneNode) then return -math.huge end
         -- Engine manages the fill plane node Y position directly
         local _, surfaceWorldY, _ = getWorldTranslation(fillPlaneNode)
         return surfaceWorldY
