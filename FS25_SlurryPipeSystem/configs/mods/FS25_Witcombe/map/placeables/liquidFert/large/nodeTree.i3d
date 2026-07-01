@@ -2,7 +2,7 @@
 
 <i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
   <Asset>
-    <Export program="GIANTS Editor 64bit" version="10.0.12"/>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
   </Asset>
 
   <Files>
@@ -55,19 +55,25 @@
               <TransformGroup name="inNode" translation="2.49905e-08 1.64534e-08 0.205501" rotation="0 180 0" nodeId="19"/>
               <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="20"/>
             </Shape>
+            <Shape name="parts" translation="2.49632 0 -8.04902e-07" rotation="-5.00896e-06 1.36603e-05 5.00896e-06" shapeId="1" clipDistance="150" nodeId="22" castsShadows="true" receiveShadows="true" materialIds="5">
+              <Shape name="parts" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="23" castsShadows="true" receiveShadows="true" materialIds="6"/>
+            </Shape>
+          </TransformGroup>
+          <TransformGroup name="SPS_sprayerPipeCoupler02" translation="3.74952 0.339639 -0.64464" rotation="180 -5.00896e-06 180" nodeId="37">
+            <TransformGroup name="SPS_sprayerPipeCoupler02Arcs" translation="0 -4.47035e-07 -9.85825e-09" rotation="5.00896e-06 -0 -5.00896e-06" nodeId="110">
+              <TransformGroup name="SPS_sprayerPipeCoupler02Arc01" translation="-1.5 0 3.5" nodeId="111"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler02Arc02" translation="1.5 0 3.5" nodeId="112"/>
+            </TransformGroup>
+            <Shape name="sprayerConnector" translation="0 -4.47035e-07 1.16232e-06" rotation="5.00896e-06 -1.22133e-12 -5.00896e-06" shapeId="1" clipDistance="150" nodeId="113" castsShadows="true" receiveShadows="true" materialIds="5">
+              <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="114" castsShadows="true" receiveShadows="true" materialIds="6"/>
+              <TransformGroup name="inNode" translation="2.49905e-08 1.64534e-08 0.205501" rotation="180 -5.00896e-06 180" nodeId="115"/>
+              <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="116"/>
+            </Shape>
+            <Shape name="parts" translation="2.50266 -2.38419e-07 -2.28213e-07" rotation="8.14222e-13 1.36603e-05 7.87115e-13" shapeId="1" clipDistance="150" nodeId="117" castsShadows="true" receiveShadows="true" materialIds="5">
+              <Shape name="parts" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="118" castsShadows="true" receiveShadows="true" materialIds="6"/>
+            </Shape>
           </TransformGroup>
         </TransformGroup>
-      </TransformGroup>
-      <TransformGroup name="parts" nodeId="21">
-        <Shape name="parts" translation="-3.74715 0.339639 -0.644639" rotation="-180 -1.86693e-05 -180" shapeId="1" clipDistance="150" nodeId="22" castsShadows="true" receiveShadows="true" materialIds="5">
-          <Shape name="parts" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="23" castsShadows="true" receiveShadows="true" materialIds="6"/>
-        </Shape>
-        <Shape name="parts" translation="1.24686 0.339639 -0.64464" rotation="-180 -1.86693e-05 -180" shapeId="1" clipDistance="150" nodeId="24" castsShadows="true" receiveShadows="true" materialIds="5">
-          <Shape name="parts" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="25" castsShadows="true" receiveShadows="true" materialIds="6"/>
-        </Shape>
-        <Shape name="parts" translation="3.74952 0.339639 -0.64464" rotation="-180 -1.86693e-05 -180" shapeId="1" clipDistance="150" nodeId="26" castsShadows="true" receiveShadows="true" materialIds="5">
-          <Shape name="parts" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="27" castsShadows="true" receiveShadows="true" materialIds="6"/>
-        </Shape>
       </TransformGroup>
     </TransformGroup>
   </Scene>

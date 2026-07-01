@@ -2,7 +2,7 @@
 
 <i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
   <Asset>
-    <Export program="GIANTS Editor 64bit" version="10.0.12"/>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
   </Asset>
 
   <Files>
@@ -48,7 +48,7 @@
           <TransformGroup name="SPS_sprayerPipeCoupler01" translation="1.7351 0.404846 -1.21889" rotation="0 180 0" nodeId="13">
             <TransformGroup name="SPS_sprayerPipeCoupler01Arcs" nodeId="14">
               <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="-1.5 0 3.5" nodeId="15"/>
-              <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="1.5 0 3.5" nodeId="16"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="1.1 0 3.5" nodeId="16"/>
             </TransformGroup>
             <Shape name="sprayerConnector" shapeId="1" clipDistance="150" nodeId="17" castsShadows="true" receiveShadows="true" materialIds="5">
               <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="18" castsShadows="true" receiveShadows="true" materialIds="6"/>
@@ -56,12 +56,18 @@
               <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="20"/>
             </Shape>
           </TransformGroup>
+          <TransformGroup name="SPS_sprayerPipeCoupler02" translation="-1.18733 0.404846 -1.21889" rotation="180 -5.00896e-06 180" nodeId="25">
+            <TransformGroup name="SPS_sprayerPipeCoupler02Arcs" nodeId="26">
+              <TransformGroup name="SPS_sprayerPipeCoupler02Arc01" translation="-1.1 8.84464e-23 3.5" nodeId="27"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler02Arc02" translation="1.5 0 3.5" nodeId="28"/>
+            </TransformGroup>
+            <Shape name="sprayerConnector" shapeId="1" clipDistance="150" nodeId="29" castsShadows="true" receiveShadows="true" materialIds="5">
+              <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="30" castsShadows="true" receiveShadows="true" materialIds="6"/>
+              <TransformGroup name="inNode" translation="2.49905e-08 1.64534e-08 0.205501" rotation="0 180 0" nodeId="31"/>
+              <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="32"/>
+            </Shape>
+          </TransformGroup>
         </TransformGroup>
-      </TransformGroup>
-      <TransformGroup name="parts" nodeId="21">
-        <Shape name="parts" translation="-1.18733 0.404846 -1.21889" rotation="180 -1.86693e-05 180" shapeId="1" clipDistance="150" nodeId="22" castsShadows="true" receiveShadows="true" materialIds="5">
-          <Shape name="parts" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="23" castsShadows="true" receiveShadows="true" materialIds="6"/>
-        </Shape>
       </TransformGroup>
     </TransformGroup>
   </Scene>

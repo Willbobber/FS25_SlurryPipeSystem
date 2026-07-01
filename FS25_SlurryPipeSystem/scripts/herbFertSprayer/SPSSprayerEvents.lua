@@ -5,6 +5,17 @@
 -- SPSSprayerEvents.lua
 -- FS25_SlurryPipeSystem
 
+-- [SPS] Per-file debug toggle. Set true to enable [SPS SPR EVT] trace logging.
+local DEBUG = false
+local function log(fmt, ...)
+    if not DEBUG then return end
+    if select("#", ...) > 0 then
+        print("[SPS SPR EVT] " .. string.format(fmt, ...))
+    else
+        print("[SPS SPR EVT] " .. tostring(fmt))
+    end
+end
+
 -- ---------------------------------------------------------------------------
 -- SPSSprayerPumpStateEvent
 -- Syncs sprayer pump on/off state
@@ -37,6 +48,7 @@ function SPSSprayerPumpStateEvent:writeStream(streamId, connection)
 end
 
 function SPSSprayerPumpStateEvent:run(connection)
+    log("PumpStateEvent:run pumpOn=%s obj=%s", tostring(self.pumpOn), tostring(self.object and self.object.configFileName))
     if self.object ~= nil and g_slurryPipeManager ~= nil then
         local state = g_slurryPipeManager:getSprayerObjectState(self.object)
         if state ~= nil then
@@ -90,6 +102,7 @@ function SPSSprayerValveStateEvent:writeStream(streamId, connection)
 end
 
 function SPSSprayerValveStateEvent:run(connection)
+    log("ValveStateEvent:run valveOpen=%s obj=%s", tostring(self.valveOpen), tostring(self.object and self.object.configFileName))
     if self.object ~= nil and g_slurryPipeManager ~= nil then
         local state = g_slurryPipeManager:getSprayerObjectState(self.object)
         if state ~= nil then
@@ -155,6 +168,7 @@ function SPSSprayerDirectionEvent:writeStream(streamId, connection)
 end
 
 function SPSSprayerDirectionEvent:run(connection)
+    log("DirectionEvent:run direction=%s obj=%s", tostring(self.direction), tostring(self.object and self.object.configFileName))
     if self.object ~= nil and g_slurryPipeManager ~= nil then
         local state = g_slurryPipeManager:getSprayerObjectState(self.object)
         if state ~= nil then
@@ -214,6 +228,7 @@ function SPSSprayerConnectEvent:writeStream(streamId, connection)
 end
 
 function SPSSprayerConnectEvent:run(connection)
+    log("ConnectEvent:run couplingId=%s targetCouplingId=%s", tostring(self.couplingId), tostring(self.targetCouplingId))
     if g_slurryPipeManager ~= nil then
         -- applySprayerConnectById handles targetCouplingId==0 (client→server) by
         -- calling findOverlappingSprayerCoupler to locate the other side.
@@ -278,6 +293,7 @@ function SPSSprayerDisconnectEvent:writeStream(streamId, connection)
 end
 
 function SPSSprayerDisconnectEvent:run(connection)
+    log("DisconnectEvent:run couplingId=%s", tostring(self.couplingId))
     if g_slurryPipeManager ~= nil then
         g_slurryPipeManager:applySprayerDisconnect(self.object, self.couplingId, nil)
         if not connection:getIsServer() then

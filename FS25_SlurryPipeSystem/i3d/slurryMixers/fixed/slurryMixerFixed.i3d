@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="slurryMixerFixed.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
+  </Asset>
+
+  <Files>
+    <File fileId="4" filename="$data/shaders/vehicleShader.xml"/>
+    <File fileId="19" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="17" filename="$data/shared/detailLibrary/metallic/metalGalvanized_diffuse.png"/>
+    <File fileId="16" filename="$data/shared/detailLibrary/metallic/metalGalvanized_normal.png"/>
+    <File fileId="15" filename="$data/shared/detailLibrary/metallic/metalGalvanized_specular.png"/>
+    <File fileId="7" filename="$data/shared/detailLibrary/metallic/zincGalvanized_diffuse.png"/>
+    <File fileId="6" filename="$data/shared/detailLibrary/metallic/zincGalvanized_normal.png"/>
+    <File fileId="5" filename="$data/shared/detailLibrary/metallic/zincGalvanized_specular.png"/>
+    <File fileId="20" filename="$data/shared/detailLibrary/nonMetallic/metal/metalPainted_diffuse.png"/>
+    <File fileId="18" filename="$data/shared/detailLibrary/nonMetallic/metal/metalPainted_specular.png"/>
+    <File fileId="14" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubberBlack_diffuse.png"/>
+    <File fileId="13" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_normal.png"/>
+    <File fileId="12" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_specular.png"/>
+    <File fileId="1" filename="$data/shared/white_diffuse.dds"/>
+    <File fileId="2" filename="slurryMixer_subPaint_normal.png"/>
+    <File fileId="3" filename="slurryMixer_subPaint_vmask.png"/>
+  </Files>
+
+
+  <Materials>
+    <Material name="metalGalvanized_mat" materialId="45" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="15"/>
+      <Custommap name="detailNormal" fileId="16"/>
+      <Custommap name="detailDiffuse" fileId="17"/>
+    </Material>
+    <Material name="metalPainted_mat" materialId="106" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="18"/>
+      <Custommap name="detailNormal" fileId="19"/>
+      <Custommap name="detailDiffuse" fileId="20"/>
+      <CustomParameter name="colorScale" value="0.359 0.033 0.035"/>
+    </Material>
+    <Material name="rubberBlack_mat" materialId="38" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="12"/>
+      <Custommap name="detailNormal" fileId="13"/>
+      <Custommap name="detailDiffuse" fileId="14"/>
+      <CustomParameter name="porosity" value="0.5"/>
+    </Material>
+    <Material name="zincGalvanized_mat" materialId="31" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="5"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="7"/>
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="slurryMixerFixed.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="slurryMixerFixed" nodeId="14">
+      <Shape name="rubberSeal" translation="-7.89922 0.851151 -3.39172" shapeId="1" nodeId="15" castsShadows="true" receiveShadows="true" materialIds="31,38,45">
+        <Shape name="legs" shapeId="2" nodeId="17" castsShadows="true" receiveShadows="true" materialIds="31,45"/>
+        <Shape name="slurryMixer" shapeId="3" nodeId="18" castsShadows="true" receiveShadows="true" materialIds="31,45">
+          <Shape name="blades" shapeId="4" nodeId="16" castsShadows="true" receiveShadows="true" materialIds="31,106,45"/>
+        </Shape>
+      </Shape>
+    </TransformGroup>
+    <Light name="light" rotation="-40 0 -30" nodeId="47" type="directional" color="1 1 1" emitDiffuse="true" emitSpecular="true" castShadowMap="true" depthMapBias="0.0012" depthMapSlopeScaleBias="2" depthMapSlopeClamp="0.0005" depthMapResolution="1024" shadowFarDistance="1000" shadowExtrusionDistance="200" softShadowsLightSize="0.5" softShadowsLightDistance="15" softShadowsDepthBiasFactor="1" softShadowsMaxPenumbraSize="0.5" numShadowMapSplits="5" shadowMapSplitDistancesParameter="0.9" range="500"/>
+    <Light name="light" rotation="-40 0 -30" nodeId="48" type="directional" color="1 1 1" emitDiffuse="true" emitSpecular="true" castShadowMap="true" depthMapBias="0.0012" depthMapSlopeScaleBias="2" depthMapSlopeClamp="0.0005" depthMapResolution="1024" shadowFarDistance="1000" shadowExtrusionDistance="200" softShadowsLightSize="0.5" softShadowsLightDistance="15" softShadowsDepthBiasFactor="1" softShadowsMaxPenumbraSize="0.5" numShadowMapSplits="5" shadowMapSplitDistancesParameter="0.9" range="500"/>
+  </Scene>
+
+</i3D>

@@ -8,6 +8,20 @@
 SPSSprayerPipeActivatable = {}
 SPSSprayerPipeActivatable.__index = SPSSprayerPipeActivatable
 
+-- [SPS] Per-file debug toggle. Set true to enable [SPS SPR ACT] trace logging.
+-- NOTE: this class is currently NOT instantiated anywhere (SPSSprayerPipeActivatable.new
+-- is never called — SPSSprayerPumpControl is the only active sprayer control). If these
+-- logs never appear with DEBUG=true, that confirms the file is dormant.
+local DEBUG = false
+local function log(fmt, ...)
+    if not DEBUG then return end
+    if select("#", ...) > 0 then
+        print("[SPS SPR ACT] " .. string.format(fmt, ...))
+    else
+        print("[SPS SPR ACT] " .. tostring(fmt))
+    end
+end
+
 SPSSprayerPipeActivatable.ACTIVATE_RADIUS = 1.8  -- metres
 
 function SPSSprayerPipeActivatable.new(object, coupling)
@@ -16,6 +30,8 @@ function SPSSprayerPipeActivatable.new(object, coupling)
     self.coupling = coupling
     self.activateText  = ""
     self._actionEventId = nil
+    log(".new: instantiated (object=%s couplingId=%s) — NOTE: normally never called",
+        tostring(object and object.configFileName), tostring(coupling and coupling.id))
     return self
 end
 
@@ -95,6 +111,7 @@ end
 -- ---------------------------------------------------------------------------
 function SPSSprayerPipeActivatable:_onActivate()
     local state = self:_getState()
+    log("_onActivate: state=%s", tostring(state))
     if state == "connect" then
         if g_slurryPipeManager ~= nil then
             -- Manager finds the overlapping coupler internally

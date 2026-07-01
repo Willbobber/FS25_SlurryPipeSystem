@@ -8,6 +8,19 @@
 SPSSprayerPipeVisual = {}
 SPSSprayerPipeVisual.__index = SPSSprayerPipeVisual
 
+-- [SPS] Per-file debug toggle. Set true to enable [SPS SSPV] trace logging.
+-- Hard failure prints (load ERROR, createPipe ERROR) remain unconditional — they
+-- signal genuine problems, not trace noise.
+local DEBUG = false
+local function log(fmt, ...)
+    if not DEBUG then return end
+    if select("#", ...) > 0 then
+        print("[SPS SSPV] " .. string.format(fmt, ...))
+    else
+        print("[SPS SSPV] " .. tostring(fmt))
+    end
+end
+
 -- i3d layout (sprayerPipe = pipeRoot, 33 direct children, indices 0-32):
 --   child 0      = hose1                 (skinned mesh, Bone1-Bone16 bound)
 --   child 1      = hose2                 (skinned mesh, Bone17-Bone32 bound)
@@ -35,7 +48,7 @@ function SPSSprayerPipeVisual:load()
     local pipePath = self.modDirectory .. "i3d/pipes/sprayerPipe.i3d"
     if fileExists(pipePath) then
         self._isLoaded = true
-        print("[SPS SSPV] load: OK " .. pipePath)
+        log("load: OK %s", pipePath)
     else
         print("[SPS SSPV] load: ERROR not found " .. pipePath)
     end
@@ -145,6 +158,7 @@ function SPSSprayerPipeVisual:createPipe(nodeA, nodeB)
     setRotation(endConnectors, 0, 0, 0)
 
     self:updatePipe(inst)
+    log("createPipe: OK nodeA=%s nodeB=%s", tostring(nodeA), tostring(nodeB))
     return inst
 end
 
@@ -242,6 +256,7 @@ end
 -- ---------------------------------------------------------------------------
 function SPSSprayerPipeVisual:destroyPipe(inst)
     if inst == nil then return end
+    log("destroyPipe: tearing down instance")
 
     -- During savegame quit/delete, FS25 may already have deleted linked parent
     -- nodes. Never link/delete a node unless the entity still exists.

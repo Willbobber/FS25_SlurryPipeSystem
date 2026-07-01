@@ -111,6 +111,13 @@ function SPSPipeChain:startLaying(sx, sy, sz, sry, localStartNode)
 
     self.liveSegment = seg
     SPSPipeChain.log("startLaying: live segment created (will become segment %d)", #self.segments + 1)
+
+    -- [SPS MP] Announce the new live segment so peers spawn/extend the preview.
+    -- Remote previews never originate this (guarded in onChainLiveSegmentStarted).
+    if not self.isRemoteLive and g_slurryPipeManager ~= nil
+    and g_slurryPipeManager.onChainLiveSegmentStarted ~= nil then
+        g_slurryPipeManager:onChainLiveSegmentStarted(self)
+    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -181,7 +188,7 @@ function SPSPipeChain:lockLivePipe()
                     SlurryPipeConnectEvent.sendEvent(
                         vehicle, nil,
                         SlurryPipeConnectEvent.TARGET_TYPE_PLACEABLE,
-                        self.anchorCoupling.id, startCoupling.id)
+                        self.anchorCoupling.id, startCoupling.id, true)  -- [SPS MP] noEventSend: bez replicated via SPSChainStateEvent
                     SPSPipeChain.log("lockLivePipe: auto-connected bez from vehicle coupler to chain start")
                 end
             elseif self.anchorCoupling.placeable ~= nil then
@@ -218,6 +225,13 @@ function SPSPipeChain:lockLivePipe()
     seg.endActivatable = endActivatable
 
     SPSPipeChain.log("locked segment %d — primary@pipeRoot end@endConnectors", #self.segments)
+
+    -- [SPS MP] Replicate the committed chain to all peers (server applies +
+    -- broadcasts; client sends a request the server applies authoritatively).
+    print(string.format("[SPS MP] lockLivePipe DONE netId=%s segs=%d", tostring(self.netId), #self.segments))
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.commitChainState ~= nil then
+        g_slurryPipeManager:commitChainState(self)
+    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -225,6 +239,10 @@ end
 -- ---------------------------------------------------------------------------
 function SPSPipeChain:cancelLivePipe()
     if self.liveSegment == nil then return end
+    -- [SPS MP] Remove the preview on remote peers (only the originator broadcasts).
+    if self.netId ~= nil and not self.isRemoteLive and SPSChainLiveEvent ~= nil then
+        SPSChainLiveEvent.sendCancel(self.netId)
+    end
     self:_destroySegmentNodes(self.liveSegment)
     self.liveSegment = nil
     SPSPipeChain.log("cancelled live pipe")
@@ -254,6 +272,12 @@ function SPSPipeChain:removeFromIndex(fromIndex)
             g_currentMission.activatableObjectsSystem:addActivatable(endAct)
             newLast.endActivatable = endAct
         end
+    end
+
+    -- [SPS MP] If segments remain this is a state update (fewer segments).
+    -- A full removal (0 segments) is replicated by onChainEmpty/commitChainRemoval.
+    if #self.segments > 0 and g_slurryPipeManager ~= nil and g_slurryPipeManager.commitChainState ~= nil then
+        g_slurryPipeManager:commitChainState(self)
     end
 end
 
@@ -406,6 +430,12 @@ end
 -- ---------------------------------------------------------------------------
 function SPSPipeChain:update(dt)
     if self.liveSegment == nil then return end
+    -- [SPS MP] Remote preview chains are driven by SPSChainLiveEvent POS updates,
+    -- not by this peer's local player. Interpolate toward the last target instead.
+    if self.isRemoteLive then
+        self:_updateRemoteLive(dt)
+        return
+    end
     if g_localPlayer == nil then return end
 
     local seg = self.liveSegment
@@ -444,6 +474,65 @@ function SPSPipeChain:update(dt)
     setWorldTranslation(seg.endConnectors, ex, ey - floorOffset, ez)
     setWorldRotation(seg.endConnectors, 0, math.atan2(dirX, dirZ) + math.pi, 0)
 
+    self:_updateBezierBones(seg)
+
+    -- [SPS MP] Replicate the live end position to other peers (throttled).
+    if self.netId ~= nil then
+        self:_maybeSendLivePos(dt, ex, ey - floorOffset, ez)
+    end
+end
+
+-- [SPS MP] Throttled live-position replication: at most every 100 ms, and only
+-- once the end has moved more than ~0.3 m, to keep bandwidth negligible.
+function SPSPipeChain:_maybeSendLivePos(dt, ex, ey, ez)
+    self._liveAccum = (self._liveAccum or 0) + (dt or 0)
+    local last  = self._liveLastSent
+    local moved = (last == nil)
+        or ((ex - last.x) ^ 2 + (ey - last.y) ^ 2 + (ez - last.z) ^ 2) > 0.0025
+    if self._liveAccum >= 80 and moved then
+        self._liveAccum = 0
+        self._liveLastSent = { x = ex, y = ey, z = ez }
+        if SPSChainLiveEvent ~= nil then
+            SPSChainLiveEvent.sendPos(self.netId, ex, ey, ez)
+        end
+    end
+end
+
+-- [SPS MP] Place a remote preview segment's end immediately (snap).
+function SPSPipeChain:setRemoteLiveEnd(ex, ey, ez)
+    local seg = self.liveSegment
+    if seg == nil or seg.endConnectors == nil then return end
+    local dx = ex - (seg.startX or ex)
+    local dz = ez - (seg.startZ or ez)
+    setWorldTranslation(seg.endConnectors, ex, ey, ez)
+    setWorldRotation(seg.endConnectors, 0, math.atan2(dx, dz) + math.pi, 0)
+    self:_updateBezierBones(seg)
+end
+
+-- [SPS MP] Set the interpolation target for a remote preview. First update snaps
+-- (avoids a long sweep from the spawn position); later updates are smoothed in
+-- _updateRemoteLive.
+function SPSPipeChain:setRemoteLiveTarget(ex, ey, ez)
+    if self._liveTargetX == nil then
+        self:setRemoteLiveEnd(ex, ey, ez)
+    end
+    self._liveTargetX, self._liveTargetY, self._liveTargetZ = ex, ey, ez
+end
+
+-- [SPS MP] Per-frame smoothing of a remote preview toward its last target.
+function SPSPipeChain:_updateRemoteLive(dt)
+    local seg = self.liveSegment
+    if seg == nil or seg.endConnectors == nil or self._liveTargetX == nil then return end
+    local cx, cy, cz = getWorldTranslation(seg.endConnectors)
+    local t = (dt or 16) / 100
+    if t > 1 then t = 1 end
+    local nx = cx + (self._liveTargetX - cx) * t
+    local ny = cy + (self._liveTargetY - cy) * t
+    local nz = cz + (self._liveTargetZ - cz) * t
+    local dx = nx - (seg.startX or nx)
+    local dz = nz - (seg.startZ or nz)
+    setWorldTranslation(seg.endConnectors, nx, ny, nz)
+    setWorldRotation(seg.endConnectors, 0, math.atan2(dx, dz) + math.pi, 0)
     self:_updateBezierBones(seg)
 end
 
@@ -925,7 +1014,8 @@ function SPSPipeChain:restoreFromSaveData(data)
         tostring(data.localStart == true), tostring(data.hasDockingStation == true))
 
     self.localStart = data.localStart == true
-    self.localStartNode = self.localStart and self.anchorCoupling.mountNode or nil
+    self.localStartNode = (self.localStart and self.anchorCoupling ~= nil)
+        and self.anchorCoupling.mountNode or nil
 
     local nextX, nextY, nextZ, nextRY
     if self.localStart and self.localStartNode ~= nil and self.localStartNode ~= 0
@@ -938,10 +1028,14 @@ function SPSPipeChain:restoreFromSaveData(data)
         -- chainStartRY is saved as getWorldRotation(segments[1].pipeRoot) — use it directly
         -- so the bezier tangent at the coupler end matches the original pipe layout.
         nextRY = data.chainStartRY or 0
-    else
+    elseif self.anchorCoupling ~= nil and self.anchorCoupling.mountNode ~= nil then
         nextX, nextY, nextZ = getWorldTranslation(self.anchorCoupling.mountNode)
         local _, ry, _ = getWorldRotation(self.anchorCoupling.mountNode)
         nextRY = ry
+    else
+        -- Free-standing chain with no resolvable anchor: fall back to cached anchor pos.
+        nextX, nextY, nextZ = data.anchorX or 0, data.anchorY or 0, data.anchorZ or 0
+        nextRY = 0
     end
 
     for i, segData in ipairs(data.segments) do
@@ -982,8 +1076,8 @@ function SPSPipeChain:restoreFromSaveData(data)
                     isChainTerminus          = true,
                     chain                    = self,
                     segmentIndex             = 0,
-                    sourceEntry              = self.anchorCoupling.sourceEntry,
-                    placeable                = self.anchorCoupling.placeable,
+                    sourceEntry              = self.anchorCoupling and self.anchorCoupling.sourceEntry or nil,
+                    placeable                = self.anchorCoupling and self.anchorCoupling.placeable or nil,
                     isChainStart             = true,
                 }
                 seg.chainStartCoupling = startCoupling

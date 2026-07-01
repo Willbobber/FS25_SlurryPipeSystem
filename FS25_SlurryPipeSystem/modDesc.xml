@@ -2,7 +2,7 @@
 <modDesc descVersion="110">
 
     <author>Oscar Mods</author>
-    <version>1.0.0.0</version>
+    <version>1.0.0.3</version>
     <title>
         <en>Slurry Pipe System</en>
         <de>Gülle-Rohrsystem</de>
@@ -136,6 +136,10 @@ Caratteristiche:
 		<sourceFile filename="scripts/util/SPSPumpControlActivatable.lua"/>
 		<sourceFile filename="scripts/util/SlurryTractorCapability.lua"/>
 		<sourceFile filename="scripts/util/SPSOutsideControlActivatable.lua"/>
+		<sourceFile filename="scripts/agitators/SPSFixedAgitator.lua"/>
+		<sourceFile filename="scripts/agitators/SPSFixedAgitatorEvent.lua"/>
+		<sourceFile filename="scripts/agitators/SPSFixedAgitatorActivatable.lua"/>
+		<sourceFile filename="scripts/agitators/SPSFixedAgitatorShaft.lua"/>
 		
 		<sourceFile filename="scripts/util/SPSShearBolt.lua"/>
 		<sourceFile filename="scripts/util/SPSShearBoltEvent.lua"/>
@@ -166,6 +170,7 @@ Caratteristiche:
 		<action name="SPS_TOGGLE_ANIMATION_SPRAYER" axisType="HALF"/>
 		<action name="SPS_HUD_EDIT" 				axisType="HALF"/>
 		<action name="SPS_REPAIR_SHEARBOLT"			axisType="HALF"/>
+		<action name="SPS_TOGGLE_AGITATOR"/>
 	</actions>
 	
 	<inputBinding>
@@ -189,6 +194,9 @@ Caratteristiche:
 		</actionBinding>
 		<actionBinding action="SPS_REPAIR_SHEARBOLT">
 			<binding device="KB_MOUSE_DEFAULT" input="KEY_r" axisComponent="+" index="1"/>
+		</actionBinding>
+		<actionBinding action="SPS_TOGGLE_AGITATOR">
+			<binding device="KB_MOUSE_DEFAULT" input="KEY_q"/>
 		</actionBinding>
 	</inputBinding>
 	

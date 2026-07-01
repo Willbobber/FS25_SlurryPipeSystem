@@ -13,6 +13,17 @@
 SPSSprayerPumpControl = {}
 SPSSprayerPumpControl.__index = SPSSprayerPumpControl
 
+-- [SPS] Per-file debug toggle. Set true to enable [SPS SPR CTRL] trace logging.
+local DEBUG = false
+local function log(fmt, ...)
+    if not DEBUG then return end
+    if select("#", ...) > 0 then
+        print("[SPS SPR CTRL] " .. string.format(fmt, ...))
+    else
+        print("[SPS SPR CTRL] " .. tostring(fmt))
+    end
+end
+
 function SPSSprayerPumpControl.new(object, node, radius)
     local self      = setmetatable({}, SPSSprayerPumpControl)
     self.object     = object
@@ -35,28 +46,59 @@ end
 function SPSSprayerPumpControl:getIsActivatable()
     if g_localPlayer == nil then return false end
     if self.node == nil or self.node == 0 or not entityExists(self.node) then return false end
-    if g_slurryPipeManager == nil or not g_slurryPipeManager:isSprayerVehicleRegistered(self.object) then return false end
+    if g_slurryPipeManager == nil or not g_slurryPipeManager:isSprayerVehicleRegistered(self.object) then
+        if self._dbgReason ~= "notRegistered" then
+            self._dbgReason = "notRegistered"
+            log("getIsActivatable: FALSE — sprayer not registered (%s)", tostring(self.object and self.object.configFileName))
+        end
+        return false
+    end
 
     -- AI guard: hide activatable when the sprayer's root is AI-driven.
     if SlurryPipeSystemOverride ~= nil and SlurryPipeSystemOverride.isAIControlled(self.object) then
+        if self._dbgReason ~= "ai" then self._dbgReason = "ai"; log("getIsActivatable: FALSE — AI controlled") end
         return false
     end
 
     -- Block when player is in cab
     local root = self.object:getRootVehicle()
-    if root ~= nil and root:getIsActiveForInput(true) then return false end
+    if root ~= nil and root:getIsActiveForInput(true) then
+        if self._dbgReason ~= "inCab" then self._dbgReason = "inCab"; log("getIsActivatable: FALSE — player in cab") end
+        return false
+    end
 
     -- Within radius
     local px, py, pz = getWorldTranslation(g_localPlayer.rootNode)
     local cx, cy, cz = getWorldTranslation(self.node)
     local dist = MathUtil.vector3Length(px - cx, py - cy, pz - cz)
-    if dist > self.radius then return false end
+    if dist > self.radius then
+        if self._dbgReason ~= "radius" then
+            self._dbgReason = "radius"
+            log("getIsActivatable: FALSE — out of radius dist=%.2f radius=%.2f", dist, self.radius)
+        end
+        return false
+    end
 
     -- Activatable when arcs overlap OR pipe already connected
     local coupling = self:_getCoupling()
-    if coupling == nil then return false end
-    if coupling.isConnected then return true end
-    return g_slurryPipeManager:findOverlappingSprayerCoupler(coupling) ~= nil
+    if coupling == nil then
+        if self._dbgReason ~= "noCoupling" then self._dbgReason = "noCoupling"; log("getIsActivatable: FALSE — no coupling") end
+        return false
+    end
+    if coupling.isConnected then
+        if self._dbgReason ~= "connected" then
+            self._dbgReason = "connected"
+            log("getIsActivatable: TRUE — connected (dist=%.2f id=%s)", dist, tostring(coupling.id))
+        end
+        return true
+    end
+    local overlap = g_slurryPipeManager:findOverlappingSprayerCoupler(coupling)
+    if self._dbgReason ~= ("overlap=" .. tostring(overlap ~= nil)) then
+        self._dbgReason = "overlap=" .. tostring(overlap ~= nil)
+        log("getIsActivatable: overlap=%s dist=%.2f radius=%.2f couplingId=%s",
+            tostring(overlap ~= nil), dist, self.radius, tostring(coupling.id))
+    end
+    return overlap ~= nil
 end
 
 function SPSSprayerPumpControl:getDistance(posX, posY, posZ)
@@ -224,28 +266,30 @@ function SPSSprayerPumpControl:_onAnimToggle()
     if not coupling.loadAnimPlayed then
         self.object:playAnimation(coupling.loadAnimationName, 1)
         coupling.loadAnimPlayed = true
-        print("[SPS SPR CTRL] _onAnimToggle: open cover anim=" .. coupling.loadAnimationName)
+        log("_onAnimToggle: open cover anim=%s", tostring(coupling.loadAnimationName))
     else
         self.object:playAnimation(coupling.loadAnimationName, -1)
         coupling.loadAnimPlayed = false
-        print("[SPS SPR CTRL] _onAnimToggle: close cover anim=" .. coupling.loadAnimationName)
+        log("_onAnimToggle: close cover anim=%s", tostring(coupling.loadAnimationName))
     end
 end
 
 function SPSSprayerPumpControl:_onActivate()
     local coupling = self:_getCoupling()
-    if coupling == nil then return end
+    if coupling == nil then log("_onActivate: no coupling"); return end
 
     if coupling.isConnected then
+        log("_onActivate: disconnect id=%s", tostring(coupling.id))
         if g_slurryPipeManager ~= nil then
             g_slurryPipeManager:onSprayerCouplerDisconnect(self.object, coupling)
         end
     else
         -- Block connect if cover animation has not been played
         if coupling.loadAnimationName ~= nil and not coupling.loadAnimPlayed then
-            print("[SPS SPR CTRL] _onActivate: cover not open, connect blocked")
+            log("_onActivate: cover not open, connect blocked")
             return
         end
+        log("_onActivate: connect id=%s", tostring(coupling.id))
         if g_slurryPipeManager ~= nil then
             g_slurryPipeManager:onSprayerCouplerConnect(self.object, coupling)
         end
@@ -253,12 +297,14 @@ function SPSSprayerPumpControl:_onActivate()
 end
 
 function SPSSprayerPumpControl:_onFlow()
+    log("_onFlow: toggle valve")
     if g_slurryPipeManager ~= nil then
         g_slurryPipeManager:onSprayerToggleValve(self.object)
     end
 end
 
 function SPSSprayerPumpControl:_onDirection()
+    log("_onDirection: toggle direction")
     if g_slurryPipeManager ~= nil then
         g_slurryPipeManager:onSprayerToggleDirection(self.object)
     end
@@ -271,5 +317,12 @@ function SPSSprayerPumpControl:_getCoupling()
     if g_slurryPipeManager == nil then return nil end
     local entry = g_slurryPipeManager:getSprayerVehicleEntry(self.object)
     if entry == nil or #entry.couplings == 0 then return nil end
+    -- NOTE: only ever returns couplings[1]. If a sprayer defines >1 coupling,
+    -- couplings 2..n are unreachable from this control. Logged once on change.
+    if self._dbgCplCount ~= #entry.couplings then
+        self._dbgCplCount = #entry.couplings
+        log("_getCoupling: %d coupling(s) present; using couplings[1] (id=%s)",
+            #entry.couplings, tostring(entry.couplings[1] and entry.couplings[1].id))
+    end
     return entry.couplings[1]
 end

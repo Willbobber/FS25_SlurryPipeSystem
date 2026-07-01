@@ -11,7 +11,7 @@
 
     <flow fillLitersPerSecond="1500" emptyLitersPerSecond="1500"/>
 	
-	<pump pumpType="vacuum"/>     <!-- supercis800, Rossmore -->
+	<pump pumpType="vacuum" selfPowered="true"/>     <!-- vacuum/HVP/conduit/openTop -->
 	
 	<surfaceRef emptyNode="emptyNode" fullNode="fullNode"/>
 	
@@ -35,8 +35,6 @@
 		openTop="false"
 	/>
 	
-    <pump selfPowered="true"/>
-
     <sounds>
         <engineLoop
             file="$data/vehicles/agi/utx44/sounds/utx44_loop.gls"

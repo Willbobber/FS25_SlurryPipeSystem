@@ -274,6 +274,13 @@ function SPSChainActivatable:_onShortPress()
             -- Remove from this segment onwards
             SPSChainActivatable.log("shortPress: removePipeChain — removing from segment %d onwards", self.arcIndex)
             self.chain:removeFromIndex(self.arcIndex)
+            -- [SPS MP] If that emptied the chain, finalise it exactly like the
+            -- anchor-arc path so removal is replicated (commitChainRemoval) and
+            -- the empty chain is cleaned up instead of being orphaned.
+            if self.chain ~= nil and #self.chain.segments == 0 and g_slurryPipeManager ~= nil then
+                g_slurryPipeManager:onChainEmpty(self.chain, self.coupling)
+                self.chain = nil
+            end
         end
     elseif state == "dockingStationOpen" or state == "dockingStationClosed" then
         SPSChainActivatable.log("shortPress: removing docking station")

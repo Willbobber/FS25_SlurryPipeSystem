@@ -1,167 +1,173 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <l10n>
     <texts>
-        <!-- Inputs -->
-        <text name="input_SPS_TOGGLE_PUMP" text="SPS Pumpe Ein/Aus" />
-        <text name="input_SPS_TOGGLE_FLOW" text="SPS Durchfluss Öffnen/Schließen" />
-        <text name="input_SPS_TOGGLE_DIRECTION" text="SPS Durchflussrichtung" />
-        <text name="input_SPS_TOGGLE_SPREADER" text="SPS Streuventil" />
-
-        <!-- Settings menu -->
-        <text name="sps_settingsHeader" text="GÜLLE-ROHRSYSTEM" />
-        <text name="sps_settingsSlurryPipe" text="Güllerohr" />
-        <text name="sps_settingsSlurryPipeTooltip" text="Rohrfarbe auswählen" />
-
-        <!-- Pump on/off (TurnOnVehicle override) -->
-        <text name="action_slurryPumpOn" text="Zapfwelle: Pumpe AUS" />
-        <text name="action_slurryPumpOff" text="Zapfwelle: Pumpe EIN" />
-        <text name="action_spsHVPOn" text="Zapfwelle: HVP AUS" />
-        <text name="action_spsHVPOff" text="Zapfwelle: HVP EIN" />
+		<!-- Inputs -->
+		<text name="input_SPS_TOGGLE_PUMP"      		text="SPS Pumpe Ein/Aus" />
+		<text name="input_SPS_TOGGLE_FLOW"      		text="SPS Durchfluss Öffnen/Schließen" />
+		<text name="input_SPS_TOGGLE_DIRECTION" 		text="SPS Durchflussrichtung" />
+        <text name="input_SPS_TOGGLE_SPREADER"          text="SPS Streuventil" />
+        
+		<!-- Settings menu -->
+		<text name="sps_settingsHeader"            		text="GÜLLE-ROHRSYSTEM" />
+		<text name="sps_settingsSlurryPipe"        		text="Güllerohr" />
+		<text name="sps_settingsSlurryPipeTooltip" 		text="Rohrfarbe auswählen" />
+		
+		<!-- Pump on/off (TurnOnVehicle override) -->
+        <text name="action_slurryPumpOn"  				text="Zapfwelle: Pumpe AUS" />
+        <text name="action_slurryPumpOff" 				text="Zapfwelle: Pumpe EIN" />
+		<text name="action_spsHVPOn"  					text="Zapfwelle: HVP AUS" />
+		<text name="action_spsHVPOff" 					text="Zapfwelle: HVP EIN" />
 
         <!-- Valve open/close -->
-        <text name="action_slurryFlowOpen" text="Füllarm: Ventil GESCHLOSSEN" />
-        <text name="action_slurryFlowClose" text="Füllarm: Ventil GEÖFFNET" />
-        <text name="action_spsConduitFlowOpen" text="Güllepumpe: Ventil GESCHLOSSEN" />
-        <text name="action_spsConduitFlowClose" text="Güllepumpe: Ventil GEÖFFNET" />
+        <text name="action_slurryFlowOpen"  			text="Füllarm: Ventil GESCHLOSSEN" />
+        <text name="action_slurryFlowClose" 			text="Füllarm: Ventil GEÖFFNET" />
+		<text name="action_spsConduitFlowOpen"   		text="Güllepumpe: Ventil GESCHLOSSEN" />
+		<text name="action_spsConduitFlowClose"  		text="Güllepumpe: Ventil GEÖFFNET" />
 
         <!-- Pump direction (shows current, press to switch) -->
-        <text name="action_slurryDirectionFill" text="Pumpe: Druck" />
-        <text name="action_slurryDirectionDischarge" text="Pumpe: Vakuum" />
-        <text name="action_spsHVPDirFill" text="Pumpe eingestellt: Entleeren" />
-        <text name="action_spsHVPDirDischarge" text="Pumpe eingestellt: Befüllen" />
+        <text name="action_slurryDirectionFill"      	text="Pumpe: Druck" />
+        <text name="action_slurryDirectionDischarge"  	text="Pumpe: Vakuum" />
+		<text name="action_spsHVPDirFill"      			text="Pumpe eingestellt: Entleeren" />
+		<text name="action_spsHVPDirDischarge" 			text="Pumpe eingestellt: Befüllen" />
 
-        <!-- Spreader valve -->
-        <text name="action_spsSpreaderOpen" text="Streuer: Ventil GESCHLOSSEN" />
-        <text name="action_spsSpreaderClose" text="Streuer: Ventil GEÖFFNET" />
+		<!-- Spreader valve -->
+        <text name="action_spsSpreaderOpen"             text="Streuer: Ventil GESCHLOSSEN" />
+        <text name="action_spsSpreaderClose"            text="Streuer: Ventil GEÖFFNET" />
 
         <!-- Pipe actions -->
-        <text name="action_spsConnectPipe" text="Rohr verbinden" />
-        <text name="action_spsDisconnectOrOpenValve" text="Trennen [R] | Ventil öffnen [R halten]" />
-        <text name="action_spsCloseValve" text="Ventil schließen [R halten]" />
-        <text name="warning_slurryCloseValveFirst" text="Ventil vor dem Trennen schließen" />
-        <text name="action_spsLayFirstPipe" text="Erstes Rohr verlegen" />
-        <text name="action_spsLayPipe" text="Rohr verlegen | Dockingstation platzieren [R halten]" />
-        <text name="action_spsRemovePipe" text="Rohr entfernen" />
-        <text name="action_spsRemoveDockingStation" text="Dockingstation entfernen" />
-        <text name="action_spsDisconnectPipe" text="Rohr trennen" />
-        <text name="action_spsFinalisePipe" text="Rohr abschließen [R] | Abbrechen [R halten]" />
-        <text name="action_spsDeployCoupling" text="Rohrkupplung ausfahren [R halten]" />
-        <text name="action_spsRemoveCoupling" text="Rohrkupplung entfernen [R halten]" />
-        <text name="action_spsRearValveOpen" text="Ventil öffnen [R]" />
-        <text name="action_spsRearValveClose" text="Ventil schließen [R]" />
-
+        <text name="action_spsConnectPipe" 				text="Rohr verbinden"/>
+		<text name="action_spsDisconnectOrOpenValve" 	text="Trennen [R] | Ventil öffnen [R halten]"/>
+		<text name="action_spsCloseValve" 				text="Ventil schließen [R halten]"/>
+		<text name="warning_slurryCloseValveFirst" 		text="Ventil vor dem Trennen schließen"/>
+		<text name="action_spsLayFirstPipe"         	text="Erstes Rohr verlegen" />
+		<text name="action_spsLayPipe"              	text="Rohr verlegen | Dockingstation platzieren [R halten]" />
+		<text name="action_spsRemovePipe"           	text="Rohr entfernen" />
+		<text name="action_spsRemoveDockingStation" 	text="Dockingstation entfernen" />
+		<text name="action_spsDisconnectPipe" 			text="Rohr trennen" />
+		<text name="action_spsFinalisePipe"  			text="Rohr abschließen [R] | Abbrechen [R halten]" />
+		<text name="action_spsDeployCoupling" 			text="Rohrkupplung ausfahren [R halten]"/>
+		<text name="action_spsRemoveCoupling" 			text="Rohrkupplung entfernen [R halten]"/>
+		<text name="action_spsRearValveOpen"			text="Ventil öffnen [R]" />
+		<text name="action_spsRearValveClose"			text="Ventil schließen [R]" />
+		
         <!-- Warnings -->
-        <text name="warning_slurryNoConnection" text="Keine aktive Gülleleitung" />
-        <text name="warning_slurryCloseFlowFirst" text="Ventil schließen vor Richtungswechsel" />
-        <text name="warning_slurryNoPipeTarget" text="Kein Rohranschlusspunkt in Reichweite" />
-        <text name="warning_slurryEngineOff" text="Zuerst den Motor starten" />
-        <text name="warning_spsConnectHydraulics" text="Zuerst Hydraulikschläuche anschließen" />
-        <text name="warning_spsSetToPressure" text="Pumpe zuerst auf Druck stellen" />
-        <text name="warning_spsSlurryNeedsMix" text="Gülle abgesetzt — Aufrühren empfohlen" />
-
+        <text name="warning_slurryNoConnection"    		text="Keine aktive Gülleleitung" />
+        <text name="warning_slurryCloseFlowFirst"  		text="Ventil schließen vor Richtungswechsel" />
+        <text name="warning_slurryNoPipeTarget"    		text="Kein Rohranschlusspunkt in Reichweite" />
+		<text name="warning_slurryEngineOff" 			text="Zuerst den Motor starten"/>
+		<text name="warning_spsConnectHydraulics"		text="Zuerst Hydraulikschläuche anschließen" />
+		<text name="warning_spsSetToPressure"			text="Pumpe zuerst auf Druck stellen" />
+		<text name="warning_spsSlurryNeedsMix"   		text="Gülle abgesetzt — Aufrühren empfohlen" />
+		
         <!-- PTO Slurry Pump vehicle -->
-        <text name="function_slurryPump" text="Güllepumpe" />
-        <text name="typeDesc_manurePump" text="Zapfwellen-Güllepumpe" />
+        <text name="function_slurryPump"                text="Güllepumpe" />
+        <text name="typeDesc_manurePump"                text="Zapfwellen-Güllepumpe" />
 
         <!-- Conduit pump HUD and direction -->
-        <text name="hud_spsConduitPumped" text="Gepumpt: %d L" />
-        <text name="action_spsConduitDirAtoB" text="Fluss: Anschluss 1 → Anschluss 2" />
-        <text name="action_spsConduitDirBtoA" text="Fluss: Anschluss 2 → Anschluss 1" />
-
+        <text name="hud_spsConduitPumped"               text="Gepumpt: %d L" />
+        <text name="action_spsConduitDirAtoB"           text="Fluss: Anschluss 1 → Anschluss 2" />
+        <text name="action_spsConduitDirBtoA"           text="Fluss: Anschluss 2 → Anschluss 1" />
+		
         <!-- Slurry thickness / agitation -->
-        <text name="warning_spsSlurryThickening" text="Gülle dickt ein: %d%% — Aufrühren empfohlen" />
-        <text name="warning_spsSlurryTooThick" text="Gülle zu dick — Wasser und Aufrühren erforderlich" />
-        <text name="sps_settingsAgitation" text="Gülle-Aufrührung" />
-        <text name="sps_settingsAgitationTooltip" text="Aktiviert das System für Eindickung und Aufrührung der Gülle" />
-        <text name="sps_settingsRealism" text="Gülle-Realismus" />
-        <text name="sps_settingsRealismTooltip" text="Hauptschalter für Dicke, Kruste, Verstopfungen und Längen-Durchflussabfall" />
-        <text name="sps_settingsStoreThickening" text="    Eindickung im Lager" />
+        <text name="warning_spsSlurryThickening"  		text="Gülle dickt ein: %d%% — Aufrühren empfohlen" />
+        <text name="warning_spsSlurryTooThick"          text="Gülle zu dick — Wasser und Aufrühren erforderlich" />
+        <text name="sps_settingsAgitation"              text="Gülle-Aufrührung" />
+        <text name="sps_settingsAgitationTooltip"       text="Aktiviert das System für Eindickung und Aufrührung der Gülle" />
+        <text name="sps_settingsRealism"                text="Gülle-Realismus" />
+        <text name="sps_settingsRealismTooltip"         text="Hauptschalter für Dicke, Kruste, Verstopfungen und Längen-Durchflussabfall" />
+        <text name="sps_settingsStoreThickening"        text="    Eindickung im Lager" />
         <text name="sps_settingsStoreThickeningTooltip" text="Gülle in Lagern dickt mit der Zeit ein (mit Realismus immer an)" />
-        <text name="sps_settingsCrust" text="    Krustenbewuchs" />
-        <text name="sps_settingsCrustTooltip" text="Eine sichtbare Kruste bildet sich auf dicker Gülle (mit Realismus immer an)" />
-        <text name="sps_settingsThicknessFlow" text="    Dicke beeinflusst Durchfluss" />
-        <text name="sps_settingsThicknessFlowTooltip" text="Dicke Gülle verlangsamt Befüllen, Entleeren und Ausbringen" />
-        <text name="sps_settingsBlockages" text="    Streuverstopfungen" />
-        <text name="sps_settingsBlockagesTooltip" text="Dicke Gülle kann den Streuer verstopfen; herangehen zum Freimachen" />
-        <text name="sps_settingsLengthFalloff" text="    Längen-Durchflussabfall" />
-        <text name="sps_settingsLengthFalloffTooltip" text="Die Durchflussrate sinkt über die Länge eines angeschlossenen Güllerohrs" />
-        <text name="warning_spsBlockage" text="Streuer verstopft — Verstopfung beseitigen, um fortzufahren" />
-        <text name="action_spsAgitatorOn" text="Rührwerk: AUS — Zapfwelle läuft" />
-        <text name="action_spsAgitatorOff" text="Rührwerk: EIN — Zapfwelle läuft" />
-        <text name="warning_spsAgitatorNotSubmerged" text="Rührwerk nicht eingetaucht" />
-        <text name="sps_infoThicknessTitle" text="Güllendicke" />
-        <text name="sps_infoLiquidTitle" text="Flüssig" />
-        <text name="sps_infoDryMatterTitle" text="Trockenmasse" />
-        <text name="sps_infoCrustTitle" text="Kruste" />
-
-        <!-- Water -->
-        <text name="action_spsDeployWaterPipe" text="R halten: Wasserrohr ausbringen" />
-        <text name="action_spsFinalizeWaterPipe" text="R halten: Wasserrohr abschließen" />
-        <text name="action_spsCancelWaterPipe" text="R halten: Platzierung abbrechen" />
-        <text name="action_spsRemoveWaterPipe" text="R halten: Wasserrohr entfernen" />
-        <text name="info_spsPipeWalkToWater" text="Zum Wasser gehen, um das Rohr zu platzieren" />
-        <text name="info_spsPipeDeployed" text="Wasserrohr ausgebracht" />
-        <text name="info_spsPipeCancelled" text="Rohrplatzierung abgebrochen" />
-        <text name="info_spsPipeRemoved" text="Wasserrohr entfernt" />
-        <text name="warning_spsPipeTooShort" text="Rohr zu kurz (mindestens 2 m)" />
-        <text name="warning_spsPipeTooLong" text="Rohr zu lang (maximal 20 m)" />
-
-        <!-- Sprayer -->
-        <text name="input_SPS_TOGGLE_ANIMATION_SPRAYER" text="Abdeckung öffnen | Abdeckung schließen" />
-        <text name="input_SPS_TOGGLE_PUMP_SPRAYER" text="Fluss starten | Fluss stoppen" />
-        <text name="input_SPS_TOGGLE_DIRECTION_SPRAYER" text="Laden | Entladen" />
-        <text name="action_sprayerCoverClosed" text="Abdeckung: GESCHLOSSEN" />
-        <text name="action_sprayerCoverOpen" text="Abdeckung: OFFEN" />
-        <text name="action_sprayerFlowOff" text="Fluss: GESTOPPT" />
-        <text name="action_sprayerFlowOn" text="Fluss: LÄUFT" />
-        <text name="action_sprayerDirLoad" text="Richtung: LADEN" />
-        <text name="action_sprayerDirUnload" text="Richtung: ENTLADEN" />
-
-        <!-- SPS spreader HUD -->
-        <text name="sps_hudTitle" text="Streuer" />
-        <text name="sps_hudSlurry" text="Gülle" />
-        <text name="sps_hudCrust" text="Kruste" />
-        <text name="sps_hudThickness" text="Dicke" />
-        <text name="sps_hudRisk" text="Verstopfungsrisiko" />
-        <text name="sps_hudRiskLow" text="Niedrig" />
-        <text name="sps_hudRiskMed" text="Mittel" />
-        <text name="sps_hudRiskHigh" text="Hoch" />
-        <text name="sps_hudVacuum" text="Vakuum" />
-        <text name="sps_hudHVP" text="HVP" />
-        <text name="sps_hudPump" text="Pumpe" />
-        <text name="sps_hudEditHint" text="Ziehen zum Verschieben  -  Scrollen zum Skalieren  -  Mittelklick zum Sperren" />
-        <text name="action_spsHudEdit" text="Streuer-HUD verschieben" />
-
-        <!-- SPS spreader HUD settings -->
-        <text name="sps_hudSettingsHeader" text="Streuer-HUD" />
-        <text name="sps_hudSetEnabled" text="DB-Anzeige" />
-        <text name="sps_hudSetEnabledTooltip" text="Das Streuer-HUD (DB-Symbol, Gülle-Details und Sektionszellen) oben am Bildschirm anzeigen." />
-        <text name="sps_hudSetImage" text="DB-Bild" />
-        <text name="sps_hudSetImageTooltip" text="Das Schleppschlauch-Bild auf dem Streuer-HUD anzeigen." />
-        <text name="sps_hudSetFill" text="Güllestand anzeigen" />
-        <text name="sps_hudSetCrust" text="Kruste anzeigen" />
-        <text name="sps_hudSetThick" text="Dicke anzeigen" />
-        <text name="sps_hudSetRisk" text="Verstopfungsrisiko anzeigen" />
-        <text name="sps_hudSetPump" text="Pumpe / Druck anzeigen" />
-        <text name="sps_hudSetFieldTooltip" text="Diese Zeile auf dem Streuer-HUD ein- oder ausblenden." />
-        <text name="sps_hudSetScale" text="HUD-Größe" />
-        <text name="sps_hudSetScaleTooltip" text="Größe des Streuer-HUDs. Kann auch mit dem Mausrad beim Verschieben des HUDs geändert werden." />
-        <text name="input_SPS_HUD_EDIT" text="Streuer-HUD bearbeiten" />
-
-        <!-- SPS blockage clearing -->
-        <text name="sps_blockageMacerator" text="Zerkleinerer" />
-        <text name="action_spsClearBlockage" text="Halten zum Freimachen: %s" />
-        <text name="action_spsClearBlockageWait" text="Balken stoppen zum Freimachen: %s" />
-        <text name="warning_spsClearBlocked" text="Ausbringen stoppen und Druck abfallen lassen, bevor freigemacht wird." />
-        <text name="warning_spsBlockageMacerator" text="Zerkleinerer verstopft - Streuer gestoppt. Freimachen, um fortzufahren." />
-        <text name="warning_spsBlockageSection" text="Sektion verstopft: %s. Freimachen, um diesen Streifen wiederherzustellen." />
-        <!-- Shear bolt -->
-        <text name="input_SPS_REPAIR_SHEARBOLT" text="Scherbolzen ersetzen [R halten]" />
-        <text name="action_spsRepairShearBolt" text="Scherbolzen ersetzen [R halten]" />
-        <text name="action_spsRepairShearBoltWait" text="Scherbolzen ersetzen (Zapfwelle &amp; Motor ausschalten)" />
-        <text name="warning_spsShearBoltSnapped" text="Zapfwellen-Scherbolzen gebrochen — Pumpe getrennt, Austausch erforderlich" />
-        <text name="warning_spsShearRepairBlocked" text="Zapfwelle ausschalten und Motor abstellen, um den Scherbolzen zu ersetzen" />
-        <text name="sps_settingsShearBolt" text="Zapfwellen-Scherbolzen" />
-        <text name="sps_settingsShearBoltTooltip" text="Aktiviert den Zapfwellen-Scherbolzen." />
-    </texts>
+        <text name="sps_settingsCrust"                  text="    Krustenbewuchs" />
+        <text name="sps_settingsCrustTooltip"           text="Eine sichtbare Kruste bildet sich auf dicker Gülle (mit Realismus immer an)" />
+        <text name="sps_settingsThicknessFlow"          text="    Dicke beeinflusst Durchfluss" />
+        <text name="sps_settingsThicknessFlowTooltip"   text="Dicke Gülle verlangsamt Befüllen, Entleeren und Ausbringen" />
+        <text name="sps_settingsBlockages"              text="    Streuverstopfungen" />
+        <text name="sps_settingsBlockagesTooltip" 		text="Dicke Gülle kann den Streuer verstopfen; herangehen zum Freimachen" />
+        <text name="sps_settingsLengthFalloff"          text="    Längen-Durchflussabfall" />
+        <text name="sps_settingsLengthFalloffTooltip"   text="Die Durchflussrate sinkt über die Länge eines angeschlossenen Güllerohrs" />
+        <text name="warning_spsBlockage"                text="Streuer verstopft — Verstopfung beseitigen, um fortzufahren" />
+        <text name="action_spsAgitatorOn"               text="Rührwerk: AUS — Zapfwelle läuft" />
+        <text name="action_spsAgitatorOff"              text="Rührwerk: EIN — Zapfwelle läuft" />
+        <text name="warning_spsAgitatorNotSubmerged"    text="Rührwerk nicht eingetaucht" />
+        <text name="sps_infoThicknessTitle"             text="Güllendicke" />
+		<text name="sps_infoLiquidTitle"                text="Flüssig" />
+        <text name="sps_infoDryMatterTitle"             text="Trockenmasse" />
+        <text name="sps_infoCrustTitle"                 text="Kruste" />
+		
+		<!-- Water -->
+		<text name="action_spsDeployWaterPipe"			text="R halten: Wasserrohr ausbringen" />
+		<text name="action_spsFinalizeWaterPipe"		text="R halten: Wasserrohr abschließen" />
+		<text name="action_spsCancelWaterPipe"			text="R halten: Platzierung abbrechen" />
+		<text name="action_spsRemoveWaterPipe"			text="R halten: Wasserrohr entfernen" />
+		<text name="info_spsPipeWalkToWater"			text="Zum Wasser gehen, um das Rohr zu platzieren" />
+		<text name="info_spsPipeDeployed"				text="Wasserrohr ausgebracht" />
+		<text name="info_spsPipeCancelled"				text="Rohrplatzierung abgebrochen" />
+		<text name="info_spsPipeRemoved"				text="Wasserrohr entfernt" />
+		<text name="warning_spsPipeTooShort"			text="Rohr zu kurz (mindestens 2 m)" />
+		<text name="warning_spsPipeTooLong"				text="Rohr zu lang (maximal 20 m)" />
+		
+		<!-- Sprayer -->
+		<text name="input_SPS_TOGGLE_ANIMATION_SPRAYER"	text="Abdeckung öffnen | Abdeckung schließen" />
+		<text name="input_SPS_TOGGLE_PUMP_SPRAYER"		text="Fluss starten | Fluss stoppen" />
+		<text name="input_SPS_TOGGLE_DIRECTION_SPRAYER"	text="Laden | Entladen" />
+		<text name="action_sprayerCoverClosed"			text="Abdeckung: GESCHLOSSEN" />
+		<text name="action_sprayerCoverOpen"			text="Abdeckung: OFFEN" />
+		<text name="action_sprayerFlowOff"				text="Fluss: GESTOPPT" />
+		<text name="action_sprayerFlowOn"				text="Fluss: LÄUFT" />
+		<text name="action_sprayerDirLoad"				text="Richtung: LADEN" />
+		<text name="action_sprayerDirUnload"			text="Richtung: ENTLADEN" />
+		<!-- SPS spreader HUD -->
+		<text name="sps_hudTitle"            			text="Streuer" />
+		<text name="sps_hudSlurry"           			text="Gülle" />
+		<text name="sps_hudCrust"            			text="Kruste" />
+		<text name="sps_hudThickness"        			text="Dicke" />
+		<text name="sps_hudRisk"             			text="Verstopfungsrisiko" />
+		<text name="sps_hudRiskLow"          			text="Niedrig" />
+		<text name="sps_hudRiskMed"          			text="Mittel" />
+		<text name="sps_hudRiskHigh"         			text="Hoch" />
+		<text name="sps_hudVacuum"           			text="Vakuum" />
+		<text name="sps_hudHVP"              			text="HVP" />
+		<text name="sps_hudPump"             			text="Pumpe" />
+		<text name="sps_hudEditHint"         			text="Ziehen zum Verschieben  -  Scrollen zum Skalieren  -  Mittelklick zum Sperren" />
+		<text name="action_spsHudEdit"       			text="Streuer-HUD verschieben" />
+		<!-- SPS spreader HUD settings -->
+		<text name="sps_hudSettingsHeader"   			text="Streuer-HUD" />
+		<text name="sps_hudSetEnabled"       			text="DB-Anzeige" />
+		<text name="sps_hudSetEnabledTooltip"			text="Das Streuer-HUD (DB-Symbol, Gülle-Details und Sektionszellen) oben am Bildschirm anzeigen." />
+		<text name="sps_hudSetImage"         			text="DB-Bild" />
+		<text name="sps_hudSetImageTooltip"  			text="Das Schleppschlauch-Bild auf dem Streuer-HUD anzeigen." />
+		<text name="sps_hudSetFill"          			text="Güllestand anzeigen" />
+		<text name="sps_hudSetCrust"         			text="Kruste anzeigen" />
+		<text name="sps_hudSetThick"         			text="Dicke anzeigen" />
+		<text name="sps_hudSetRisk"          			text="Verstopfungsrisiko anzeigen" />
+		<text name="sps_hudSetPump"          			text="Pumpe / Druck anzeigen" />
+		<text name="sps_hudSetFieldTooltip"  			text="Diese Zeile auf dem Streuer-HUD ein- oder ausblenden." />
+		<text name="sps_hudSetScale"         			text="HUD-Größe" />
+		<text name="sps_hudSetScaleTooltip"  			text="Größe des Streuer-HUDs. Kann auch mit dem Mausrad beim Verschieben des HUDs geändert werden." />
+		<text name="sps_hudPressure" 					text="Pressure"/>
+		<text name="input_SPS_HUD_EDIT"          		text="Streuer-HUD bearbeiten" />
+		<!-- SPS blockage clearing -->
+		<text name="sps_blockageMacerator"   			text="Zerkleinerer" />
+		<text name="action_spsClearBlockage" 			text="Halten zum Freimachen: %s" />
+		<text name="action_spsClearBlockageWait" 		text="Balken stoppen zum Freimachen: %s" />
+		<text name="warning_spsClearBlocked" 			text="Ausbringen stoppen und Druck abfallen lassen, bevor freigemacht wird." />
+		<text name="warning_spsBlockageMacerator" 		text="Zerkleinerer verstopft - Streuer gestoppt. Freimachen, um fortzufahren." />
+		<text name="warning_spsBlockageSection"   		text="Sektion verstopft: %s. Freimachen, um diesen Streifen wiederherzustellen." />
+		
+		<!-- Shear bolt -->
+		<text name="input_SPS_REPAIR_SHEARBOLT" 		text="Scherbolzen ersetzen [R halten]"/>
+		<text name="action_spsRepairShearBolt" 			text="Scherbolzen ersetzen [R halten]"/>
+		<text name="action_spsRepairShearBoltWait" 		text="Scherbolzen ersetzen (Zapfwelle &amp; Motor ausschalten)"/>
+		<text name="warning_spsShearBoltSnapped" 		text="Zapfwellen-Scherbolzen gebrochen — Pumpe getrennt, Austausch erforderlich"/>
+		<text name="warning_spsShearRepairBlocked" 		text="Zapfwelle ausschalten und Motor abstellen, um den Scherbolzen zu ersetzen"/>
+		<text name="sps_settingsShearBolt" 				text="Zapfwellen-Scherbolzen"/>
+		<text name="sps_settingsShearBoltTooltip" 		text="Aktiviert den Zapfwellen-Scherbolzen."/>
+	
+		<!-- Agitator -->
+		<text name="action_spsAgitatorConnect" 			text="Connect PTO"/>
+		<text name="action_spsAgitatorDisconnect" 		text="Disconnect PTO"/>
+		<text name="action_spsAgitatorPtoOn"  			text="Engage PTO"/>
+		<text name="action_spsAgitatorPtoOff" 			text="Disengage PTO"/>
+		
+	</texts>
 </l10n>

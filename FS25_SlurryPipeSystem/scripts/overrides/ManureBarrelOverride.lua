@@ -938,6 +938,65 @@ function SlurryPipeSystemOverride.getFillLevelInformation(self, superFunc, displ
     return superFunc(self, proxy)
 end
 -- ---------------------------------------------------------------------------
+-- showInfo
+-- Appends the SPS pressure / pump-rate reading to the on-foot vehicle info box
+-- (the bottom-right panel PlayerHUDUpdater:showVehicleInfo builds via
+-- vehicle:showInfo(box)). Mirrors the in-cab fill-bar gauge so a player stood
+-- on foot beside the tanker sees the same value: "+1.2 Bar" for a vacuum /
+-- pressure tanker, "+ N L/s" for an HVP tanker. Uses the SAME source string as
+-- the fill bar (SlurryPipeManager:getPressureInfoText), so the two never drift.
+-- Self-guards: AI pass-through, non-SPS vehicles, and gauge-less tankers
+-- (open-top / conduit / fertiliser) all fall through to plain vanilla output.
+-- ---------------------------------------------------------------------------
+function SlurryPipeSystemOverride.showInfo(self, superFunc, box)
+    -- Render the vanilla box first (name, broken state, fill lines, ...), then
+    -- add the SPS row beneath it.
+    superFunc(self, box)
+
+    -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control: no SPS row.
+    if SlurryPipeSystemOverride.isAIControlled(self) then
+        return
+    end
+    if g_slurryPipeManager == nil or not g_slurryPipeManager:isRegistered(self) then
+        return
+    end
+
+    -- Single source of truth: same text the in-cab fill bar shows. nil for
+    -- open-top / conduit / fertiliser tankers (no gauge) -> nothing added.
+    local valueText = g_slurryPipeManager:getPressureInfoText(self)
+    if valueText == nil or valueText == "" then
+        return
+    end
+
+    -- Label parity with the spreader HUD: a rate-model tanker reads "HVP" / "Pump";
+    -- a pressure-model tanker switches label to match its current state — "Vacuum"
+    -- while it holds suction (stored pressure negative, fill side) and "Pressure"
+    -- while it holds positive pressure (discharge side). At ~0 bar (nothing built
+    -- yet) the label follows the direction the tank is SET to, so a tank set to
+    -- vacuum still reads "Vacuum" before the gauge moves. Sign/direction convention
+    -- per SlurryPipeManager: + = pressure (discharge), - = vacuum (fill).
+    local label
+    if g_slurryPipeManager.usesPressureModel ~= nil and g_slurryPipeManager:usesPressureModel(self) then
+        local st = g_slurryPipeManager:getVehicleState(self)
+        local p  = (st ~= nil and st.pressure) or 0
+        local isVacuum
+        if p <= -0.05 then
+            isVacuum = true
+        elseif p >= 0.05 then
+            isVacuum = false
+        else
+            -- Neutral: fall back to the set direction (FILL = vacuum, DISCHARGE = pressure).
+            isVacuum = (st == nil) or (st.direction ~= SPS_DIRECTION_DISCHARGE)
+        end
+        label = isVacuum and g_i18n:getText("sps_hudVacuum") or g_i18n:getText("sps_hudPressure")
+    else
+        local pumpType = (g_slurryPipeManager.getPumpType ~= nil) and g_slurryPipeManager:getPumpType(self) or nil
+        label = (pumpType == "HVP") and g_i18n:getText("sps_hudHVP") or g_i18n:getText("sps_hudPump")
+    end
+
+    box:addLine(label, valueText)
+end
+-- ---------------------------------------------------------------------------
 -- getIsTurnedOnAnimationActive
 -- Blocks the vanilla turn-on driver (TurnOnVehicle:onUpdate) from playing the
 -- SPS-managed spreader animation, so the boom animates with ACTUAL discharge

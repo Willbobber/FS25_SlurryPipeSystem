@@ -67,6 +67,17 @@
         <node name="collisionFillTower"/>
     </hideCollisions>
 	
+	<fixedAgitator turnOffIfNotAllowed="true">
+		<input inputNode="ptoNodeAttached" detachNode="ptoNodeDetached" filename="$data/shared/assets/powerTakeOffs/walterscheidW.xml" materialTemplateName="SHARED_BLACK1" decalMaterialTemplateName="WALTERSCHEID_YELLOW1"/>
+		<level node="agitatorLevelNode "/>
+		<animationNodes>
+            <animationNode node="blades" rotSpeed="1000" rotAxis="1" turnOnFadeTime="2" turnOffFadeTime="8" />
+        </animationNodes>
+		<sounds>
+			<turnedOn template="tractorPTO" volumeScale="0.7" linkNode="soundNode"/>
+		</sounds>
+	</fixedAgitator>
+	
 	<crust density="0.3">
 		<plant stage="1" i3d="i3d/foliage/grass01.i3d"  weight="6"/>
 		<plant stage="2" i3d="i3d/foliage/grass02.i3d"  weight="5"/>

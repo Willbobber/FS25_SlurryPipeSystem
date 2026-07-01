@@ -69,6 +69,148 @@ end
 
 
 -- ---------------------------------------------------------------------------
+-- [SPS] Universal LoadTrigger block.
+--
+-- The per-vehicle-type getAllowLoadTriggerActivation override only blocks R/I
+-- when vanilla actually CALLS it. LoadTrigger:getAllowsActivation short-circuits
+-- with `return true` when self.requiresActiveVehicle is false — and
+-- requiresActiveVehicle is derived from the global Platform.gameplay.automaticFilling
+-- setting (LoadTrigger.load), NOT from placeable XML. So with automatic filling
+-- ON, the vanilla path never consults our override and R/auto-fill work on any
+-- store/IBC/tank regardless of type. This is why some players see the fill and
+-- others (auto-fill OFF) do not.
+--
+-- Hooking the LoadTrigger CLASS method once catches every load path (manual R via
+-- getIsFillableObjectAvailable, and automaticFilling via onFillTypeSelection) for
+-- every fillable, independent of type or settings. When the fillable (or its root
+-- vehicle) is SPS-registered — slurry OR sprayer — activation is denied so SPS's
+-- own pipe/arm flow is the only way to load. AI/Courseplay/AutoDrive fall through
+-- to vanilla via the same isAIControlled gate used by the type-level overrides.
+-- ---------------------------------------------------------------------------
+do
+    local DEBUG = false  -- set true for [SPS LT] per-call trace
+    local function spsBlocksFillable(fillableObject)
+        if fillableObject == nil then return false end
+        if g_slurryPipeManager == nil then return false end
+        -- AI in control: do not interfere (mirror of SlurryPipeSystemOverride.getAllowLoadTriggerActivation).
+        if SlurryPipeSystemOverride ~= nil
+        and SlurryPipeSystemOverride.isAIControlled ~= nil
+        and SlurryPipeSystemOverride.isAIControlled(fillableObject) then
+            return false
+        end
+        -- Direct match on the fillable itself.
+        if g_slurryPipeManager:isRegistered(fillableObject) then return true end
+        if g_slurryPipeManager:isSprayerVehicleRegistered(fillableObject) then return true end
+        if g_slurryPipeManager:findSprayerVehicleConfigForVehicle(fillableObject) ~= nil then return true end
+        -- Match on the root vehicle (fillableObject may be a trailed implement whose
+        -- fill collider entered the trigger; SPS registers the root tanker/sprayer).
+        if fillableObject.getRootVehicle ~= nil then
+            local root = fillableObject:getRootVehicle()
+            if root ~= nil and root ~= fillableObject then
+                if g_slurryPipeManager:isRegistered(root) then return true end
+                if g_slurryPipeManager:isSprayerVehicleRegistered(root) then return true end
+                if g_slurryPipeManager:findSprayerVehicleConfigForVehicle(root) ~= nil then return true end
+            end
+        end
+        return false
+    end
+
+    if LoadTrigger ~= nil and LoadTrigger.getAllowsActivation ~= nil then
+        local origGetAllowsActivation = LoadTrigger.getAllowsActivation
+        LoadTrigger.getAllowsActivation = function(self, fillableObject)
+            local blocked = spsBlocksFillable(fillableObject)
+            if DEBUG then
+                print(string.format("[SPS LT] getAllowsActivation fillable=%s blocked=%s",
+                    tostring(fillableObject and fillableObject.configFileName), tostring(blocked)))
+            end
+            if blocked then
+                return false
+            end
+            return origGetAllowsActivation(self, fillableObject)
+        end
+
+        -- Belt-and-braces: even if some path reaches startLoading directly (e.g. an
+        -- automaticFilling toggle that bypassed the activation gate), refuse to begin
+        -- a load for an SPS fillable.
+        if LoadTrigger.startLoading ~= nil then
+            local origStartLoading = LoadTrigger.startLoading
+            LoadTrigger.startLoading = function(self, fillType, fillableObject, fillUnitIndex)
+                if spsBlocksFillable(fillableObject) then
+                    if DEBUG then
+                        print(string.format("[SPS LT] startLoading BLOCKED fillable=%s",
+                            tostring(fillableObject and fillableObject.configFileName)))
+                    end
+                    return
+                end
+                return origStartLoading(self, fillType, fillableObject, fillUnitIndex)
+            end
+        end
+
+        -- Positive confirmation the hook installed (always printed, once, at source time).
+        print("[SPS INIT] LoadTrigger.getAllowsActivation hook INSTALLED")
+    else
+        print("[SPS INIT] WARNING: LoadTrigger.getAllowsActivation not available — universal R/I block not installed")
+    end
+
+    -- -----------------------------------------------------------------------
+    -- [SPS] Vehicle-side FillTrigger block.
+    --
+    -- Separate from LoadTrigger. FillTriggerVehicle:onLoad unconditionally creates
+    -- FillTrigger.new(triggerNode, self, ...) whenever a vehicle XML defines
+    -- vehicle.fillTriggerVehicle#triggerNode. When such a vehicle enters a map fill
+    -- source's trigger, FillTrigger:fillTriggerCallback registers it via
+    -- FillUnit:addFillUnitTrigger, which (a) adds the FillActivatable (the vanilla
+    -- R/refill prompt) and (b) lets FillUnit:update pump liters each tick through
+    -- trigger:fillVehicle. An SPS sprayer/tanker saved parked in a fill zone therefore
+    -- gets a brief vanilla fill at spawn that the LoadTrigger hook above never sees
+    -- (confirmed: the [SPS LT] trace shows the sprayer blocked=true throughout, yet R
+    -- still flashed once on load-in).
+    --
+    -- FillUnit consults exactly two FillTrigger methods, so gate both on the same
+    -- spsBlocksFillable recognition (slurry OR sprayer registered / has sprayer config)
+    -- with AI passthrough, mirroring the LoadTrigger getAllowsActivation + startLoading
+    -- pair:
+    --   * getIsActivatable(vehicle) — FillActivatable:getIsActivatable (prompt) and
+    --     FillUnit:setFillUnitIsFilling (currentTrigger selection). False => no prompt,
+    --     cannot be picked to fill.
+    --   * fillVehicle(vehicle, delta, dt) — the per-tick liter pump (FillUnit:update).
+    --     0 => no liters, belt-and-braces.
+    -- -----------------------------------------------------------------------
+    if FillTrigger ~= nil and FillTrigger.getIsActivatable ~= nil then
+        local origFTGetIsActivatable = FillTrigger.getIsActivatable
+        FillTrigger.getIsActivatable = function(self, vehicle)
+            if spsBlocksFillable(vehicle) then
+                if DEBUG then
+                    print(string.format("[SPS FT] getIsActivatable BLOCKED vehicle=%s",
+                        tostring(vehicle and vehicle.configFileName)))
+                end
+                return false
+            end
+            return origFTGetIsActivatable(self, vehicle)
+        end
+
+        if FillTrigger.fillVehicle ~= nil then
+            local origFTFillVehicle = FillTrigger.fillVehicle
+            FillTrigger.fillVehicle = function(self, vehicle, delta, dt)
+                if spsBlocksFillable(vehicle) then
+                    if DEBUG then
+                        print(string.format("[SPS FT] fillVehicle BLOCKED vehicle=%s",
+                            tostring(vehicle and vehicle.configFileName)))
+                    end
+                    return 0
+                end
+                return origFTFillVehicle(self, vehicle, delta, dt)
+            end
+        end
+
+        print("[SPS INIT] FillTrigger.getIsActivatable/fillVehicle hook INSTALLED")
+    else
+        print("[SPS INIT] WARNING: FillTrigger.getIsActivatable not available — vehicle-side fill block not installed")
+    end
+end
+
+
+-- ---------------------------------------------------------------------------
 -- registerOverrides
 -- Called from loadMap() after TypeManager:finalizeTypes() has completed.
 -- ---------------------------------------------------------------------------
@@ -219,6 +361,15 @@ local function registerOverrides()
                     "getFillLevelInformation",
                     SlurryPipeSystemOverride.getFillLevelInformation
                 )
+                -- On-foot info box (bottom-right): append the SPS pressure / pump-rate
+                -- reading so a player stood beside the tanker sees the same gauge as
+                -- the in-cab fill bar. Self-guards on isRegistered + getPressureInfoText,
+                -- so it is a no-op for non-SPS vehicles and gauge-less tankers.
+                SpecializationUtil.registerOverwrittenFunction(
+                    typeEntry,
+                    "showInfo",
+                    SlurryPipeSystemOverride.showInfo
+                )
             end
             -- For any spreader (Sprayer spec): hold the implement's working-speed
             -- limit while the SPS spreader valve is open, so turning the PTO off at
@@ -318,6 +469,16 @@ function SPSMod:loadMap(filename)
     end
 
     g_slurryPipeManager = SlurryPipeManager.new()
+
+    -- [SPS MP] When a client finishes joining, the server sends it the full current
+    -- SPS state (chains, connections, valves, pump/flow). Event replication only
+    -- covers changes made while connected, so without this a late joiner sees none
+    -- of the setup that happened before they joined.
+    if g_messageCenter ~= nil and MessageType ~= nil and MessageType.PLAYER_CREATED ~= nil then
+        g_messageCenter:subscribe(MessageType.PLAYER_CREATED,
+            g_slurryPipeManager.onPlayerJoined, g_slurryPipeManager)
+    end
+
     g_slurryPipeManager:loadPipeColors(SPS_MOD_DIRECTORY)
     g_slurryPipeManager:loadVehicleConfigs(SPS_MOD_DIRECTORY)
     g_slurryPipeManager:loadPlaceableConfigs(SPS_MOD_DIRECTORY)

@@ -2,7 +2,7 @@
 
 <i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
   <Asset>
-    <Export program="GIANTS Editor 64bit" version="10.0.12"/>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
   </Asset>
 
   <Files>
@@ -10,16 +10,26 @@
     <File fileId="2" filename="$data/shared/default_normal.png"/>
     <File fileId="3" filename="$data/shared/default_vmask.dds"/>
     <File fileId="6" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="27" filename="$data/shared/detailLibrary/metallic/metalGalvanized_diffuse.png"/>
+    <File fileId="26" filename="$data/shared/detailLibrary/metallic/metalGalvanized_normal.png"/>
+    <File fileId="25" filename="$data/shared/detailLibrary/metallic/metalGalvanized_specular.png"/>
     <File fileId="13" filename="$data/shared/detailLibrary/metallic/scratched_diffuse.png"/>
     <File fileId="12" filename="$data/shared/detailLibrary/metallic/scratched_specular.png"/>
     <File fileId="7" filename="$data/shared/detailLibrary/metallic/silverScratched_diffuse.png"/>
     <File fileId="5" filename="$data/shared/detailLibrary/metallic/silverScratched_specular.png"/>
+    <File fileId="24" filename="$data/shared/detailLibrary/metallic/zincGalvanized_diffuse.png"/>
+    <File fileId="23" filename="$data/shared/detailLibrary/metallic/zincGalvanized_normal.png"/>
+    <File fileId="22" filename="$data/shared/detailLibrary/metallic/zincGalvanized_specular.png"/>
+    <File fileId="29" filename="$data/shared/detailLibrary/nonMetallic/metal/metalPainted_diffuse.png"/>
+    <File fileId="28" filename="$data/shared/detailLibrary/nonMetallic/metal/metalPainted_specular.png"/>
     <File fileId="18" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_diffuse.png"/>
     <File fileId="17" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_specular.png"/>
     <File fileId="16" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubberBlack_diffuse.png"/>
     <File fileId="15" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_normal.png"/>
     <File fileId="14" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_specular.png"/>
     <File fileId="1" filename="$data/shared/white_diffuse.dds"/>
+    <File fileId="20" filename="../../../../i3d/slurryMixers/fixed/slurryMixer_subPaint_normal.png"/>
+    <File fileId="21" filename="../../../../i3d/slurryMixers/fixed/slurryMixer_subPaint_vmask.png"/>
   </Files>
 
 
@@ -45,6 +55,25 @@
     <Material name="default_mat" materialId="7" diffuseColor="0.501961 0.501961 0.501961 1">
       <Normalmap fileId="2"/>
     </Material>
+    <Material name="metalGalvanized_mat" materialId="241" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="20"/>
+      <Glossmap fileId="21"/>
+      <Custommap name="detailSpecular" fileId="25"/>
+      <Custommap name="detailNormal" fileId="26"/>
+      <Custommap name="detailDiffuse" fileId="27"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0 1 0 0"/>
+    </Material>
+    <Material name="metalPainted_mat" materialId="278" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="20"/>
+      <Glossmap fileId="21"/>
+      <Custommap name="detailSpecular" fileId="28"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="29"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0 1 0 0"/>
+      <CustomParameter name="colorScale" value="0.359 0.033 0.035"/>
+    </Material>
     <Material name="rubberBlack_mat" materialId="8" customShaderId="4">
       <Texture fileId="1"/>
       <Normalmap fileId="2"/>
@@ -54,6 +83,16 @@
       <Custommap name="detailDiffuse" fileId="16"/>
       <CustomParameter name="porosity" value="0.5"/>
     </Material>
+    <Material name="rubberBlack_mat" materialId="255" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="20"/>
+      <Glossmap fileId="21"/>
+      <Custommap name="detailSpecular" fileId="14"/>
+      <Custommap name="detailNormal" fileId="15"/>
+      <Custommap name="detailDiffuse" fileId="16"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0 0.95 0 0"/>
+      <CustomParameter name="porosity" value="0.5"/>
+    </Material>
     <Material name="silverScratched_mat" materialId="9" customShaderId="4">
       <Texture fileId="1"/>
       <Normalmap fileId="2"/>
@@ -61,6 +100,17 @@
       <Custommap name="detailSpecular" fileId="5"/>
       <Custommap name="detailNormal" fileId="6"/>
       <Custommap name="detailDiffuse" fileId="7"/>
+    </Material>
+    <Material name="UnnamedMaterial" materialId="985" diffuseColor="1 1 1 1">
+    </Material>
+    <Material name="zincGalvanized_mat" materialId="244" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="20"/>
+      <Glossmap fileId="21"/>
+      <Custommap name="detailSpecular" fileId="22"/>
+      <Custommap name="detailNormal" fileId="23"/>
+      <Custommap name="detailDiffuse" fileId="24"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0 1 0 0"/>
     </Material>
   </Materials>
 
@@ -127,6 +177,29 @@
           <TransformGroup name="effect" translation="-6.97107 6.71431 3.70384" rotation="28.2225 13.3901 66.6606" scale="1.13185 0.932815 0.97175" nodeId="57">
             <Shape name="pipeEffect" translation="-0.000407 0 0" rotation="-90 0 180" scale="0.501501 0.74066 1" shapeId="8" clipDistance="100" nodeId="58" castsShadows="true" receiveShadows="true" materialIds="7"/>
             <Shape name="pipeEffectSmoke" translation="1.13457e-07 -3.25029 0" rotation="0 0 2e-06" shapeId="9" visibility="false" clipDistance="100" nodeId="59" castsShadows="true" receiveShadows="true" materialIds="7"/>
+          </TransformGroup>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="slurryMixer" nodeId="1009">
+        <TransformGroup name="liquidManureTankLODs" nodeId="1018">
+          <TransformGroup name="slurryMixerFixed" nodeId="70">
+            <Shape name="rubberSeal" translation="-7.89922 0.851151 -3.39172" shapeId="10" nodeId="71" castsShadows="true" receiveShadows="true" materialIds="244,255,241">
+              <Shape name="legs" shapeId="11" nodeId="72" castsShadows="true" receiveShadows="true" materialIds="244,241"/>
+              <Shape name="slurryMixer" shapeId="12" nodeId="73" castsShadows="true" receiveShadows="true" materialIds="244,241">
+                <Shape name="blades" shapeId="13" nodeId="74" castsShadows="true" receiveShadows="true" materialIds="244,278,241"/>
+              </Shape>
+            </Shape>
+            <TransformGroup name="ptoNodeAttached" translation="-11.8602 0.851151 -3.39172" rotation="-1.81401e-07 90 0" clipDistance="150" nodeId="307"/>
+            <TransformGroup name="ptoNodeDetached" translation="-13.4896 0.0866984 -3.39172" rotation="-25.1344 90 0" clipDistance="150" nodeId="806"/>
+            <TransformGroup name="soundNode" translation="-7.89922 0.851151 -3.39172" clipDistance="150" nodeId="986"/>
+            <TransformGroup name="ptoDistanceNode" translation="-13.66 0.851151 -3.39172" rotation="-1.814e-07 90 0" clipDistance="150" nodeId="1008"/>
+            <TransformGroup name="agitatorLevelNode " translation="-7.14922 0.701151 -3.39172" clipDistance="150" nodeId="1022"/>
+            <Shape name="col" translation="-9.56002 0.851151 -3.39172" shapeId="14" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" nodeId="1024" castsShadows="false" receiveShadows="false" nonRenderable="true" distanceBlending="false" materialIds="985">
+              <Shape name="col" translation="-1.90574 -0.745263 -0.549142" shapeId="15" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" nodeId="1029" castsShadows="false" receiveShadows="false" nonRenderable="true" distanceBlending="false" materialIds="985"/>
+              <Shape name="col" translation="0.874331 -0.745263 -0.549142" shapeId="15" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" nodeId="1030" castsShadows="false" receiveShadows="false" nonRenderable="true" distanceBlending="false" materialIds="985"/>
+              <Shape name="col" translation="0.874331 -0.745263 0.56381" shapeId="16" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" nodeId="1031" castsShadows="false" receiveShadows="false" nonRenderable="true" distanceBlending="false" materialIds="985"/>
+              <Shape name="col" translation="-1.89361 -0.745263 0.56381" shapeId="16" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" nodeId="1036" castsShadows="false" receiveShadows="false" nonRenderable="true" distanceBlending="false" materialIds="985"/>
+            </Shape>
           </TransformGroup>
         </TransformGroup>
       </TransformGroup>

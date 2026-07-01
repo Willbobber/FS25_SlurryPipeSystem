@@ -47,8 +47,8 @@
 		<text name="action_spsFinalisePipe"  			text="Finalise pipe [R] | Cancel [hold R]" />
 		<text name="action_spsDeployCoupling" 			text="Deploy pipe coupling [hold R]"/>
 		<text name="action_spsRemoveCoupling" 			text="Remove pipe coupling [hold R]"/>
-		<text name="action_spsRearValveOpen"			text="Open valve [R]" />
-		<text name="action_spsRearValveClose"			text="Close valve [R]" />
+		<text name="action_spsRearValveOpen"			text="Open valve" />
+		<text name="action_spsRearValveClose"			text="Close valve" />
 		
         <!-- Warnings -->
         <text name="warning_slurryNoConnection"    		text="No slurry connection active" />
@@ -144,6 +144,7 @@
 		<text name="sps_hudSetFieldTooltip"  			text="Show or hide this row on the spreader HUD." />
 		<text name="sps_hudSetScale"         			text="HUD scale" />
 		<text name="sps_hudSetScaleTooltip"  			text="Size of the spreader HUD. Can also be changed with the scroll wheel while moving the HUD." />
+		<text name="sps_hudPressure" 					text="Pressure"/>
 		<text name="input_SPS_HUD_EDIT"          		text="Edit spreader HUD" />
 		<!-- SPS blockage clearing -->
 		<text name="sps_blockageMacerator"   			text="Macerator" />
@@ -161,5 +162,12 @@
 		<text name="warning_spsShearRepairBlocked" 		text="Turn off the PTO and stop the engine to replace the shear bolt"/>
 		<text name="sps_settingsShearBolt" 				text="PTO Shear Bolt"/>
 		<text name="sps_settingsShearBoltTooltip" 		text="Enable the PTO shear bolt."/>
+	
+		<!-- Agitator -->
+		<text name="action_spsAgitatorConnect" 			text="Connect PTO"/>
+		<text name="action_spsAgitatorDisconnect" 		text="Disconnect PTO"/>
+		<text name="action_spsAgitatorPtoOn"  			text="Engage PTO"/>
+		<text name="action_spsAgitatorPtoOff" 			text="Disengage PTO"/>
+		
 	</texts>
 </l10n>
