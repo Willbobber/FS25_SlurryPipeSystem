@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.0
+-- Version: 1.0.0.4
 
 -- init.lua
 -- FS25_SlurryPipeSystem
@@ -506,6 +506,19 @@ function SPSMod:loadMap(filename)
 
     registerOverrides()
 
+    -- [SPS] Fixed-agitator tractor overrides: installs the movement lock
+    -- (updateVehiclePhysics) on all drivable types and registers the
+    -- "spsAgitatorDebug" console command. Self-iterates types, so it is a single
+    -- call here alongside registerOverrides() (same post-finalizeTypes timing).
+    -- Without this the connected tractor is never held in place. Guarded so a
+    -- missing agitator module can never break loadMap.
+    if SPSFixedAgitator ~= nil and SPSFixedAgitator.registerOverrides ~= nil then
+        local okAg, errAg = pcall(SPSFixedAgitator.registerOverrides)
+        if not okAg then
+            print("[SPS INIT] agitator registerOverrides error: " .. tostring(errAg))
+        end
+    end
+
     if g_currentMission ~= nil and g_currentMission.placeableSystem ~= nil then
         local ps = g_currentMission.placeableSystem
         -- Bought/saved placeables
@@ -739,6 +752,25 @@ function Vehicle:registerActionEvents(excludedVehicle)
     if g_slurryPipeManager == nil then return end
     if not self.isClient then return end
     if not self:getIsActiveForInput(true) then return end
+
+    -- ---------------------------------------------------------------------------
+    -- [SPS] Fixed-agitator cab action ("Connect PTO" on the range key, plus the
+    -- PTO engage toggle). Must run BEFORE the sprayer/slurry early-returns below:
+    -- a plain tractor lining up to a placeable agitator is NOT an SPS slurry
+    -- vehicle, so those returns would skip it. registerCabActionEvent self-gates
+    -- to vehicles that actually expose a rear PTO output (no PTO output => no-op),
+    -- so this is harmless on every other vehicle. The same-tick guard prevents the
+    -- duplicate registrations FS25 issues per context switch (mirrors the
+    -- _spsRegisterTime idiom used for the slurry block). The prompt is shown/hidden
+    -- by range each tick inside SPSFixedAgitator.updateAll via _spsAgitatorEventId.
+    -- ---------------------------------------------------------------------------
+    if SPSFixedAgitator ~= nil and SPSFixedAgitator.registerCabActionEvent ~= nil then
+        local nowT = g_currentMission and g_currentMission.time or 0
+        if self._spsAgitatorRegisterTime ~= nowT then
+            self._spsAgitatorRegisterTime = nowT
+            SPSFixedAgitator.registerCabActionEvent(self)
+        end
+    end
 
     -- ---------------------------------------------------------------------------
     -- SPRAYER safety net: if any R/I events slipped past the type-level override,

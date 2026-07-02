@@ -20,7 +20,7 @@
   - Infinite water sources (no depletion)
   
   Author: Oscar Mods
-  Version: 1.0.0.0
+  -- Version: 1.0.0.4
 ================================================================================
 ]]
 

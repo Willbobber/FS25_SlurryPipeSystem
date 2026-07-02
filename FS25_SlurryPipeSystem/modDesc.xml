@@ -2,7 +2,7 @@
 <modDesc descVersion="110">
 
     <author>Oscar Mods</author>
-    <version>1.0.0.3</version>
+    <version>1.0.0.4</version>
     <title>
         <en>Slurry Pipe System</en>
         <de>Gülle-Rohrsystem</de>
@@ -196,7 +196,7 @@ Caratteristiche:
 			<binding device="KB_MOUSE_DEFAULT" input="KEY_r" axisComponent="+" index="1"/>
 		</actionBinding>
 		<actionBinding action="SPS_TOGGLE_AGITATOR">
-			<binding device="KB_MOUSE_DEFAULT" input="KEY_q"/>
+			<binding device="KB_MOUSE_DEFAULT" input="KEY_t"/>
 		</actionBinding>
 	</inputBinding>
 	

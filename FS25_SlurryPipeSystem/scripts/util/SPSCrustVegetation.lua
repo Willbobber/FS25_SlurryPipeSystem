@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.0
+-- Version: 1.0.0.4
 
 -- SPSCrustVegetation.lua
 -- Manages procedural vegetation on slurry fill planes.

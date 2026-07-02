@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.0
+-- Version: 1.0.0.4
 
 -- SlurryTractorCapability.lua
 -- FS25_SlurryPipeSystem
