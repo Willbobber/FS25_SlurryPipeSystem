@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
+  </Asset>
+
+  <Files>
+    <File fileId="4" filename="$data/shared/default_normal.png"/>
+  </Files>
+
+
+  <Materials>
+    <Material name="default_mat" materialId="5" diffuseColor="0.501961 0.501961 0.501961 1">
+      <Normalmap fileId="4"/>
+    </Material>
+    <Material name="lambert1" materialId="58" diffuseColor="0.8 0.8 0.8 1" specularColor="0.501961 1 0">
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="nodeTree.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="SPS_pgII20Genesis" nodeId="688">
+      <TransformGroup name="fillArmNodes" nodeId="689">
+        <TransformGroup name="turretSAP2Arm01_small" translation="-1.02639 0.9932 3.83987" rotation="8.84396 8.64931 -90.2608" nodeId="690">
+          <TransformGroup name="SPS_fillArmTip01" translation="-1.85491 -0.320974 -0.096219" nodeId="691"/>
+        </TransformGroup>
+        <TransformGroup name="turretSAP2Arm02" translation="-0.837908 3.54133 4.1465" rotation="-3.06952 0.204407 -7.952" nodeId="692">
+          <TransformGroup name="SPS_fillArmTip02" translation="-0.192125 -0.812842 -0.370483" rotation="0 -0 -8.45087" nodeId="693"/>
+        </TransformGroup>
+        <TransformGroup name="turretSAP2PipeVar01" translation="-1.23491 1.843 3.8755" rotation="-0.00297284 -0.003 0.0219935" nodeId="694">
+          <TransformGroup name="SPS_fillArmTip03" translation="0.235012 -1.212 0.0867797" nodeId="695"/>
+        </TransformGroup>
+        <TransformGroup name="turretSAP2PipeVar02" translation="-1.27991 1.90134 3.85651" rotation="-0.00297282 -0.00261294 0.021616" nodeId="696">
+          <TransformGroup name="SPS_fillArmCentre01" translation="-0.157613 -1.15712 0.0675103" rotation="-3.15864 0.0381697 -8.45087" nodeId="697"/>
+        </TransformGroup>
+        <TransformGroup name="turretPTArm04" translation="0.0523642 3.35 0.497057" nodeId="698">
+          <TransformGroup name="SPS_fillArmCentre02" translation="-0.127982 0.143406 -3.65976" rotation="90 -0 0" nodeId="699"/>
+        </TransformGroup>
+        <TransformGroup name="suctionHead45Degree" translation="-0.0796822 3.49309 -3.15905" rotation="-179.617 0.923871 -157.497" nodeId="700">
+          <TransformGroup name="SPS_fillArmCentre03" translation="0.00609038 -0.036079 0.561457" nodeId="701"/>
+        </TransformGroup>
+        <TransformGroup name="suctionHead90Degree" translation="-0.0796821 3.49309 -3.15905" rotation="179.869 0.991418 172.499" nodeId="702">
+          <TransformGroup name="SPS_fillArmCentre04" translation="2.19809e-09 -0.146175 0.500428" nodeId="703"/>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="pipeCouplers" nodeId="704">
+        <TransformGroup name="hoseConectorLeft" nodeId="705">
+          <TransformGroup name="SPS_pipeCoupler01" translation="0.903852 1.32865 3.01698" rotation="-42.8484 -90 0" nodeId="706">
+            <TransformGroup name="SPS_pipeCoupler01Arcs" translation="-1.05783e-07 0 0" rotation="136.577 -0 -180" nodeId="707">
+              <TransformGroup name="SPS_pipeCoupler01Arc01" translation="1.5 0 2.5" nodeId="708"/>
+              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="-1.5 0 2.5" nodeId="709"/>
+            </TransformGroup>
+            <TransformGroup name="inNode" nodeId="710"/>
+            <TransformGroup name="outNode" rotation="0 180 0" nodeId="711"/>
+          </TransformGroup>
+        </TransformGroup>
+        <TransformGroup name="hoseConnectorRight" translation="-0.073 2.124 -0.109" nodeId="712">
+          <TransformGroup name="SPS_pipeCoupler02" translation="-0.856915 -0.931973 3.35483" rotation="-42.848 90 0" nodeId="713">
+            <TransformGroup name="SPS_pipeCoupler02Arcs" translation="-1.05783e-07 0 0" rotation="136.577 -0 -180" nodeId="714">
+              <TransformGroup name="SPS_pipeCoupler02Arc01" translation="1.5 0 2.5" nodeId="715"/>
+              <TransformGroup name="SPS_pipeCoupler02Arc02" translation="-1.5 0 2.5" nodeId="716"/>
+            </TransformGroup>
+            <TransformGroup name="inNode" nodeId="717"/>
+            <TransformGroup name="outNode" rotation="0 180 0" nodeId="718"/>
+          </TransformGroup>
+        </TransformGroup>
+        <TransformGroup name="turretSAP2" translation="-0.072741 2.12412 -0.108904" nodeId="719">
+          <TransformGroup name="SPS_pipeCoupler03" translation="-1.25151 -0.875677 3.22671" rotation="-6.20323 90 0" nodeId="720">
+            <TransformGroup name="SPS_pipeCoupler03Arcs" translation="-7.26186e-08 0 0" rotation="164.091 0 -180" nodeId="721">
+              <TransformGroup name="SPS_pipeCoupler03Arc01" translation="1.5 1.67697e-06 2.5" rotation="8.54233e-13 0 -1.16786e-05" nodeId="722"/>
+              <TransformGroup name="SPS_pipeCoupler03Arc02" translation="-1.5 2.5034e-06 2.5" nodeId="723"/>
+            </TransformGroup>
+            <TransformGroup name="inNode" nodeId="724"/>
+            <TransformGroup name="outNode" rotation="0 180 0" nodeId="725"/>
+          </TransformGroup>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="rubberBootPorts" nodeId="726">
+        <TransformGroup name="dockingFunnel" nodeId="727">
+          <TransformGroup name="SPS_rubberBootLower01" translation="-0.629402 3.24468 -3.58479" nodeId="728"/>
+          <TransformGroup name="SPS_rubberBootUpper01" translation="-0.629402 3.67968 -3.58433" nodeId="729"/>
+        </TransformGroup>
+        <Shape name="dockingStationCol1" translation="-0.704521 3.51135 -4.44654" shapeId="1" nodeId="730" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="58"/>
+      </TransformGroup>
+      <TransformGroup name="outsideControls" nodeId="731">
+        <TransformGroup name="pgII20Genesis_vis" nodeId="732">
+          <TransformGroup name="pumpControl01" translation="0 0.9297 4.61192" nodeId="733"/>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="pipeEffects" nodeId="734">
+        <TransformGroup name="turretSAP2Arm02" translation="-0.837908 3.54133 4.1465" rotation="-3.06952 0.204407 -7.952" nodeId="735">
+          <TransformGroup name="effect01" translation="-0.192125 -0.812842 -0.370483" rotation="0 -2.66804e-08 -8.45087" nodeId="736">
+            <Shape name="pipeEffect01" translation="-0.000407 0 0" rotation="-90 0 180" shapeId="2" clipDistance="100" nodeId="737" castsShadows="true" receiveShadows="true" materialIds="5"/>
+            <Shape name="pipeEffectSmoke01" translation="1.13457e-07 -3.25029 0" rotation="0 0 2e-06" shapeId="3" visibility="false" clipDistance="100" nodeId="738" castsShadows="true" receiveShadows="true" materialIds="5"/>
+          </TransformGroup>
+        </TransformGroup>
+        <TransformGroup name="turretSAP2PipeVar01" translation="-1.23491 1.84334 3.8755" rotation="-0.00297284 -0.003 0.0219935" nodeId="739">
+          <TransformGroup name="effect02" translation="0.235012 -1.212 0.0867797" rotation="1.02136e-08 2.08441e-09 79.8227" nodeId="740">
+            <Shape name="pipeEffect02" translation="-0.000407 0 0" rotation="-90 0 180" shapeId="2" clipDistance="100" nodeId="741" castsShadows="true" receiveShadows="true" materialIds="5"/>
+            <Shape name="pipeEffectSmoke02" translation="1.13457e-07 -3.25029 0" rotation="0 0 2e-06" shapeId="3" visibility="false" clipDistance="100" nodeId="742" castsShadows="true" receiveShadows="true" materialIds="5"/>
+          </TransformGroup>
+        </TransformGroup>
+        <TransformGroup name="turretSAP2PipeVar02" translation="-1.27991 1.90134 3.85651" rotation="-0.00297282 -0.00261294 0.021616" nodeId="743">
+          <TransformGroup name="effect03" translation="-0.145396 -1.06472 0.0602641" rotation="-3.3069 1.33402e-08 -9.39692" nodeId="744">
+            <Shape name="pipeEffect03" translation="-0.000407 0 0" rotation="-90 0 180" shapeId="2" clipDistance="100" nodeId="745" castsShadows="true" receiveShadows="true" materialIds="5"/>
+            <Shape name="pipeEffectSmoke03" translation="1.13457e-07 -3.25029 0" rotation="0 0 2e-06" shapeId="3" visibility="false" clipDistance="100" nodeId="746" castsShadows="true" receiveShadows="true" materialIds="5"/>
+          </TransformGroup>
+        </TransformGroup>
+        <TransformGroup name="turretPTArm04" translation="0.0523642 3.35 0.497057" nodeId="747">
+          <TransformGroup name="effect04" translation="-0.127982 0.143406 -3.65976" rotation="90 -7.71176e-07 -6.74184e-14" nodeId="748">
+            <Shape name="pipeEffect04" translation="-0.000407 0 0" rotation="-90 0 180" shapeId="2" clipDistance="100" nodeId="749" castsShadows="true" receiveShadows="true" materialIds="5"/>
+            <Shape name="pipeEffectSmoke04" translation="1.13457e-07 -3.25029 0" rotation="0 0 2e-06" shapeId="3" visibility="false" clipDistance="100" nodeId="750" castsShadows="true" receiveShadows="true" materialIds="5"/>
+          </TransformGroup>
+        </TransformGroup>
+        <TransformGroup name="suctionHead45Degree" translation="-0.0796822 3.49309 -3.15905" rotation="-179.617 0.923871 -157.497" nodeId="751">
+          <TransformGroup name="effect05" translation="0.0060904 -0.0360789 0.561457" rotation="-46.1858 10.4467 9.86878" nodeId="752">
+            <Shape name="pipeEffect05" translation="-0.000407 0 0" rotation="-90 0 180" shapeId="2" clipDistance="100" nodeId="753" castsShadows="true" receiveShadows="true" materialIds="5"/>
+            <Shape name="pipeEffectSmoke05" translation="1.13457e-07 -3.25029 0" rotation="0 0 2e-06" shapeId="3" visibility="false" clipDistance="100" nodeId="754" castsShadows="true" receiveShadows="true" materialIds="5"/>
+          </TransformGroup>
+        </TransformGroup>
+        <TransformGroup name="suctionHead90Degree" translation="-0.0796823 3.49309 -3.15905" rotation="179.869 0.991444 172.499" nodeId="755">
+          <TransformGroup name="effect06" translation="1.19209e-07 -0.146175 0.500428" rotation="6.63009e-06 2.55065e-05 8.7295e-07" nodeId="756">
+            <Shape name="pipeEffect06" translation="-0.000407 0 0" rotation="-90 0 180" shapeId="2" clipDistance="100" nodeId="757" castsShadows="true" receiveShadows="true" materialIds="5"/>
+            <Shape name="pipeEffectSmoke06" translation="1.13457e-07 -3.25029 0" rotation="0 0 2e-06" shapeId="3" visibility="false" clipDistance="100" nodeId="758" castsShadows="true" receiveShadows="true" materialIds="5"/>
+          </TransformGroup>
+        </TransformGroup>
+      </TransformGroup>
+    </TransformGroup>
+  </Scene>
+
+</i3D>

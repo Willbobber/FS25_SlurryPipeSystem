@@ -3,6 +3,8 @@
     <texts>
 		<!-- Inputs -->
 		<text name="input_SPS_TOGGLE_PUMP"      		text="SPS Pompa On/Off" />
+		<text name="input_SPS_TOGGLE_AGITATOR"		text="Collega/Scollega agitatore" />
+		<text name="input_SPS_ENGAGE_AGITATOR"		text="PTO agitatore On/Off" />
 		<text name="input_SPS_TOGGLE_FLOW"      		text="SPS Apri/Chiudi flusso" />
 		<text name="input_SPS_TOGGLE_DIRECTION" 		text="SPS Direzione flusso" />
         <text name="input_SPS_TOGGLE_SPREADER"          text="SPS Valvola spandiletame" />

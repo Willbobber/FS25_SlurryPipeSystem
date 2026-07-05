@@ -367,13 +367,25 @@ function SlurryPipeManager:findVehicleConfigForVehicle(vehicle)
     -- manifest match. This is what lets third-party modders ship SPS-ready
     -- vehicles that include their own couplers, animations, and node references
     -- without ever touching the SPS mod folder.
-    if vehicle.xmlFile ~= nil and vehicle.xmlFile:hasProperty("vehicle.slurryPipeSystem") then
-        SlurryDebug.log("findVehicleConfigForVehicle: embedded <slurryPipeSystem> found in " .. tostring(vehicle.configFileName))
-        return {
-            xmlFilePath  = vehicle.configFileName,    -- used for nodeTree path resolution
-            xmlKeyPrefix = "vehicle.",                -- prepended to every "slurryPipeSystem..." read
-            isEmbedded   = true,
-        }
+    -- Do NOT query vehicle.xmlFile here. By onFinishedLoading its underlying C
+    -- handle can already be released while the Lua wrapper is still non-nil
+    -- (XMLFile:delete does not nil the table), so vehicle.xmlFile:hasProperty()
+    -- throws "Unknown entity id ... for 'object' in method 'hasXMLProperty'".
+    -- Load a fresh handle we own from the vehicle's own config file (guaranteed
+    -- valid), query it, delete it. nil schema is fine: hasProperty forwards
+    -- straight to hasXMLProperty and needs no schema.
+    local embeddedXml = XMLFile.loadIfExists("spsEmbeddedSlurryCheck", vehicle.configFileName, nil)
+    if embeddedXml ~= nil then
+        local isEmbedded = embeddedXml:hasProperty("vehicle.slurryPipeSystem")
+        embeddedXml:delete()
+        if isEmbedded then
+            SlurryDebug.log("findVehicleConfigForVehicle: embedded <slurryPipeSystem> found in " .. tostring(vehicle.configFileName))
+            return {
+                xmlFilePath  = vehicle.configFileName,    -- used for nodeTree path resolution
+                xmlKeyPrefix = "vehicle.",                -- prepended to every "slurryPipeSystem..." read
+                isEmbedded   = true,
+            }
+        end
     end
 
     -- Path-tail match against manifest entries. configFileName is the full path
@@ -399,13 +411,21 @@ function SlurryPipeManager:findPlaceableConfigForPlaceable(placeable)
 
     -- Embedded config check: does the placeable's own XML carry a
     -- <slurryPipeSystem> element? See findVehicleConfigForVehicle for rationale.
-    if placeable.xmlFile ~= nil and placeable.xmlFile:hasProperty("placeable.slurryPipeSystem") then
-        SlurryDebug.log("findPlaceableConfigForPlaceable: embedded <slurryPipeSystem> found in " .. tostring(placeable.configFileName))
-        return {
-            xmlFilePath  = placeable.configFileName,
-            xmlKeyPrefix = "placeable.",
-            isEmbedded   = true,
-        }
+    -- See findVehicleConfigForVehicle for rationale: placeable.xmlFile's handle can
+    -- be dead by the time we run while the Lua wrapper is still non-nil, which crashes
+    -- hasProperty. Load a fresh owned handle from the placeable's config file instead.
+    local embeddedXml = XMLFile.loadIfExists("spsEmbeddedPlaceableSlurryCheck", placeable.configFileName, nil)
+    if embeddedXml ~= nil then
+        local isEmbedded = embeddedXml:hasProperty("placeable.slurryPipeSystem")
+        embeddedXml:delete()
+        if isEmbedded then
+            SlurryDebug.log("findPlaceableConfigForPlaceable: embedded <slurryPipeSystem> found in " .. tostring(placeable.configFileName))
+            return {
+                xmlFilePath  = placeable.configFileName,
+                xmlKeyPrefix = "placeable.",
+                isEmbedded   = true,
+            }
+        end
     end
 
     -- Path-tail match against manifest entries. Same rule as vehicles.
@@ -1391,10 +1411,20 @@ function SlurryPipeManager:registerVehicle(vehicle)
             --.. "' registered (SPS-driven, stopDelay=" .. tostring(entry.spreaderAnimationStopDelay) .. "ms)")
     end
 	
-    -- Disable the vanilla FillTrigger
+    -- [SPS MIXED INTEROP] Keep the vanilla FillTrigger ENABLED.
+    -- A vehicle's fillTrigger has sourceObject = itself, so it is the vanilla path by
+    -- which ANOTHER vehicle loads FROM this one (R prompt via addFillUnitTrigger, and
+    -- fillVehicle pumps source->vehicle). Setting isEnabled=false early-outs
+    -- fillTriggerCallback for every entering vehicle, so no one — including plain
+    -- non-SPS tankers — can load from an SPS vessel (e.g. the FRC65 nurse tank).
+    -- Per-fillable gating is already done by the init.lua FillTrigger hook
+    -- (getIsActivatable/fillVehicle keyed on spsBlocksFillable): SPS fillables are
+    -- blocked and must use the pipe/arm, while non-SPS and AI pass through. Leaving the
+    -- trigger enabled therefore restores non-SPS R-loading without letting SPS players
+    -- bypass the pipe system.
     if vehicle.spec_fillTriggerVehicle ~= nil
     and vehicle.spec_fillTriggerVehicle.fillTrigger ~= nil then
-        vehicle.spec_fillTriggerVehicle.fillTrigger.isEnabled = false
+        vehicle.spec_fillTriggerVehicle.fillTrigger.isEnabled = true
     end
 
     -- Create proximity activatables for each coupling
@@ -1484,6 +1514,22 @@ function SlurryPipeManager:registerVehicle(vehicle)
     if entry.selfPowered and vehicle.isClient then
         local soundKey = kp .. "slurryPipeSystem.sounds.engineLoop"
         if xmlFile:hasProperty(soundKey) then
+            -- Inject the SPS nodeTree node into vehicle.i3dMappings so
+            -- loadSampleFromXML can resolve the engineLoop linkNode (e.g.
+            -- exhaustNode). That node lives in the injected SPS nodeTree, not the
+            -- vehicle's own i3d, so the vanilla name lookup would otherwise fail
+            -- and the engine logs "Index not found: <linkNode>". Mirrors the
+            -- sibling registration path. The mapping value must be a table
+            -- { nodeId, rootNode }; a bare integer is treated as a child-index path.
+            if vehicle.i3dMappings ~= nil then
+                local linkNodeName = xmlFile:getString(soundKey .. "#linkNode")
+                if linkNodeName ~= nil then
+                    local foundNode = findLinkedNode(linkNodeName)
+                    if foundNode ~= nil then
+                        vehicle.i3dMappings[linkNodeName] = { nodeId = foundNode, rootNode = vehicle.rootNode }
+                    end
+                end
+            end
             entry.engineLoopSample = g_soundManager:loadSampleFromXML(
                 xmlFile, kp .. "slurryPipeSystem.sounds", "engineLoop",
                 vehicle.baseDirectory, vehicle.components, 0,
@@ -1802,6 +1848,37 @@ function SlurryPipeManager:registerPlaceable(placeable)
         if name == nil or name == "" then return nil end
         for _, n in ipairs(linkedNodes) do
             if getName(n) == name then return n end
+        end
+        -- [SPS] Embedded-i3d fallback. Two authoring styles are supported:
+        --   (1) nodeTree + fillPoints.xml: SPS nodes are loaded from a separate
+        --       nodeTree.i3d and linked onto the placeable, collected in linkedNodes
+        --       (the loop above resolves them). This is the baseTank path.
+        --   (2) own-folder placeable: the SPS nodes are baked into the placeable's
+        --       OWN i3d and its own <slurryPipeSystem> xml, so no nodeTree is loaded
+        --       and linkedNodes is empty. In that case resolve the requested name by
+        --       searching the placeable's own component tree (same approach already
+        --       used by hideNodes below). Only reached on a linkedNodes miss, so the
+        --       nodeTree path (1) is unchanged.
+        if placeable.components ~= nil then
+            local function searchByName(node)
+                if node == nil or node == 0 then return nil end
+                if getName(node) == name then return node end
+                for i = 0, getNumOfChildren(node) - 1 do
+                    local found = searchByName(getChildAt(node, i))
+                    if found ~= nil then return found end
+                end
+                return nil
+            end
+            for _, comp in ipairs(placeable.components) do
+                if comp ~= nil and comp.node ~= nil and comp.node ~= 0 then
+                    local hit = searchByName(comp.node)
+                    if hit ~= nil then
+                        SlurryDebug.log("findLinkedNode: resolved '" .. tostring(name)
+                            .. "' from placeable i3d (embedded, no nodeTree)")
+                        return hit
+                    end
+                end
+            end
         end
         return nil
     end
@@ -2220,7 +2297,7 @@ function SlurryPipeManager:registerPlaceable(placeable)
         hiddenNodes      = hiddenNodes,
         hiddenCollisions = hiddenCollisions,
         agitatorEnabled  = xmlFile:getBool(kp .. "slurryPipeSystem#agitator", false),
-        crustConfig      = SPSCrustVegetation ~= nil and SPSCrustVegetation.readConfig(xmlFile) or nil,
+        crustConfig      = SPSCrustVegetation ~= nil and SPSCrustVegetation.readConfig(xmlFile, kp) or nil,
         crustInstances   = nil,
         pipeAnimNode     = xmlFile:getNode(kp .. "slurryPipeSystem.pipeAnimNode#node", nil, placeable.components, placeable.i3dMappings),
         pipeAnimRX       = math.rad(xmlFile:getFloat(kp .. "slurryPipeSystem.pipeAnimNode#rx", 0)),
@@ -2278,6 +2355,60 @@ function SlurryPipeManager:registerPlaceable(placeable)
     end
 
     self:tryResolvePendingConnections()
+
+    -- [SPS Crust] Restore the crust-plane rise + foliage anchor, and make it work for
+    -- own-folder placeables as well as nodeTree ones.
+    --
+    -- How baseTank works: the nodeTree linker re-parents the crust mesh (crust_fillPlane)
+    -- onto the live, engine-driven slurry plane (slurryPit_fillPlane). Because it becomes
+    -- a CHILD of that engine plane it tracks the slurry surface for free, and the mod only
+    -- drives its local Y = settle * maxRise so it rises as the crust forms. Foliage then
+    -- attaches to the crustFoliage anchor (a child of crust_fillPlane) and rides with it.
+    --
+    -- Own-folder placeables bake these nodes into their OWN i3d under crustPlane, so
+    -- crust_fillPlane is NOT a child of the engine plane after load. We resolve it from
+    -- the placeable's own tree (findLinkedNode already falls back to that) and re-parent
+    -- it onto fillPlaneNode here, replicating exactly what the linker does. On baseTank it
+    -- is already parented there, so the re-parent is guarded and skipped. Additive.
+    if pEntry.crustConfig ~= nil and sourceEntry ~= nil
+    and fillPlaneNode ~= nil and fillPlaneNode ~= 0 then
+        local cc = pEntry.crustConfig
+        if cc.planeNode ~= nil and cc.planeNode ~= "" then
+            local crustPlaneNode = findLinkedNode(cc.planeNode)
+            if crustPlaneNode ~= nil and crustPlaneNode ~= 0 then
+                -- Track the engine plane by parenting onto it, unless already a child of it.
+                if getParent(crustPlaneNode) ~= fillPlaneNode then
+                    link(fillPlaneNode, crustPlaneNode)
+                    setRotation(crustPlaneNode, 0, 0, 0)
+                    SlurryDebug.log("[SPS Crust] re-parented crust plane '" .. tostring(cc.planeNode)
+                        .. "' onto engine fill plane (own-folder placeable)")
+                end
+                sourceEntry.crustPlaneNode = crustPlaneNode
+                sourceEntry.crustMaxRise   = cc.maxRise or 0.1
+                -- Snap to the restored crust height immediately so it is correct on load.
+                local settle0 = sourceEntry.settle or sourceEntry._migratedSettle or 0
+                setTranslation(crustPlaneNode, 0, settle0 * sourceEntry.crustMaxRise, 0)
+                SlurryDebug.log("[SPS Crust] crustPlane '" .. tostring(cc.planeNode)
+                    .. "' resolved=" .. tostring(crustPlaneNode)
+                    .. " maxRise=" .. tostring(sourceEntry.crustMaxRise)
+                    .. " settle0=" .. tostring(settle0))
+            else
+                SlurryDebug.log("[SPS Crust] crustPlane '" .. tostring(cc.planeNode) .. "' NOT resolved")
+            end
+        end
+        -- Foliage anchor: when authored, SPSCrustVegetation attaches plants here (a child
+        -- of crust_fillPlane) so they ride the crust; otherwise it falls back to the plane.
+        if cc.foliageNode ~= nil and cc.foliageNode ~= "" then
+            local foliageAnchor = findLinkedNode(cc.foliageNode)
+            if foliageAnchor ~= nil and foliageAnchor ~= 0 then
+                sourceEntry.crustFoliageNode = foliageAnchor
+                SlurryDebug.log("[SPS Crust] crustFoliage '" .. tostring(cc.foliageNode)
+                    .. "' resolved=" .. tostring(foliageAnchor))
+            else
+                SlurryDebug.log("[SPS Crust] crustFoliage '" .. tostring(cc.foliageNode) .. "' NOT resolved")
+            end
+        end
+    end
 
     -- Scatter crust vegetation on the fill plane if configured
     if pEntry.crustConfig ~= nil and SPSCrustVegetation ~= nil then
@@ -3253,8 +3384,17 @@ function SlurryPipeManager:onChainStartLaying(coupling, anchorActivatable)
         anchorActivatable.chain = chain
     end
 
-    local mx, my, mz = getWorldTranslation(coupling.mountNode)
-    local fdx, _, fdz = localDirectionToWorld(coupling.mountNode, 0, 0, -1)
+    -- [SPS] Chain first pipe links to the coupler's inNode (the pipe port for an
+    -- incoming strap pipe). The parent mountNode (e.g. SPS_pipeCoupler01) is the
+    -- proximity/arc anchor, not the pipe port — starting there put the first
+    -- segment at the wrong node. Fall back to mountNode when no inNode is
+    -- authored so legacy couplers without in/out children still work.
+    local startNode = coupling.inNode or coupling.mountNode
+    SlurryPipeManager.log("onChainStartLaying: startNode=%s (inNode=%s mountNode=%s)",
+        tostring(startNode), tostring(coupling.inNode), tostring(coupling.mountNode))
+
+    local mx, my, mz = getWorldTranslation(startNode)
+    local fdx, _, fdz = localDirectionToWorld(startNode, 0, 0, -1)
     local mry = math.atan2(-fdx, -fdz)
 
     -- Vehicle coupling: start chain 3.5m ahead so the tanker can drive away
@@ -3267,7 +3407,7 @@ function SlurryPipeManager:onChainStartLaying(coupling, anchorActivatable)
         local sy = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, sx, 0, sz) + 0.05
         chain:startLaying(sx, sy, sz, mry)
     else
-        chain:startLaying(mx, my, mz, mry, coupling.mountNode)
+        chain:startLaying(mx, my, mz, mry, startNode)
     end
 
     -- Play connector animation forward on the anchor coupling (no-op if not bound).
@@ -3972,7 +4112,11 @@ function SlurryPipeManager:onAIGateChanged(vehicle, vEntry, aiNow)
     -- local field; AI fill runs server-side, the activation check reads isEnabled).
     if vehicle.spec_fillTriggerVehicle ~= nil
        and vehicle.spec_fillTriggerVehicle.fillTrigger ~= nil then
-        vehicle.spec_fillTriggerVehicle.fillTrigger.isEnabled = aiNow
+        -- [SPS MIXED INTEROP] Stay enabled regardless of AI. The init.lua FillTrigger
+        -- hook gates per-fillable (SPS blocked, non-SPS + AI allowed), so the trigger
+        -- must remain live for a non-SPS player to load from this vessel — not only
+        -- while an AI worker is driving.
+        vehicle.spec_fillTriggerVehicle.fillTrigger.isEnabled = true
     end
 
     if aiNow and g_server ~= nil then
@@ -6827,6 +6971,20 @@ function SlurryPipeManager:update(dt)
         end
     end
 
+    -- [SPS Crust] Drive each crust plane's local Y = settle * maxRise every tick. The
+    -- crust mesh is a child of the engine-driven fill plane (re-parented at registration),
+    -- so it already tracks the slurry surface; this only adds the rise as the crust forms.
+    -- Server-authoritative, since settle is server state. Flush at settle 0, full at 1.0.
+    if g_server ~= nil and self:isFeatureEnabled() then
+        for _, pEntry in ipairs(self.registeredPlaceables) do
+            local se = pEntry.sourceEntry
+            if se ~= nil and se.crustPlaneNode ~= nil and se.crustPlaneNode ~= 0 then
+                local settle = se.settle or 0
+                setTranslation(se.crustPlaneNode, 0, settle * (se.crustMaxRise or 0), 0)
+            end
+        end
+    end
+
     -- Crust growth: an unmixed store crusts continuously. Each in-game day it gains a
     -- slice sized so a full year (12 periods) takes it 0 -> 100%, independent of the
     -- player's daysPerPeriod setting. Mixing (applyAgitation) drives it back down; the
@@ -8463,7 +8621,16 @@ function SlurryPipeManager:_destAcceptsFillType(dstEntry, fillType)
         return (cap - level) > 0
     elseif dstEntry.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
         if dstEntry.storage == nil then return false end
-        local free = dstEntry.storage:getFreeCapacity(fillType) or 0
+        -- [SPS] A store converts an unsupported incoming type (e.g. WATER) to its
+        -- content/native type on deposit (resolveStoreDepositFillType). Query free
+        -- capacity for that RESOLVED deposit type, not the raw incoming type, so a
+        -- water push through the conduit (PTO) pump is not falsely rejected here —
+        -- mirrors the freeCapacity calc in tickFlow[conduit] and transferDischarge,
+        -- which already convert before calling getFreeCapacity. Without this, a
+        -- slurry store returns 0 free capacity for WATER and the conduit bails every
+        -- tick, even though the fill-arm / bez-pipe paths accept water fine.
+        local depositType = self:resolveStoreDepositFillType(dstEntry, fillType)
+        local free = dstEntry.storage:getFreeCapacity(depositType) or 0
         return free > 0
     end
     return false
@@ -9145,13 +9312,21 @@ function SlurryPipeManager:findSprayerVehicleConfigForVehicle(vehicle)
     -- what lets third-party modders ship SPS-ready sprayers that include their own
     -- couplers, animations and node references without ever touching the SPS mod
     -- folder. Mirrors findVehicleConfigForVehicle (slurry) exactly.
-    if vehicle.xmlFile ~= nil and vehicle.xmlFile:hasProperty("vehicle.sprayerPipeSystem") then
-        SlurryDebug.log("findSprayerVehicleConfigForVehicle: embedded <sprayerPipeSystem> found in " .. tostring(vehicle.configFileName))
-        return {
-            xmlFilePath  = vehicle.configFileName,    -- used for nodeTree path resolution
-            xmlKeyPrefix = "vehicle.",                -- prepended ahead of "sprayerPipeSystem..."
-            isEmbedded   = true,
-        }
+    -- See findVehicleConfigForVehicle for rationale: vehicle.xmlFile's handle can
+    -- be dead at onFinishedLoading while the wrapper is still non-nil, which crashes
+    -- hasProperty. Load a fresh owned handle from the vehicle's config file instead.
+    local embeddedXml = XMLFile.loadIfExists("spsEmbeddedSprayerCheck", vehicle.configFileName, nil)
+    if embeddedXml ~= nil then
+        local isEmbedded = embeddedXml:hasProperty("vehicle.sprayerPipeSystem")
+        embeddedXml:delete()
+        if isEmbedded then
+            SlurryDebug.log("findSprayerVehicleConfigForVehicle: embedded <sprayerPipeSystem> found in " .. tostring(vehicle.configFileName))
+            return {
+                xmlFilePath  = vehicle.configFileName,    -- used for nodeTree path resolution
+                xmlKeyPrefix = "vehicle.",                -- prepended ahead of "sprayerPipeSystem..."
+                isEmbedded   = true,
+            }
+        end
     end
 
     local cfn = vehicle.configFileName:lower():gsub("\\", "/")
@@ -9168,13 +9343,21 @@ function SlurryPipeManager:findSprayerPlaceableConfigForPlaceable(placeable)
 
     -- Embedded config check: a placeable whose own XML carries a <sprayerPipeSystem>
     -- element is self-contained. See findSprayerVehicleConfigForVehicle for rationale.
-    if placeable.xmlFile ~= nil and placeable.xmlFile:hasProperty("placeable.sprayerPipeSystem") then
-        SlurryDebug.log("findSprayerPlaceableConfigForPlaceable: embedded <sprayerPipeSystem> found in " .. tostring(placeable.configFileName))
-        return {
-            xmlFilePath  = placeable.configFileName,
-            xmlKeyPrefix = "placeable.",
-            isEmbedded   = true,
-        }
+    -- See findVehicleConfigForVehicle for rationale: placeable.xmlFile's handle can
+    -- be dead while the wrapper is still non-nil, crashing hasProperty. Load a fresh
+    -- owned handle from the placeable's config file instead.
+    local embeddedXml = XMLFile.loadIfExists("spsEmbeddedPlaceableSprayerCheck", placeable.configFileName, nil)
+    if embeddedXml ~= nil then
+        local isEmbedded = embeddedXml:hasProperty("placeable.sprayerPipeSystem")
+        embeddedXml:delete()
+        if isEmbedded then
+            SlurryDebug.log("findSprayerPlaceableConfigForPlaceable: embedded <sprayerPipeSystem> found in " .. tostring(placeable.configFileName))
+            return {
+                xmlFilePath  = placeable.configFileName,
+                xmlKeyPrefix = "placeable.",
+                isEmbedded   = true,
+            }
+        end
     end
 
     local cfn = placeable.configFileName:lower():gsub("\\", "/")
@@ -9184,6 +9367,67 @@ function SlurryPipeManager:findSprayerPlaceableConfigForPlaceable(placeable)
         end
     end
     return nil
+end
+
+-- ---------------------------------------------------------------------------
+-- Store-item SPS tagging
+--
+-- Appends a short marker to the display name of every store item that is
+-- SPS-compatible, so the shop tile and detail panel read e.g. "Supercis 800 SPS".
+-- Compatibility is resolved exactly the way live vehicles/placeables are: the
+-- four find*Config* functions above are reused via a lightweight shim carrying
+-- only `configFileName` (the single field they read). That covers slurry AND
+-- sprayer, manifest matches AND embedded <slurryPipeSystem>/<sprayerPipeSystem>.
+--
+-- Timing: store items are built during the base StoreManager:loadMapData, which
+-- runs before this mod's loadMap. The config maps therefore do not exist at
+-- addItem time, so tagging cannot happen there. Instead tagSPSStoreItems() is
+-- called once from SPSMod:loadMap after the config maps are populated. Store
+-- item names are read from storeItem.name at display time, so mutating the field
+-- once here is sufficient for both the tile and the detail view.
+-- ---------------------------------------------------------------------------
+SlurryPipeManager.STORE_TAG = " SPS"   -- appended suffix; change here to restyle
+
+-- Returns true if the given store item's config file is SPS-compatible.
+-- storeItem.xmlFilename is the same full config path Giants reports as
+-- vehicle/placeable.configFileName, so the existing tail-match + embedded logic
+-- applies unchanged via the shim.
+function SlurryPipeManager:isStoreItemSPS(storeItem)
+    if storeItem == nil or storeItem.xmlFilename == nil then return false end
+    local shim = { configFileName = storeItem.xmlFilename }
+
+    if storeItem.species == StoreSpecies.VEHICLE then
+        if self:findVehicleConfigForVehicle(shim) ~= nil then return true end
+        if self:findSprayerVehicleConfigForVehicle(shim) ~= nil then return true end
+    elseif storeItem.species == StoreSpecies.PLACEABLE then
+        if self:findPlaceableConfigForPlaceable(shim) ~= nil then return true end
+        if self:findSprayerPlaceableConfigForPlaceable(shim) ~= nil then return true end
+    end
+    return false
+end
+
+-- One-shot pass over the loaded store items, appending STORE_TAG to the name of
+-- every SPS-compatible item. Idempotent: an item already carrying the tag is
+-- skipped, so a re-run (e.g. store reload) never stacks duplicate suffixes.
+function SlurryPipeManager:tagSPSStoreItems()
+    if g_storeManager == nil then return end
+    local items = g_storeManager:getItems()
+    if items == nil then return end
+
+    local tag    = SlurryPipeManager.STORE_TAG
+    local tagLen = #tag
+    local tagged = 0
+    for i = 1, #items do
+        local storeItem = items[i]
+        if storeItem ~= nil and storeItem.name ~= nil then
+            local alreadyTagged = string.sub(storeItem.name, -tagLen) == tag
+            if not alreadyTagged and self:isStoreItemSPS(storeItem) then
+                storeItem.name = storeItem.name .. tag
+                tagged = tagged + 1
+            end
+        end
+    end
+    SlurryPipeManager.log("tagSPSStoreItems: tagged %d store item(s)", tagged)
 end
 
 -- ---------------------------------------------------------------------------

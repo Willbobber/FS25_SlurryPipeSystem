@@ -56,15 +56,15 @@
               <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="20"/>
             </Shape>
           </TransformGroup>
-          <TransformGroup name="SPS_sprayerPipeCoupler02" translation="-1.18733 0.404846 -1.21889" rotation="180 -5.00896e-06 180" nodeId="25">
-            <TransformGroup name="SPS_sprayerPipeCoupler02Arcs" nodeId="26">
-              <TransformGroup name="SPS_sprayerPipeCoupler02Arc01" translation="-1.1 8.84464e-23 3.5" nodeId="27"/>
-              <TransformGroup name="SPS_sprayerPipeCoupler02Arc02" translation="1.5 0 3.5" nodeId="28"/>
+          <TransformGroup name="SPS_sprayerPipeCoupler02" translation="-1.18733 0.404846 -1.21889" rotation="180 -5.00896e-06 180" nodeId="21">
+            <TransformGroup name="SPS_sprayerPipeCoupler02Arcs" nodeId="22">
+              <TransformGroup name="SPS_sprayerPipeCoupler02Arc01" translation="-1.1 8.84464e-23 3.5" nodeId="23"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler02Arc02" translation="1.5 0 3.5" nodeId="24"/>
             </TransformGroup>
-            <Shape name="sprayerConnector" shapeId="1" clipDistance="150" nodeId="29" castsShadows="true" receiveShadows="true" materialIds="5">
-              <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="30" castsShadows="true" receiveShadows="true" materialIds="6"/>
-              <TransformGroup name="inNode" translation="2.49905e-08 1.64534e-08 0.205501" rotation="0 180 0" nodeId="31"/>
-              <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="32"/>
+            <Shape name="sprayerConnector" shapeId="1" clipDistance="150" nodeId="25" castsShadows="true" receiveShadows="true" materialIds="5">
+              <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="26" castsShadows="true" receiveShadows="true" materialIds="6"/>
+              <TransformGroup name="inNode" translation="2.49905e-08 1.64534e-08 0.205501" rotation="0 180 0" nodeId="27"/>
+              <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="28"/>
             </Shape>
           </TransformGroup>
         </TransformGroup>

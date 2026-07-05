@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FS25 Samson PGii20 Genesis -->
+
+<!-- FS25_SlurryPipeSystem — Vehicle fillPoints.xml -->
+<!-- Author: Oscar Mods -->
+<!-- Version: 1.0.0.0 -->
+
+<slurryPipeSystem>
+    <nodeTree filename="nodeTree.i3d"/>
+
+    <flow fillLitersPerSecond="1390" emptyLitersPerSecond="1390"/>
+	
+	<pump pumpType="HVP"/>     <!-- vacuum/HVP/conduit/openTop -->
+	
+    <fillArms>
+			<!-- Gate = cylindered config slot - 1 (0-based). design6 head 0-based: 0=none, 1=45, 2=90.
+			     RBP arms have one physical nozzle node bound to BOTH tipNodeName (boot) and
+			     centreNodeName (pit) so the single node serves both detection modes. -->
+
+			<!-- PT arm -->
+			<fillArm id="1" cylinderedConfigIndex="1,2" configType2="design6" configIndex2="1,2" configMode2="exclude" tipType="OPEN_PIT" centreNodeName="SPS_fillArmCentre02" fillUnitIndex="1" >
+				<effects>
+					<effectNode effectNode="effect04" />
+					<effectNode effectNode="pipeEffectSmoke04" />
+				</effects>
+			</fillArm>
+			<!-- PT + 45 -->
+			<fillArm id="2" cylinderedConfigIndex="1,2" configType2="design6" configIndex2="1" configMode2="require" tipType="RUBBER_BOOT_PIT" tipNodeName="SPS_fillArmCentre03" centreNodeName="SPS_fillArmCentre03" fillUnitIndex="1" >
+				<effects>
+					<effectNode effectNode="effect05" />
+					<effectNode effectNode="pipeEffectSmoke05" />
+				</effects>
+			</fillArm>
+			<!-- PT + 90 -->
+			<fillArm id="3" cylinderedConfigIndex="1,2" configType2="design6" configIndex2="2" configMode2="require" tipType="RUBBER_BOOT_PIT" tipNodeName="SPS_fillArmCentre04" centreNodeName="SPS_fillArmCentre04" fillUnitIndex="1" >
+				<effects>
+					<effectNode effectNode="effect06" />
+					<effectNode effectNode="pipeEffectSmoke06" />
+				</effects>
+			</fillArm>
+			<!-- SAP Small-->
+			<fillArm id="4" cylinderedConfigIndex="2,3" tipType="RUBBER_BOOT" tipNodeName="SPS_fillArmTip01" fillUnitIndex="1" />
+			<!-- SAP Big-->
+			<fillArm id="5" cylinderedConfigIndex="4" tipType="RUBBER_BOOT_PIT" tipNodeName="SPS_fillArmTip02" centreNodeName="SPS_fillArmTip02" fillUnitIndex="1" >
+				<effects>
+					<effectNode effectNode="effect01" />
+					<effectNode effectNode="pipeEffectSmoke01" />
+				</effects>
+			</fillArm>
+			<!-- SAP Big VAR01 RBP -->
+			<fillArm id="6" cylinderedConfigIndex="5" tipType="RUBBER_BOOT_PIT" tipNodeName="SPS_fillArmTip03" centreNodeName="SPS_fillArmTip03" fillUnitIndex="1" >
+				<effects>
+					<effectNode effectNode="effect02" />
+					<effectNode effectNode="pipeEffectSmoke02" />
+				</effects>
+			</fillArm>
+			<!-- SAP Big VAR02 OP -->
+			<fillArm id="7" cylinderedConfigIndex="6" tipType="OPEN_PIT" centreNodeName="SPS_fillArmCentre01" fillUnitIndex="1" >
+				<effects>
+					<effectNode effectNode="effect03" />
+					<effectNode effectNode="pipeEffectSmoke03" />
+				</effects>
+			</fillArm>
+		</fillArms>
+		<pipeCouplings>
+			<!-- Left hose connector: design9 = Yes (gate 1) -->
+			<pipeCoupling id="1" configType="design9"  cylinderedConfigIndex="1" mountNodeName="SPS_pipeCoupler01" valveType="MANUAL" maxPipeLength="4.0" fillUnitIndex="1" valveFromRearControl="false" connector="male" />
+			<!-- Right hose connector: design10 = Yes (gate 1) -->
+			<pipeCoupling id="2" configType="design10" cylinderedConfigIndex="1" mountNodeName="SPS_pipeCoupler02" valveType="MANUAL" maxPipeLength="4.0" fillUnitIndex="1" valveFromRearControl="false" connector="male" />
+			<!-- SAP turret coupler (turretSAP2): present in SAP cylindered configs, gates 2-6 -->
+			<pipeCoupling id="3" cylinderedConfigIndex="2,3,4,5,6" mountNodeName="SPS_pipeCoupler03" valveType="MANUAL" maxPipeLength="4.0" fillUnitIndex="1" valveFromRearControl="false" connector="male" />
+		</pipeCouplings>
+		<rubberBootPorts>
+			<!-- Docking funnel station: design8 = Yes (gate 1); port hidden when not fitted -->
+			<rubberBootPort id="1" configType="design15" cylinderedConfigIndex="1" lowerNodeName="SPS_rubberBootLower01" upperNodeName="SPS_rubberBootUpper01" valveType="NONE" fillUnitIndex="1" />
+		</rubberBootPorts>
+		<outsideControls>
+			<outsideControl mountNodeName="pumpControl01" pto="true" direction="false"/>
+		</outsideControls>
+	
+</slurryPipeSystem>

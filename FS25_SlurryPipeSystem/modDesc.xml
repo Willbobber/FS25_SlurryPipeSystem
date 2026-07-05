@@ -171,6 +171,7 @@ Caratteristiche:
 		<action name="SPS_HUD_EDIT" 				axisType="HALF"/>
 		<action name="SPS_REPAIR_SHEARBOLT"			axisType="HALF"/>
 		<action name="SPS_TOGGLE_AGITATOR"/>
+		<action name="SPS_ENGAGE_AGITATOR"/>
 	</actions>
 	
 	<inputBinding>
@@ -197,6 +198,9 @@ Caratteristiche:
 		</actionBinding>
 		<actionBinding action="SPS_TOGGLE_AGITATOR">
 			<binding device="KB_MOUSE_DEFAULT" input="KEY_t"/>
+		</actionBinding>
+		<actionBinding action="SPS_ENGAGE_AGITATOR">
+			<binding device="KB_MOUSE_DEFAULT" input="KEY_b"/>
 		</actionBinding>
 	</inputBinding>
 	

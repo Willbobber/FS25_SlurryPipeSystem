@@ -3,6 +3,8 @@
     <texts>
 		<!-- Inputs -->
 		<text name="input_SPS_TOGGLE_PUMP"      		text="SPS Pumpe Ein/Aus" />
+		<text name="input_SPS_TOGGLE_AGITATOR"		text="Rührwerk verbinden/trennen" />
+		<text name="input_SPS_ENGAGE_AGITATOR"		text="Rührwerk-Zapfwelle Ein/Aus" />
 		<text name="input_SPS_TOGGLE_FLOW"      		text="SPS Durchfluss Öffnen/Schließen" />
 		<text name="input_SPS_TOGGLE_DIRECTION" 		text="SPS Durchflussrichtung" />
         <text name="input_SPS_TOGGLE_SPREADER"          text="SPS Streuventil" />

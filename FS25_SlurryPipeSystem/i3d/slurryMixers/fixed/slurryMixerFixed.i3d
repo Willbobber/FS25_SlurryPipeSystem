@@ -26,39 +26,45 @@
 
 
   <Materials>
-    <Material name="metalGalvanized_mat" materialId="45" customShaderId="4">
+    <Material name="metalGalvanized_mat" materialId="23" customShaderId="4">
       <Texture fileId="1"/>
       <Normalmap fileId="2"/>
       <Glossmap fileId="3"/>
       <Custommap name="detailSpecular" fileId="15"/>
       <Custommap name="detailNormal" fileId="16"/>
       <Custommap name="detailDiffuse" fileId="17"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0 1 0 0"/>
     </Material>
-    <Material name="metalPainted_mat" materialId="106" customShaderId="4">
+    <Material name="metalPainted_mat" materialId="24" customShaderId="4">
       <Texture fileId="1"/>
       <Normalmap fileId="2"/>
       <Glossmap fileId="3"/>
       <Custommap name="detailSpecular" fileId="18"/>
       <Custommap name="detailNormal" fileId="19"/>
       <Custommap name="detailDiffuse" fileId="20"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0 1 0 0"/>
       <CustomParameter name="colorScale" value="0.359 0.033 0.035"/>
     </Material>
-    <Material name="rubberBlack_mat" materialId="38" customShaderId="4">
+    <Material name="rubberBlack_mat" materialId="26" customShaderId="4">
       <Texture fileId="1"/>
       <Normalmap fileId="2"/>
       <Glossmap fileId="3"/>
       <Custommap name="detailSpecular" fileId="12"/>
       <Custommap name="detailNormal" fileId="13"/>
       <Custommap name="detailDiffuse" fileId="14"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0 0.95 0 0"/>
       <CustomParameter name="porosity" value="0.5"/>
     </Material>
-    <Material name="zincGalvanized_mat" materialId="31" customShaderId="4">
+    <Material name="UnnamedMaterial" materialId="28" diffuseColor="1 1 1 1">
+    </Material>
+    <Material name="zincGalvanized_mat" materialId="29" customShaderId="4">
       <Texture fileId="1"/>
       <Normalmap fileId="2"/>
       <Glossmap fileId="3"/>
       <Custommap name="detailSpecular" fileId="5"/>
       <Custommap name="detailNormal" fileId="6"/>
       <Custommap name="detailDiffuse" fileId="7"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0 1 0 0"/>
     </Material>
   </Materials>
 
@@ -67,16 +73,25 @@
   </Shapes>
 
   <Scene>
-    <TransformGroup name="slurryMixerFixed" nodeId="14">
-      <Shape name="rubberSeal" translation="-7.89922 0.851151 -3.39172" shapeId="1" nodeId="15" castsShadows="true" receiveShadows="true" materialIds="31,38,45">
-        <Shape name="legs" shapeId="2" nodeId="17" castsShadows="true" receiveShadows="true" materialIds="31,45"/>
-        <Shape name="slurryMixer" shapeId="3" nodeId="18" castsShadows="true" receiveShadows="true" materialIds="31,45">
-          <Shape name="blades" shapeId="4" nodeId="16" castsShadows="true" receiveShadows="true" materialIds="31,106,45"/>
+    <TransformGroup name="slurryMixerFixed" nodeId="106">
+      <Shape name="rubberSeal" shapeId="1" nodeId="90" castsShadows="true" receiveShadows="true" materialIds="29,26,23">
+        <Shape name="legs" shapeId="2" nodeId="91" castsShadows="true" receiveShadows="true" materialIds="29,23"/>
+        <Shape name="slurryMixer" shapeId="3" nodeId="92" castsShadows="true" receiveShadows="true" materialIds="29,23">
+          <Shape name="blades" shapeId="4" nodeId="93" castsShadows="true" receiveShadows="true" materialIds="29,24,23"/>
         </Shape>
       </Shape>
+      <TransformGroup name="ptoNodeAttached" translation="-3.96098 0 0" rotation="-1.81401e-07 90 0" clipDistance="150" nodeId="94"/>
+      <TransformGroup name="ptoNodeDetached" translation="-5.59038 -0.764453 0" rotation="-25.1344 90 0" clipDistance="150" nodeId="95"/>
+      <TransformGroup name="soundNode" clipDistance="150" nodeId="96"/>
+      <TransformGroup name="ptoDistanceNode" translation="-5.76078 0 0" rotation="-1.814e-07 90 0" clipDistance="150" nodeId="97"/>
+      <TransformGroup name="agitatorLevelNode " translation="0.75 -0.15 0" clipDistance="150" nodeId="98"/>
+      <Shape name="col" translation="-1.6608 0 0" shapeId="5" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" nodeId="99" castsShadows="false" receiveShadows="false" nonRenderable="true" distanceBlending="false" materialIds="28">
+        <Shape name="col" translation="-1.90574 -0.745263 -0.549142" shapeId="6" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" nodeId="100" castsShadows="false" receiveShadows="false" nonRenderable="true" distanceBlending="false" materialIds="28"/>
+        <Shape name="col" translation="0.874331 -0.745263 -0.549142" shapeId="6" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" nodeId="101" castsShadows="false" receiveShadows="false" nonRenderable="true" distanceBlending="false" materialIds="28"/>
+        <Shape name="col" translation="0.874331 -0.745263 0.56381" shapeId="7" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" nodeId="102" castsShadows="false" receiveShadows="false" nonRenderable="true" distanceBlending="false" materialIds="28"/>
+        <Shape name="col" translation="-1.89361 -0.745263 0.56381" shapeId="7" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" nodeId="103" castsShadows="false" receiveShadows="false" nonRenderable="true" distanceBlending="false" materialIds="28"/>
+      </Shape>
     </TransformGroup>
-    <Light name="light" rotation="-40 0 -30" nodeId="47" type="directional" color="1 1 1" emitDiffuse="true" emitSpecular="true" castShadowMap="true" depthMapBias="0.0012" depthMapSlopeScaleBias="2" depthMapSlopeClamp="0.0005" depthMapResolution="1024" shadowFarDistance="1000" shadowExtrusionDistance="200" softShadowsLightSize="0.5" softShadowsLightDistance="15" softShadowsDepthBiasFactor="1" softShadowsMaxPenumbraSize="0.5" numShadowMapSplits="5" shadowMapSplitDistancesParameter="0.9" range="500"/>
-    <Light name="light" rotation="-40 0 -30" nodeId="48" type="directional" color="1 1 1" emitDiffuse="true" emitSpecular="true" castShadowMap="true" depthMapBias="0.0012" depthMapSlopeScaleBias="2" depthMapSlopeClamp="0.0005" depthMapResolution="1024" shadowFarDistance="1000" shadowExtrusionDistance="200" softShadowsLightSize="0.5" softShadowsLightDistance="15" softShadowsDepthBiasFactor="1" softShadowsMaxPenumbraSize="0.5" numShadowMapSplits="5" shadowMapSplitDistancesParameter="0.9" range="500"/>
   </Scene>
 
 </i3D>

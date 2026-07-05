@@ -2,7 +2,7 @@
 
 <i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
   <Asset>
-    <Export program="GIANTS Editor 64bit" version="10.0.12"/>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
   </Asset>
 
   <Files>
@@ -47,8 +47,8 @@
         <TransformGroup name="vantage4300_root" nodeId="12">
           <TransformGroup name="SPS_sprayerPipeCoupler01" translation="0.830212 1.011 1.78722" rotation="20.0933 64.5169 3.81203" nodeId="13">
             <TransformGroup name="SPS_sprayerPipeCoupler01Arcs" translation="-1.17765e-07 0 0" nodeId="14">
-              <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="3.5 3.86333e-06 -1.5" rotation="0 0 6.87363e-05" nodeId="15"/>
-              <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="3.5 -5.42457e-06 1.5" rotation="0 0 -0.000314568" nodeId="16"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="-1.5 -3.24799e-08 3.5" rotation="0 0 6.87363e-05" nodeId="15"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="1.5 -8.71887e-06 3.5" rotation="0 0 -0.000314568" nodeId="16"/>
             </TransformGroup>
             <Shape name="sprayerConnector" shapeId="1" clipDistance="150" nodeId="17" castsShadows="true" receiveShadows="true" materialIds="5">
               <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="18" castsShadows="true" receiveShadows="true" materialIds="6"/>

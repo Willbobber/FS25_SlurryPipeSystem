@@ -3,6 +3,8 @@
     <texts>
 		<!-- Inputs -->
 		<text name="input_SPS_TOGGLE_PUMP"      		text="SPS Pompe Marche/Arrêt" />
+		<text name="input_SPS_TOGGLE_AGITATOR"		text="Connecter/Déconnecter l'agitateur" />
+		<text name="input_SPS_ENGAGE_AGITATOR"		text="Prise de force agitateur Marche/Arrêt" />
 		<text name="input_SPS_TOGGLE_FLOW"      		text="SPS Débit Ouvrir/Fermer" />
 		<text name="input_SPS_TOGGLE_DIRECTION" 		text="SPS Sens du débit" />
         <text name="input_SPS_TOGGLE_SPREADER"          text="SPS Vanne d'épandage" />

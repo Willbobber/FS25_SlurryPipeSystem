@@ -33,8 +33,7 @@
             fillUnitIndex="1"
             valveFromRearControl="true"
 			connectorAnimation="3"
-            valveAnimation="1"
-		/>
+        />
 
     </sprayerPipeCouplings>
 

@@ -485,6 +485,16 @@ function SPSMod:loadMap(filename)
     g_slurryPipeManager:loadSprayerVehicleConfigs(SPS_MOD_DIRECTORY)
     g_slurryPipeManager:loadSprayerPlaceableConfigs(SPS_MOD_DIRECTORY)
 
+    -- Append " SPS" to the shop name of every SPS-compatible store item. Runs here,
+    -- after all config maps (slurry + sprayer, vehicle + placeable) are populated,
+    -- because store items are built by the base StoreManager before this loadMap.
+    if g_slurryPipeManager.tagSPSStoreItems ~= nil then
+        local okTag, errTag = pcall(function() g_slurryPipeManager:tagSPSStoreItems() end)
+        if not okTag then
+            print("[SPS INIT] tagSPSStoreItems error: " .. tostring(errTag))
+        end
+    end
+
     -- Top-centre spreader HUD (DB icon + section cells + slurry details)
     g_spsSpreaderHUD = SPSSpreaderHUD.new(SPS_MOD_DIRECTORY)
 

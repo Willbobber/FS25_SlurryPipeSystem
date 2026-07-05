@@ -3,6 +3,8 @@
     <texts>
 		<!-- Inputs -->
 		<text name="input_SPS_TOGGLE_PUMP"      		text="SPS Pump On/Off" />
+		<text name="input_SPS_TOGGLE_AGITATOR"		text="Connect/Disconnect Agitator" />
+		<text name="input_SPS_ENGAGE_AGITATOR"		text="Agitator PTO On/Off" />
 		<text name="input_SPS_TOGGLE_FLOW"      		text="SPS Flow Open/Close" />
 		<text name="input_SPS_TOGGLE_DIRECTION" 		text="SPS Flow Direction" />
         <text name="input_SPS_TOGGLE_SPREADER"          text="SPS Spreader Valve" />

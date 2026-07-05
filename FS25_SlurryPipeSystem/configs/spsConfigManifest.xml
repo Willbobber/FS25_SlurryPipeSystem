@@ -51,6 +51,7 @@
 		<vehicle path="data/vehicles/oxbo/at5105/at5105.xml"/>
 		<vehicle path="data/vehicles/samsonAgro/pgII28Genesis/pgII28Genesis.xml"/>
 		<vehicle path="data/vehicles/samsonAgro/sbh4_36/sbh4_36.xml"/>
+		<vehicle path="data/vehicles/samsonAgro/sd700/sd700.xml"/>
 		<vehicle path="data/vehicles/zunhammer/ult18/ult18.xml"/>
 		<vehicle path="data/vehicles/zunhammer/ult24/ult24.xml"/>
 		<vehicle path="data/vehicles/zunhammer/vibro/vibro.xml"/>
@@ -60,7 +61,11 @@
             configFolder="mods/FS25_Joskin_Cobra"/>
         <vehicle path="FS25_Pichon_BMIX80/BMIX.xml"
             configFolder="mods/FS25_Pichon_BMIX80"/>
-        
+        <vehicle path="FS25_samson_pgII20Genesis/data/pgII20Genesis.xml"
+            configFolder="mods/FS25_samson_pgII20Genesis/data"/>
+		<vehicle path="FS25_Kotte_TSA/tsa.xml"
+            configFolder="mods/FS25_Kotte_TSA"/>
+			
         <!-- PTOSlurryPump uses embedded <slurryPipeSystem>, no manifest entry needed -->
     </vehicleConfigs>
 	

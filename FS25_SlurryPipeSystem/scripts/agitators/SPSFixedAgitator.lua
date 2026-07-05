@@ -87,12 +87,6 @@ function SPSFixedAgitator.readConfig(xmlFile, kp)
     local cfg = {}
     cfg.turnOffIfNotAllowed = xmlFile:getBool(base .. "#turnOffIfNotAllowed", true)
     cfg.maxConnectDistance  = xmlFile:getFloat(base .. "#maxConnectDistance", 0.2)
-    -- [SPS] A PTO shaft can't kink, so the tractor must line up roughly on the shaft
-    -- axis to connect. Max off-axis angle (degrees) between the intended shaft line
-    -- (inputNode -> distanceNode) and the actual line to the tractor PTO output.
-    -- Absent => default. Enable SPSFixedAgitator.DEBUG and watch the connect log to
-    -- read the real angle for a straight vs crooked approach, then tune this value.
-    cfg.maxConnectAngleDeg  = xmlFile:getFloat(base .. "#maxConnectAngleDeg", 15)
 
     -- <input inputNode=".." detachNode=".." filename=".." .../>
     cfg.inputNodeName    = xmlFile:getString(base .. ".input#inputNode", nil)
@@ -153,7 +147,6 @@ function SPSFixedAgitator.initForPlaceable(manager, pEntry, xmlFile, kp, linkedN
     fa.levelNode        = resolve(cfg.levelNodeName)
     fa.soundNode        = resolve(cfg.soundLinkNodeName)
     fa.maxConnectDist   = cfg.maxConnectDistance or 0.2
-    fa.maxConnectAngleDeg = cfg.maxConnectAngleDeg or 15
 
     -- Blade nodes + captured base rotation (spin is added on the chosen axis so
     -- any authored orientation is preserved).
@@ -249,45 +242,6 @@ function SPSFixedAgitator.getTractorPtoNode(vehicle, refNode)
 end
 
 -- ---------------------------------------------------------------------------
--- getConnectAngleDeg / angleOK — connection angle gate.
--- A PTO shaft can't kink, so the tractor must line up roughly on the shaft axis.
--- Intended (straight) axis  = inputNode -> distanceNode (the reach point where the
---                             tractor PTO output is meant to sit).
--- Actual line               = inputNode -> tractor PTO output node.
--- The angle between them is how far off-straight the tractor sits. Pure world-
--- position vector maths (no engine PTO API). Returns nil when the reference nodes
--- aren't both present, so a config lacking them stays distance-only (fail-open,
--- unchanged legacy behaviour).
--- ---------------------------------------------------------------------------
-function SPSFixedAgitator.getConnectAngleDeg(fa, ptoNode)
-    if fa == nil or ptoNode == nil or ptoNode == 0 or not entityExists(ptoNode) then return nil end
-    local origin = fa.inputNode
-    local aim    = fa.distanceNode
-    if origin == nil or origin == 0 or not entityExists(origin) then return nil end
-    if aim == nil or aim == 0 or not entityExists(aim) then return nil end
-    local ox, oy, oz = getWorldTranslation(origin)
-    local rx, ry, rz = getWorldTranslation(aim)      -- straight reference target
-    local px, py, pz = getWorldTranslation(ptoNode)  -- actual tractor PTO output
-    local ax, ay, az = rx - ox, ry - oy, rz - oz
-    local bx, by, bz = px - ox, py - oy, pz - oz
-    local la = math.sqrt(ax * ax + ay * ay + az * az)
-    local lb = math.sqrt(bx * bx + by * by + bz * bz)
-    if la < 1e-4 or lb < 1e-4 then return nil end
-    local dot = (ax * bx + ay * by + az * bz) / (la * lb)
-    if dot > 1 then dot = 1 elseif dot < -1 then dot = -1 end
-    return math.deg(math.acos(dot))
-end
-
--- True when the tractor is within the connect angle tolerance, or when the angle
--- can't be measured (missing reference nodes => distance-only). Tolerance is set
--- per placeable from <fixedAgitator #maxConnectAngleDeg>.
-function SPSFixedAgitator.angleOK(fa, ptoNode)
-    local ang = SPSFixedAgitator.getConnectAngleDeg(fa, ptoNode)
-    if ang == nil then return true end
-    return ang <= (fa.maxConnectAngleDeg or 15)
-end
-
--- ---------------------------------------------------------------------------
 -- pickCandidate — the detection. Scans enterable vehicles (tractors) and
 -- returns the one whose rear PTO output node sits within maxConnectDist of the
 -- agitator's ptoDistanceNode, plus that node. This IS the "distance node looks
@@ -304,8 +258,7 @@ function SPSFixedAgitator.pickCandidate(fa)
     for _, veh in pairs(enterables) do
         if veh ~= nil and veh.getRootVehicle ~= nil then
             local node, d = SPSFixedAgitator.getTractorPtoNode(veh, fa.distanceNode)
-            if node ~= nil and d ~= nil and d <= fa.maxConnectDist
-            and SPSFixedAgitator.angleOK(fa, node) and d < bestDist then
+            if node ~= nil and d ~= nil and d <= fa.maxConnectDist and d < bestDist then
                 best, bestDist, bestNode = veh, d, node
             end
         end
@@ -545,8 +498,7 @@ function SPSFixedAgitator.updateAll(manager, dt)
                             if fa2 ~= nil and fa2.connectedVehicle == nil
                             and fa2.distanceNode ~= nil and fa2.distanceNode ~= 0 then
                                 local node, d = SPSFixedAgitator.getTractorPtoNode(veh, fa2.distanceNode)
-                                if node ~= nil and d ~= nil and d <= fa2.maxConnectDist
-                                and SPSFixedAgitator.angleOK(fa2, node) then
+                                if node ~= nil and d ~= nil and d <= fa2.maxConnectDist then
                                     show, txt = true, g_i18n:getText("action_spsAgitatorConnect")
                                     break
                                 end
@@ -636,11 +588,17 @@ function SPSFixedAgitator.registerCabActionEvent(vehicle)
             tostring(vehicle.configFileName), tostring(InputAction.SPS_TOGGLE_AGITATOR ~= nil))
     end
 
-    -- PTO engage on the familiar implement on/off key (IMPLEMENT_EXTRA). Shown
-    -- only while connected (toggled visible in updateAll).
-    if InputAction.IMPLEMENT_EXTRA ~= nil then
+    -- PTO engage on the dedicated SPS agitator-engage key (SPS_ENGAGE_AGITATOR).
+    -- Shown only while connected (toggled visible in updateAll). Previously this
+    -- was registered on InputAction.IMPLEMENT_EXTRA, which is the vanilla default
+    -- binding for TurnOnVehicle's turn-on (verified TurnOnVehicle.lua: schema
+    -- default "IMPLEMENT_EXTRA" + spec.toggleTurnOnInputBinding). Registered here
+    -- at GS_PRIO_VERY_HIGH on every output-PTO vehicle, it captured that binding
+    -- and blocked turn-on (B) on non-SPS machines such as combines. Moving it to
+    -- its own action removes the overlap entirely.
+    if InputAction.SPS_ENGAGE_AGITATOR ~= nil then
         local _, eid = vehicle:addActionEvent(
-            events, InputAction.IMPLEMENT_EXTRA, vehicle,
+            events, InputAction.SPS_ENGAGE_AGITATOR, vehicle,
             SPSFixedAgitator.onCabEngageEvent, false, true, false, true, nil)
         if eid ~= nil then
             vehicle._spsAgitatorEngageId = eid
@@ -685,12 +643,9 @@ function SPSFixedAgitator.onCabActionEvent(vehicle, actionName, inputValue, call
         local fa = pEntry.fixedAgitator
         if fa ~= nil and fa.connectedVehicle == nil and fa.distanceNode ~= nil and fa.distanceNode ~= 0 then
             local node, d = SPSFixedAgitator.getTractorPtoNode(vehicle, fa.distanceNode)
-            local angOk   = SPSFixedAgitator.angleOK(fa, node)
-            log("cab action candidate: ptoNode=%s dist=%s max=%.3f angle=%s maxAngle=%.1f angleOK=%s",
-                tostring(node ~= nil), node ~= nil and string.format("%.3f", d) or "n/a", fa.maxConnectDist or -1,
-                node ~= nil and string.format("%.1f", SPSFixedAgitator.getConnectAngleDeg(fa, node) or -1) or "n/a",
-                fa.maxConnectAngleDeg or -1, tostring(angOk))
-            if node ~= nil and d ~= nil and d <= fa.maxConnectDist and angOk and d < bestDist then
+            log("cab action candidate: ptoNode=%s dist=%s max=%.3f",
+                tostring(node ~= nil), node ~= nil and string.format("%.3f", d) or "n/a", fa.maxConnectDist or -1)
+            if node ~= nil and d ~= nil and d <= fa.maxConnectDist and d < bestDist then
                 bestPE, bestDist = pEntry, d
             end
         end
@@ -766,23 +721,17 @@ function SPSFixedAgitator.consoleDump()
         if fa ~= nil then
             nAg = nAg + 1
             local dnOk = fa.distanceNode ~= nil and fa.distanceNode ~= 0 and entityExists(fa.distanceNode)
-            table.insert(out, string.format("[SPS] agitator #%d distanceNode=%s maxConnectDist=%.3f maxAngle=%.1f connected=%s",
-                nAg, tostring(dnOk), fa.maxConnectDist or -1, fa.maxConnectAngleDeg or -1, tostring(fa.connectedVehicle ~= nil)))
+            table.insert(out, string.format("[SPS] agitator #%d distanceNode=%s maxConnectDist=%.3f connected=%s",
+                nAg, tostring(dnOk), fa.maxConnectDist or -1, tostring(fa.connectedVehicle ~= nil)))
             if dnOk and enterables ~= nil then
                 for _, veh in pairs(enterables) do
                     if veh ~= nil and veh.getRootVehicle ~= nil then
                         local node, d = SPSFixedAgitator.getTractorPtoNode(veh, fa.distanceNode)
-                        local ang = SPSFixedAgitator.getConnectAngleDeg(fa, node)
                         local nm = veh.configFileName and tostring(veh.configFileName):match("([^/\\]+)%.xml$") or tostring(veh)
-                        local distOk  = node ~= nil and d ~= nil and d <= fa.maxConnectDist
-                        local angleOk = SPSFixedAgitator.angleOK(fa, node)
-                        table.insert(out, string.format("[SPS]   %-28s ptoNode=%-5s dist=%s angle=%s%s",
+                        table.insert(out, string.format("[SPS]   %-28s ptoNode=%-5s dist=%s%s",
                             nm, tostring(node ~= nil),
                             node ~= nil and string.format("%.3f m", d) or "n/a",
-                            ang ~= nil and string.format("%.1f deg", ang) or "n/a",
-                            (distOk and angleOk) and "  <== IN RANGE"
-                                or (distOk and not angleOk) and "  <== in dist, ANGLE TOO STEEP"
-                                or ""))
+                            (node ~= nil and d ~= nil and d <= fa.maxConnectDist) and "  <== IN RANGE" or ""))
                     end
                 end
             end

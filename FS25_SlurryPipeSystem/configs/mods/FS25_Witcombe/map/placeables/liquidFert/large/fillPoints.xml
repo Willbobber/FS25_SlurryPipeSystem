@@ -18,7 +18,6 @@
 			flowDirection="BOTH"
             maxPipeLength="7.5"
 			connectorAnimation="3"
-			valveAnimation="1"
 		/>
 		
 		<sprayerPipeCoupling
@@ -28,7 +27,6 @@
 			flowDirection="BOTH"
             maxPipeLength="7.5"
 			connectorAnimation="3"
-			valveAnimation="1"
 		/>
     </sprayerPipeCouplings>
 

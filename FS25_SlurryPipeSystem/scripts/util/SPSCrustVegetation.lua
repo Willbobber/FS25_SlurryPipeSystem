@@ -15,13 +15,18 @@ SPSCrustVegetation.THRESH = { [1] = 0.4, [2] = 0.6, [3] = 0.8 }
 -- ---------------------------------------------------------------------------
 -- readConfig
 -- ---------------------------------------------------------------------------
-function SPSCrustVegetation.readConfig(xmlFile)
-    if not xmlFile:hasProperty("slurryPipeSystem.crust") then return nil end
-    local density = xmlFile:getFloat("slurryPipeSystem.crust#density", 0.3)
+function SPSCrustVegetation.readConfig(xmlFile, keyPrefix)
+    -- keyPrefix ("" for a standalone fillPoints.xml whose root is <slurryPipeSystem>;
+    -- non-empty when the <slurryPipeSystem> block is embedded inside a placeable xml,
+    -- e.g. own-folder store tanks). Mirrors the kp pattern used everywhere else in
+    -- registerPlaceable (fillPlane, couplings, etc.), so embedded configs resolve too.
+    local kp = keyPrefix or ""
+    if not xmlFile:hasProperty(kp .. "slurryPipeSystem.crust") then return nil end
+    local density = xmlFile:getFloat(kp .. "slurryPipeSystem.crust#density", 0.3)
     local plants  = {}
     local idx = 0
     while true do
-        local pKey = string.format("slurryPipeSystem.crust.plant(%d)", idx)
+        local pKey = string.format(kp .. "slurryPipeSystem.crust.plant(%d)", idx)
         if not xmlFile:hasProperty(pKey) then break end
         local i3dRelPath = xmlFile:getString(pKey .. "#i3d")
         local stage      = xmlFile:getInt(pKey .. "#stage", 1)
@@ -35,19 +40,19 @@ function SPSCrustVegetation.readConfig(xmlFile)
     -- Optional crust plane mesh: when authored, the plane rises with the store's
     -- settle value and foliage is attached to it (so the plants ride the crust).
     -- maxRise is the height (m) above the slurry surface at full crust (settle=1).
-    local planeNode = xmlFile:getString("slurryPipeSystem.crust#planeNode", nil)
+    local planeNode = xmlFile:getString(kp .. "slurryPipeSystem.crust#planeNode", nil)
     -- Dedicated foliage anchor plane (child of the crust mesh). When set, foliage
     -- attaches here only; nothing is placed on the crust mesh or slurry plane.
-    local foliageNode = xmlFile:getString("slurryPipeSystem.crust#foliageNode", nil)
+    local foliageNode = xmlFile:getString(kp .. "slurryPipeSystem.crust#foliageNode", nil)
     -- Keep foliage this many metres clear of the plane edge (and inside the plane
     -- area). 0.1 = 100 mm. Default 0 = sample right up to the edge.
-    local edgeMargin = xmlFile:getFloat("slurryPipeSystem.crust#edgeMargin", 0)
+    local edgeMargin = xmlFile:getFloat(kp .. "slurryPipeSystem.crust#edgeMargin", 0)
 
     -- Read maxRise defensively and log exactly what was found, so a value that
     -- silently falls back to the default can be diagnosed from the log.
-    local hasMaxRise = xmlFile:hasProperty("slurryPipeSystem.crust#maxRise")
-    local rawMaxRise = xmlFile:getString("slurryPipeSystem.crust#maxRise", nil)
-    local maxRise    = xmlFile:getFloat("slurryPipeSystem.crust#maxRise", -1)
+    local hasMaxRise = xmlFile:hasProperty(kp .. "slurryPipeSystem.crust#maxRise")
+    local rawMaxRise = xmlFile:getString(kp .. "slurryPipeSystem.crust#maxRise", nil)
+    local maxRise    = xmlFile:getFloat(kp .. "slurryPipeSystem.crust#maxRise", -1)
     if maxRise < 0 then
         -- getFloat failed/defaulted: try parsing the raw string ourselves, accepting
         -- a comma decimal separator (locale), then fall back to 0.1.

@@ -2,7 +2,7 @@
 
 <i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
   <Asset>
-    <Export program="GIANTS Editor 64bit" version="10.0.11"/>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
   </Asset>
 
   <Files>
@@ -77,29 +77,29 @@
     <TransformGroup name="SPS_cowBarnMedium" nodeId="19">
       <TransformGroup name="pipeCouplers" nodeId="20">
         <TransformGroup name="storage" translation="0 0.09 0" nodeId="21">
-          <TransformGroup name="SPS_pipeCoupler01" translation="13.8412 0.664544 -2.16461" rotation="-15.4523 -90 0" nodeId="22">
-            <TransformGroup name="SPS_pipeCoupler01Arcs" rotation="167.434 1.82134e-05 -180" nodeId="23">
-              <TransformGroup name="SPS_pipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="24"/>
-              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="25"/>
+          <TransformGroup name="SPS_pipeCoupler01" translation="13.8412 0.664544 -2.16461" rotation="0 -90 0" nodeId="22">
+            <TransformGroup name="SPS_pipeCoupler01Arcs" translation="-1.79433e-08 0 0" rotation="-177.114 1.88896e-05 -180" nodeId="42">
+              <TransformGroup name="SPS_pipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="43"/>
+              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="44"/>
             </TransformGroup>
-            <Shape name="slurryPipeConnectors04Coupler" translation="-0.000715931 -0.753745 0.479437" rotation="164.548 -1.87988e-05 180" shapeId="1" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="26" castsShadows="false" receiveShadows="false" materialIds="9,6,8">
-              <Shape name="slurryPipeConnectors04CouplerPipe01" rotation="-0 90 0" shapeId="2" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="27" castsShadows="true" receiveShadows="true" materialIds="9"/>
-              <TransformGroup name="clampHandle" nodeId="28">
-                <Shape name="clampHandle01" translation="0.0150001 0.72639 0.656515" shapeId="3" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="29" castsShadows="false" receiveShadows="false" materialIds="9,5">
-                  <Shape name="clampHandle02" translation="-0.0144154 0.0155911 -0.0473197" shapeId="4" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="30" castsShadows="false" receiveShadows="false" materialIds="9,6">
-                    <Shape name="clampHandle03" translation="-0.00180537 -0.0360379 0.114318" shapeId="5" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="31" castsShadows="false" receiveShadows="false" materialIds="9"/>
+            <Shape name="slurryPipeConnectors04Coupler" translation="-0.000715931 -0.59876 0.662931" rotation="-180 -1.94538e-05 180" shapeId="1" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="45" castsShadows="false" receiveShadows="false" materialIds="9,6,8">
+              <Shape name="slurryPipeConnectors04CouplerPipe01" rotation="-0 90 0" shapeId="2" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="46" castsShadows="true" receiveShadows="true" materialIds="9"/>
+              <TransformGroup name="clampHandle" nodeId="47">
+                <Shape name="clampHandle01" translation="0.0150001 0.72639 0.656515" shapeId="3" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="48" castsShadows="false" receiveShadows="false" materialIds="9,5">
+                  <Shape name="clampHandle02" translation="-0.0144154 0.0155911 -0.0473197" shapeId="4" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="49" castsShadows="false" receiveShadows="false" materialIds="9,6">
+                    <Shape name="clampHandle03" translation="-0.00180537 -0.0360379 0.114318" shapeId="5" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="50" castsShadows="false" receiveShadows="false" materialIds="9"/>
                   </Shape>
                 </Shape>
               </TransformGroup>
-              <TransformGroup name="valveHandle" nodeId="32">
-                <Shape name="valveHandle01" translation="0.00130626 0.883888 0.654811" shapeId="6" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="33" castsShadows="false" receiveShadows="false" materialIds="9,5">
-                  <Shape name="valveHandle02" translation="-6.52357e-06 0.0128576 -0.130984" shapeId="7" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="34" castsShadows="false" receiveShadows="false" materialIds="9"/>
+              <TransformGroup name="valveHandle" nodeId="51">
+                <Shape name="valveHandle01" translation="0.00130626 0.883888 0.654811" shapeId="6" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="52" castsShadows="false" receiveShadows="false" materialIds="9,5">
+                  <Shape name="valveHandle02" translation="-6.52357e-06 0.0128576 -0.130984" shapeId="7" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="53" castsShadows="false" receiveShadows="false" materialIds="9"/>
                 </Shape>
               </TransformGroup>
             </Shape>
-            <Shape name="grate" translation="-0.000715931 -0.753745 0.479438" rotation="90 74.5477 90" shapeId="8" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" density="0.0001" clipDistance="150" nodeId="35" castsShadows="true" receiveShadows="true" materialIds="7"/>
-            <TransformGroup name="inNode" nodeId="37"/>
-            <TransformGroup name="outNode" rotation="0 180 0" nodeId="38"/>
+            <Shape name="grate" translation="-0.000715931 -0.59876 0.662932" rotation="1.81061e-07 90 0" shapeId="8" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" density="0.0001" clipDistance="150" nodeId="54" castsShadows="true" receiveShadows="true" materialIds="7"/>
+            <TransformGroup name="inNode" translation="-1.79433e-08 0 0" rotation="-15.4523 -0 0" nodeId="55"/>
+            <TransformGroup name="outNode" translation="-1.79433e-08 0 0" rotation="-164.548 -4.8279e-06 180" nodeId="56"/>
           </TransformGroup>
         </TransformGroup>
       </TransformGroup>

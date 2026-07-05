@@ -5,6 +5,8 @@
     <texts>
 		<!-- Inputs -->
 		<text name="input_SPS_TOGGLE_PUMP"      		text="SPS-pomp Aan/Uit" />
+		<text name="input_SPS_TOGGLE_AGITATOR"		text="Mixer koppelen/loskoppelen" />
+		<text name="input_SPS_ENGAGE_AGITATOR"		text="Mixer-aftakas Aan/Uit" />
 		<text name="input_SPS_TOGGLE_FLOW"      		text="SPS-stroom Openen/Sluiten" />
 		<text name="input_SPS_TOGGLE_DIRECTION" 		text="SPS-stroomrichting" />
         <text name="input_SPS_TOGGLE_SPREADER"          text="SPS-verdeelklep" />
