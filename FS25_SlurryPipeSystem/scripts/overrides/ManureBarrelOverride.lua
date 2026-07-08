@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.4
+-- Version: 1.0.0.6
 
 -- ManureBarrelOverride.lua
 -- FS25_SlurryPipeSystem
@@ -16,7 +16,7 @@ SlurryPipeSystemOverride = {}
 -- silence them. logBayern checks the flag BEFORE doing any string.format work,
 -- so it is safe to leave call sites in place when logging is off.
 -- ---------------------------------------------------------------------------
-SlurryPipeSystemOverride.DEBUG_BAYERN = false
+SlurryPipeSystemOverride.DEBUG_BAYERN = true
 
 function SlurryPipeSystemOverride.logBayern(fmt, ...)
     if not SlurryPipeSystemOverride.DEBUG_BAYERN then return end
@@ -24,6 +24,44 @@ function SlurryPipeSystemOverride.logBayern(fmt, ...)
         print("[SPS BAYERN] " .. string.format(fmt, ...))
     else
         print("[SPS BAYERN] " .. tostring(fmt))
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS SPRAY] Sprayer-issue diagnostic trace (turn-on gate).
+-- Flip SlurryPipeSystemOverride.SPRAYER_TRACE to true to see, per tick-transition,
+-- what getCanBeTurnedOn returns for a sprayer-config vehicle and the vanilla inputs
+-- that drove it (fill level, cover state, needsToBeFilledToTurnOn). This is the gate
+-- the vanilla turn-off-if-not-allowed loop consults, so it pins a "flashes on/off".
+-- ---------------------------------------------------------------------------
+SlurryPipeSystemOverride.SPRAYER_TRACE = true
+
+function SlurryPipeSystemOverride.sprayTrace(fmt, ...)
+    if not SlurryPipeSystemOverride.SPRAYER_TRACE then return end
+    if select("#", ...) > 0 then
+        print("[SPS SPRAY] " .. string.format(fmt, ...))
+    else
+        print("[SPS SPRAY] " .. tostring(fmt))
+    end
+end
+
+-- Transition-gated turn-on trace for a sprayer-config vehicle: reads the exact
+-- vanilla gate inputs and the resulting decision, printing only when the decision
+-- changes so a steady state does not spam. Called just before the sprayer-config
+-- branch returns superFunc's value.
+function SlurryPipeSystemOverride._sprayTurnOnTrace(self, result)
+    if not SlurryPipeSystemOverride.SPRAYER_TRACE then return end
+    local sp = self.spec_sprayer
+    local fui = (sp ~= nil and self.getSprayerFillUnitIndex ~= nil) and self:getSprayerFillUnitIndex() or nil
+    local lvl = (fui ~= nil and self.getFillUnitFillLevel ~= nil) and self:getFillUnitFillLevel(fui) or nil
+    local cov = self.spec_cover ~= nil and self.spec_cover.state or "no-cover"
+    if self._spsTurnOnTraceLast ~= result then
+        self._spsTurnOnTraceLast = result
+        SlurryPipeSystemOverride.sprayTrace(
+            "getCanBeTurnedOn[%s] -> %s | allowsSpraying=%s sprayerFUI=%s fillLevel=%s needsFill=%s cover=%s",
+            tostring(self.configFileName), tostring(result),
+            tostring(sp ~= nil and sp.allowsSpraying), tostring(fui), tostring(lvl),
+            tostring(sp ~= nil and sp.needsToBeFilledToTurnOn), tostring(cov))
     end
 end
 
@@ -657,7 +695,9 @@ function SlurryPipeSystemOverride.getCanBeTurnedOn(self, superFunc)
         -- a separate control flow (SPSSprayerPumpControl); never intercept their
         -- vanilla turn-on/B-key chain.
         if g_slurryPipeManager:findSprayerVehicleConfigForVehicle(self) ~= nil then
-            return superFunc(self)
+            local res = superFunc(self)
+            SlurryPipeSystemOverride._sprayTurnOnTrace(self, res)
+            return res
         end
         if self.getAttacherVehicle ~= nil then
             local att = self:getAttacherVehicle()

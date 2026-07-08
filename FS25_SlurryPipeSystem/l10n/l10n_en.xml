@@ -118,6 +118,8 @@
 		<text name="action_sprayerFlowOn"				text="Flow: RUNNING" />
 		<text name="action_sprayerDirLoad"				text="Direction: LOAD" />
 		<text name="action_sprayerDirUnload"			text="Direction: UNLOAD" />
+		<text name="sps_warningCloseCoverBeforeTurnOn" 	text="Close the cover before turning on"/>
+		
 		<!-- SPS spreader HUD -->
 		<text name="sps_hudTitle"            			text="Spreader" />
 		<text name="sps_hudSlurry"           			text="Slurry" />
@@ -171,5 +173,9 @@
 		<text name="action_spsAgitatorPtoOn"  			text="Engage PTO"/>
 		<text name="action_spsAgitatorPtoOff" 			text="Disengage PTO"/>
 		
+		<!-- IBCs -->
+		<text name="sps_settingsIbcPersist" 			text="IBC Persists When Empty"/>
+		<text name="sps_settingsIbcPersistTooltip" 		text="Yes: emptied IBCs stay on the map (return to store or refill them). No: they disappear when emptied (default)."/>
+		<text name="action_spsAddIbc" 					text="Hold: add IBC" />
 	</texts>
 </l10n>

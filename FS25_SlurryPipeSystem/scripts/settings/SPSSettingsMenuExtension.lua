@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.4
+-- Version: 1.0.0.6
 
 -- SPSSettingsMenuExtension.lua
 -- FS25_SlurryPipeSystem
@@ -93,6 +93,16 @@ function SPSSettingsMenuExtension:onFrameOpen()
         g_i18n:getText("sps_settingsShearBoltTooltip")
     )
 
+    -- IBC (liquid tank) persistence. Yes = an emptied IBC stays on the map (return
+    -- to store or refill it); No = it disappears when emptied (vanilla).
+    self.sps_ibcPersistElement = SPSSettingsMenuExtension:_addMultiTextOption(
+        self,
+        "onSPSIbcPersistChanged",
+        onOff,
+        g_i18n:getText("sps_settingsIbcPersist"),
+        g_i18n:getText("sps_settingsIbcPersistTooltip")
+    )
+
     -- Spreader HUD section
     local hudHeader = TextElement.new()
     hudHeader.name = "sectionHeader"
@@ -182,6 +192,10 @@ function SPSSettingsMenuExtension:_updateState(page)
         page.sps_shearBoltElement:setState((mgr.shearBoltEnabled ~= false) and 2 or 1, false)
     end
 
+    if page.sps_ibcPersistElement ~= nil then
+        page.sps_ibcPersistElement:setState((mgr.ibcPersistWhenEmpty == true) and 2 or 1, false)
+    end
+
     local hs = mgr.hudSettings or {}
     local hudOn = hs.enabled ~= false
     if page.sps_hudEnabledElement ~= nil then page.sps_hudEnabledElement:setState(hudOn and 2 or 1, false) end
@@ -236,6 +250,12 @@ end
 function SPSSettingsMenuExtension:onSPSShearBoltChanged(state)
     if g_slurryPipeManager == nil then return end
     g_slurryPipeManager.shearBoltEnabled = (state == 2)
+end
+
+function SPSSettingsMenuExtension:onSPSIbcPersistChanged(state)
+    if g_slurryPipeManager == nil then return end
+    g_slurryPipeManager.ibcPersistWhenEmpty = (state == 2)
+    g_slurryPipeManager:applyIbcPersistSetting()
 end
 
 function SPSSettingsMenuExtension:onSPSHudEnabledChanged(state)

@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.4
+-- Version: 1.0.0.6
 
 -- SPSEvents.lua
 -- FS25_SlurryPipeSystem
@@ -467,6 +467,19 @@ function SPSSelfPumpStateEvent:run(connection)
             local state = g_slurryPipeManager:getVehicleState(self.vehicle)
             if state ~= nil then
                 state.pumpRunning = self.pumpRunning
+                -- [SPS MP] When the SERVER applies a CLIENT's spreader-pump request it
+                -- must also drive the vanilla turned-on state (PTO engage / engine load).
+                -- togglePump only calls setIsTurnedOn on the initiating peer, so a guest
+                -- toggle would otherwise set the SPS flag without ever engaging the PTO.
+                -- Server-only; vanilla TurnOnVehicle then streams turnedOn to every
+                -- client. Non-spreader pumps use vanilla TurnOnVehicleEvent directly and
+                -- need nothing here. run() only executes on the server for client-sent
+                -- events, so this never double-fires a server-originated toggle.
+                if g_server ~= nil and self.vehicle.setIsTurnedOn ~= nil
+                and g_slurryPipeManager.vehicleHasSpreader ~= nil
+                and g_slurryPipeManager:vehicleHasSpreader(self.vehicle) then
+                    self.vehicle:setIsTurnedOn(self.pumpRunning == true)
+                end
                 g_slurryPipeManager:updateActionEventTexts(self.vehicle)
             end
         end
@@ -1032,6 +1045,121 @@ function SPSChainConnectEvent.sendEvent(anchorObject, isPlaceable, vehicleCoupli
         return
     end
     spsSendEventToServer(ev)
+end
+
+
+-- ===========================================================================
+-- SPSDockingStationEvent
+-- ---------------------------------------------------------------------------
+-- Syncs a LIVE docking-station add/remove on a chain. Chains are addressed by
+-- netId (same scheme as SPSChainConnectEvent). Chain add/removeDockingStation
+-- are deterministic from the chain's own already-synced nodes and idempotent, so
+-- each peer reproduces the DS identically — including its rubberBootPort, so the
+-- DS is usable on every peer. Without this, a host-added DS never reached the
+-- guest (and vice-versa); only the JIP/savegame path carried hasDockingStation.
+-- ===========================================================================
+SPSDockingStationEvent = {}
+local SPSDockingStationEvent_mt = Class(SPSDockingStationEvent, Event)
+InitEventClass(SPSDockingStationEvent, "SPSDockingStationEvent")
+
+function SPSDockingStationEvent.emptyNew()
+    local self = Event.new(SPSDockingStationEvent_mt)
+    return self
+end
+
+function SPSDockingStationEvent.new(chainNetId, isAdd)
+    local self = SPSDockingStationEvent.emptyNew()
+    self.chainNetId = chainNetId or 0
+    self.isAdd      = isAdd == true
+    return self
+end
+
+function SPSDockingStationEvent:writeStream(streamId, connection)
+    streamWriteUIntN(streamId, self.chainNetId, 12)
+    streamWriteBool(streamId, self.isAdd)
+end
+
+function SPSDockingStationEvent:readStream(streamId, connection)
+    self.chainNetId = streamReadUIntN(streamId, 12)
+    self.isAdd      = streamReadBool(streamId)
+    self:run(connection)
+end
+
+function SPSDockingStationEvent:run(connection)
+    print(string.format("[SPS MP] DockingStationEvent.run RECV netId=%s isAdd=%s fromServer=%s",
+        tostring(self.chainNetId), tostring(self.isAdd), tostring(connection:getIsServer())))
+    -- Server relays a client's change to the other clients (the sender applied
+    -- optimistically, so it is excluded from the rebroadcast).
+    if not connection:getIsServer() then
+        if g_server ~= nil then
+            g_server:broadcastEvent(self, false, connection, nil)
+        end
+    end
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.applyDockingStationState ~= nil then
+        g_slurryPipeManager:applyDockingStationState(self.chainNetId, self.isAdd)
+    end
+end
+
+function SPSDockingStationEvent.sendEvent(chainNetId, isAdd)
+    local ev = SPSDockingStationEvent.new(chainNetId, isAdd)
+    if g_server ~= nil then
+        g_server:broadcastEvent(ev, nil, nil, nil)
+        return
+    end
+    spsSendEventToServer(ev)
+end
+
+
+-- ===========================================================================
+-- SPSStoreCrustEvent
+-- ---------------------------------------------------------------------------
+-- Server -> clients. Replicates a slurry store's two authoritative pool values
+-- (solids = litres dry matter, settle = 0..1 crust). Store aging, mixing and fill
+-- are all server-authoritative, so this is one-directional — a client never
+-- originates a crust change. On the client applyStoreCrustState raises the crust
+-- plane (settle * maxRise) and refreshes the crust foliage + thickness/crust HUD;
+-- the store, crust plane and foliage all already exist on the client (registration
+-- is symmetric), only the values were missing.
+-- ===========================================================================
+SPSStoreCrustEvent = {}
+local SPSStoreCrustEvent_mt = Class(SPSStoreCrustEvent, Event)
+InitEventClass(SPSStoreCrustEvent, "SPSStoreCrustEvent")
+
+function SPSStoreCrustEvent.emptyNew()
+    local self = Event.new(SPSStoreCrustEvent_mt)
+    return self
+end
+
+function SPSStoreCrustEvent.new(placeable, solids, settle)
+    local self = SPSStoreCrustEvent.emptyNew()
+    self.placeable = placeable
+    self.solids    = solids or 0
+    self.settle    = settle or 0
+    return self
+end
+
+function SPSStoreCrustEvent:writeStream(streamId, connection)
+    NetworkUtil.writeNodeObject(streamId, self.placeable)
+    streamWriteFloat32(streamId, self.solids)
+    streamWriteFloat32(streamId, self.settle)
+end
+
+function SPSStoreCrustEvent:readStream(streamId, connection)
+    self.placeable = NetworkUtil.readNodeObject(streamId)
+    self.solids    = streamReadFloat32(streamId)
+    self.settle    = streamReadFloat32(streamId)
+    self:run(connection)
+end
+
+function SPSStoreCrustEvent:run(connection)
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.applyStoreCrustState ~= nil then
+        g_slurryPipeManager:applyStoreCrustState(self.placeable, self.solids, self.settle)
+    end
+end
+
+function SPSStoreCrustEvent.sendEvent(placeable, solids, settle)
+    if g_server == nil then return end
+    g_server:broadcastEvent(SPSStoreCrustEvent.new(placeable, solids, settle), nil, nil, placeable)
 end
 
 

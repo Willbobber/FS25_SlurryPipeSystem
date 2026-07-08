@@ -118,6 +118,8 @@
 		<text name="action_sprayerFlowOn"				text="Fluss: LÄUFT" />
 		<text name="action_sprayerDirLoad"				text="Richtung: LADEN" />
 		<text name="action_sprayerDirUnload"			text="Richtung: ENTLADEN" />
+		<text name="sps_warningCloseCoverBeforeTurnOn" 	text="Schließen Sie die Abdeckung, bevor Sie das Gerät einschalten"/>
+		
 		<!-- SPS spreader HUD -->
 		<text name="sps_hudTitle"            			text="Streuer" />
 		<text name="sps_hudSlurry"           			text="Gülle" />
@@ -171,5 +173,9 @@
 		<text name="action_spsAgitatorPtoOn"  			text="Engage PTO"/>
 		<text name="action_spsAgitatorPtoOff" 			text="Disengage PTO"/>
 		
+		<!-- IBCs -->
+		<text name="sps_settingsIbcPersist" 			text="IBC bleibt im leeren Zustand formstabil."/>
+		<text name="sps_settingsIbcPersistTooltip" 		text="Ja: Entleerte IBCs bleiben auf der Karte (zurück zum Händler bringen oder neu befüllen). Nein: Sie verschwinden, sobald sie leer sind (Standardeinstellung)."/>
+		<text name="action_spsAddIbc" 					text="Halten: IBC hinzufügen" />
 	</texts>
 </l10n>

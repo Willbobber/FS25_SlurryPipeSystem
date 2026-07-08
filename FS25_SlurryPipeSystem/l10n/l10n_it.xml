@@ -118,6 +118,8 @@
 		<text name="action_sprayerFlowOn"				text="Flusso: ATTIVO" />
 		<text name="action_sprayerDirLoad"				text="Direzione: CARICO" />
 		<text name="action_sprayerDirUnload"			text="Direzione: SCARICO" />
+		<text name="sps_warningCloseCoverBeforeTurnOn" 	text="Chiudere il coperchio prima dell'accensione"/>
+		
 		<!-- SPS spreader HUD -->
 		<text name="sps_hudTitle"            			text="Spandiletame" />
 		<text name="sps_hudSlurry"           			text="Liquame" />
@@ -171,5 +173,9 @@
 		<text name="action_spsAgitatorPtoOn"  			text="Engage PTO"/>
 		<text name="action_spsAgitatorPtoOff" 			text="Disengage PTO"/>
 		
+		<!-- IBCs -->
+		<text name="sps_settingsIbcPersist" 			text="L'IBC rimane in posizione anche quando è vuoto."/>
+		<text name="sps_settingsIbcPersistTooltip" 		text="Sì: gli IBC svuotati rimangono sulla mappa (riportali al negozio o riempili). No: scompaiono una volta svuotati (impostazione predefinita)."/>
+		<text name="action_spsAddIbc" 					text="Hold: aggiungere IBC" />
 	</texts>
 </l10n>

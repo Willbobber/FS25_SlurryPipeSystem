@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.4
+-- Version: 1.0.0.6
 
 -- SPSSprayerPumpControl.lua
 -- Outside control node activatable for sprayer vehicles.
@@ -14,7 +14,7 @@ SPSSprayerPumpControl = {}
 SPSSprayerPumpControl.__index = SPSSprayerPumpControl
 
 -- [SPS] Per-file debug toggle. Set true to enable [SPS SPR CTRL] trace logging.
-local DEBUG = false
+local DEBUG = true
 local function log(fmt, ...)
     if not DEBUG then return end
     if select("#", ...) > 0 then
@@ -24,6 +24,16 @@ local function log(fmt, ...)
     end
 end
 
+-- [SPS] Read the vehicle's current cover state for trace lines (or "no-cover").
+local function coverStateOf(obj)
+    if obj ~= nil and obj.spec_cover ~= nil then
+        return tostring(obj.spec_cover.state)
+    end
+    return "no-cover"
+end
+
+SPSSprayerPumpControl.HOLD_THRESHOLD = 0.8  -- seconds to register a hold (mirrors SPSChainActivatable)
+
 function SPSSprayerPumpControl.new(object, node, radius)
     local self      = setmetatable({}, SPSSprayerPumpControl)
     self.object     = object
@@ -31,6 +41,9 @@ function SPSSprayerPumpControl.new(object, node, radius)
     self.radius     = radius or 1.5
     self.activateText = ""
     self._eventIds  = {}
+    self._holdTime  = 0
+    self._isHolding = false
+    self._longFired = false
     return self
 end
 
@@ -98,7 +111,9 @@ function SPSSprayerPumpControl:getIsActivatable()
         log("getIsActivatable: overlap=%s dist=%.2f radius=%.2f couplingId=%s",
             tostring(overlap ~= nil), dist, self.radius, tostring(coupling.id))
     end
-    return overlap ~= nil
+    -- Active whether the arc overlaps (short press = connect) or is empty
+    -- (hold = add IBC). Player is at the coupler with an unconnected coupling.
+    return true
 end
 
 function SPSSprayerPumpControl:getDistance(posX, posY, posZ)
@@ -134,18 +149,33 @@ function SPSSprayerPumpControl:update(dt)
         end
     end
 
-    -- ACTIVATE_OBJECT (R): connect when ready, disconnect when connected
+    -- ACTIVATE_OBJECT (R): tap = connect/disconnect, hold = add IBC (arc empty)
     if self._eventIds.activate ~= nil then
-        local canConnect = not connected
-            and (not hasLoadAnim or animPlayed)
-            and g_slurryPipeManager:findOverlappingSprayerCoupler(coupling) ~= nil
-        local visible = canConnect or connected
+        local coverOk    = (not hasLoadAnim) or animPlayed
+        local overlap    = (not connected) and g_slurryPipeManager:findOverlappingSprayerCoupler(coupling) or nil
+        local canConnect = not connected and coverOk and overlap ~= nil
+        local canAddIbc  = not connected and coverOk and overlap == nil
+        local visible = connected or canConnect or canAddIbc
         g_inputBinding:setActionEventTextVisibility(self._eventIds.activate, visible)
         if visible then
-            local txt = connected
-                and g_i18n:getText("action_spsDisconnectPipe")
-                or  g_i18n:getText("action_spsConnectPipe")
+            local txt
+            if connected then
+                txt = g_i18n:getText("action_spsDisconnectPipe")
+            elseif canConnect then
+                txt = g_i18n:getText("action_spsConnectPipe")
+            else
+                txt = g_i18n:getText("action_spsAddIbc")
+            end
             g_inputBinding:setActionEventText(self._eventIds.activate, txt)
+        end
+    end
+
+    -- Long-press (hold R) fires _onLongHold once per hold.
+    if self._isHolding and not self._longFired then
+        self._holdTime = self._holdTime + dt * 0.001
+        if self._holdTime >= SPSSprayerPumpControl.HOLD_THRESHOLD then
+            self._longFired = true
+            self:_onLongHold()
         end
     end
 
@@ -183,6 +213,9 @@ end
 
 function SPSSprayerPumpControl:registerCustomInput(inputContext)
     self._eventIds = {}
+    self._holdTime  = 0
+    self._isHolding = false
+    self._longFired = false
 
     -- X — open / close cover animation
     local _, animId = g_inputBinding:registerActionEvent(
@@ -199,13 +232,10 @@ function SPSSprayerPumpControl:registerCustomInput(inputContext)
         self._eventIds.anim = animId
     end
 
-    -- R — connect / disconnect pipe
+    -- R — tap: connect / disconnect pipe ; hold: add empty IBC (arc empty)
     local _, actId = g_inputBinding:registerActionEvent(
-        InputAction.ACTIVATE_OBJECT, self,
-        function(target, actionName, inputValue, callbackState, isAnalog)
-            if inputValue > 0 then target:_onActivate() end
-        end,
-        false, true, false, true, nil, true, false
+        InputAction.ACTIVATE_OBJECT, self, self._onActivateInput,
+        true, true, false, true, nil, true, false
     )
     if actId ~= nil then
         g_inputBinding:setActionEventText(actId, g_i18n:getText("action_spsConnectPipe"))
@@ -274,12 +304,41 @@ function SPSSprayerPumpControl:_onAnimToggle()
     end
 end
 
+function SPSSprayerPumpControl:_onActivateInput(actionName, inputValue, callbackState, isAnalog)
+    if inputValue > 0 then
+        self._isHolding = true
+        self._holdTime  = 0
+        self._longFired = false
+    else
+        if self._isHolding and not self._longFired then self:_onActivate() end
+        self._isHolding = false
+        self._holdTime  = 0
+        self._longFired = false
+    end
+end
+
+-- Hold R at an EMPTY coupler arc: spawn a fresh empty IBC on the pipe end and
+-- connect. Mirrors the slurry chain's "hold R adds docking station". When two
+-- arcs cross, a short press connects instead — no spawn (guarded below).
+function SPSSprayerPumpControl:_onLongHold()
+    local coupling = self:_getCoupling()
+    if coupling == nil or coupling.isConnected then return end
+    if g_slurryPipeManager == nil then return end
+    if g_slurryPipeManager:findOverlappingSprayerCoupler(coupling) ~= nil then return end
+    if coupling.loadAnimationName ~= nil and not coupling.loadAnimPlayed then
+        log("_onLongHold: cover not open, add IBC blocked")
+        return
+    end
+    log("_onLongHold: spawn + connect empty IBC (coupling id=%s)", tostring(coupling.id))
+    g_slurryPipeManager:spawnAndConnectIBC(self.object, coupling)
+end
+
 function SPSSprayerPumpControl:_onActivate()
     local coupling = self:_getCoupling()
     if coupling == nil then log("_onActivate: no coupling"); return end
 
     if coupling.isConnected then
-        log("_onActivate: disconnect id=%s", tostring(coupling.id))
+        log("_onActivate: disconnect id=%s cover=%s", tostring(coupling.id), coverStateOf(self.object))
         if g_slurryPipeManager ~= nil then
             g_slurryPipeManager:onSprayerCouplerDisconnect(self.object, coupling)
         end
@@ -289,7 +348,7 @@ function SPSSprayerPumpControl:_onActivate()
             log("_onActivate: cover not open, connect blocked")
             return
         end
-        log("_onActivate: connect id=%s", tostring(coupling.id))
+        log("_onActivate: connect id=%s cover=%s", tostring(coupling.id), coverStateOf(self.object))
         if g_slurryPipeManager ~= nil then
             g_slurryPipeManager:onSprayerCouplerConnect(self.object, coupling)
         end
@@ -297,16 +356,25 @@ function SPSSprayerPumpControl:_onActivate()
 end
 
 function SPSSprayerPumpControl:_onFlow()
-    log("_onFlow: toggle valve")
+    log("_onFlow: toggle valve cover=%s", coverStateOf(self.object))
     if g_slurryPipeManager ~= nil then
         g_slurryPipeManager:onSprayerToggleValve(self.object)
+        local st = g_slurryPipeManager:getSprayerObjectState(self.object)
+        if st ~= nil then
+            log("_onFlow: after -> pumpRunning=%s valveOpen=%s direction=%s",
+                tostring(st.pumpRunning), tostring(st.valveOpen), tostring(st.direction))
+        end
     end
 end
 
 function SPSSprayerPumpControl:_onDirection()
-    log("_onDirection: toggle direction")
+    log("_onDirection: toggle direction cover=%s", coverStateOf(self.object))
     if g_slurryPipeManager ~= nil then
         g_slurryPipeManager:onSprayerToggleDirection(self.object)
+        local st = g_slurryPipeManager:getSprayerObjectState(self.object)
+        if st ~= nil then
+            log("_onDirection: after -> direction=%s (0=FILL 1=DISCHARGE)", tostring(st.direction))
+        end
     end
 end
 

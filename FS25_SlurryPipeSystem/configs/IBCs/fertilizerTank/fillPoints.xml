@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+================================================================================
+  FS25_SlurryPipeSystem — IBC liquid tank (fertilizer) sprayer SOURCE config
+================================================================================
+  Matched via <sprayerSourceVehicleConfigs> in spsConfigManifest.xml against the
+  basegame configs:
+      data/objects/pallets/liquidTank/fertilizerTank.xml
+      data/objects/pallets/liquidTank/fertilizerTankHelm.xml
+
+  The coupler geometry (SPS_sprayerPipeCoupler01 -> sprayerConnector -> inNode /
+  outNode) is provided by the SPS liquidTank.i3d supplied through the init.lua
+  i3d redirect; this file only tells SPS how to read those nodes.
+
+  #fillUnitIndex  the tank fill unit the sprayer draws from / unloads into (1).
+  Per coupler:
+    #mountNodeName  coupler root node in the tank i3d.
+    #flowDirection  BOTH  (source can fill a sprayer AND receive an unload).
+    #maxPipeLength  max strap-pipe reach from this coupler (metres).
+    #fillType       optional — restrict this coupler to one fill type. Omitted so
+                    the tank's own fill unit governs accepted types.
+================================================================================
+-->
+<sprayerPipeSystem fillUnitIndex="1">
+    <sprayerPipeCouplings>
+        <sprayerPipeCoupling id="1"
+            mountNodeName="SPS_sprayerPipeCoupler01"
+            flowDirection="BOTH"
+            maxPipeLength="7.5"/>
+    </sprayerPipeCouplings>
+</sprayerPipeSystem>

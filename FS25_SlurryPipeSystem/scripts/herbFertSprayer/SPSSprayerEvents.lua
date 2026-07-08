@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.4
+-- Version: 1.0.0.6
 
 -- SPSSprayerEvents.lua
 -- FS25_SlurryPipeSystem
@@ -259,6 +259,65 @@ function SPSSprayerConnectEvent.sendEvent(object, couplingId, targetObject, targ
             SPSSprayerConnectEvent.new(object, couplingId, targetObject, targetCouplingId)
         )
     end
+end
+
+-- ---------------------------------------------------------------------------
+-- SPSIbcSpawnRequestEvent
+-- Client -> server request to spawn + connect an IBC by holding R at an empty
+-- sprayer coupler. Spawning uses VehicleLoadingData, which is server-authoritative
+-- (the pallet then replicates to all peers automatically) and the connect is
+-- broadcast via SPSSprayerConnectEvent — so only the REQUEST needs wiring. The
+-- server resolves the coupling by id and runs the normal server spawn path.
+-- ---------------------------------------------------------------------------
+SPSIbcSpawnRequestEvent = {}
+SPSIbcSpawnRequestEvent_mt = Class(SPSIbcSpawnRequestEvent, Event)
+InitEventClass(SPSIbcSpawnRequestEvent, "SPSIbcSpawnRequestEvent")
+
+function SPSIbcSpawnRequestEvent.emptyNew()
+    local self = Event.new(SPSIbcSpawnRequestEvent_mt)
+    return self
+end
+
+function SPSIbcSpawnRequestEvent.new(object, couplingId)
+    local self = SPSIbcSpawnRequestEvent.emptyNew()
+    self.object     = object
+    self.couplingId = couplingId
+    return self
+end
+
+function SPSIbcSpawnRequestEvent:readStream(streamId, connection)
+    self.object     = NetworkUtil.readNodeObject(streamId)
+    self.couplingId = streamReadUIntN(streamId, 8)
+    self:run(connection)
+end
+
+function SPSIbcSpawnRequestEvent:writeStream(streamId, connection)
+    NetworkUtil.writeNodeObject(streamId, self.object)
+    streamWriteUIntN(streamId, self.couplingId, 8)
+end
+
+function SPSIbcSpawnRequestEvent:run(connection)
+    -- Runs on the server (a client sent it). Only the server spawns.
+    log("IbcSpawnRequest:run RECV couplingId=%s objectResolved=%s isServer=%s",
+        tostring(self.couplingId), tostring(self.object ~= nil), tostring(g_server ~= nil))
+    if g_server == nil or g_slurryPipeManager == nil then return end
+    local coupling = g_slurryPipeManager:_findSprayerCouplingById(self.object, self.couplingId, false)
+    if coupling == nil then
+        coupling = g_slurryPipeManager:_findSprayerCouplingById(self.object, self.couplingId, true)
+    end
+    if coupling == nil then
+        log("IbcSpawnRequest:run coupling id=%s not found on server", tostring(self.couplingId))
+        return
+    end
+    g_slurryPipeManager:spawnAndConnectIBC(self.object, coupling)
+end
+
+function SPSIbcSpawnRequestEvent.sendEvent(object, couplingId)
+    if g_server ~= nil then
+        -- Already the server: caller invokes spawnAndConnectIBC directly, no request.
+        return
+    end
+    g_client:getServerConnection():sendEvent(SPSIbcSpawnRequestEvent.new(object, couplingId))
 end
 
 -- ---------------------------------------------------------------------------

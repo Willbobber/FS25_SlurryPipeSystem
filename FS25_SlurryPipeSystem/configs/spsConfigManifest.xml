@@ -39,7 +39,6 @@
 
     <vehicleConfigs>
         <!-- Stock vehicles -->
-		<vehicle path="data/vehicles/amazone/ux5201Super/ux5201Super.xml"/>
 		<vehicle path="data/vehicles/bomech/multi4XL/multi4XL.xml"/>
 		<vehicle path="data/vehicles/bomech/multiProfi/multiProfi.xml"/>
 		<vehicle path="data/vehicles/bomech/tracPack/tracPack.xml"/>
@@ -157,4 +156,23 @@
 		<placeable path="FS25_Witcombe/map/placeables/liquidFert/small/liquidFertSmall.xml"
                    configFolder="mods/FS25_Witcombe/map/placeables/liquidFert/small"/>
 	</sprayerPlaceableConfigs>
+
+	<!--
+	  Sprayer SOURCE vehicles: pallet-type IBC liquid tanks a sprayer draws from
+	  via pipe. Geometry (couplers) is supplied by the init.lua i3d redirect; this
+	  section only points SPS at the bundled fillPoints.xml. Both fertilizer configs
+	  share one config folder (identical geometry).
+	-->
+	<sprayerSourceVehicleConfigs>
+		<!-- Basegame IBC liquid tanks. Fertilizer and herbicide share the same
+		     coupler geometry, so all point at the one IBCs/fertilizerTank fillPoints. -->
+		<vehicle path="data/objects/pallets/liquidTank/fertilizerTank.xml"
+				 configFolder="IBCs/fertilizerTank"/>
+		<vehicle path="data/objects/pallets/liquidTank/fertilizerTankHelm.xml"
+				 configFolder="IBCs/fertilizerTank"/>
+		<vehicle path="data/objects/pallets/liquidTank/herbicideTank.xml"
+				 configFolder="IBCs/fertilizerTank"/>
+		<vehicle path="data/objects/pallets/liquidTank/herbicideTankHelm.xml"
+				 configFolder="IBCs/fertilizerTank"/>
+	</sprayerSourceVehicleConfigs>
 </spsConfigManifest>

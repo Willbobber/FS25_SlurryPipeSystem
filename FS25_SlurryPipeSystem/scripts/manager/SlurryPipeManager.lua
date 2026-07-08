@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.4
+-- Version: 1.0.0.6
 
 -- SlurryPipeManager.lua
 -- FS25_SlurryPipeSystem
@@ -43,7 +43,7 @@ local SlurryPipeManager_mt = Class(SlurryPipeManager)
 -- state change so the loop body is skipped entirely when logging is off and never
 -- spams a line every frame when it is on.
 -- ---------------------------------------------------------------------------
-SlurryPipeManager.DEBUG = false
+SlurryPipeManager.DEBUG = true
 
 function SlurryPipeManager.log(fmt, ...)
     if not SlurryPipeManager.DEBUG then return end
@@ -51,6 +51,23 @@ function SlurryPipeManager.log(fmt, ...)
         print("[SPS PM] " .. string.format(fmt, ...))
     else
         print("[SPS PM] " .. tostring(fmt))
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS SPRAY] Sprayer-issue diagnostic trace.
+-- Independent of SlurryPipeManager.DEBUG so the sprayer fill/turn-on path can be
+-- traced without the frame-spammy PM log. Flip to true to enable; leave false in
+-- normal play. sprayTrace checks the flag BEFORE any string.format work.
+-- ---------------------------------------------------------------------------
+SlurryPipeManager.SPRAYER_TRACE = true
+
+function SlurryPipeManager.sprayTrace(fmt, ...)
+    if not SlurryPipeManager.SPRAYER_TRACE then return end
+    if select("#", ...) > 0 then
+        print("[SPS SPRAY] " .. string.format(fmt, ...))
+    else
+        print("[SPS SPRAY] " .. tostring(fmt))
     end
 end
 
@@ -128,6 +145,19 @@ function SlurryPipeManager.new()
     -- by _tryResolveMPPending() via tryResolvePendingConnections() as vehicles register.
     self._pendingMPConnections      = {}
     self._pendingMPValves           = {}
+    -- [SPS MP] Join-dump chain-terminus bonds (SPSChainConnectEvent) that arrived
+    -- before the tanker coupler or the chain was registered on this client. Unlike
+    -- direct connects, applyChainConnect used to drop these silently, so a joiner saw
+    -- the chain geometry but no end bez / valve. Drained by _tryResolveMPPending too.
+    self._pendingMPChainBonds       = {}
+    -- [SPS MP] Join-dump store crust values whose store placeable had not registered
+    -- yet on this client. Drained by _tryResolveMPPending as placeables register.
+    self._pendingMPStoreCrust       = {}
+    -- [SPS MP] Sprayer pipe connects (SPSSprayerConnectEvent) that arrived before the
+    -- sprayer/IBC was registered on this client. A freshly-spawned IBC pallet loads
+    -- async, so the spawn's connect broadcast almost always beats it — without a retry
+    -- the IBC shows but the pipe never draws. Drained when a sprayer (source) registers.
+    self._pendingSprayerConnects    = {}
     self._mpResolving               = false
     self.pipeColors                 = {}   -- {name, r, g, b} loaded from spsColors.xml
     self.currentPipeColorIndex      = 1
@@ -139,6 +169,9 @@ function SlurryPipeManager.new()
     -- here — they ride the master directly. Always gate features via
     -- isFeatureEnabled() rather than reading these fields directly.
     self.realismEnabled             = true
+    -- IBC (liquid tank) persistence. false = empty IBCs self-delete (vanilla);
+    -- true = they stay on the map. Server-authoritative (deletion is server-side).
+    self.ibcPersistWhenEmpty        = false
     self.featureToggles = {
         thicknessFlow = true,   -- thick slurry slows fill / discharge / spread
         blockages     = true,   -- spread blockage system (Pass 2)
@@ -160,6 +193,7 @@ function SlurryPipeManager.new()
     self._nextSprayerPipeId           = 1
     self.sprayerVehicleConfigMap      = {}
     self.sprayerPlaceableConfigMap    = {}
+    self.sprayerSourceVehicleConfigMap = {}  -- IBC liquid tanks (passive sprayer sources)
     self._sprayerDistCheckTick        = 0
     self._pendingSprayerAnimations    = {}  -- saved animation states waiting to be applied
     SlurryDebug.log("SlurryPipeManager created")
@@ -2618,6 +2652,7 @@ function SlurryPipeManager:saveCouplingConnections(savePath)
 
     xmlFile:setInt("slurryPipeSystem#selectedColorIndex", self.currentPipeColorIndex)
     xmlFile:setBool("slurryPipeSystem#realismEnabled", self.realismEnabled)
+    xmlFile:setBool("slurryPipeSystem#ibcPersistWhenEmpty", self.ibcPersistWhenEmpty == true)
     xmlFile:setBool("slurryPipeSystem#featureThicknessFlow", self.featureToggles.thicknessFlow ~= false)
     xmlFile:setBool("slurryPipeSystem#featureBlockages",     self.featureToggles.blockages     ~= false)
     xmlFile:setBool("slurryPipeSystem#featureLengthFalloff", self.featureToggles.lengthFalloff ~= false)
@@ -2847,6 +2882,8 @@ function SlurryPipeManager:loadCouplingConnections(savePath)
     -- the single master, so fall back to it for the master's default.
     local legacyMaster = xmlFile:getBool("slurryPipeSystem#agitationEnabled", true)
     self.realismEnabled = xmlFile:getBool("slurryPipeSystem#realismEnabled", legacyMaster)
+    self.ibcPersistWhenEmpty = xmlFile:getBool("slurryPipeSystem#ibcPersistWhenEmpty", false)
+    self:applyIbcPersistSetting()
     self.featureToggles = self.featureToggles or {}
     self.featureToggles.thicknessFlow = xmlFile:getBool("slurryPipeSystem#featureThicknessFlow", true)
     self.featureToggles.blockages     = xmlFile:getBool("slurryPipeSystem#featureBlockages",     true)
@@ -3025,7 +3062,10 @@ end
 function SlurryPipeManager:_tryResolveMPPending()
     if self._pendingMPConnections == nil then self._pendingMPConnections = {} end
     if self._pendingMPValves == nil then self._pendingMPValves = {} end
-    if #self._pendingMPConnections == 0 and #self._pendingMPValves == 0 then return end
+    if self._pendingMPChainBonds == nil then self._pendingMPChainBonds = {} end
+    if self._pendingMPStoreCrust == nil then self._pendingMPStoreCrust = {} end
+    if #self._pendingMPConnections == 0 and #self._pendingMPValves == 0
+    and #self._pendingMPChainBonds == 0 and #self._pendingMPStoreCrust == 0 then return end
 
     self._mpResolving = true
 
@@ -3052,6 +3092,38 @@ function SlurryPipeManager:_tryResolveMPPending()
         end
     end
     self._pendingMPConnections = keptC
+
+    -- Chain-terminus bonds next: the tanker coupler and/or chain may have just
+    -- registered. Resolve the same way applyChainConnect does, so the end bez is
+    -- created. Done before valves so a valve on the chain terminus sees the bond.
+    local keptCB = {}
+    for _, e in ipairs(self._pendingMPChainBonds) do
+        local vc = self:_findCouplingById(e.anchorObject, e.vehicleCouplingId, e.isPlaceable == true)
+        local ch = self._chainsByNetId[e.chainNetId]
+        local term = (ch ~= nil) and self:_resolveChainTerminus(ch, e.terminusSegIndex) or nil
+        if vc ~= nil and ch ~= nil and term ~= nil then
+            if not vc.isConnected and not term.isConnected then
+                local owner = (not e.isPlaceable) and e.anchorObject or vc.placeable
+                self:applyConnectCouplings(vc, term, owner, nil)
+            end
+            print(string.format("[SPS MP] _tryResolveMPPending: chain bond RESOLVED netId=%s seg=%s couplingId=%s",
+                tostring(e.chainNetId), tostring(e.terminusSegIndex), tostring(e.vehicleCouplingId)))
+        else
+            table.insert(keptCB, e)   -- still waiting on tanker/chain to register
+        end
+    end
+    self._pendingMPChainBonds = keptCB
+
+    -- Store crust next: apply once the store placeable has registered on this client.
+    local keptSC = {}
+    for _, e in ipairs(self._pendingMPStoreCrust) do
+        if self:applyStoreCrustState(e.placeable, e.solids, e.settle, true) then
+            print("[SPS MP] _tryResolveMPPending: store crust RESOLVED")
+        else
+            table.insert(keptSC, e)   -- store still not registered
+        end
+    end
+    self._pendingMPStoreCrust = keptSC
 
     -- Valves second (coupling now connected, so partner sync applies).
     -- IMPORTANT: resolve strictly against the valve's own owner. Passing nil to
@@ -3529,7 +3601,8 @@ end
 
 function SlurryPipeManager:sendFullStateToConnection(connection)
     if g_server == nil or connection == nil then return end
-    self._dumpCounts = { direct = 0, chainBond = 0, valve = 0, pump = 0, flow = 0 }
+    self._dumpCounts = { direct = 0, chainBond = 0, valve = 0, pump = 0, flow = 0, deploy = 0, crust = 0,
+                         agit = 0, fixedAgit = 0, blockage = 0, shear = 0, spreaderValve = 0, sprayerConnect = 0 }
 
     -- 1) Chain geometry (must arrive before bonds/valves that reference termini).
     local chainCount = 0
@@ -3599,6 +3672,37 @@ function SlurryPipeManager:sendFullStateToConnection(connection)
         end
     end
 
+    -- 3b) Deployed placeable couplings. Deployable couplers register stowed
+    -- (isDeployed = not deployable), so a late joiner builds them hidden and
+    -- removeFromPhysics. The live SPSCouplingDeployEvent only fires on toggle, so
+    -- without this pass a joiner never sees a coupler that was deployed before they
+    -- connected — they cannot see it or connect a pipe to it. Re-send the current
+    -- deploy state so applyCouplingDeployState runs on the joiner (visibility +
+    -- addToPhysics + undeployedVisibleNodes). Must precede the bond/valve passes so
+    -- the mount node is live before anything references it.
+    for _, pEntry in ipairs(self.registeredPlaceables) do
+        if pEntry.storeCouplings ~= nil then
+            for _, sc in ipairs(pEntry.storeCouplings) do
+                if sc.deployable and sc.isDeployed then
+                    connection:sendEvent(SPSCouplingDeployEvent.new(pEntry.placeable, sc.id, true))
+                    self._dumpCounts.deploy = self._dumpCounts.deploy + 1
+                end
+            end
+        end
+    end
+
+    -- 3c) Store crust/thickness. Raise the crust plane and show crust foliage on the
+    -- joiner for any store that has aged. Uses the same one-way SPSStoreCrustEvent the
+    -- live change-detection pass uses.
+    for _, pEntry in ipairs(self.registeredPlaceables) do
+        local se = pEntry.sourceEntry
+        if se ~= nil and se.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE
+        and ((se.settle or 0) > 0 or (se.solids or 0) > 0) then
+            connection:sendEvent(SPSStoreCrustEvent.new(pEntry.placeable, se.solids or 0, se.settle or 0))
+            self._dumpCounts.crust = self._dumpCounts.crust + 1
+        end
+    end
+
     -- 4) Open valves (vehicle couplers, placeable store couplers, chain termini).
     local function dumpValve(coupling, vehicle)
         if coupling.isConnected and coupling.valveOpen then
@@ -3646,9 +3750,81 @@ function SlurryPipeManager:sendFullStateToConnection(connection)
         end
     end
 
+    -- 6) Mobile agitator running, spreader valve open, and shear-bolt snapped —
+    -- per-vehicle runtime state. All broadcast live on change but were never
+    -- re-sent on join, so a late joiner saw a stopped agitator, a closed spreader
+    -- valve, and an intact bolt regardless of the real state.
+    for _, vEntry in ipairs(self.registeredVehicles) do
+        if vEntry.agitatorIsActive == true and SlurryAgitatorEvent ~= nil then
+            connection:sendEvent(SlurryAgitatorEvent.new(vEntry.vehicle, true))
+            self._dumpCounts.agit = self._dumpCounts.agit + 1
+        end
+        local state = vEntry.state
+        if state ~= nil then
+            if state.spreaderValveOpen == true and SPSSpreaderValveEvent ~= nil then
+                connection:sendEvent(SPSSpreaderValveEvent.new(vEntry.vehicle, true))
+                self._dumpCounts.spreaderValve = self._dumpCounts.spreaderValve + 1
+            end
+            if state.shearSnapped == true and SPSShearBoltEvent ~= nil then
+                connection:sendEvent(SPSShearBoltEvent.new(vEntry.vehicle, true))
+                self._dumpCounts.shear = self._dumpCounts.shear + 1
+            end
+        end
+    end
+
+    -- 7) Blockage per node. blockageEntries hold the authoritative blocked flag;
+    -- addressing is by the same node index the live event uses (getBlockageNodeIndex),
+    -- applied on the joiner via applyBlockageByIndex.
+    for _, vEntry in ipairs(self.registeredVehicles) do
+        if vEntry.blockageEntries ~= nil and SPSBlockageEvent ~= nil then
+            for _, b in ipairs(vEntry.blockageEntries) do
+                if b.blocked == true then
+                    local idx = self:getBlockageNodeIndex(vEntry.vehicle, b)
+                    if idx ~= nil then
+                        connection:sendEvent(SPSBlockageEvent.new(vEntry.vehicle, idx, true))
+                        self._dumpCounts.blockage = self._dumpCounts.blockage + 1
+                    end
+                end
+            end
+        end
+    end
+
+    -- 8) Fixed (placeable) agitator: connected tractor + running/engaged state. The
+    -- STATE request (reqType 2) is what SPSFixedAgitator.applyState consumes on a peer;
+    -- send it to the joiner for any fixed agitator that currently has a tractor bound.
+    if SPSFixedAgitatorEvent ~= nil and SPSFixedAgitatorEvent.STATE ~= nil then
+        for _, pEntry in ipairs(self.registeredPlaceables) do
+            local fa = pEntry.fixedAgitator
+            if fa ~= nil and fa.connectedVehicle ~= nil then
+                connection:sendEvent(SPSFixedAgitatorEvent.new(
+                    SPSFixedAgitatorEvent.STATE, pEntry.placeable, fa.connectedVehicle,
+                    false, fa.running == true, fa.ptoEngaged == true))
+                self._dumpCounts.fixedAgit = self._dumpCounts.fixedAgit + 1
+            end
+        end
+    end
+
+    -- 9) Active sprayer pipe connections (sprayer <-> IBC). Re-sent so a late joiner
+    -- draws existing sprayer pipes; applySprayerConnectById queues + retries if the IBC
+    -- has not registered on the joiner yet.
+    if self.activeSprayerPipes ~= nil and SPSSprayerConnectEvent ~= nil then
+        for _, p in pairs(self.activeSprayerPipes) do
+            local cA, cB = p.couplingA, p.couplingB
+            if cA ~= nil and cB ~= nil then
+                local ownerA = cA.object or cA.placeable
+                local ownerB = cB.object or cB.placeable
+                if ownerA ~= nil and ownerB ~= nil then
+                    connection:sendEvent(SPSSprayerConnectEvent.new(ownerA, cA.id, ownerB, cB.id))
+                    self._dumpCounts.sprayerConnect = self._dumpCounts.sprayerConnect + 1
+                end
+            end
+        end
+    end
+
     local d = self._dumpCounts
-    print(string.format("[SPS MP] sendFullStateToConnection: chains=%d chainBonds=%d directBonds=%d valves=%d pump=%d flow=%d",
-        chainCount, d.chainBond, d.direct, d.valve, d.pump, d.flow))
+    print(string.format("[SPS MP] sendFullStateToConnection: chains=%d chainBonds=%d directBonds=%d deploy=%d crust=%d valves=%d pump=%d flow=%d agit=%d fixedAgit=%d blockage=%d shear=%d spreaderValve=%d sprayerConnect=%d",
+        chainCount, d.chainBond, d.direct, d.deploy, d.crust, d.valve, d.pump, d.flow,
+        d.agit, d.fixedAgit, d.blockage, d.shear, d.spreaderValve, d.sprayerConnect))
 end
 
 -- Keep old name as alias for compatibility
@@ -3974,6 +4150,29 @@ function SlurryPipeManager:_handleChainTerminusConnect(vehicleCoupling, terminus
         chain.netId, segIndex, true)
 end
 
+-- [SPS MP] Queue a chain-terminus bond that could not resolve yet (tanker coupler
+-- or chain / terminus not registered on this client during the join burst). Drained
+-- by _tryResolveMPPending() as each vehicle/placeable registers, mirroring the
+-- direct-connect queue. Deduped so a re-received bond does not stack.
+function SlurryPipeManager:_queuePendingChainBond(anchorObject, isPlaceable, vehicleCouplingId, chainNetId, terminusSegIndex)
+    if self._pendingMPChainBonds == nil then self._pendingMPChainBonds = {} end
+    for _, e in ipairs(self._pendingMPChainBonds) do
+        if e.anchorObject == anchorObject and e.vehicleCouplingId == vehicleCouplingId
+        and e.chainNetId == chainNetId and e.terminusSegIndex == terminusSegIndex then
+            return
+        end
+    end
+    table.insert(self._pendingMPChainBonds, {
+        anchorObject      = anchorObject,
+        isPlaceable       = isPlaceable == true,
+        vehicleCouplingId = vehicleCouplingId,
+        chainNetId        = chainNetId,
+        terminusSegIndex  = terminusSegIndex,
+    })
+    print(string.format("[SPS MP] queued pending chain bond netId=%s seg=%s couplingId=%s (pending=%d)",
+        tostring(chainNetId), tostring(terminusSegIndex), tostring(vehicleCouplingId), #self._pendingMPChainBonds))
+end
+
 -- [SPS MP] Apply a replicated coupler<->chain-terminus bond. Idempotent.
 function SlurryPipeManager:applyChainConnect(anchorObject, isPlaceable, vehicleCouplingId, chainNetId, terminusSegIndex, connected)
     local vehicleCoupling = self:_findCouplingById(anchorObject, vehicleCouplingId, isPlaceable == true)
@@ -3981,9 +4180,20 @@ function SlurryPipeManager:applyChainConnect(anchorObject, isPlaceable, vehicleC
     print(string.format("[SPS MP] applyChainConnect netId=%s seg=%s connected=%s coupler=%s chain=%s",
         tostring(chainNetId), tostring(terminusSegIndex), tostring(connected),
         tostring(vehicleCoupling ~= nil), tostring(chain ~= nil)))
-    if vehicleCoupling == nil or chain == nil then return end
+    if vehicleCoupling == nil or chain == nil then
+        -- Not resolvable yet — queue for retry instead of dropping (join-order race).
+        if connected == true then
+            self:_queuePendingChainBond(anchorObject, isPlaceable, vehicleCouplingId, chainNetId, terminusSegIndex)
+        end
+        return
+    end
     local terminus = self:_resolveChainTerminus(chain, terminusSegIndex)
-    if terminus == nil then return end
+    if terminus == nil then
+        if connected == true then
+            self:_queuePendingChainBond(anchorObject, isPlaceable, vehicleCouplingId, chainNetId, terminusSegIndex)
+        end
+        return
+    end
 
     if connected then
         if not vehicleCoupling.isConnected and not terminus.isConnected then
@@ -3995,6 +4205,68 @@ function SlurryPipeManager:applyChainConnect(anchorObject, isPlaceable, vehicleC
             self:applyDisconnect(nil, vehicleCoupling.id, vehicleCoupling)
         end
     end
+end
+
+-- [SPS MP] Apply a replicated live docking-station add/remove. Resolves the chain
+-- by netId and calls the chain's own add/remove, which are deterministic from the
+-- chain's synced nodes and idempotent (add: ignores if already present / no
+-- segments; remove: ignores if none present). The rubberBootPort is created on
+-- every peer, so a DS added on any machine becomes visible AND usable everywhere.
+function SlurryPipeManager:applyDockingStationState(chainNetId, isAdd)
+    local chain = self._chainsByNetId[chainNetId]
+    print(string.format("[SPS MP] applyDockingStationState netId=%s isAdd=%s chain=%s",
+        tostring(chainNetId), tostring(isAdd), tostring(chain ~= nil)))
+    if chain == nil then return end
+    if isAdd then
+        chain:addDockingStation()
+    else
+        chain:removeDockingStation()
+    end
+end
+
+-- [SPS MP] Apply a replicated store crust/thickness state on a client. Sets the two
+-- pool values, raises the crust plane (settle * maxRise) and refreshes crust foliage
+-- visibility (which also feeds the thickness/crust HUD via getApparentThickness). The
+-- store placeable, crust plane and foliage instances all exist on the client already;
+-- only the server-computed values were missing, so nothing is created here.
+-- Returns true when applied. If the store has not registered on this client yet (join
+-- burst arrives before the placeable finishes SPS-registration), the value is queued
+-- and retried by _tryResolveMPPending as placeables register — without this the join
+-- dump was dropped and the store only corrected on the next live change.
+function SlurryPipeManager:applyStoreCrustState(placeable, solids, settle, fromDrain)
+    for _, pEntry in ipairs(self.registeredPlaceables) do
+        if pEntry.placeable == placeable and pEntry.sourceEntry ~= nil then
+            local se = pEntry.sourceEntry
+            se.solids = solids
+            se.settle = settle
+            if se.crustPlaneNode ~= nil and se.crustPlaneNode ~= 0 then
+                setTranslation(se.crustPlaneNode, 0, settle * (se.crustMaxRise or 0), 0)
+            end
+            if SPSCrustVegetation ~= nil then
+                SPSCrustVegetation.updateVisibility(pEntry)
+            end
+            return true
+        end
+    end
+    if not fromDrain then
+        self:_queuePendingStoreCrust(placeable, solids, settle)
+    end
+    return false
+end
+
+-- [SPS MP] Queue a store crust value whose placeable is not registered yet. Only the
+-- latest value per placeable is kept (crust is absolute state, not a delta).
+function SlurryPipeManager:_queuePendingStoreCrust(placeable, solids, settle)
+    if self._pendingMPStoreCrust == nil then self._pendingMPStoreCrust = {} end
+    for _, e in ipairs(self._pendingMPStoreCrust) do
+        if e.placeable == placeable then
+            e.solids = solids
+            e.settle = settle
+            return
+        end
+    end
+    table.insert(self._pendingMPStoreCrust, { placeable = placeable, solids = solids, settle = settle })
+    print(string.format("[SPS MP] queued pending store crust (pending=%d)", #self._pendingMPStoreCrust))
 end
 
 
@@ -7017,6 +7289,31 @@ function SlurryPipeManager:update(dt)
         end
     end
 
+    -- [SPS MP] Replicate store crust/thickness to clients. All store aging, mixing
+    -- and fill are server-authoritative and the driving loops above are server-gated,
+    -- so the guest's solids/settle never move on their own — its crust plane stays
+    -- flat and its foliage/HUD read thickness 0. Broadcast the two pool values, gated
+    -- on a material change in settle or dry-matter fraction so it only sends when the
+    -- crust visibly moves (grows per in-game day; DM changes on fill/deposit/mix).
+    if g_server ~= nil and self:isFeatureEnabled() then
+        for _, pEntry in ipairs(self.registeredPlaceables) do
+            local se = pEntry.sourceEntry
+            if se ~= nil and se.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
+                local solids = se.solids or 0
+                local settle = se.settle or 0
+                local total  = self:_getStoreTotalFill(se)
+                local dm     = (total > 0) and (solids / total) or 0
+                if se._syncedSettle == nil
+                or math.abs(settle - se._syncedSettle) > 0.002
+                or math.abs(dm - (se._syncedDM or -1)) > 0.002 then
+                    se._syncedSettle = settle
+                    se._syncedDM     = dm
+                    SPSStoreCrustEvent.sendEvent(pEntry.placeable, solids, settle)
+                end
+            end
+        end
+    end
+
     -- Manager-driven agitator: runs for any registered vehicle with an agitatorTipNode.
     -- No specialization required — works for any vehicle type including ModHub mods.
     if g_server ~= nil and self:isFeatureEnabled() then
@@ -9185,6 +9482,31 @@ function SlurryPipeManager:addToSource(sourceEntry, amount, fillType, farmVehicl
                     local allowFT    = destVehicle:getFillUnitAllowsFillType(fui, fillType)
                 end
             end
+
+            -- [SPS SPRAY] Deposit trace — only for sprayer-registered destinations,
+            -- throttled to once/sec/vehicle. Shows whether vanilla addFillUnitFillLevel
+            -- landed, whether the cover-bypass had to fire, the tool/fill-type gate
+            -- getters, cover state, and the resulting level/type on the sprayer unit.
+            if SlurryPipeManager.SPRAYER_TRACE
+            and g_slurryPipeManager ~= nil
+            and g_slurryPipeManager:isSprayerVehicleRegistered(destVehicle) then
+                local nowMs = g_time or 0
+                destVehicle._spsSprayDepLastMs = destVehicle._spsSprayDepLastMs or 0
+                if nowMs - destVehicle._spsSprayDepLastMs >= 1000 then
+                    destVehicle._spsSprayDepLastMs = nowMs
+                    local spec       = destVehicle.spec_fillUnit
+                    local fu         = spec and spec.fillUnits and spec.fillUnits[fui] or nil
+                    local sToolTrig  = destVehicle:getFillUnitSupportsToolType(fui, ToolType.TRIGGER)
+                    local sFillType  = destVehicle:getFillUnitSupportsFillType(fui, fillType)
+                    local allowFT    = destVehicle:getFillUnitAllowsFillType(fui, fillType)
+                    local coverState = destVehicle.spec_cover ~= nil and destVehicle.spec_cover.state or "no-cover"
+                    SlurryPipeManager.sprayTrace(
+                        "addToSource[%s] fui=%s req=%.2f applied=%s | supportsTrigger=%s supportsFill=%s allowsFill=%s cover=%s | level=%s type=%s",
+                        tostring(destVehicle.configFileName), tostring(fui), amount, tostring(applied),
+                        tostring(sToolTrig), tostring(sFillType), tostring(allowFT), tostring(coverState),
+                        fu ~= nil and tostring(fu.fillLevel) or "?", fu ~= nil and tostring(fu.fillType) or "?")
+                end
+            end
         end
     elseif sourceEntry.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
         local storage = sourceEntry.storage
@@ -9301,6 +9623,47 @@ function SlurryPipeManager:loadSprayerPlaceableConfigs(modDirectory)
     for _ in pairs(self.sprayerPlaceableConfigMap) do count = count + 1 end
 end
 
+-- Sprayer SOURCE vehicles: basegame/mod IBC liquid tanks that a sprayer draws
+-- from via pipe. Manifest section <sprayerSourceVehicleConfigs>; loader mirrors
+-- loadSprayerVehicleConfigs exactly. A missing section yields zero configs (the
+-- hasProperty break), so this is a no-op until IBC entries are added.
+function SlurryPipeManager:loadSprayerSourceVehicleConfigs(modDirectory)
+    SlurryPipeManager.log("loadSprayerSourceVehicleConfigs: enter")
+    local configRoot   = modDirectory .. "configs/"
+    local manifestPath = modDirectory .. "configs/spsConfigManifest.xml"
+    local xmlFile = XMLFile.load("spsManifest", manifestPath)
+    if xmlFile == nil then
+        return
+    end
+    local idx = 0
+    while true do
+        local key = string.format("spsConfigManifest.sprayerSourceVehicleConfigs.vehicle(%d)", idx)
+        if not xmlFile:hasProperty(key) then break end
+        local matchPath = xmlFile:getString(key .. "#path")
+        if matchPath ~= nil and matchPath ~= "" then
+            local cfgDir = xmlFile:getString(key .. "#configFolder")
+            if cfgDir == nil or cfgDir == "" then
+                cfgDir = matchPath:match("^(.*)/[^/]+%.xml$")
+            end
+            if cfgDir == nil then
+            else
+                local xmlFilePath = configRoot .. cfgDir .. "/fillPoints.xml"
+                if fileExists(xmlFilePath) then
+                    self.sprayerSourceVehicleConfigMap[matchPath:lower()] = {
+                        xmlFilePath = xmlFilePath,
+                        matchPath   = matchPath,
+                    }
+                else
+                end
+            end
+        end
+        idx = idx + 1
+    end
+    xmlFile:delete()
+    local count = 0
+    for _ in pairs(self.sprayerSourceVehicleConfigMap) do count = count + 1 end
+end
+
 -- ---------------------------------------------------------------------------
 -- Sprayer config lookup
 -- ---------------------------------------------------------------------------
@@ -9362,6 +9725,37 @@ function SlurryPipeManager:findSprayerPlaceableConfigForPlaceable(placeable)
 
     local cfn = placeable.configFileName:lower():gsub("\\", "/")
     for matchPathLower, config in pairs(self.sprayerPlaceableConfigMap) do
+        if cfn:sub(-#matchPathLower) == matchPathLower then
+            return config
+        end
+    end
+    return nil
+end
+
+-- Sprayer SOURCE vehicle lookup (IBC liquid tanks). A distinct embedded element
+-- <sprayerPipeSystemSource> keeps third-party source tanks fully separate from the
+-- active-sprayer embedded path (<sprayerPipeSystem>), so neither registration ever
+-- captures the other's vehicles. See findSprayerVehicleConfigForVehicle for the
+-- fresh-handle rationale (vehicle.xmlFile can be dead at onFinishedLoading).
+function SlurryPipeManager:findSprayerSourceVehicleConfigForVehicle(vehicle)
+    if vehicle.configFileName == nil then return nil end
+
+    local embeddedXml = XMLFile.loadIfExists("spsEmbeddedSprayerSourceCheck", vehicle.configFileName, nil)
+    if embeddedXml ~= nil then
+        local isEmbedded = embeddedXml:hasProperty("vehicle.sprayerPipeSystemSource")
+        embeddedXml:delete()
+        if isEmbedded then
+            SlurryDebug.log("findSprayerSourceVehicleConfigForVehicle: embedded <sprayerPipeSystemSource> found in " .. tostring(vehicle.configFileName))
+            return {
+                xmlFilePath  = vehicle.configFileName,
+                xmlKeyPrefix = "vehicle.",
+                isEmbedded   = true,
+            }
+        end
+    end
+
+    local cfn = vehicle.configFileName:lower():gsub("\\", "/")
+    for matchPathLower, config in pairs(self.sprayerSourceVehicleConfigMap) do
         if cfn:sub(-#matchPathLower) == matchPathLower then
             return config
         end
@@ -9672,6 +10066,8 @@ function SlurryPipeManager:registerSprayerVehicle(vehicle)
     
     -- Restore animation state from save if available
     self:_applyPendingSprayerAnimation(vehicle, entry)
+    -- [SPS MP] A just-registered sprayer may be the target of a queued connect.
+    self:_tryResolveSprayerConnects()
     
 end
 
@@ -9886,6 +10282,194 @@ function SlurryPipeManager:registerSprayerPlaceable(placeable)
 
     if xmlFileOwned then xmlFile:delete() end
     table.insert(self.registeredSprayerPlaceables, entry)
+end
+
+-- ---------------------------------------------------------------------------
+-- Sprayer SOURCE vehicle registration (IBC liquid tanks)
+--
+-- An IBC is a passive source: the sprayer connects a pipe to it and pulls (or,
+-- for unload, pushes) liquid. It is stored in the SAME registeredSprayerPlaceables
+-- table as placeable sources — every downstream connect / _findSprayerCouplingById
+-- / findOverlappingSprayerCoupler / transfer / sync / HUD consumer already reads
+-- that table generically off entry.object / entry.couplings / entry.sourceEntry,
+-- so no consumer needs touching. The differences from a placeable source are:
+--   * source is the tank's own fill unit (type "FILL_UNIT_ONLY"), already handled
+--     alongside STORAGE_PLANE / FILL_VOLUME in the transfer/surface switches;
+--   * coupler nodes live in the vehicle's own i3d (the SPS geometry supplied by
+--     the init.lua i3d redirect), resolved by name from vehicle.components — no
+--     nodeTree injection, so linkedNodes stays empty and unregister never deletes
+--     vehicle-owned nodes.
+-- Unregistration reuses unregisterSprayerPlaceable (object-keyed).
+-- ---------------------------------------------------------------------------
+function SlurryPipeManager:registerSprayerSourceVehicle(vehicle)
+    SlurryPipeManager.log("registerSprayerSourceVehicle: enter %s", tostring(vehicle and vehicle.configFileName))
+    for _, entry in ipairs(self.registeredSprayerPlaceables) do
+        if entry.object == vehicle then return end
+    end
+
+    local config = self:findSprayerSourceVehicleConfigForVehicle(vehicle)
+    if config == nil then
+        return
+    end
+
+    local xmlFile
+    local xmlFileOwned = false
+    if config.isEmbedded then
+        xmlFile = vehicle.xmlFile
+    else
+        xmlFile = XMLFile.load("spsSprayerSourcePoints", config.xmlFilePath)
+        xmlFileOwned = true
+    end
+    if xmlFile == nil then
+        return
+    end
+
+    local elementName = config.isEmbedded and "sprayerPipeSystemSource" or "sprayerPipeSystem"
+    local kp = (config.xmlKeyPrefix or "") .. elementName .. "."
+
+    -- Source = the tank's own fill unit.
+    local fillUnitIndex = xmlFile:getInt(kp .. "#fillUnitIndex", 1)
+    local sourceEntry = {
+        type          = "FILL_UNIT_ONLY",
+        vehicle       = vehicle,
+        fillUnitIndex = fillUnitIndex,
+    }
+
+    -- Resolve coupler nodes by name from the vehicle's own component tree.
+    local function findVehicleNode(name)
+        if name == nil or name == "" or vehicle.components == nil then return nil end
+        local function searchTree(root, targetName)
+            if getName(root) == targetName then return root end
+            for i = 0, getNumOfChildren(root) - 1 do
+                local found = searchTree(getChildAt(root, i), targetName)
+                if found ~= nil then return found end
+            end
+            return nil
+        end
+        for _, comp in ipairs(vehicle.components) do
+            local found = searchTree(comp.node, name)
+            if found ~= nil then return found end
+        end
+        return nil
+    end
+
+    local entry = {
+        object           = vehicle,
+        isPlaceable      = false,
+        isSourceVehicle  = true,
+        vehicle          = vehicle,
+        linkedNodes      = {},
+        couplings        = {},
+        pipeActivatables = {},
+        sourceEntry      = sourceEntry,
+    }
+
+    local couplingIndex = 0
+    while true do
+        local cKey = string.format(kp .. "sprayerPipeCouplings.sprayerPipeCoupling(%d)", couplingIndex)
+        if not xmlFile:hasProperty(cKey) then break end
+        local couplingId    = xmlFile:getInt(cKey .. "#id", couplingIndex + 1)
+        local mountNodeName = xmlFile:getString(cKey .. "#mountNodeName")
+        local mountNode     = findVehicleNode(mountNodeName)
+        if mountNode ~= nil then
+            local inNode, outNode
+            local function findInOut(node)
+                for i = 0, getNumOfChildren(node) - 1 do
+                    local child = getChildAt(node, i)
+                    local n = getName(child)
+                    if n == "inNode" then inNode = child
+                    elseif n == "outNode" then outNode = child
+                    else findInOut(child) end
+                end
+            end
+            findInOut(mountNode)
+            local restrictFillType = nil
+            local restrictFillTypeName = xmlFile:getString(cKey .. "#fillType")
+            if restrictFillTypeName ~= nil then
+                restrictFillType = g_fillTypeManager:getFillTypeIndexByName(restrictFillTypeName)
+                if restrictFillType == nil then
+                    SlurryPipeManager.log("registerSprayerSourceVehicle: unknown coupling #fillType '%s' (coupling id=%s) — no restriction applied",
+                        tostring(restrictFillTypeName), tostring(couplingId))
+                end
+            end
+            local sc = {
+                id                       = couplingId,
+                mountNode                = mountNode,
+                inNode                   = inNode,
+                outNode                  = outNode,
+                flowDirection            = xmlFile:getString(cKey .. "#flowDirection", "BOTH"),
+                restrictFillType         = restrictFillType,
+                maxPipeLength            = xmlFile:getFloat(cKey .. "#maxPipeLength", 7.5),
+                connectorAnimationId     = xmlFile:getInt(cKey .. "#connectorAnimation"),
+                valveAnimationId         = xmlFile:getInt(cKey .. "#valveAnimation"),
+                isConnected              = false,
+                valveOpen                = false,
+                connectedTarget          = nil,
+                connectedPartnerCoupling = nil,
+                pipeId                   = nil,
+                object                   = vehicle,
+                placeable                = nil,
+                sourceEntry              = sourceEntry,
+            }
+            if SPSCouplerAnimator ~= nil
+            and (sc.connectorAnimationId ~= nil or sc.valveAnimationId ~= nil) then
+                SPSCouplerAnimator.ensureLoaded(g_currentMission.spsModDirectory)
+                if sc.connectorAnimationId ~= nil then
+                    sc.connectorAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.connectorAnimationId)
+                end
+                if sc.valveAnimationId ~= nil then
+                    sc.valveAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.valveAnimationId)
+                end
+            end
+            table.insert(entry.couplings, sc)
+        else
+        end
+        couplingIndex = couplingIndex + 1
+    end
+
+    if xmlFileOwned then xmlFile:delete() end
+    table.insert(self.registeredSprayerPlaceables, entry)
+    -- Capture the tank's vanilla removeVehicleIfEmpty and apply the current IBC
+    -- persist setting to this instance (deletion is server-side only).
+    local spec = vehicle.spec_fillUnit
+    if spec ~= nil then
+        entry._ibcOrigRemoveIfEmpty = spec.removeVehicleIfEmpty
+        if self.ibcPersistWhenEmpty == true then
+            spec.removeVehicleIfEmpty = false
+        end
+    end
+    SlurryPipeManager.log("registerSprayerSourceVehicle: registered %s with %d coupling(s)",
+        tostring(vehicle.configFileName), #entry.couplings)
+    -- [SPS MP] A just-registered IBC source may satisfy a connect that arrived before
+    -- the async pallet finished loading — draw the pipe now.
+    self:_tryResolveSprayerConnects()
+end
+
+-- ---------------------------------------------------------------------------
+-- applyIbcPersistSetting — flip removeVehicleIfEmpty on every registered IBC
+-- source vehicle to match self.ibcPersistWhenEmpty. Called from the settings
+-- callback (live change) and after savegame load. Server-authoritative: the
+-- FillUnit empty-deletion runs server-side only, so clients need no change.
+-- The vanilla value is stashed per-entry on first register so toggling back to
+-- "disappear" restores the original behaviour rather than forcing true.
+-- ---------------------------------------------------------------------------
+function SlurryPipeManager:applyIbcPersistSetting()
+    local persist = self.ibcPersistWhenEmpty == true
+    for _, entry in ipairs(self.registeredSprayerPlaceables) do
+        if entry.isSourceVehicle and entry.object ~= nil then
+            local spec = entry.object.spec_fillUnit
+            if spec ~= nil then
+                if entry._ibcOrigRemoveIfEmpty == nil then
+                    entry._ibcOrigRemoveIfEmpty = spec.removeVehicleIfEmpty
+                end
+                if persist then
+                    spec.removeVehicleIfEmpty = false
+                else
+                    spec.removeVehicleIfEmpty = entry._ibcOrigRemoveIfEmpty
+                end
+            end
+        end
+    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -10166,6 +10750,52 @@ function SlurryPipeManager:applySprayerConnect(couplingA, couplingB, ownerA, own
     if ownerBEntry ~= nil then ownerBEntry.state.valveOpen = false end
 end
 
+-- [SPS MP] Queue a sprayer connect whose sprayer/IBC is not registered yet. Deduped
+-- by the four addressing fields so a re-received connect does not stack. Drained by
+-- _tryResolveSprayerConnects as sprayers/sources register.
+function SlurryPipeManager:_queuePendingSprayerConnect(object, couplingId, targetObject, targetCouplingId)
+    if self._pendingSprayerConnects == nil then self._pendingSprayerConnects = {} end
+    for _, e in ipairs(self._pendingSprayerConnects) do
+        if e.object == object and e.couplingId == couplingId
+        and e.targetObject == targetObject and e.targetCouplingId == targetCouplingId then
+            return
+        end
+    end
+    table.insert(self._pendingSprayerConnects, {
+        object = object, couplingId = couplingId,
+        targetObject = targetObject, targetCouplingId = targetCouplingId,
+    })
+    print(string.format("[SPS MP] queued pending sprayer connect idA=%s idB=%s (pending=%d)",
+        tostring(couplingId), tostring(targetCouplingId), #self._pendingSprayerConnects))
+end
+
+-- [SPS MP] Drain pending sprayer connects. Resolves both couplings directly and
+-- applies via applySprayerConnect (not ...ById) so a still-unresolved entry cannot
+-- re-queue. Called as each sprayer vehicle / IBC source registers.
+function SlurryPipeManager:_tryResolveSprayerConnects()
+    if self._pendingSprayerConnects == nil or #self._pendingSprayerConnects == 0 then return end
+    local kept = {}
+    for _, e in ipairs(self._pendingSprayerConnects) do
+        local cA = self:_findSprayerCouplingById(e.object, e.couplingId, false)
+        if cA == nil then cA = self:_findSprayerCouplingById(e.object, e.couplingId, true) end
+        local cB = nil
+        if e.targetObject ~= nil and e.targetCouplingId ~= nil and e.targetCouplingId > 0 then
+            cB = self:_findSprayerCouplingById(e.targetObject, e.targetCouplingId, false)
+            if cB == nil then cB = self:_findSprayerCouplingById(e.targetObject, e.targetCouplingId, true) end
+        end
+        if cA ~= nil and cB ~= nil then
+            local ownerA = e.object or cA.placeable or cA.object
+            local ownerB = e.targetObject or cB.placeable or cB.object
+            self:applySprayerConnect(cA, cB, ownerA, ownerB)
+            print(string.format("[SPS MP] _tryResolveSprayerConnects: RESOLVED idA=%s idB=%s",
+                tostring(e.couplingId), tostring(e.targetCouplingId)))
+        else
+            table.insert(kept, e)   -- still waiting on the sprayer/IBC to register
+        end
+    end
+    self._pendingSprayerConnects = kept
+end
+
 -- Network event path: called with IDs from remote clients or server broadcasts.
 -- If targetCouplingId == 0 (client-to-server), finds the other coupling by arc overlap.
 function SlurryPipeManager:applySprayerConnectById(object, couplingId, targetObject, targetCouplingId)
@@ -10188,6 +10818,11 @@ function SlurryPipeManager:applySprayerConnectById(object, couplingId, targetObj
         end
     end
     if couplingA == nil then
+        -- Addressed sprayer/IBC not registered yet on this client — queue for retry
+        -- instead of dropping (spawned-IBC pallet loads async, beating this event).
+        if object ~= nil and couplingId ~= nil then
+            self:_queuePendingSprayerConnect(object, couplingId, targetObject, targetCouplingId)
+        end
         return
     end
 
@@ -10203,12 +10838,162 @@ function SlurryPipeManager:applySprayerConnectById(object, couplingId, targetObj
         couplingB = self:findOverlappingSprayerCoupler(couplingA)
     end
     if couplingB == nil then
+        -- Only queue when B was addressed by an explicit id that failed to resolve
+        -- (a race). A nil overlap in the arc case is a genuine no-connect — don't queue.
+        if targetObject ~= nil and targetCouplingId ~= nil and targetCouplingId > 0 then
+            self:_queuePendingSprayerConnect(object, couplingId, targetObject, targetCouplingId)
+        end
         return
     end
 
     local ownerA = object       or couplingA.placeable or couplingA.object
     local ownerB = targetObject or couplingB.placeable or couplingB.object
     self:applySprayerConnect(couplingA, couplingB, ownerA, ownerB)
+end
+
+-- ---------------------------------------------------------------------------
+-- IBC spawn-and-connect (hold R on an empty sprayer coupler arc)
+--
+-- Mirrors the slurry chain's "hold R adds docking station". A fresh EMPTY IBC
+-- pallet is spawned just in front of the sprayer coupler and a pipe is connected
+-- sprayer(outNode) -> IBC(inNode). The player then sets UNLOAD, opens flow to
+-- fill it, disconnects, and the IBC is a normal usable/movable pallet.
+--
+-- Server-authoritative: VehicleLoadingData replicates the spawned pallet to
+-- clients automatically, and the connect is broadcast via SPSSprayerConnectEvent.
+-- A client-initiated hold-R in MP needs a request event (follow-up); on a client
+-- this is a logged no-op for now.
+-- ---------------------------------------------------------------------------
+function SlurryPipeManager:_ibcTankXmlForSprayer(sprayerObject, coupling)
+    -- Spawn the IBC that matches the sprayer's current fill type: fertilizer ->
+    -- fertilizer tank, herbicide -> herbicide tank. Both are SPS-enabled (i3d
+    -- redirect + manifest + shared fillPoints). Unknown/empty -> nil (no spawn).
+    local fuIndex  = (coupling ~= nil and coupling.fillUnitIndex) or 1
+    local fillType = nil
+    if sprayerObject.getFillUnitFillType ~= nil then
+        fillType = sprayerObject:getFillUnitFillType(fuIndex)
+    end
+    local fertIdx = g_fillTypeManager:getFillTypeIndexByName("LIQUIDFERTILIZER")
+    local herbIdx = g_fillTypeManager:getFillTypeIndexByName("HERBICIDE")
+    if fillType == fertIdx then
+        return "data/objects/pallets/liquidTank/fertilizerTank.xml"
+    elseif fillType == herbIdx then
+        return "data/objects/pallets/liquidTank/herbicideTank.xml"
+    end
+    SlurryPipeManager.log("_ibcTankXmlForSprayer: unsupported sprayer fillType=%s (fu=%s) — no IBC spawned",
+        tostring(fillType), tostring(fuIndex))
+    return nil
+end
+
+function SlurryPipeManager:spawnAndConnectIBC(sprayerObject, coupling)
+    if sprayerObject == nil or coupling == nil or coupling.isConnected then return end
+    if g_currentMission == nil or not g_currentMission:getIsServer() then
+        -- MP client: request the server to spawn + connect. VehicleLoadingData is
+        -- server-authoritative and replicates the pallet to every peer, and the
+        -- connect is broadcast via SPSSprayerConnectEvent, so only the request is sent.
+        SlurryPipeManager.log("spawnAndConnectIBC: client — requesting server spawn (coupling id=%s)", tostring(coupling.id))
+        SPSIbcSpawnRequestEvent.sendEvent(sprayerObject, coupling.id)
+        return
+    end
+
+    local tankXml = self:_ibcTankXmlForSprayer(sprayerObject, coupling)
+    if tankXml == nil then
+        SlurryPipeManager.log("spawnAndConnectIBC: no SPS IBC tank for this sprayer — abort")
+        return
+    end
+
+    local node = coupling.outNode or coupling.mountNode
+    if node == nil or node == 0 then return end
+    -- 4 m in front of the coupler (local +Z), dropped to terrain height. The bez
+    -- pipe (SPSSprayerPipeVisual) then spans the gap with the same sag rules.
+    local px, _, pz = localToWorld(node, 0, 0, 4.0)
+    local py = getTerrainHeightAtWorldPos(g_terrainNode, px, 0, pz)
+    local _, ry, _ = getWorldRotation(node)
+    ry = ry + math.pi  -- face the IBC coupler back toward the sprayer (180 deg)
+
+    local farmId = (sprayerObject.getOwnerFarmId ~= nil and sprayerObject:getOwnerFarmId()) or AccessHandler.EVERYONE
+
+    local data = VehicleLoadingData.new()
+    data:setFilename(tankXml)
+    data:setPosition(px, py, pz)
+    data:setRotation(0, ry, 0)
+    data:setPropertyState(VehiclePropertyState.OWNED)
+    data:setOwnerFarmId(farmId)
+    data:setCustomParameter("spawnEmpty", true)
+    data:load(self.onIbcSpawnedForConnect, self, { sprayerObject = sprayerObject, couplingId = coupling.id })
+    SlurryPipeManager.log("spawnAndConnectIBC: spawning %s at (%.1f, %.1f, %.1f)", tankXml, px, py, pz)
+end
+
+function SlurryPipeManager:onIbcSpawnedForConnect(vehicles, loadState, args)
+    if loadState ~= VehicleLoadingState.OK or vehicles == nil or vehicles[1] == nil then
+        SlurryPipeManager.log("onIbcSpawnedForConnect: spawn failed (state=%s)", tostring(loadState))
+        return
+    end
+    local ibc = vehicles[1]
+
+    -- onFinishedLoading should have registered the IBC as a sprayer source;
+    -- guard in case load ordering differs.
+    local ibcEntry = nil
+    for _, e in ipairs(self.registeredSprayerPlaceables) do
+        if e.object == ibc then ibcEntry = e break end
+    end
+    if ibcEntry == nil then
+        self:registerSprayerSourceVehicle(ibc)
+        for _, e in ipairs(self.registeredSprayerPlaceables) do
+            if e.object == ibc then ibcEntry = e break end
+        end
+    end
+    if ibcEntry == nil or #ibcEntry.couplings == 0 then
+        SlurryPipeManager.log("onIbcSpawnedForConnect: spawned IBC not registered / no coupling")
+        return
+    end
+
+    local sprayerObject = args and args.sprayerObject
+    local couplingId    = args and args.couplingId
+    local ibcCouplingId = ibcEntry.couplings[1].id
+
+    -- [SPS] Deterministically face the spawned IBC's coupler at the sprayer coupler.
+    -- The sprayer pipe's end tangent is each node's local +Z (SPSSprayerPipeVisual), so
+    -- we rotate the IBC until its coupler's +Z points at the sprayer coupler. This is
+    -- geometry, not a calibrated angle, so it is correct for ANY tank i3d — replacing
+    -- the old fixed 180 that only matched one authored coupler forward. setAbsolutePosition
+    -- is the vanilla physics-safe teleport (Vehicle.lua). Iterates a few times because the
+    -- coupler orbits the root as the body turns; converges in 1-2 passes for a 4 m gap.
+    -- Guarded to single-component pallets so the reference position cannot drift. Server
+    -- side only (this callback is server-only); the reoriented pose replicates normally.
+    do
+        local ibcCoup = ibcEntry.couplings[1]
+        local ibcNode = ibcCoup.outNode or ibcCoup.mountNode
+        local sprCoup = self:_findSprayerCouplingById(sprayerObject, couplingId, false)
+                     or self:_findSprayerCouplingById(sprayerObject, couplingId, true)
+        local sprNode = sprCoup ~= nil and (sprCoup.inNode or sprCoup.mountNode) or nil
+        local root    = ibc.rootNode
+        if ibcNode ~= nil and ibcNode ~= 0 and sprNode ~= nil and sprNode ~= 0
+        and root ~= nil and root ~= 0 and ibc.setAbsolutePosition ~= nil
+        and ibc.components ~= nil and #ibc.components == 1 then
+            for _ = 1, 4 do
+                local fx, _, fz = localDirectionToWorld(ibcNode, 0, 0, 1)   -- coupler +Z (pipe tangent)
+                local cx, _, cz = getWorldTranslation(ibcNode)
+                local sx, _, sz = getWorldTranslation(sprNode)
+                local delta = math.atan2(sx - cx, sz - cz) - math.atan2(fx, fz)
+                while delta >  math.pi do delta = delta - 2 * math.pi end
+                while delta < -math.pi do delta = delta + 2 * math.pi end
+                if math.abs(delta) < 0.01 then break end
+                local rx, ry, rz = getWorldTranslation(root)
+                local _, ryaw, _ = getWorldRotation(root)
+                ibc:setAbsolutePosition(rx, ry, rz, 0, ryaw + delta, 0)
+            end
+            SlurryPipeManager.log("onIbcSpawnedForConnect: IBC oriented so its coupler faces the sprayer")
+        end
+    end
+
+    -- Node roles for the spawned connection: the pipe starts at the IBC (outNode)
+    -- and ends at the sprayer (inNode). applySprayerConnect always draws
+    -- couplingA.outNode -> couplingB.inNode, so the IBC is couplingA and the
+    -- sprayer is couplingB here (sprayer end = inNode, IBC end = outNode).
+    self:applySprayerConnectById(ibc, ibcCouplingId, sprayerObject, couplingId)
+    SPSSprayerConnectEvent.sendEvent(ibc, ibcCouplingId, sprayerObject, couplingId)
+    SlurryPipeManager.log("onIbcSpawnedForConnect: spawned + connected IBC %s", tostring(ibc.configFileName))
 end
 
 -- ---------------------------------------------------------------------------
@@ -10468,15 +11253,28 @@ end
 
 function SlurryPipeManager:tickSprayerFlow(session, dt)
     local vehicle = session.vehicle
+    -- [SPS SPRAY] transition-gated tracer: only prints when the stop-reason CHANGES,
+    -- so a stalled flow logs once, not every tick. Additive; no-op when trace is off.
+    local function strace(reason, extra)
+        if session._sprayTraceLast ~= reason then
+            session._sprayTraceLast = reason
+            SlurryPipeManager.sprayTrace("tickSprayerFlow[%s] %s%s",
+                tostring(vehicle and vehicle.configFileName), tostring(reason),
+                extra ~= nil and (" " .. tostring(extra)) or "")
+        end
+    end
     local entry   = self:getSprayerVehicleEntry(vehicle)
     if entry == nil then 
+        strace("STOP:no-entry")
         return 
     end
     local state = entry.state
     if not state.pumpRunning then 
+        strace("STOP:pump-off")
         return 
     end
     if not state.valveOpen then 
+        strace("STOP:valve-closed")
         return 
     end
 
@@ -10489,6 +11287,7 @@ function SlurryPipeManager:tickSprayerFlow(session, dt)
         end
     end
     if activeCoupling == nil then 
+        strace("STOP:no-connected-open-coupling")
         return 
     end
 
@@ -10497,6 +11296,7 @@ function SlurryPipeManager:tickSprayerFlow(session, dt)
     -- Resolve the external side
     local extEntry = self:_resolveSprayerSource(activeCoupling)
     if extEntry == nil then 
+        strace("STOP:no-external-source", "coupling=" .. tostring(activeCoupling.id))
         return 
     end
 
@@ -10548,11 +11348,14 @@ function SlurryPipeManager:tickSprayerFlow(session, dt)
         activeCoupling._loggedFillTypeBlock = nil
     end
     if fillType == nil then 
+        strace("STOP:nil-fillType")
         return 
     end
 
     -- Destination must accept this fillType
     if not self:_destAcceptsFillType(dstEntry, fillType) then 
+        strace("STOP:dest-rejects-fillType",
+            string.format("dir=%s fillType=%s dstType=%s", tostring(state.direction), tostring(fillType), tostring(dstEntry.type)))
         return 
     end
 
@@ -10568,6 +11371,7 @@ function SlurryPipeManager:tickSprayerFlow(session, dt)
         end
     end
     if sourceLevel <= 0 then 
+        strace("STOP:source-empty", string.format("dir=%s fillType=%s", tostring(state.direction), tostring(fillType)))
         return 
     end
 
@@ -10585,12 +11389,27 @@ function SlurryPipeManager:tickSprayerFlow(session, dt)
         end
     end
     if freeCapacity <= 0 then 
+        strace("STOP:dest-full", string.format("dir=%s fillType=%s", tostring(state.direction), tostring(fillType)))
         return 
     end
 
     local amount = math.min(session.baseLitersPerSecond * dt * 0.001, sourceLevel, freeCapacity)
     if amount <= 0 then 
+        strace("STOP:zero-amount")
         return 
+    end
+
+    -- Flowing. Log the transition into FLOW and a periodic heartbeat with live levels.
+    session._sprayTraceHbMs = session._sprayTraceHbMs or 0
+    local nowMs = g_time or 0
+    if session._sprayTraceLast ~= "FLOW" or (nowMs - session._sprayTraceHbMs) >= 1000 then
+        session._sprayTraceHbMs = nowMs
+        session._sprayTraceLast = "FLOW"
+        local dstLvl = (dstEntry.type == "FILL_UNIT_ONLY" and dstEntry.vehicle ~= nil)
+            and (dstEntry.vehicle:getFillUnitFillLevel(dstEntry.fillUnitIndex) or 0) or -1
+        SlurryPipeManager.sprayTrace("tickSprayerFlow[%s] FLOW dir=%s fillType=%s amount=%.2f srcLvl=%.1f dstFree=%.1f dstLvl=%.1f",
+            tostring(vehicle and vehicle.configFileName), tostring(state.direction), tostring(fillType),
+            amount, sourceLevel, freeCapacity, dstLvl)
     end
 
     self:removeFromSource(srcEntry, amount, fillType, vehicle)

@@ -11,7 +11,10 @@
 
     <flow litersPerSecond="200"/>
 	
-	<loadAnimation name="toggleCover"/>
+	<!-- <loadAnimation name="toggleCover"/> 
+				This has been removed for now,
+				when a sprayer becomes available that has a side that can open 
+				then this can be added back in for it to work -->
 	
 	<pump selfPowered="true"/>
 	

@@ -120,6 +120,8 @@
 		<text name="action_sprayerFlowOn"				text="Stroom: ACTIEF" />
 		<text name="action_sprayerDirLoad"				text="Richting: LADEN" />
 		<text name="action_sprayerDirUnload"			text="Richting: LOSSEN" />
+		<text name="sps_warningCloseCoverBeforeTurnOn" 	text="Sluit het deksel voordat u het apparaat inschakelt"/>
+		
 		<!-- SPS spreader HUD -->
 		<text name="sps_hudTitle"            			text="Verdeler" />
 		<text name="sps_hudSlurry"           			text="Mest" />
@@ -173,5 +175,9 @@
 		<text name="action_spsAgitatorPtoOn"  			text="Engage PTO"/>
 		<text name="action_spsAgitatorPtoOff" 			text="Disengage PTO"/>
 		
+		<!-- IBCs -->
+		<text name="sps_settingsIbcPersist" 			text="IBC blijft behouden in lege toestand"/>
+		<text name="sps_settingsIbcPersistTooltip" 		text="Ja: geleegde IBC's blijven op de kaart staan ​​(breng ze terug naar de winkel of vul ze opnieuw). Nee: ze verdwijnen zodra ze leeg zijn (standaardinstelling)."/>
+		<text name="action_spsAddIbc" 					text="Aanhouden: IBC toevoegen" />
 	</texts>
 </l10n>

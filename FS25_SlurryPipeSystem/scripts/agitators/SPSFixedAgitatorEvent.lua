@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.4
+-- Version: 1.0.0.6
 --
 -- SPSFixedAgitatorEvent.lua
 -- ---------------------------------------------------------------------------

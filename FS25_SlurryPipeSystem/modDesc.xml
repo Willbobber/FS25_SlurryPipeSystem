@@ -2,7 +2,7 @@
 <modDesc descVersion="110">
 
     <author>Oscar Mods</author>
-    <version>1.0.0.4</version>
+    <version>1.0.0.6</version>
     <title>
         <en>Slurry Pipe System</en>
         <de>Gülle-Rohrsystem</de>
@@ -116,7 +116,7 @@ Caratteristiche:
 - Compatibile in multigiocatore]]></it>
     </description>
     <iconFilename>icon_SPS.dds</iconFilename>
-	<multiplayer supported="true"/>
+	<multiplayer supported="true"/> 
     <l10n filenamePrefix="l10n/l10n" />
 	
 	<extraSourceFiles>

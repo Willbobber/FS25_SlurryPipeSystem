@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.4
+-- Version: 1.0.0.6
 
 -- SPSChainActivatable.lua
 -- FS25_SlurryPipeSystem
@@ -285,6 +285,10 @@ function SPSChainActivatable:_onShortPress()
     elseif state == "dockingStationOpen" or state == "dockingStationClosed" then
         SPSChainActivatable.log("shortPress: removing docking station")
         self.chain:removeDockingStation()
+        -- [SPS MP] replicate DS removal to peers (before any empty-chain cleanup nils it)
+        if self.chain ~= nil and self.chain.netId ~= nil then
+            SPSDockingStationEvent.sendEvent(self.chain.netId, false)
+        end
         if #self.chain.segments == 0 and self.arcIndex == 0 then
             if g_slurryPipeManager ~= nil then
                 g_slurryPipeManager:onChainEmpty(self.chain, self.coupling)
@@ -331,6 +335,10 @@ function SPSChainActivatable:_onLongPress()
             SPSChainActivatable.log("longPress: adding docking station (arc=%s segments=%d)",
                 tostring(self.arcIndex), #self.chain.segments)
             self.chain:addDockingStation()
+            -- [SPS MP] replicate DS add to peers
+            if self.chain.netId ~= nil then
+                SPSDockingStationEvent.sendEvent(self.chain.netId, true)
+            end
         end
     elseif state == "dockingStationClosed" or state == "dockingStationOpen" then
         -- DS prompt long-press always removes the docking station. Valve state
@@ -338,6 +346,10 @@ function SPSChainActivatable:_onLongPress()
         -- player does not toggle it independently.
         if self.chain ~= nil and self.chain.dockingStation ~= nil then
             self.chain:removeDockingStation()
+            -- [SPS MP] replicate DS removal to peers
+            if self.chain.netId ~= nil then
+                SPSDockingStationEvent.sendEvent(self.chain.netId, false)
+            end
         end
     elseif state == "connectedValveClosed" then
         -- Anchor (arcIndex==0) toggles via the chain's last (far-end) segment

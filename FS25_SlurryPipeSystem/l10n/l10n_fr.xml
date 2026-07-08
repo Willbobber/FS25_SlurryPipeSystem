@@ -118,6 +118,8 @@
 		<text name="action_sprayerFlowOn"				text="Débit : EN MARCHE" />
 		<text name="action_sprayerDirLoad"				text="Sens : CHARGEMENT" />
 		<text name="action_sprayerDirUnload"			text="Sens : DÉCHARGEMENT" />
+		<text name="sps_warningCloseCoverBeforeTurnOn" 	text="Fermez le couvercle avant de mettre l'appareil en marche"/>
+		
 		<!-- SPS spreader HUD -->
 		<text name="sps_hudTitle"            			text="Épandeur" />
 		<text name="sps_hudSlurry"           			text="Lisier" />
@@ -171,5 +173,9 @@
 		<text name="action_spsAgitatorPtoOn"  			text="Engage PTO"/>
 		<text name="action_spsAgitatorPtoOff" 			text="Disengage PTO"/>
 		
+		<!-- IBCs -->
+		<text name="sps_settingsIbcPersist" 			text="Le GRV reste en place lorsqu'il est vide"/>
+		<text name="sps_settingsIbcPersistTooltip" 		text="Oui : les cuves IBC vides restent sur la carte (rapportez-les au magasin ou remplissez-les). Non : elles disparaissent une fois vides (paramètre par défaut)."/>
+		<text name="action_spsAddIbc" 					text="Maintien : ajouter IBC" />
 	</texts>
 </l10n>

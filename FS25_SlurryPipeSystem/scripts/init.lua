@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.4
+-- Version: 1.0.0.6
 
 -- init.lua
 -- FS25_SlurryPipeSystem
@@ -8,7 +8,21 @@
 local SPS_MOD_DIRECTORY = g_currentModDirectory
 local SPS_MOD_NAME      = "FS25_SlurryPipeSystem"
 
-SlurryDebug.enabled = false  -- hardcoded during development
+SlurryDebug.enabled = true  -- hardcoded during development
+
+-- [SPS SPRAY] Sprayer-issue diagnostic trace for the action-event path. Flip to
+-- true to log, once per vehicle per register cycle, whether a sprayer-config
+-- vehicle keeps its vanilla turn-on (B) event or has R/I stripped. Prefixed
+-- [SPS SPRAY] to match the manager/override traces.
+local SPRAYER_TRACE = true
+local function sprayTrace(fmt, ...)
+    if not SPRAYER_TRACE then return end
+    if select("#", ...) > 0 then
+        print("[SPS SPRAY] " .. string.format(fmt, ...))
+    else
+        print("[SPS SPRAY] " .. tostring(fmt))
+    end
+end
 
 source(SPS_MOD_DIRECTORY .. "scripts/settings/SPSSettingsMenuExtension.lua")
 source(SPS_MOD_DIRECTORY .. "scripts/util/SPSConduitHUDExtension.lua")
@@ -64,6 +78,76 @@ do
             end
         end
         origInputHelpDraw(self, offsetX, offsetY)
+    end
+end
+
+
+-- ---------------------------------------------------------------------------
+-- [SPS IBC] Vanilla liquid-tank (IBC) geometry redirect.
+--
+-- The basegame liquid tanks (fertilizer / herbicide, incl. Helm / Corteva brand
+-- variants) all share ONE geometry file:
+--     $data/objects/pallets/liquidTank/liquidTank.i3d
+-- which Vehicle:load streams via g_i3DManager:loadSharedI3DFileAsync
+-- (Vehicle.lua l.534 — that call passes the Vehicle itself as the async callback
+-- object, and self.configFileName is already set by Vehicle:setFilename, l.402).
+--
+-- When SPS is loaded we transparently swap that geometry for the SPS copy, which
+-- is node-for-node identical to vanilla (so the vanilla XML i3dMappings still
+-- resolve) and additionally carries the sprayer-pipe coupler branch.
+--
+-- Selection is keyed on the loading vehicle's configFileName so different fill
+-- types can point at different SPS i3ds. A liquid-tank config with no SPS mapping
+-- is passed straight through to vanilla untouched; every non-liquid-tank i3d load
+-- is likewise passed through unchanged. The wrapper forwards all six arguments to
+-- the original unmodified, so no other load path is affected.
+-- ---------------------------------------------------------------------------
+local SPS_IBC_VANILLA_I3D_TAIL = "objects/pallets/liquidtank/liquidtank.i3d"
+
+-- vehicle configFileName tail (lowercased, forward-slashed) -> SPS i3d file
+-- (mod-relative). Add herbicide / further variants here as their SPS i3ds are
+-- authored; unmapped liquid-tank configs stay on vanilla geometry.
+local SPS_IBC_CONFIG_TO_I3D = {
+    ["objects/pallets/liquidtank/fertilizertank.xml"]     = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
+    ["objects/pallets/liquidtank/fertilizertankhelm.xml"] = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
+    -- Herbicide tanks share the same vanilla liquidTank.i3d, so the SPS copy (which
+    -- carries every config node plus the couplers) serves them too; the tank XML's
+    -- objectChanges toggle the herbicide decals on the shared geometry.
+    ["objects/pallets/liquidtank/herbicidetank.xml"]      = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
+    ["objects/pallets/liquidtank/herbicidetankhelm.xml"]  = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
+}
+
+do
+    -- Per-file debug toggle (enabled during active development).
+    local SPS_IBC_REDIRECT_DEBUG = true
+
+    local origLoadSharedI3DFileAsync = I3DManager.loadSharedI3DFileAsync
+    I3DManager.loadSharedI3DFileAsync = function(self, filename, callOnCreate, addToPhysics,
+                                                 asyncCallbackFunction, asyncCallbackObject, asyncCallbackArguments)
+        if filename ~= nil then
+            local fnLower = filename:lower():gsub("\\", "/")
+            if fnLower:sub(-#SPS_IBC_VANILLA_I3D_TAIL) == SPS_IBC_VANILLA_I3D_TAIL then
+                -- asyncCallbackObject is the loading Vehicle (Vehicle.lua l.534).
+                local cfg = asyncCallbackObject ~= nil and asyncCallbackObject.configFileName or nil
+                if cfg ~= nil then
+                    local cfgLower = cfg:lower():gsub("\\", "/")
+                    for cfgTail, spsRel in pairs(SPS_IBC_CONFIG_TO_I3D) do
+                        if cfgLower:sub(-#cfgTail) == cfgTail then
+                            local spsPath = SPS_MOD_DIRECTORY .. spsRel
+                            if SPS_IBC_REDIRECT_DEBUG then
+                                print(string.format(
+                                    "[SPS IBC] i3d redirect: '%s' -> '%s' (config '%s')",
+                                    tostring(filename), tostring(spsPath), tostring(cfg)))
+                            end
+                            filename = spsPath
+                            break
+                        end
+                    end
+                end
+            end
+        end
+        return origLoadSharedI3DFileAsync(self, filename, callOnCreate, addToPhysics,
+                                          asyncCallbackFunction, asyncCallbackObject, asyncCallbackArguments)
     end
 end
 
@@ -484,6 +568,7 @@ function SPSMod:loadMap(filename)
     g_slurryPipeManager:loadPlaceableConfigs(SPS_MOD_DIRECTORY)
     g_slurryPipeManager:loadSprayerVehicleConfigs(SPS_MOD_DIRECTORY)
     g_slurryPipeManager:loadSprayerPlaceableConfigs(SPS_MOD_DIRECTORY)
+    g_slurryPipeManager:loadSprayerSourceVehicleConfigs(SPS_MOD_DIRECTORY)
 
     -- Append " SPS" to the shop name of every SPS-compatible store item. Runs here,
     -- after all config maps (slurry + sprayer, vehicle + placeable) are populated,
@@ -715,6 +800,13 @@ function Vehicle:onFinishedLoading()
         g_slurryPipeManager:registerSprayerVehicle(self)
     end
 
+    -- Sprayer SOURCE registration (IBC liquid tanks: passive source drawing from
+    -- the tank's own fill unit; independent of the slurry and active-sprayer paths)
+    local sprayerSourceConfig = g_slurryPipeManager:findSprayerSourceVehicleConfigForVehicle(self)
+    if sprayerSourceConfig ~= nil then
+        g_slurryPipeManager:registerSprayerSourceVehicle(self)
+    end
+
     -- Samson-specific patch and action events only apply to slurry-registered vehicles
     if not g_slurryPipeManager:isRegistered(self) then return end
     -- A blockage-only spreader implement (dribble bar) is SPS-registered for its
@@ -789,6 +881,12 @@ function Vehicle:registerActionEvents(excludedVehicle)
     -- ---------------------------------------------------------------------------
     if g_slurryPipeManager:isSprayerVehicleRegistered(self)
     or g_slurryPipeManager:findSprayerVehicleConfigForVehicle(self) ~= nil then
+        sprayTrace("registerActionEvents[%s] sprayer cab pass: registered=%s hasConfig=%s hasTurnOnSpec=%s cover=%s",
+            tostring(self.configFileName),
+            tostring(g_slurryPipeManager:isSprayerVehicleRegistered(self)),
+            tostring(g_slurryPipeManager:findSprayerVehicleConfigForVehicle(self) ~= nil),
+            tostring(self.spec_turnOnVehicle ~= nil),
+            tostring(self.spec_cover ~= nil and self.spec_cover.state or "no-cover"))
         local specD = self.spec_dischargeable
         if specD ~= nil and specD.actionEvents ~= nil then
             local evTip = specD.actionEvents[InputAction.TOGGLE_TIPSTATE]
@@ -826,7 +924,11 @@ function Vehicle:registerActionEvents(excludedVehicle)
     -- ---------------------------------------------------------------------------
     if not g_slurryPipeManager:isRegistered(self) then return end
     if g_slurryPipeManager:isSpreaderImplement(self) then return end
-    if g_slurryPipeManager:findSprayerVehicleConfigForVehicle(self) ~= nil then return end
+    if g_slurryPipeManager:findSprayerVehicleConfigForVehicle(self) ~= nil then
+        sprayTrace("registerActionEvents[%s] slurry block SKIPPED (sprayer config) — vanilla turn-on (B) preserved",
+            tostring(self.configFileName))
+        return
+    end
     if self.spec_turnOnVehicle == nil then return end
 
     -- Agitator-only vehicles need no SPS action events — they use PTO directly
@@ -1014,6 +1116,9 @@ function Vehicle:delete(immediate)
         if g_slurryPipeManager:isSprayerVehicleRegistered(self) then
             g_slurryPipeManager:unregisterSprayerVehicle(self)
         end
+        -- IBC source entries live in registeredSprayerPlaceables (object-keyed);
+        -- this is a no-op scan for non-IBC vehicles.
+        g_slurryPipeManager:unregisterSprayerPlaceable(self)
     end
     if origVehicleDelete ~= nil then
         origVehicleDelete(self, immediate)
