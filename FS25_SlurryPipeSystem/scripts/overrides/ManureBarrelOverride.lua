@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.6
+-- Version: 1.0.0.7
 
 -- ManureBarrelOverride.lua
 -- FS25_SlurryPipeSystem
@@ -16,7 +16,7 @@ SlurryPipeSystemOverride = {}
 -- silence them. logBayern checks the flag BEFORE doing any string.format work,
 -- so it is safe to leave call sites in place when logging is off.
 -- ---------------------------------------------------------------------------
-SlurryPipeSystemOverride.DEBUG_BAYERN = true
+SlurryPipeSystemOverride.DEBUG_BAYERN = false
 
 function SlurryPipeSystemOverride.logBayern(fmt, ...)
     if not SlurryPipeSystemOverride.DEBUG_BAYERN then return end
@@ -34,7 +34,7 @@ end
 -- that drove it (fill level, cover state, needsToBeFilledToTurnOn). This is the gate
 -- the vanilla turn-off-if-not-allowed loop consults, so it pins a "flashes on/off".
 -- ---------------------------------------------------------------------------
-SlurryPipeSystemOverride.SPRAYER_TRACE = true
+SlurryPipeSystemOverride.SPRAYER_TRACE = false
 
 function SlurryPipeSystemOverride.sprayTrace(fmt, ...)
     if not SlurryPipeSystemOverride.SPRAYER_TRACE then return end

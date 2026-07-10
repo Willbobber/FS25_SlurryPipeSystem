@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.6
+-- Version: 1.0.0.7
 
 -- init.lua
 -- FS25_SlurryPipeSystem
@@ -8,13 +8,13 @@
 local SPS_MOD_DIRECTORY = g_currentModDirectory
 local SPS_MOD_NAME      = "FS25_SlurryPipeSystem"
 
-SlurryDebug.enabled = true  -- hardcoded during development
+SlurryDebug.enabled = false  -- hardcoded during development
 
 -- [SPS SPRAY] Sprayer-issue diagnostic trace for the action-event path. Flip to
 -- true to log, once per vehicle per register cycle, whether a sprayer-config
 -- vehicle keeps its vanilla turn-on (B) event or has R/I stripped. Prefixed
 -- [SPS SPRAY] to match the manager/override traces.
-local SPRAYER_TRACE = true
+local SPRAYER_TRACE = false
 local function sprayTrace(fmt, ...)
     if not SPRAYER_TRACE then return end
     if select("#", ...) > 0 then
@@ -115,6 +115,23 @@ local SPS_IBC_CONFIG_TO_I3D = {
     -- objectChanges toggle the herbicide decals on the shared geometry.
     ["objects/pallets/liquidtank/herbicidetank.xml"]      = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
     ["objects/pallets/liquidtank/herbicidetankhelm.xml"]  = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
+
+    -- [SPS +S&F] TheCodingDad Soil & Fertilizer liquid IBC tanks. All 12 parentFile the
+    -- vanilla fertilizerTankHelm / herbicideTankHelm, so they stream the same shared
+    -- liquidTank.i3d intercepted above and take the same SPS coupler-baked copy. Tail-keyed
+    -- on the S&F config path, so install-location-independent; inert if S&F is not present.
+    ["fs25_soilfertilizer/objects/liquidtank/uan32/liquidtank_uan32.xml"]                 = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
+    ["fs25_soilfertilizer/objects/liquidtank/uan28/liquidtank_uan28.xml"]                 = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
+    ["fs25_soilfertilizer/objects/liquidtank/anhydrous/liquidtank_anhydrous.xml"]         = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
+    ["fs25_soilfertilizer/objects/liquidtank/starter/liquidtank_starter.xml"]             = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
+    ["fs25_soilfertilizer/objects/liquidtank/liquid_urea/liquidtank_liquid_urea.xml"]     = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
+    ["fs25_soilfertilizer/objects/liquidtank/liquid_ams/liquidtank_liquid_ams.xml"]       = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
+    ["fs25_soilfertilizer/objects/liquidtank/liquid_map/liquidtank_liquid_map.xml"]       = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
+    ["fs25_soilfertilizer/objects/liquidtank/liquid_dap/liquidtank_liquid_dap.xml"]       = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
+    ["fs25_soilfertilizer/objects/liquidtank/liquid_potash/liquidtank_liquid_potash.xml"] = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
+    ["fs25_soilfertilizer/objects/liquidtank/liquidlime/liquidtank_liquidlime.xml"]       = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
+    ["fs25_soilfertilizer/objects/liquidtank/insecticide/liquidtank_insecticide.xml"]     = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
+    ["fs25_soilfertilizer/objects/liquidtank/fungicide/liquidtank_fungicide.xml"]         = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
 }
 
 do

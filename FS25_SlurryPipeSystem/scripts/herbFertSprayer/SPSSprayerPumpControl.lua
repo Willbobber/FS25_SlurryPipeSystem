@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.6
+-- Version: 1.0.0.7
 
 -- SPSSprayerPumpControl.lua
 -- Outside control node activatable for sprayer vehicles.
@@ -14,7 +14,7 @@ SPSSprayerPumpControl = {}
 SPSSprayerPumpControl.__index = SPSSprayerPumpControl
 
 -- [SPS] Per-file debug toggle. Set true to enable [SPS SPR CTRL] trace logging.
-local DEBUG = true
+local DEBUG = false
 local function log(fmt, ...)
     if not DEBUG then return end
     if select("#", ...) > 0 then
@@ -113,6 +113,19 @@ function SPSSprayerPumpControl:getIsActivatable()
     end
     -- Active whether the arc overlaps (short press = connect) or is empty
     -- (hold = add IBC). Player is at the coupler with an unconnected coupling.
+    -- With no connect partner, only surface the key when the sprayer holds liquid to
+    -- offload — an empty tank shows no Add IBC key.
+    if overlap == nil then
+        local level = (self.object.getFillUnitFillLevel ~= nil)
+            and (self.object:getFillUnitFillLevel(coupling.fillUnitIndex) or 0) or 0
+        if level <= 0 then
+            if self._dbgReason ~= "empty" then
+                self._dbgReason = "empty"
+                log("getIsActivatable: FALSE — sprayer empty, no add IBC (id=%s)", tostring(coupling.id))
+            end
+            return false
+        end
+    end
     return true
 end
 
@@ -154,7 +167,9 @@ function SPSSprayerPumpControl:update(dt)
         local coverOk    = (not hasLoadAnim) or animPlayed
         local overlap    = (not connected) and g_slurryPipeManager:findOverlappingSprayerCoupler(coupling) or nil
         local canConnect = not connected and coverOk and overlap ~= nil
-        local canAddIbc  = not connected and coverOk and overlap == nil
+        local hasFill    = (self.object.getFillUnitFillLevel ~= nil)
+            and (self.object:getFillUnitFillLevel(coupling.fillUnitIndex) or 0) > 0 or false
+        local canAddIbc  = not connected and coverOk and overlap == nil and hasFill
         local visible = connected or canConnect or canAddIbc
         g_inputBinding:setActionEventTextVisibility(self._eventIds.activate, visible)
         if visible then

@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.6
+-- Version: 1.0.0.7
 
 -- SPSChainActivatable.lua
 -- FS25_SlurryPipeSystem

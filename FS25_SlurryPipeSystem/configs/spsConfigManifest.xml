@@ -174,5 +174,34 @@
 				 configFolder="IBCs/fertilizerTank"/>
 		<vehicle path="data/objects/pallets/liquidTank/herbicideTankHelm.xml"
 				 configFolder="IBCs/fertilizerTank"/>
+
+		<!-- TheCodingDad Soil & Fertilizer IBC liquid tanks. Each parentFiles the vanilla
+		     fertilizerTankHelm/herbicideTankHelm, so all share the one IBCs/fertilizerTank
+		     coupler geometry + fillPoints. Path is tail-matched, so install-location
+		     independent; entries are inert when S&F is not installed. -->
+		<vehicle path="FS25_SoilFertilizer/objects/liquidTank/uan32/liquidTank_uan32.xml"
+				 configFolder="IBCs/fertilizerTank"/>
+		<vehicle path="FS25_SoilFertilizer/objects/liquidTank/uan28/liquidTank_uan28.xml"
+				 configFolder="IBCs/fertilizerTank"/>
+		<vehicle path="FS25_SoilFertilizer/objects/liquidTank/anhydrous/liquidTank_anhydrous.xml"
+				 configFolder="IBCs/fertilizerTank"/>
+		<vehicle path="FS25_SoilFertilizer/objects/liquidTank/starter/liquidTank_starter.xml"
+				 configFolder="IBCs/fertilizerTank"/>
+		<vehicle path="FS25_SoilFertilizer/objects/liquidTank/liquid_urea/liquidTank_liquid_urea.xml"
+				 configFolder="IBCs/fertilizerTank"/>
+		<vehicle path="FS25_SoilFertilizer/objects/liquidTank/liquid_ams/liquidTank_liquid_ams.xml"
+				 configFolder="IBCs/fertilizerTank"/>
+		<vehicle path="FS25_SoilFertilizer/objects/liquidTank/liquid_map/liquidTank_liquid_map.xml"
+				 configFolder="IBCs/fertilizerTank"/>
+		<vehicle path="FS25_SoilFertilizer/objects/liquidTank/liquid_dap/liquidTank_liquid_dap.xml"
+				 configFolder="IBCs/fertilizerTank"/>
+		<vehicle path="FS25_SoilFertilizer/objects/liquidTank/liquid_potash/liquidTank_liquid_potash.xml"
+				 configFolder="IBCs/fertilizerTank"/>
+		<vehicle path="FS25_SoilFertilizer/objects/liquidTank/liquidlime/liquidTank_liquidlime.xml"
+				 configFolder="IBCs/fertilizerTank"/>
+		<vehicle path="FS25_SoilFertilizer/objects/liquidTank/insecticide/liquidTank_insecticide.xml"
+				 configFolder="IBCs/fertilizerTank"/>
+		<vehicle path="FS25_SoilFertilizer/objects/liquidTank/fungicide/liquidTank_fungicide.xml"
+				 configFolder="IBCs/fertilizerTank"/>
 	</sprayerSourceVehicleConfigs>
 </spsConfigManifest>

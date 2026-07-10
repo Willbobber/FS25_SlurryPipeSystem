@@ -55,6 +55,7 @@
               <TransformGroup name="inNode" translation="2.49905e-08 1.64534e-08 0.205501" rotation="0 180 0" nodeId="19"/>
               <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="20"/>
             </Shape>
+            <TransformGroup name="IBCspawnPoint" translation="0.224614 0.154688 4.06932" rotation="-162.71 -15.4769 173.541" nodeId="435"/>
           </TransformGroup>
         </TransformGroup>
       </TransformGroup>
