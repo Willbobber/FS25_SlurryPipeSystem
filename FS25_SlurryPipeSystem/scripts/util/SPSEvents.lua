@@ -1,6 +1,7 @@
+print("[SPS BUILD] SPSEvents 1.0.0.8 loaded")
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.7
+-- Version: 1.0.0.8
 
 -- SPSEvents.lua
 -- FS25_SlurryPipeSystem
@@ -62,9 +63,11 @@ function SlurryFlowStateEvent:writeStream(streamId, connection)
 end
 
 function SlurryFlowStateEvent:run(connection)
+    if SlurryPipeManager ~= nil and SlurryPipeManager.MP_DEBUG then
     print(string.format("[SPS MP RX] FlowStateEvent:run isServer=%s vehicle=%s isFlowOpen=%s synced=%s",
         tostring(connection:getIsServer()), spsRxId(self.vehicle), tostring(self.isFlowOpen),
         tostring(self.vehicle ~= nil and self.vehicle:getIsSynchronized())))
+        end
     if not connection:getIsServer() then
         g_server:broadcastEvent(self, false, connection, self.vehicle)
     end
@@ -120,9 +123,11 @@ function SlurryFlowDirectionEvent:writeStream(streamId, connection)
 end
 
 function SlurryFlowDirectionEvent:run(connection)
+    if SlurryPipeManager ~= nil and SlurryPipeManager.MP_DEBUG then
     print(string.format("[SPS MP RX] FlowDirectionEvent:run isServer=%s vehicle=%s direction=%s synced=%s",
         tostring(connection:getIsServer()), spsRxId(self.vehicle), tostring(self.direction),
         tostring(self.vehicle ~= nil and self.vehicle:getIsSynchronized())))
+        end
     if not connection:getIsServer() then
         g_server:broadcastEvent(self, false, connection, self.vehicle)
     end
@@ -180,9 +185,11 @@ function SlurryPipeConnectEvent:readStream(streamId, connection)
     self.targetType   = streamReadUIntN(streamId, 1)
     self.couplingIdA  = streamReadUIntN(streamId, 4)
     self.couplingIdB  = streamReadUIntN(streamId, 4)
+    if SlurryPipeManager ~= nil and SlurryPipeManager.MP_DEBUG then
     print(string.format("[SPS MP RX] ConnectEvent:readStream vehicleA=%s targetObject=%s targetType=%s idA=%s idB=%s isServer=%s",
         spsRxId(self.vehicleA), spsRxId(self.targetObject), tostring(self.targetType),
         tostring(self.couplingIdA), tostring(self.couplingIdB), tostring(connection:getIsServer())))
+        end
     self:run(connection)
 end
 
@@ -195,8 +202,10 @@ function SlurryPipeConnectEvent:writeStream(streamId, connection)
 end
 
 function SlurryPipeConnectEvent:run(connection)
+    if SlurryPipeManager ~= nil and SlurryPipeManager.MP_DEBUG then
     print(string.format("[SPS MP RX] ConnectEvent:run isServer=%s vehicleA=%s target=%s",
         tostring(connection:getIsServer()), spsRxId(self.vehicleA), spsRxId(self.targetObject)))
+        end
     if not connection:getIsServer() then
         -- Include the originating client (ignoreConnection = nil): the partner coupling
         -- is resolved server-side, so the sender cannot apply optimistically and must
@@ -232,22 +241,56 @@ function SlurryPipeDisconnectEvent.emptyNew()
     return self
 end
 
-function SlurryPipeDisconnectEvent.new(vehicleA, couplingIdA)
+function SlurryPipeDisconnectEvent.new(vehicleA, couplingIdA, couplingObj)
     local self = SlurryPipeDisconnectEvent.emptyNew()
     self.vehicleA    = vehicleA
     self.couplingIdA = couplingIdA
+    -- [SPS MP] Chain-terminus keying: raw terminus ids (segment index, -2 for the
+    -- chain start) are not resolvable on a remote machine — they collide with
+    -- vehicle/placeable coupling ids and never appear in those lists. When the
+    -- initiator has the coupling object and it is a chain terminus on a netId'd
+    -- chain, transmit (netId + role) so the receiver resolves the EXACT coupling.
+    self.chainNetId = nil
+    self.chainRole  = nil
+    if type(couplingObj) == "table" and couplingObj.isChainTerminus
+    and couplingObj.chain ~= nil and couplingObj.chain.netId ~= nil
+    and g_slurryPipeManager ~= nil and g_slurryPipeManager._getChainTerminusRole ~= nil then
+        local role = g_slurryPipeManager:_getChainTerminusRole(couplingObj.chain, couplingObj)
+        if role ~= nil then
+            self.chainNetId = couplingObj.chain.netId
+            self.chainRole  = role
+        end
+    end
+    -- The id travels as a 4-bit uint; chain-start ids are negative. Sanitize the
+    -- streamed value (the chain keying above carries the real identity).
+    if self.couplingIdA == nil or self.couplingIdA < 0 or self.couplingIdA > 15 then
+        self.couplingIdA = 0
+    end
     return self
 end
 
 function SlurryPipeDisconnectEvent:readStream(streamId, connection)
     self.vehicleA    = NetworkUtil.readNodeObject(streamId)
     self.couplingIdA = streamReadUIntN(streamId, 4)
+    -- [SPS MP] Optional chain-terminus keying (netId + role), appended fields.
+    if streamReadBool(streamId) then
+        self.chainNetId = streamReadUIntN(streamId, 12)
+        self.chainRole  = streamReadUIntN(streamId, 8)
+    else
+        self.chainNetId = nil
+        self.chainRole  = nil
+    end
     self:run(connection)
 end
 
 function SlurryPipeDisconnectEvent:writeStream(streamId, connection)
     NetworkUtil.writeNodeObject(streamId, self.vehicleA)
     streamWriteUIntN(streamId, self.couplingIdA, 4)
+    streamWriteBool(streamId, self.chainNetId ~= nil)
+    if self.chainNetId ~= nil then
+        streamWriteUIntN(streamId, self.chainNetId, 12)
+        streamWriteUIntN(streamId, self.chainRole or 0, 8)
+    end
 end
 
 function SlurryPipeDisconnectEvent:run(connection)
@@ -256,15 +299,26 @@ function SlurryPipeDisconnectEvent:run(connection)
         g_server:broadcastEvent(self, false, nil, self.vehicleA)
     end
     if g_slurryPipeManager ~= nil then
-        g_slurryPipeManager:applyDisconnect(self.vehicleA, self.couplingIdA)
+        -- [SPS MP] Resolve the exact chain-terminus coupling from (netId + role)
+        -- when transmitted. Without this, applyDisconnect's id fallback cannot see
+        -- chainTerminusEntries at all and the disconnect silently no-ops on every
+        -- machine except the initiator (guest removes, host keeps the pipe).
+        local couplingObj = nil
+        if self.chainNetId ~= nil and g_slurryPipeManager._chainsByNetId ~= nil then
+            local chain = g_slurryPipeManager._chainsByNetId[self.chainNetId]
+            if chain ~= nil and g_slurryPipeManager._resolveChainTerminus ~= nil then
+                couplingObj = g_slurryPipeManager:_resolveChainTerminus(chain, self.chainRole or 0)
+            end
+        end
+        g_slurryPipeManager:applyDisconnect(self.vehicleA, self.couplingIdA, couplingObj)
     end
 end
 
-function SlurryPipeDisconnectEvent.sendEvent(vehicleA, couplingIdA, noEventSend)
+function SlurryPipeDisconnectEvent.sendEvent(vehicleA, couplingIdA, noEventSend, couplingObj)
     if noEventSend == true then return end
 
     if g_server ~= nil then
-        g_server:broadcastEvent(SlurryPipeDisconnectEvent.new(vehicleA, couplingIdA), nil, nil, vehicleA)
+        g_server:broadcastEvent(SlurryPipeDisconnectEvent.new(vehicleA, couplingIdA, couplingObj), nil, nil, vehicleA)
         return
     end
 
@@ -272,7 +326,7 @@ function SlurryPipeDisconnectEvent.sendEvent(vehicleA, couplingIdA, noEventSend)
     if g_client ~= nil and g_client.getServerConnection ~= nil then
         local connection = g_client:getServerConnection()
         if connection ~= nil then
-            connection:sendEvent(SlurryPipeDisconnectEvent.new(vehicleA, couplingIdA))
+            connection:sendEvent(SlurryPipeDisconnectEvent.new(vehicleA, couplingIdA, couplingObj))
         end
     end
 end
@@ -304,9 +358,25 @@ function SlurryValveStateEvent.new(vehicleA, couplingArg, isOpen)
     if type(couplingArg) == "table" then
         self.couplingId        = couplingArg.id
         self.placeableOwner    = couplingArg.placeable   -- nil for vehicle/chain couplings
+        -- [SPS MP] Chain-terminus keying (netId + role): raw terminus ids are not
+        -- resolvable remotely (they collide with vehicle/placeable ids and live only
+        -- in chainTerminusEntries). Mirrors SlurryPipeDisconnectEvent.
+        self.chainNetId = nil
+        self.chainRole  = nil
+        if couplingArg.isChainTerminus and couplingArg.chain ~= nil
+        and couplingArg.chain.netId ~= nil
+        and g_slurryPipeManager ~= nil and g_slurryPipeManager._getChainTerminusRole ~= nil then
+            local role = g_slurryPipeManager:_getChainTerminusRole(couplingArg.chain, couplingArg)
+            if role ~= nil then
+                self.chainNetId = couplingArg.chain.netId
+                self.chainRole  = role
+            end
+        end
     else
         self.couplingId        = couplingArg
         self.placeableOwner    = nil
+        self.chainNetId        = nil
+        self.chainRole         = nil
     end
     return self
 end
@@ -321,9 +391,19 @@ function SlurryValveStateEvent:readStream(streamId, connection)
     else
         self.placeableOwner = nil
     end
+    -- [SPS MP] Optional chain-terminus keying (netId + role), appended fields.
+    if streamReadBool(streamId) then
+        self.chainNetId = streamReadUIntN(streamId, 12)
+        self.chainRole  = streamReadUIntN(streamId, 8)
+    else
+        self.chainNetId = nil
+        self.chainRole  = nil
+    end
+    if SlurryPipeManager ~= nil and SlurryPipeManager.MP_DEBUG then
     print(string.format("[SPS MP RX] ValveEvent:readStream vehicleA=%s couplingId=%s isOpen=%s placeableOwner=%s isServer=%s",
         spsRxId(self.vehicleA), tostring(self.couplingId), tostring(self.isOpen),
         spsRxId(self.placeableOwner), tostring(connection:getIsServer())))
+        end
     self:run(connection)
 end
 
@@ -334,6 +414,11 @@ function SlurryValveStateEvent:writeStream(streamId, connection)
     streamWriteBool(streamId, self.placeableOwner ~= nil)
     if self.placeableOwner ~= nil then
         NetworkUtil.writeNodeObject(streamId, self.placeableOwner)
+    end
+    streamWriteBool(streamId, self.chainNetId ~= nil)
+    if self.chainNetId ~= nil then
+        streamWriteUIntN(streamId, self.chainNetId, 12)
+        streamWriteUIntN(streamId, self.chainRole or 0, 8)
     end
 end
 
@@ -356,9 +441,36 @@ function SlurryValveStateEvent:run(connection)
                 end
             end
         end
+        -- [SPS MP] Chain-terminus resolution from (netId + role) — exact coupling,
+        -- no id ambiguity. Without this a guest's valve toggle at a chain coupling
+        -- resolved to nothing (or the wrong coupling) on the server.
+        if couplingObj == nil and self.chainNetId ~= nil
+        and g_slurryPipeManager._chainsByNetId ~= nil then
+            local chain = g_slurryPipeManager._chainsByNetId[self.chainNetId]
+            if chain ~= nil and g_slurryPipeManager._resolveChainTerminus ~= nil then
+                couplingObj = g_slurryPipeManager:_resolveChainTerminus(chain, self.chainRole or 0)
+            end
+        end
         g_slurryPipeManager:applyValveState(self.vehicleA, self.couplingId, self.isOpen, couplingObj)
+        -- [SPS MP] Server-side chain propagation for CLIENT-initiated valve events.
+        -- The host path (onValveOpen/Close) walks the chain to the far terminus via
+        -- _propagateValveState and broadcasts the far-end state; the event path only
+        -- ever applied the near coupling, so a guest's toggle never reached the far
+        -- end (or the flow gate) on the server. Mirror the host path here.
+        if not connection:getIsServer() and g_server ~= nil
+        and g_slurryPipeManager._propagateValveState ~= nil then
+            local propCoupling = couplingObj
+            if propCoupling == nil then
+                propCoupling = g_slurryPipeManager:_findCouplingById(self.vehicleA, self.couplingId, false)
+            end
+            if propCoupling ~= nil then
+                g_slurryPipeManager:_propagateValveState(propCoupling, self.isOpen)
+            end
+        end
+        if SlurryPipeManager ~= nil and SlurryPipeManager.MP_DEBUG then
         print(string.format("[SPS MP RX] ValveEvent:run applied couplingId=%s isOpen=%s couplingObjResolved=%s",
             tostring(self.couplingId), tostring(self.isOpen), tostring(couplingObj ~= nil)))
+            end
     end
 end
 
@@ -456,9 +568,11 @@ function SPSSelfPumpStateEvent:writeStream(streamId, connection)
 end
 
 function SPSSelfPumpStateEvent:run(connection)
+    if SlurryPipeManager ~= nil and SlurryPipeManager.MP_DEBUG then
     print(string.format("[SPS MP RX] SelfPumpStateEvent:run isServer=%s vehicle=%s pumpRunning=%s synced=%s",
         tostring(connection:getIsServer()), spsRxId(self.vehicle), tostring(self.pumpRunning),
         tostring(self.vehicle ~= nil and self.vehicle:getIsSynchronized())))
+        end
     if not connection:getIsServer() then
         g_server:broadcastEvent(self, false, connection, self.vehicle)
     end
@@ -467,6 +581,12 @@ function SPSSelfPumpStateEvent:run(connection)
             local state = g_slurryPipeManager:getVehicleState(self.vehicle)
             if state ~= nil then
                 state.pumpRunning = self.pumpRunning
+                -- [SPS MP] Drive the pump engine loop on receiving machines. The
+                -- toggle only plays/stops it on the initiator, so remote peers
+                -- (host included, for guest toggles) stayed silent.
+                if g_slurryPipeManager.applyPumpSound ~= nil then
+                    g_slurryPipeManager:applyPumpSound(self.vehicle, self.pumpRunning)
+                end
                 -- [SPS MP] When the SERVER applies a CLIENT's spreader-pump request it
                 -- must also drive the vanilla turned-on state (PTO engage / engine load).
                 -- togglePump only calls setIsTurnedOn on the initiating peer, so a guest
@@ -682,6 +802,15 @@ function SPSChainStateEvent:writeStream(streamId, connection)
         streamWriteFloat32(streamId, p.chainStartY or 0)
         streamWriteFloat32(streamId, p.chainStartZ or 0)
         streamWriteFloat32(streamId, p.chainStartRY or 0)
+        -- [SPS MP] Full chain-start rotation (rx/rz). getSaveData now captures the
+        -- complete pipeRoot rotation; without streaming it a joining/receiving peer
+        -- rebuilds vehicle-anchored segment 1 yaw-only and shows the 180-degree
+        -- twist the savegame fix removed on the host.
+        streamWriteBool(streamId, p.chainStartRX ~= nil)
+        if p.chainStartRX ~= nil then
+            streamWriteFloat32(streamId, p.chainStartRX or 0)
+            streamWriteFloat32(streamId, p.chainStartRZ or 0)
+        end
     end
 
     streamWriteBool(streamId, p.hasDockingStation == true)
@@ -733,6 +862,11 @@ function SPSChainStateEvent:readStream(streamId, connection)
             p.chainStartY  = streamReadFloat32(streamId)
             p.chainStartZ  = streamReadFloat32(streamId)
             p.chainStartRY = streamReadFloat32(streamId)
+            -- [SPS MP] Optional full chain-start rotation (see writeStream).
+            if streamReadBool(streamId) then
+                p.chainStartRX = streamReadFloat32(streamId)
+                p.chainStartRZ = streamReadFloat32(streamId)
+            end
         end
 
         p.hasDockingStation = streamReadBool(streamId)
@@ -855,6 +989,15 @@ function SPSChainRequestEvent:writeStream(streamId, connection)
         streamWriteFloat32(streamId, p.chainStartY or 0)
         streamWriteFloat32(streamId, p.chainStartZ or 0)
         streamWriteFloat32(streamId, p.chainStartRY or 0)
+        -- [SPS MP] Full chain-start rotation (rx/rz). getSaveData now captures the
+        -- complete pipeRoot rotation; without streaming it a joining/receiving peer
+        -- rebuilds vehicle-anchored segment 1 yaw-only and shows the 180-degree
+        -- twist the savegame fix removed on the host.
+        streamWriteBool(streamId, p.chainStartRX ~= nil)
+        if p.chainStartRX ~= nil then
+            streamWriteFloat32(streamId, p.chainStartRX or 0)
+            streamWriteFloat32(streamId, p.chainStartRZ or 0)
+        end
     end
 
     streamWriteBool(streamId, p.hasDockingStation == true)
@@ -906,6 +1049,11 @@ function SPSChainRequestEvent:readStream(streamId, connection)
             p.chainStartY  = streamReadFloat32(streamId)
             p.chainStartZ  = streamReadFloat32(streamId)
             p.chainStartRY = streamReadFloat32(streamId)
+            -- [SPS MP] Optional full chain-start rotation (see writeStream).
+            if streamReadBool(streamId) then
+                p.chainStartRX = streamReadFloat32(streamId)
+                p.chainStartRZ = streamReadFloat32(streamId)
+            end
         end
 
         p.hasDockingStation = streamReadBool(streamId)

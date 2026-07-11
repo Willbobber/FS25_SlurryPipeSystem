@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.7
+-- Version: 1.0.0.8
 
 -- SlurryPipeManager.lua
 -- FS25_SlurryPipeSystem
@@ -79,6 +79,7 @@ end
 -- print(), so each call keeps its own "[SPS ...]" prefix. Flip to true to trace.
 -- ---------------------------------------------------------------------------
 SlurryPipeManager.MP_DEBUG = false
+print("[SPS BUILD] SlurryPipeManager 1.0.0.8 loaded")
 
 function SlurryPipeManager.logMP(...)
     if not SlurryPipeManager.MP_DEBUG then return end
@@ -164,6 +165,20 @@ function SlurryPipeManager.new()
     -- direct connects, applyChainConnect used to drop these silently, so a joiner saw
     -- the chain geometry but no end bez / valve. Drained by _tryResolveMPPending too.
     self._pendingMPChainBonds       = {}
+    -- [SPS MP] Join-dump chain-state rebuilds whose anchor owner (esp. a store
+    -- placeable) had not registered yet on this client. Without this the chain
+    -- rebuilds free-standing: segment 1 loses its anchor mount, so its rotation
+    -- defaults to 0 (visible twist) and the valve/removal link is missing. Keyed by
+    -- netId -> {anchorObject, couplingId, isPlaceable, payload}. Drained in
+    -- _tryResolveChainAnchorRebinds() as placeables/vehicles register.
+    self._pendingChainAnchorRebinds = {}
+    self._chainRebindResolving      = false
+    -- [SPS MP] Bez visuals whose creation was skipped because g_spsPipeVisual was
+    -- not ready (async i3d load during map start — exactly the window in which a
+    -- joining client drains its queued chain bonds). Previously the couplings were
+    -- marked connected but the visual was PERMANENTLY dropped; the pipe only
+    -- appeared after a manual remove/re-add. Drained in update() once ready.
+    self._pendingPipeVisuals        = {}
     -- [SPS MP] Join-dump store crust values whose store placeable had not registered
     -- yet on this client. Drained by _tryResolveMPPending as placeables register.
     self._pendingMPStoreCrust       = {}
@@ -703,6 +718,7 @@ function SlurryPipeManager:registerVehicle(vehicle)
         end
         -- Fallback: search the vehicle's own node tree for nodes already authored in the i3d
         local function searchTree(root, targetName)
+            if root == nil or root == 0 or not entityExists(root) then return nil end
             if getName(root) == targetName then return root end
             for i = 0, getNumOfChildren(root) - 1 do
                 local found = searchTree(getChildAt(root, i), targetName)
@@ -1191,6 +1207,9 @@ function SlurryPipeManager:registerVehicle(vehicle)
                 if couplingEntry.valveAnimationId ~= nil then
                     couplingEntry.valveAnim = SPSCouplerAnimator.bind(couplingEntry.mountNode, couplingEntry.valveAnimationId)
                 end
+                SlurryPipeManager.log("sprayer bind DIAG (vehicle): id=%s connIds=%s/%s bound=%s/%s",
+                    tostring(couplingEntry.id), tostring(couplingEntry.connectorAnimationId), tostring(couplingEntry.valveAnimationId),
+                    tostring(couplingEntry.connectorAnim ~= nil), tostring(couplingEntry.valveAnim ~= nil))
             end
             table.insert(entry.couplingEntries, couplingEntry)
         else
@@ -2213,6 +2232,9 @@ function SlurryPipeManager:registerPlaceable(placeable)
                 if sc.valveAnimationId ~= nil then
                     sc.valveAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.valveAnimationId)
                 end
+                SlurryPipeManager.log("sprayer bind DIAG (sc): id=%s connIds=%s/%s bound=%s/%s",
+                    tostring(sc.id), tostring(sc.connectorAnimationId), tostring(sc.valveAnimationId),
+                    tostring(sc.connectorAnim ~= nil), tostring(sc.valveAnim ~= nil))
             end
             -- Deployable couplings start hidden; undeployedVisibleNodes start visible
             if deployable then
@@ -2601,6 +2623,15 @@ function SlurryPipeManager:saveCouplingConnections(savePath)
                 xmlFile:setFloat(base .. "#chainStartY",  data.chainStartY)
                 xmlFile:setFloat(base .. "#chainStartZ",  data.chainStartZ)
                 xmlFile:setFloat(base .. "#chainStartRY", data.chainStartRY)
+                -- [SPS DIAG/FIX] Persist full chain-start rotation (see SPSPipeChain
+                -- getSaveData/restoreFromSaveData). Optional attributes — old saves
+                -- and readers without them fall back to yaw-only behaviour.
+                if data.chainStartRX ~= nil then
+                    xmlFile:setFloat(base .. "#chainStartRX", data.chainStartRX)
+                end
+                if data.chainStartRZ ~= nil then
+                    xmlFile:setFloat(base .. "#chainStartRZ", data.chainStartRZ)
+                end
             end
             if data.hasDockingStation then
                 xmlFile:setFloat(base .. "#dsSaveX",  data.dsSaveX)
@@ -2835,6 +2866,14 @@ function SlurryPipeManager:loadCouplingConnections(savePath)
             chainData.chainStartY  = xmlFile:getFloat(base .. "#chainStartY",  0)
             chainData.chainStartZ  = xmlFile:getFloat(base .. "#chainStartZ",  0)
             chainData.chainStartRY = xmlFile:getFloat(base .. "#chainStartRY", 0)
+            -- [SPS DIAG/FIX] Full chain-start rotation. Read only when present so
+            -- older saves leave chainStartRX/RZ nil and restore keeps yaw-only.
+            if xmlFile:hasProperty(base .. "#chainStartRX") then
+                chainData.chainStartRX = xmlFile:getFloat(base .. "#chainStartRX", 0)
+            end
+            if xmlFile:hasProperty(base .. "#chainStartRZ") then
+                chainData.chainStartRZ = xmlFile:getFloat(base .. "#chainStartRZ", 0)
+            end
         end
         local segIdx = 0
         while true do
@@ -3002,7 +3041,7 @@ end
 -- This is deliberately position-based because pipeCoupling id values repeat between
 -- vehicles, placeables and chain ends.
 function SlurryPipeManager:_applyPendingCouplerAnimation(coupling)
-    SlurryPipeManager.log("_applyPendingCouplerAnimation: couplingId=%s", tostring(coupling and coupling.id))
+    -- SlurryPipeManager.log("_applyPendingCouplerAnimation: couplingId=%s", tostring(coupling and coupling.id))  -- [SPS] silenced: per-frame spam
     if coupling == nil or coupling.mountNode == nil or coupling.mountNode == 0 then return false end
     if self._pendingCouplerAnims == nil or SPSCouplerAnimator == nil then return false end
     if not entityExists(coupling.mountNode) then return false end
@@ -3073,6 +3112,52 @@ end
 -- registers). Connects are drained before valves so the valve's partner sync sees
 -- the freshly-made connection. self._mpResolving guards against re-queuing while
 -- draining. Entries that still cannot resolve are kept for the next register pass.
+-- [SPS MP] Drain queued chain-state rebuilds whose anchor owner had not registered
+-- when the dump arrived. For each entry whose anchor now resolves, discard the
+-- free-standing copy (by netId) and rebuild the chain WITH the anchor so segment 1
+-- re-links to its mount node (correct rotation) and the valve/removal link forms.
+-- Entries whose owner is still absent stay queued for the next registration pass.
+function SlurryPipeManager:_tryResolveChainAnchorRebinds()
+    if self._pendingChainAnchorRebinds == nil then return end
+    local resolved = nil
+    for netId, e in pairs(self._pendingChainAnchorRebinds) do
+        local anchorCoupling = self:_resolveAnchorCoupling(e.anchorObject, e.couplingId, e.isPlaceable)
+        if anchorCoupling ~= nil then
+            self._chainRebindResolving = true
+            -- Drop the free-standing copy so the rebuild is clean (no skip, no dup).
+            -- [SPS MP] Preserve any external terminus bonds already applied to the
+            -- free-standing copy (join-order: a tanker can register and bond BEFORE
+            -- the anchor vehicle registers and triggers this rebind). Without this
+            -- the rebind's delete() severed the fresh bond — end bez vanished and
+            -- the coupler reverted to "connect" on the guest.
+            local preservedBonds = nil
+            local existing = self._chainsByNetId[netId]
+            if existing ~= nil then
+                preservedBonds = self:_captureChainTerminusBonds(existing)
+                for i, c in ipairs(self.pipeChains) do
+                    if c == existing then table.remove(self.pipeChains, i) break end
+                end
+                existing:delete()
+                self._chainsByNetId[netId] = nil
+            end
+            self:_rebuildChainFromState(netId, false, e.anchorObject, e.couplingId, e.isPlaceable, e.payload)
+            if preservedBonds ~= nil then
+                self:_reapplyChainTerminusBonds(self._chainsByNetId[netId], preservedBonds)
+            end
+            self._chainRebindResolving = false
+            SlurryPipeManager.logMP(string.format(
+                "[SPS MP] chain anchor rebind RESOLVED netId=%s", tostring(netId)))
+            if resolved == nil then resolved = {} end
+            table.insert(resolved, netId)
+        end
+    end
+    if resolved ~= nil then
+        for _, netId in ipairs(resolved) do
+            self._pendingChainAnchorRebinds[netId] = nil
+        end
+    end
+end
+
 function SlurryPipeManager:_tryResolveMPPending()
     if self._pendingMPConnections == nil then self._pendingMPConnections = {} end
     if self._pendingMPValves == nil then self._pendingMPValves = {} end
@@ -3178,6 +3263,10 @@ function SlurryPipeManager:tryResolvePendingConnections()
     -- their vehicles had not finished loading. Runs first so it benefits from the
     -- vehicle/placeable that just registered (this function is called at the end of
     -- registerVehicle/registerPlaceable).
+    -- [SPS MP] Rebind any chain whose anchor owner has just registered (JIP race)
+    -- BEFORE draining the bond/valve queues, so bonds in the same pass resolve
+    -- against the rebuilt (anchored) chain instead of a copy about to be deleted.
+    self:_tryResolveChainAnchorRebinds()
     self:_tryResolveMPPending()
     SlurryPipeManager.log("tryResolvePendingConnections: pendingConns=%d pendingChains=%d pendingDeployed=%d", #self.pendingConnections, #self.pendingChains, #self.pendingDeployedCouplings)
     if #self.pendingConnections == 0 and #self.pendingChains == 0 and #self.pendingDeployedCouplings == 0
@@ -3551,7 +3640,22 @@ function SlurryPipeManager:applyChainLiveStart(netId, anchorObject, couplingId, 
     chain.isRemoteLive = true
     -- startLaying links to the previous committed segment when #segments > 0
     -- (lay-more), or starts at sx/sy/sz for the first segment.
-    chain:startLaying(sx, sy, sz, sry)
+    -- [SPS MP] First-segment preview: pass the SAME anchor start node the layer
+    -- uses (inNode, mountNode fallback — mirrors onChainStartLaying). Without it
+    -- the remote preview built free-standing, so the start coupler floated in a
+    -- raised position on other machines until the finalise commit rebuilt the
+    -- segment node-linked and it visibly snapped down.
+    local localStartNode = nil
+    if #chain.segments == 0 and anchorCoupling ~= nil then
+        local n = anchorCoupling.inNode
+        if n == nil or n == 0 or (entityExists ~= nil and not entityExists(n)) then
+            n = anchorCoupling.mountNode
+        end
+        if n ~= nil and n ~= 0 and (entityExists == nil or entityExists(n)) then
+            localStartNode = n
+        end
+    end
+    chain:startLaying(sx, sy, sz, sry, localStartNode)
     SlurryPipeManager.logMP(string.format("[SPS MP] applyChainLiveStart PREVIEW netId=%s segs=%d", tostring(netId), #chain.segments))
 end
 
@@ -3835,6 +3939,26 @@ function SlurryPipeManager:sendFullStateToConnection(connection)
         end
     end
 
+    -- 10) [SPS MP] Sprayer runtime state (pump / valve / direction). The connect
+    -- pass above only re-draws the pipes; without this a joiner saw a running
+    -- sprayer's pump/valve as off until someone re-toggled it.
+    if self.registeredSprayerVehicles ~= nil then
+        for _, sEntry in ipairs(self.registeredSprayerVehicles) do
+            local st = sEntry.state
+            if st ~= nil and sEntry.object ~= nil then
+                if st.pumpRunning == true and SPSSprayerPumpStateEvent ~= nil then
+                    connection:sendEvent(SPSSprayerPumpStateEvent.new(sEntry.object, true))
+                end
+                if st.valveOpen == true and SPSSprayerValveStateEvent ~= nil then
+                    connection:sendEvent(SPSSprayerValveStateEvent.new(sEntry.object, true))
+                end
+                if st.direction ~= nil and SPSSprayerDirectionEvent ~= nil then
+                    connection:sendEvent(SPSSprayerDirectionEvent.new(sEntry.object, st.direction))
+                end
+            end
+        end
+    end
+
     local d = self._dumpCounts
     SlurryPipeManager.logMP(string.format("[SPS MP] sendFullStateToConnection: chains=%d chainBonds=%d directBonds=%d deploy=%d crust=%d valves=%d pump=%d flow=%d agit=%d fixedAgit=%d blockage=%d shear=%d spreaderValve=%d sprayerConnect=%d",
         chainCount, d.chainBond, d.direct, d.deploy, d.crust, d.valve, d.pump, d.flow,
@@ -3857,6 +3981,62 @@ function SlurryPipeManager:onChainEmpty(chain, coupling)
     end
     -- [SPS MP] capture netId before teardown so removal can be replicated.
     local netId = chain ~= nil and chain.netId or nil
+    -- [SPS MP] Stale-pointer recovery: across JIP rebuild generations (anchor
+    -- rebind, state echoes) an anchor activatable can end up holding a live chain
+    -- OBJECT that is not the netId-mapped one (netId=nil). commitChainRemoval(nil)
+    -- silently returns and the removal never reaches the server — the last
+    -- placeable-laid segment stayed visible on every other machine. Recover the
+    -- netId from the authoritative map: first by object identity, then by anchor
+    -- coupling match. Any distinct mapped duplicate for that anchor is torn down
+    -- too so no orphan object lingers.
+    if netId == nil and self._chainsByNetId ~= nil then
+        -- Match by table identity first, then by (placeable + coupling id):
+        -- a placeable can register more than once, producing a second generation
+        -- of coupling tables; identity comparison alone then finds nothing.
+        local function anchorsMatch(a, b)
+            if a == b then return a ~= nil end
+            if a == nil or b == nil then return false end
+            return a.placeable ~= nil and a.placeable == b.placeable and a.id == b.id
+        end
+        for id, c in pairs(self._chainsByNetId) do
+            if c == chain then
+                netId = id
+                break
+            end
+        end
+        if netId == nil and coupling ~= nil then
+            for id, c in pairs(self._chainsByNetId) do
+                if c ~= nil and anchorsMatch(c.anchorCoupling, coupling) then
+                    netId = id
+                    if c ~= chain then
+                        -- Duplicate object for the same anchor: remove it as well.
+                        for i, pc in ipairs(self.pipeChains) do
+                            if pc == c then table.remove(self.pipeChains, i) break end
+                        end
+                        c:delete()
+                    end
+                    break
+                end
+            end
+        end
+        if netId == nil and coupling ~= nil and self.pipeChains ~= nil then
+            -- Final fallback: the map can desync from pipeChains across rebuild
+            -- generations; any netId-carrying chain anchored here is authoritative.
+            for _, c in ipairs(self.pipeChains) do
+                if c ~= chain and c.netId ~= nil and anchorsMatch(c.anchorCoupling, coupling) then
+                    netId = c.netId
+                    for i, pc in ipairs(self.pipeChains) do
+                        if pc == c then table.remove(self.pipeChains, i) break end
+                    end
+                    if self._chainsByNetId ~= nil then self._chainsByNetId[c.netId] = nil end
+                    c:delete()
+                    break
+                end
+            end
+        end
+        SlurryPipeManager.logMP(string.format(
+            "[SPS MP] onChainEmpty netId RECOVERED=%s (object netId was nil)", tostring(netId)))
+    end
     SlurryPipeManager.logMP(string.format("[SPS MP] onChainEmpty capturedNetId=%s", tostring(netId)))
     for i, c in ipairs(self.pipeChains) do
         if c == chain then
@@ -4029,6 +4209,11 @@ function SlurryPipeManager:_rebuildChainFromState(netId, removed, anchorObject, 
             chain:delete()
             self._chainsByNetId[netId] = nil
         end
+        -- [SPS MP] Drop any queued anchor-rebind for this netId so a late owner
+        -- registration can't resurrect a chain that was removed while queued.
+        if self._pendingChainAnchorRebinds ~= nil and netId ~= nil then
+            self._pendingChainAnchorRebinds[netId] = nil
+        end
         return nil
     end
 
@@ -4036,6 +4221,28 @@ function SlurryPipeManager:_rebuildChainFromState(netId, removed, anchorObject, 
 
     local anchorCoupling = self:_resolveAnchorCoupling(anchorObject, couplingId, isPlaceable)
 
+    -- [SPS MP] JIP anchor race: on a client the chain-state dump can arrive before
+    -- the anchor's owner (especially a store placeable) has registered, so the
+    -- anchor can't resolve here. The chain would then rebuild free-standing —
+    -- segment 1 loses its anchor mount node, its rotation defaults to 0 (the
+    -- one-ended twist) and the valve/removal link never forms (host/guest desync).
+    -- Queue the full payload keyed by netId; _tryResolveChainAnchorRebinds() rebuilds
+    -- it WITH the anchor once the owner registers. The free-standing chain is still
+    -- built below so the pipe is visible during the gap, then replaced on resolve.
+    if anchorObject ~= nil and anchorCoupling == nil and payload ~= nil
+    and g_server == nil and not self._chainRebindResolving
+    and netId ~= nil and netId ~= 0 then
+        if self._pendingChainAnchorRebinds == nil then self._pendingChainAnchorRebinds = {} end
+        self._pendingChainAnchorRebinds[netId] = {
+            anchorObject = anchorObject,
+            couplingId   = couplingId,
+            isPlaceable  = isPlaceable,
+            payload      = payload,
+        }
+        SlurryPipeManager.logMP(string.format(
+            "[SPS MP] chain anchor rebind QUEUED netId=%s (anchor owner not registered yet)",
+            tostring(netId)))
+    end
     local chain = self:_findChainByNetIdOrAnchor(netId, anchorCoupling)
     local payloadSegCount = (payload.segments ~= nil) and #payload.segments or 0
     SlurryPipeManager.logMP(string.format("[SPS MP] rebuild STATE netId=%s anchorResolved=%s foundChain=%s payloadSegs=%d",
@@ -4067,6 +4274,11 @@ function SlurryPipeManager:_rebuildChainFromState(netId, removed, anchorObject, 
     else
         -- Tear the existing copy down (prunes terminus entries, activatables,
         -- DS, scene nodes) then rebuild — keeps the object + netId stable.
+        -- [SPS MP] Preserve external terminus bonds across the teardown: delete()
+        -- applyDisconnects every connected terminus, which would sever bonds
+        -- applied earlier in the same join burst (end bez vanishes, coupler
+        -- reverts to "connect"). Captured here, re-applied after the rebuild.
+        self._rebuildPreservedBonds = self:_captureChainTerminusBonds(chain)
         if chain.netId ~= nil and chain.netId ~= netId then
             self._chainsByNetId[chain.netId] = nil
         end
@@ -4082,6 +4294,11 @@ function SlurryPipeManager:_rebuildChainFromState(netId, removed, anchorObject, 
 
     chain:restoreFromSaveData(payload)
     self:_rebindChainAnchor(chain, anchorCoupling)
+    -- [SPS MP] Re-bond preserved external couplers to the rebuilt termini.
+    if self._rebuildPreservedBonds ~= nil then
+        self:_reapplyChainTerminusBonds(chain, self._rebuildPreservedBonds)
+        self._rebuildPreservedBonds = nil
+    end
     return chain
 end
 
@@ -4162,6 +4379,54 @@ function SlurryPipeManager:_handleChainTerminusConnect(vehicleCoupling, terminus
     local segIndex = self:_getChainTerminusRole(chain, terminus) or 0
     SPSChainConnectEvent.sendEvent(owner, vehicle == nil, vehicleCoupling.id,
         chain.netId, segIndex, true)
+end
+
+-- [SPS MP] Capture the external coupler bonds on a chain's termini BEFORE the
+-- chain is torn down for a rebuild. chain:delete() -> _destroySegmentNodes calls
+-- applyDisconnect on every connected terminus, which disconnects the partner
+-- coupler and destroys the end bez visual — so a rebuild (anchor rebind, state
+-- re-broadcast) silently severed any bond applied earlier in the same join
+-- (guest saw "connect pipe" at an end the host had connected). Returns a list of
+-- { role, partner } where role addresses the terminus (0 = chain start, k =
+-- segment k) and partner is the external vehicle/placeable coupler object, which
+-- survives the chain teardown.
+function SlurryPipeManager:_captureChainTerminusBonds(chain)
+    if chain == nil or chain.segments == nil then return nil end
+    local bonds = nil
+    for i, seg in ipairs(chain.segments) do
+        local function capture(term, role)
+            if term ~= nil and term.isConnected
+            and term.connectedPartnerCoupling ~= nil
+            and not term.connectedPartnerCoupling.isChainTerminus then
+                if bonds == nil then bonds = {} end
+                table.insert(bonds, { role = role, partner = term.connectedPartnerCoupling })
+            end
+        end
+        if i == 1 then capture(seg.chainStartCoupling, 0) end
+        capture(seg.chainCoupling, i)
+    end
+    return bonds
+end
+
+-- [SPS MP] Re-apply captured terminus bonds to the REBUILT chain. Resolves each
+-- terminus by role on the new chain and reconnects the surviving partner coupler
+-- exactly the way applyChainConnect does. Idempotent: already-connected ends are
+-- skipped.
+function SlurryPipeManager:_reapplyChainTerminusBonds(chain, bonds)
+    if chain == nil or bonds == nil then return end
+    for _, b in ipairs(bonds) do
+        local terminus = self:_resolveChainTerminus(chain, b.role)
+        local partner  = b.partner
+        if terminus ~= nil and partner ~= nil
+        and not terminus.isConnected and not partner.isConnected then
+            local vehicle, _ = self:_findCouplingOwner(partner)
+            local owner = vehicle or partner.placeable
+            self:applyConnectCouplings(partner, terminus, owner, nil)
+            SlurryPipeManager.logMP(string.format(
+                "[SPS MP] _reapplyChainTerminusBonds: rebonded role=%s partnerId=%s",
+                tostring(b.role), tostring(partner.id)))
+        end
+    end
 end
 
 -- [SPS MP] Queue a chain-terminus bond that could not resolve yet (tanker coupler
@@ -6163,7 +6428,7 @@ end
 -- Find first overlapping coupling within connection distance
 -- ---------------------------------------------------------------------------
 function SlurryPipeManager:findOverlappingCoupler(coupling)
-    SlurryPipeManager.log("findOverlappingCoupler: from couplingId=%s", tostring(coupling and coupling.id))
+    -- SlurryPipeManager.log("findOverlappingCoupler: from couplingId=%s", tostring(coupling and coupling.id))  -- [SPS] silenced: per-frame spam
     -- Already connected — no new connection possible
     if coupling.isConnected then return nil end
     local apexA, arc1A, arc2A = self:_getCouplingArcNodes(coupling)
@@ -6523,6 +6788,12 @@ function SlurryPipeManager:applyConnectCouplings(couplingA, couplingB, ownerA, o
     else
         SlurryPipeManager.logMP(string.format("[SPS MP] applyConnectCouplings: pipe visual NOT ready (visual=%s) — couplings marked connected but NO bez pipe created",
             tostring(g_spsPipeVisual ~= nil)))
+        -- [SPS MP] Retry instead of dropping: queue the pair and create the visual
+        -- from update() as soon as the pipe visual finishes loading.
+        if self._pendingPipeVisuals == nil then self._pendingPipeVisuals = {} end
+        table.insert(self._pendingPipeVisuals, { couplingA = couplingA, couplingB = couplingB })
+        SlurryPipeManager.logMP(string.format("[SPS MP] applyConnectCouplings: visual QUEUED for retry (pending=%d)",
+            #self._pendingPipeVisuals))
     end
 
     -- Play connector animations forward on both ends (no-op if not bound).
@@ -6531,6 +6802,79 @@ function SlurryPipeManager:applyConnectCouplings(couplingA, couplingB, ownerA, o
         if couplingB.connectorAnim ~= nil then SPSCouplerAnimator.play(couplingB.connectorAnim, 1) end
     end
 
+end
+
+-- [SPS MP] Create bez visuals for connect pairs that arrived before g_spsPipeVisual
+-- finished its async load. Mirrors the visual-creation block in applyConnectCouplings
+-- exactly (lead/follow selection, node choice, connector visibility). Entries whose
+-- couplings are no longer connected to each other (disconnected in the meantime) or
+-- that already gained a pipeId are dropped without creating anything.
+function SlurryPipeManager:_drainPendingPipeVisuals()
+    if self._pendingPipeVisuals == nil or #self._pendingPipeVisuals == 0 then return end
+    if g_spsPipeVisual == nil or not g_spsPipeVisual:isReady() then return end
+    local queue = self._pendingPipeVisuals
+    self._pendingPipeVisuals = {}
+    for _, e in ipairs(queue) do
+        local couplingA, couplingB = e.couplingA, e.couplingB
+        if couplingA ~= nil and couplingB ~= nil
+        and couplingA.isConnected and couplingB.isConnected
+        and couplingA.connectedPartnerCoupling == couplingB
+        and couplingA.pipeId == nil and couplingB.pipeId == nil then
+            local leadCoupling, followCoupling = couplingA, couplingB
+            if couplingB.isChainTerminus and not couplingB.isChainStart then
+                leadCoupling, followCoupling = couplingB, couplingA
+            end
+            local nodeA = leadCoupling.inNode
+            if leadCoupling.isChainTerminus and leadCoupling.chain ~= nil and not leadCoupling.isChainStart then
+                local segs = leadCoupling.chain.segments
+                if #segs > 0 then nodeA = segs[#segs].endConnectors end
+            elseif leadCoupling.isChainStart and leadCoupling.chain ~= nil then
+                local segs = leadCoupling.chain.segments
+                if #segs > 0 then nodeA = segs[1].pipeRoot end
+            end
+            local nodeB = followCoupling.outNode
+            if followCoupling.isChainTerminus and followCoupling.chain ~= nil and not followCoupling.isChainStart then
+                local segs = followCoupling.chain.segments
+                if #segs > 0 then nodeB = segs[#segs].endConnectors end
+            elseif followCoupling.isChainStart and followCoupling.chain ~= nil then
+                local segs = followCoupling.chain.segments
+                if #segs > 0 then nodeB = segs[1].pipeRoot end
+            end
+            local startConnType = (leadCoupling.connectorType ~= nil) and leadCoupling.connectorType or "male"
+            local endConnType   = (followCoupling.connectorType ~= nil) and followCoupling.connectorType or "female"
+            local inst = g_spsPipeVisual:createPipe(nodeA, nodeB, startConnType, endConnType, false, false)
+            SlurryPipeManager.logMP(string.format("[SPS MP] _drainPendingPipeVisuals: createPipe A.id=%s B.id=%s inst=%s",
+                tostring(couplingA.id), tostring(couplingB.id), tostring(inst ~= nil)))
+            if inst ~= nil then
+                local pipeId = self._nextPipeId
+                self._nextPipeId = self._nextPipeId + 1
+                local cr = self.currentPipeColor.r
+                local cg = self.currentPipeColor.g
+                local cb = self.currentPipeColor.b
+                g_spsPipeVisual:applyColor(inst, cr, cg, cb)
+                if followCoupling.isChainStart and inst.endConnectors ~= nil then
+                    inst.connectorEndFlipped = true
+                    local femaleConn = getChildAt(inst.endConnectors, 0)
+                    local maleConn   = getChildAt(inst.endConnectors, 1)
+                    if femaleConn ~= nil and femaleConn ~= 0 then setVisibility(femaleConn, true) end
+                    if maleConn   ~= nil and maleConn   ~= 0 then setVisibility(maleConn, false) end
+                elseif followCoupling.isChainTerminus and not followCoupling.isChainStart and inst.endConnectors ~= nil then
+                    local femaleConn = getChildAt(inst.endConnectors, 0)
+                    local maleConn   = getChildAt(inst.endConnectors, 1)
+                    if femaleConn ~= nil and femaleConn ~= 0 then setVisibility(femaleConn, false) end
+                    if maleConn   ~= nil and maleConn   ~= 0 then setVisibility(maleConn, true) end
+                elseif leadCoupling.isChainStart and inst.startConnectors ~= nil then
+                    local femaleConn = getChildAt(inst.startConnectors, 0)
+                    local maleConn   = getChildAt(inst.startConnectors, 1)
+                    if femaleConn ~= nil and femaleConn ~= 0 then setVisibility(femaleConn, true) end
+                    if maleConn   ~= nil and maleConn   ~= 0 then setVisibility(maleConn, false) end
+                end
+                self.activePipes[pipeId] = { inst = inst, couplingA = couplingA, couplingB = couplingB, colorR = cr, colorG = cg, colorB = cb }
+                couplingA.pipeId = pipeId
+                couplingB.pipeId = pipeId
+            end
+        end
+    end
 end
 
 function SlurryPipeManager:onCouplerDisconnect(vehicle, coupling)
@@ -6546,14 +6890,14 @@ function SlurryPipeManager:onCouplerDisconnect(vehicle, coupling)
 
     if g_server == nil then
         self:applyDisconnect(vehicle, coupling.id, coupling)
-        SlurryPipeDisconnectEvent.sendEvent(vehicle, coupling.id)
+        SlurryPipeDisconnectEvent.sendEvent(vehicle, coupling.id, nil, coupling)  -- [SPS MP] pass object for chain netId keying
         return
     end
 
     -- Pass the coupling object directly to avoid id-ambiguity with multiple
     -- identical placeable instances that share the same coupling id numbers.
     self:applyDisconnect(vehicle, coupling.id, coupling)
-    SlurryPipeDisconnectEvent.sendEvent(vehicle, coupling.id)
+    SlurryPipeDisconnectEvent.sendEvent(vehicle, coupling.id, nil, coupling)  -- [SPS MP] pass object for chain netId keying
 end
 
 -- applyDisconnect: couplingObj is the actual coupling table when available (local path).
@@ -6757,7 +7101,7 @@ function SlurryPipeManager:_forceDisconnect(vehicle, coupling)
     -- clients now all animate the valve closed. This makes auto-disconnect match the
     -- manual path.
     self:applyDisconnect(vehicle, coupling.id, coupling)
-    SlurryPipeDisconnectEvent.sendEvent(vehicle, coupling.id)
+    SlurryPipeDisconnectEvent.sendEvent(vehicle, coupling.id, nil, coupling)  -- [SPS MP] pass object for chain netId keying
 end
 
 function SlurryPipeManager:applyConnect(vehicleA, targetObject, targetType, couplingIdA, couplingIdB)
@@ -7172,6 +7516,48 @@ function SlurryPipeManager:update(dt)
 	-- [SPS MP] Send the initial state dump to any client whose connection has
 	-- become ready for events (Connection:sendEvent drops events before then).
 	self:_processJoinDumps(dt)
+	-- [SPS MP] Create any bez visuals that were queued while the pipe visual was
+	-- still async-loading (join-dump bonds applied mid map-load).
+	self:_drainPendingPipeVisuals()
+	-- [SPS MP] Re-send IBC-spawn connects after the vehicle has network-synced
+	-- (see the queue site in the IBC-loaded callback). Server only, 2 attempts.
+	if g_server ~= nil and self._pendingIbcConnectResends ~= nil and #self._pendingIbcConnectResends > 0 then
+		local now = g_time or 0
+		for i = #self._pendingIbcConnectResends, 1, -1 do
+			local e = self._pendingIbcConnectResends[i]
+			if now >= e.nextAt then
+				-- [SPS MP] Only re-send while the bond STILL EXISTS server-side.
+				-- Without this check the re-send resurrected hoses the player had
+				-- just removed (guest removes -> re-send re-connects it on clients;
+				-- host stayed removed because the broadcast only reaches clients).
+				local cA = nil
+				if self._findSprayerCouplingById ~= nil then
+					-- IBC source vehicles register into registeredSprayerPlaceables,
+					-- so try both lists (mirrors the existing lookup pattern).
+					cA = self:_findSprayerCouplingById(e.ownerA, e.idA, false)
+					  or self:_findSprayerCouplingById(e.ownerA, e.idA, true)
+				end
+				if cA == nil or not cA.isConnected then
+					SlurryPipeManager.logMP(string.format(
+						"[SPS MP] IBC connect re-send CANCELLED idA=%s idB=%s (bond no longer live)",
+						tostring(e.idA), tostring(e.idB)))
+					table.remove(self._pendingIbcConnectResends, i)
+				else
+					if e.ownerA ~= nil and e.ownerB ~= nil and SPSSprayerConnectEvent ~= nil then
+						SPSSprayerConnectEvent.sendEvent(e.ownerA, e.idA, e.ownerB, e.idB)
+						SlurryPipeManager.logMP(string.format(
+							"[SPS MP] IBC connect RE-SENT idA=%s idB=%s attempt=%d",
+							tostring(e.idA), tostring(e.idB), e.attempts + 1))
+					end
+					e.attempts = e.attempts + 1
+					e.nextAt   = now + 1000
+					if e.attempts >= 8 or e.ownerA == nil or e.ownerB == nil then
+						table.remove(self._pendingIbcConnectResends, i)
+					end
+				end
+			end
+		end
+	end
 	-- [SPS AI GATE] player<->AI transition detection must run before anything
 	-- else this tick so suspend/resume happens ahead of pressure/flow/blockage.
 	self:updateAIGate(dt)
@@ -9938,6 +10324,7 @@ function SlurryPipeManager:registerSprayerVehicle(vehicle)
             if getName(n) == name then return n end
         end
         local function searchTree(root, targetName)
+            if root == nil or root == 0 or not entityExists(root) then return nil end
             if getName(root) == targetName then return root end
             for i = 0, getNumOfChildren(root) - 1 do
                 local found = searchTree(getChildAt(root, i), targetName)
@@ -9993,6 +10380,7 @@ function SlurryPipeManager:registerSprayerVehicle(vehicle)
         if mountNode ~= nil then
             local inNode, outNode
             local function findInOut(node)
+                if node == nil or node == 0 or not entityExists(node) then return end
                 for i = 0, getNumOfChildren(node) - 1 do
                     local child = getChildAt(node, i)
                     local n = getName(child)
@@ -10044,6 +10432,9 @@ function SlurryPipeManager:registerSprayerVehicle(vehicle)
                 if couplingEntry.valveAnimationId ~= nil then
                     couplingEntry.valveAnim = SPSCouplerAnimator.bind(couplingEntry.mountNode, couplingEntry.valveAnimationId)
                 end
+                SlurryPipeManager.log("sprayer bind DIAG (vehicle): id=%s connIds=%s/%s bound=%s/%s",
+                    tostring(couplingEntry.id), tostring(couplingEntry.connectorAnimationId), tostring(couplingEntry.valveAnimationId),
+                    tostring(couplingEntry.connectorAnim ~= nil), tostring(couplingEntry.valveAnim ~= nil))
             end
             table.insert(entry.couplings, couplingEntry)
             -- Control node activatable handles connect/disconnect for vehicles with sprayerPumpControls.
@@ -10199,6 +10590,7 @@ function SlurryPipeManager:registerSprayerPlaceable(placeable)
         -- (nodeTree) path is unchanged.
         if config.isEmbedded and placeable.components ~= nil then
             local function searchTree(root, targetName)
+                if root == nil or root == 0 or not entityExists(root) then return nil end
                 if getName(root) == targetName then return root end
                 for i = 0, getNumOfChildren(root) - 1 do
                     local found = searchTree(getChildAt(root, i), targetName)
@@ -10234,6 +10626,7 @@ function SlurryPipeManager:registerSprayerPlaceable(placeable)
         if mountNode ~= nil then
             local inNode, outNode
             local function findInOut(node)
+                if node == nil or node == 0 or not entityExists(node) then return end
                 for i = 0, getNumOfChildren(node) - 1 do
                     local child = getChildAt(node, i)
                     local n = getName(child)
@@ -10284,6 +10677,9 @@ function SlurryPipeManager:registerSprayerPlaceable(placeable)
                 if sc.valveAnimationId ~= nil then
                     sc.valveAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.valveAnimationId)
                 end
+                SlurryPipeManager.log("sprayer bind DIAG (sc): id=%s connIds=%s/%s bound=%s/%s",
+                    tostring(sc.id), tostring(sc.connectorAnimationId), tostring(sc.valveAnimationId),
+                    tostring(sc.connectorAnim ~= nil), tostring(sc.valveAnim ~= nil))
             end
             table.insert(entry.couplings, sc)
             -- Placeable-side SPSSprayerPipeActivatable intentionally NOT registered.
@@ -10353,6 +10749,12 @@ function SlurryPipeManager:registerSprayerSourceVehicle(vehicle)
     local function findVehicleNode(name)
         if name == nil or name == "" or vehicle.components == nil then return nil end
         local function searchTree(root, targetName)
+            -- [SPS] Guard against dead/unknown entity ids. At the async
+            -- onFinishedLoading callback a source vehicle's component (or a child)
+            -- can be an invalid entity — calling getName/getNumOfChildren on it
+            -- throws "Unknown entity id" and the following getNumOfChildren-1 does
+            -- nil arithmetic, killing update(). Skip cleanly instead.
+            if root == nil or root == 0 or not entityExists(root) then return nil end
             if getName(root) == targetName then return root end
             for i = 0, getNumOfChildren(root) - 1 do
                 local found = searchTree(getChildAt(root, i), targetName)
@@ -10388,6 +10790,8 @@ function SlurryPipeManager:registerSprayerSourceVehicle(vehicle)
         if mountNode ~= nil then
             local inNode, outNode
             local function findInOut(node)
+                -- [SPS] Same dead-entity guard as searchTree above.
+                if node == nil or node == 0 or not entityExists(node) then return end
                 for i = 0, getNumOfChildren(node) - 1 do
                     local child = getChildAt(node, i)
                     local n = getName(child)
@@ -10434,6 +10838,9 @@ function SlurryPipeManager:registerSprayerSourceVehicle(vehicle)
                 if sc.valveAnimationId ~= nil then
                     sc.valveAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.valveAnimationId)
                 end
+                SlurryPipeManager.log("sprayer bind DIAG (sc): id=%s connIds=%s/%s bound=%s/%s",
+                    tostring(sc.id), tostring(sc.connectorAnimationId), tostring(sc.valveAnimationId),
+                    tostring(sc.connectorAnim ~= nil), tostring(sc.valveAnim ~= nil))
             end
             table.insert(entry.couplings, sc)
         else
@@ -10715,8 +11122,51 @@ function SlurryPipeManager:onSprayerCouplerConnect(object, coupling)
     SPSSprayerConnectEvent.sendEvent(ownerA, coupling.id, ownerB, otherCoupling.id)
 end
 
+-- [SPS MP] Remote engine-sound application. The pump/valve toggles play the
+-- engine loop sample only on the initiating machine; the state events carried
+-- the flag but never touched sound, so the other machine's keybind text updated
+-- while staying silent. Called from the event run() bodies. Safe on a dedicated
+-- server: isClient is false there, and g_soundManager is guarded.
+function SlurryPipeManager:applyPumpSound(vehicle, running)
+    if vehicle == nil or not vehicle.isClient or g_soundManager == nil then return end
+    local entry = self:getVehicleEntry(vehicle)
+    if entry ~= nil and entry.engineLoopSample ~= nil then
+        if running then
+            g_soundManager:playSample(entry.engineLoopSample)
+        else
+            g_soundManager:stopSample(entry.engineLoopSample)
+        end
+    end
+end
+
+function SlurryPipeManager:applySprayerEngineSound(object, on)
+    if object == nil or not object.isClient or g_soundManager == nil then return end
+    local entry = self:getSprayerVehicleEntry(object)
+    if entry ~= nil and entry.engineLoopSample ~= nil then
+        if on then
+            g_soundManager:playSample(entry.engineLoopSample)
+        else
+            g_soundManager:stopSample(entry.engineLoopSample)
+        end
+    end
+end
+
 function SlurryPipeManager:applySprayerConnect(couplingA, couplingB, ownerA, ownerB)
-    SlurryPipeManager.log("applySprayerConnect: A.id=%s B.id=%s", tostring(couplingA and couplingA.id), tostring(couplingB and couplingB.id))
+    -- [SPS MP] Idempotency: connect events can be legitimately re-delivered (the
+    -- IBC-spawn re-send below targets clients that missed the first broadcast
+    -- because the freshly spawned vehicle was not yet network-known to them).
+    -- Machines that already applied this exact bond must not build a second pipe.
+    if couplingA ~= nil and couplingB ~= nil
+    and couplingA.isConnected and couplingB.isConnected
+    and couplingA.connectedPartnerCoupling == couplingB
+    and couplingA.pipeId ~= nil then
+        SlurryPipeManager.log("applySprayerConnect: SKIP — already connected (pipeId=%s)", tostring(couplingA.pipeId))
+        return
+    end
+    SlurryPipeManager.log("applySprayerConnect: A.id=%s B.id=%s animA=%s animB=%s",
+        tostring(couplingA and couplingA.id), tostring(couplingB and couplingB.id),
+        tostring(couplingA ~= nil and couplingA.connectorAnim ~= nil),
+        tostring(couplingB ~= nil and couplingB.connectorAnim ~= nil))
     
     couplingA.isConnected              = true
     couplingA.connectedTarget          = ownerB
@@ -10966,7 +11416,13 @@ function SlurryPipeManager:spawnAndConnectIBC(sprayerObject, coupling)
     -- pipe (SPSSprayerPipeVisual) then spans the gap with the same sag rules.
     local px, _, pz = localToWorld(node, 0, 0, 8.0)
     local py = getTerrainHeightAtWorldPos(g_terrainNode, px, 0, pz)
-    local _, ry, _ = getWorldRotation(node)
+    -- [SPS] Yaw from the node's world FORWARD VECTOR, not Euler extraction.
+    -- getWorldRotation returns the (±pi, theta, ±pi) representation for world
+    -- yaws beyond ±90 deg; taking ry alone is then ~180 deg off — the IBC spawned
+    -- facing the wrong way whenever the sprayer was parked at a "flipped" heading
+    -- (the exact mechanism behind the chain-start twist).
+    local fdx, _, fdz = localDirectionToWorld(node, 0, 0, 1)
+    local ry = math.atan2(fdx, fdz)
     ry = ry + math.pi  -- face the IBC coupler back toward the sprayer (180 deg)
 
     -- [SPS] Authored spawn point override. If the coupler carries a child node named
@@ -10988,7 +11444,10 @@ function SlurryPipeManager:spawnAndConnectIBC(sprayerObject, coupling)
         if spawnPoint ~= nil and spawnPoint ~= 0 then
             px, _, pz = getWorldTranslation(spawnPoint)
             py = getTerrainHeightAtWorldPos(g_terrainNode, px, 0, pz)
-            _, ry, _ = getWorldRotation(spawnPoint)   -- authored heading; upright (no pitch/roll)
+            -- [SPS] Authored heading via forward vector (see note above) — the
+            -- node's yaw exactly as placed in the i3d, at any world orientation.
+            local sdx, _, sdz = localDirectionToWorld(spawnPoint, 0, 0, 1)
+            ry = math.atan2(sdx, sdz)
             SlurryPipeManager.log("spawnAndConnectIBC: using authored IBCspawnPoint pose (yaw=%.3f)", ry)
         end
     end
@@ -11094,6 +11553,18 @@ function SlurryPipeManager:onIbcSpawnedForConnect(vehicles, loadState, args)
     -- sprayer is couplingB here (sprayer end = inNode, IBC end = outNode).
     self:applySprayerConnectById(ibc, ibcCouplingId, sprayerObject, couplingId)
     SPSSprayerConnectEvent.sendEvent(ibc, ibcCouplingId, sprayerObject, couplingId)
+    -- [SPS MP] The freshly spawned IBC is often not yet network-known on clients
+    -- when this broadcast fires, so the connect never arrives there — the client
+    -- keeps "connect pipe" and no visual while every other machine shows the
+    -- bond. Re-send twice after the vehicle has had time to sync; clients that
+    -- already applied it no-op via the applySprayerConnect idempotency guard.
+    if g_server ~= nil then
+        if self._pendingIbcConnectResends == nil then self._pendingIbcConnectResends = {} end
+        table.insert(self._pendingIbcConnectResends, {
+            ownerA = ibc, idA = ibcCouplingId, ownerB = sprayerObject, idB = couplingId,
+            nextAt = (g_time or 0) + 1000, attempts = 0,
+        })
+    end
     SlurryPipeManager.log("onIbcSpawnedForConnect: spawned + connected IBC %s", tostring(ibc.configFileName))
 end
 
@@ -11266,6 +11737,21 @@ function SlurryPipeManager:onSprayerToggleValve(object)
         SPSSprayerValveStateEvent.sendEvent(object, newValve)
         SPSSprayerPumpStateEvent.sendEvent(object, newValve)
     else
+        -- [SPS MP] CLIENT: apply locally BEFORE sending — the server's rebroadcast
+        -- excludes the originating connection, so without this the guest who
+        -- pressed the key never saw its own valve/pump change (state, anims,
+        -- engine sound) while every other machine did. Mirrors the slurry pump
+        -- toggle pattern.
+        state.valveOpen   = newValve
+        state.pumpRunning = newValve
+        for _, c in ipairs(entry.couplings) do
+            if c.isConnected then
+                c.valveOpen = newValve
+                if c.connectedPartnerCoupling ~= nil then
+                    c.connectedPartnerCoupling.valveOpen = newValve
+                end
+            end
+        end
         SPSSprayerValveStateEvent.sendEvent(object, newValve)
         SPSSprayerPumpStateEvent.sendEvent(object, newValve)
     end
@@ -11294,6 +11780,9 @@ function SlurryPipeManager:onSprayerToggleDirection(object)
         state.direction = newDir
         SPSSprayerDirectionEvent.sendEvent(object, newDir)
     else
+        -- [SPS MP] CLIENT: apply locally BEFORE sending (rebroadcast excludes the
+        -- originating connection — see onSprayerToggleValve).
+        state.direction = newDir
         SPSSprayerDirectionEvent.sendEvent(object, newDir)
     end
 end

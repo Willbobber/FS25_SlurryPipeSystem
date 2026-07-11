@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.7
+-- Version: 1.0.0.8
 
 -- PlaceableOverride.lua
 

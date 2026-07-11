@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.7
+-- Version: 1.0.0.8
 
 -- SPSPipeChain.lua
 -- FS25_SlurryPipeSystem
@@ -26,6 +26,7 @@ SPSPipeChain.PIPE_FLOOR_RADIUS = 0.08    -- measured: bone centre to pipe bottom
 -- loop body itself is skipped entirely when logging is off.
 -- ---------------------------------------------------------------------------
 SPSPipeChain.DEBUG = false
+print("[SPS BUILD] SPSPipeChain 1.0.0.8 loaded")
 
 function SPSPipeChain.log(fmt, ...)
     if not SPSPipeChain.DEBUG then return end
@@ -979,8 +980,18 @@ function SPSPipeChain:getSaveData()
     and self.segments[1].pipeRoot ~= 0 and (entityExists == nil or entityExists(self.segments[1].pipeRoot)) then
         data.chainStartX, data.chainStartY, data.chainStartZ =
             getWorldTranslation(self.segments[1].pipeRoot)
-        local _, chainStartRY, _ = getWorldRotation(self.segments[1].pipeRoot)
+        -- [SPS DIAG/FIX] Save the FULL pipeRoot rotation (rx,ry,rz), not yaw only.
+        -- The store-anchored path preserves full orientation via the mount-node link;
+        -- the vehicle-anchored path previously kept only ry, so any pitch/roll present
+        -- at save time was lost on restore (candidate cause of the one-ended twist).
+        -- Backward compatible: old saves lack chainStartRX/RZ and default to 0.
+        local chainStartRX, chainStartRY, chainStartRZ = getWorldRotation(self.segments[1].pipeRoot)
+        data.chainStartRX = chainStartRX
         data.chainStartRY = chainStartRY
+        data.chainStartRZ = chainStartRZ
+        SPSPipeChain.log("getSaveData DIAG: chainStart pipeRoot rot rx=%.5f ry=%.5f rz=%.5f pos=(%.3f,%.3f,%.3f)",
+            chainStartRX, chainStartRY, chainStartRZ,
+            data.chainStartX, data.chainStartY, data.chainStartZ)
     end
     for i, seg in ipairs(self.segments) do
         -- If DS is present, save the original (pre-DS-move) endConnectors position
@@ -996,6 +1007,11 @@ function SPSPipeChain:getSaveData()
                 wx, wy, wz = getWorldTranslation(seg.endConnectors)
                 local _, savedRY, _ = getWorldRotation(seg.endConnectors)
                 rx, ry, rz = 0, savedRY, 0
+                -- [SPS DIAG] Log the FULL end-connector rotation so we can compare it
+                -- against the yaw-only cleanRY the restore path recomputes.
+                local drx, dry, drz = getWorldRotation(seg.endConnectors)
+                SPSPipeChain.log("getSaveData DIAG: seg %d endConnectors rot rx=%.5f ry=%.5f rz=%.5f pos=(%.3f,%.3f,%.3f)",
+                    i, drx, dry, drz, wx, wy, wz)
             end
         end
         if wx ~= nil then
@@ -1043,6 +1059,17 @@ function SPSPipeChain:restoreFromSaveData(data)
         local seg = self:_loadPipe(nextX, nextY, nextZ, nextRY,
             segData.colorR, segData.colorG, segData.colorB, localNode, true)
         if seg == nil then break end
+        -- [SPS DIAG/FIX] Vehicle-anchored segment 1: restore the FULL saved pipeRoot
+        -- rotation (rx,ry,rz). _loadPipe placed it yaw-only (0,startRY,0); if the
+        -- saved value had pitch/roll it was being dropped, flattening the chain-start
+        -- node the bez reconnects to. Guarded so old saves (no chainStartRX) and the
+        -- store path (localStart / node-linked) are untouched.
+        if i == 1 and not self.localStart and data.chainStartRX ~= nil
+        and seg.pipeRoot ~= nil and seg.pipeRoot ~= 0 then
+            setWorldRotation(seg.pipeRoot, data.chainStartRX, data.chainStartRY or 0, data.chainStartRZ or 0)
+            SPSPipeChain.log("restoreFromSaveData DIAG/FIX: seg 1 pipeRoot set to full rot rx=%.5f ry=%.5f rz=%.5f",
+                data.chainStartRX, data.chainStartRY or 0, data.chainStartRZ or 0)
+        end
         -- Calculate rotation for endConnectors to face from end back to start
         local p0x, p0y, p0z = getWorldTranslation(seg.pipeRoot)
         local dx = segData.x - p0x
@@ -1051,6 +1078,15 @@ function SPSPipeChain:restoreFromSaveData(data)
         local cleanRY = len > 0.001 and math.atan2(dx / len, dz / len) + math.pi or 0
         setWorldTranslation(seg.endConnectors, segData.x, segData.y, segData.z)
         setWorldRotation(seg.endConnectors, 0, cleanRY, 0)
+        -- [SPS DIAG] Log what the restore actually applied vs what was saved, so a
+        -- save->reload comparison pinpoints which component (pipeRoot roll/pitch or
+        -- the yaw-only endConnectors) diverges and drives the twist.
+        do
+            local prx, pry, prz = getWorldRotation(seg.pipeRoot)
+            local erx, ery, erz = getWorldRotation(seg.endConnectors)
+            SPSPipeChain.log("restoreFromSaveData DIAG: seg %d applied pipeRoot rot rx=%.5f ry=%.5f rz=%.5f | endConn rot rx=%.5f ry=%.5f rz=%.5f (cleanRY=%.5f, savedSegRY=%.5f)",
+                i, prx, pry, prz, erx, ery, erz, cleanRY, segData.ry or 0)
+        end
         self:_updateBezierBones(seg)
         self:_terrainClampBones(seg)
         table.insert(self.segments, seg)

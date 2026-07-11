@@ -1,12 +1,13 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.7
+-- Version: 1.0.0.8
 
 -- SPSSprayerEvents.lua
 -- FS25_SlurryPipeSystem
 
 -- [SPS] Per-file debug toggle. Set true to enable [SPS SPR EVT] trace logging.
 local DEBUG = false
+print("[SPS BUILD] SPSSprayerEvents 1.0.0.8 loaded")
 local function log(fmt, ...)
     if not DEBUG then return end
     if select("#", ...) > 0 then
@@ -107,6 +108,13 @@ function SPSSprayerValveStateEvent:run(connection)
         local state = g_slurryPipeManager:getSprayerObjectState(self.object)
         if state ~= nil then
             state.valveOpen = self.valveOpen
+            -- [SPS MP] Drive the sprayer engine loop on receiving machines (host
+            -- included for guest toggles). The toggle only plays/stops the sample
+            -- on the initiator; remote peers updated keybind text but stayed
+            -- silent. Engine sound is tied to valve state, matching the toggle.
+            if g_slurryPipeManager.applySprayerEngineSound ~= nil then
+                g_slurryPipeManager:applySprayerEngineSound(self.object, self.valveOpen)
+            end
             -- Also mirror onto couplings on remote clients
             local vEntry = g_slurryPipeManager:getSprayerVehicleEntry(self.object)
             if vEntry ~= nil then

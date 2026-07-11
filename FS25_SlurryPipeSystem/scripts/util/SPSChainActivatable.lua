@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.7
+-- Version: 1.0.0.8
 
 -- SPSChainActivatable.lua
 -- FS25_SlurryPipeSystem
@@ -23,6 +23,7 @@ SPSChainActivatable.HOLD_THRESHOLD  = 0.8
 -- update, _getState) are intentionally NOT logged to avoid frame spam.
 -- ---------------------------------------------------------------------------
 SPSChainActivatable.DEBUG = false
+print("[SPS BUILD] SPSChainActivatable 1.0.0.8 loaded")
 
 function SPSChainActivatable.log(fmt, ...)
     if not SPSChainActivatable.DEBUG then return end
@@ -222,6 +223,34 @@ function SPSChainActivatable:_onShortPress()
     local state = self:_getState()
     SPSChainActivatable.log("shortPress: arc=%s isEnd=%s state=%s",
         tostring(self.arcIndex), tostring(self.isEndActivatable), tostring(state))
+    -- [SPS DIAG] Always-on arc-0 press snapshot: one line settles build identity
+    -- AND chain addressability (is the pressed chain the netId-mapped object, how
+    -- many chains anchor here, does the coupling carry a placeable ref).
+    if SPSChainActivatable.DEBUG and self.arcIndex == 0 and g_slurryPipeManager ~= nil then
+        local mgr = g_slurryPipeManager
+        local inMap, mapSize, anchoredHere = "no", 0, 0
+        if mgr._chainsByNetId ~= nil then
+            for id, c in pairs(mgr._chainsByNetId) do
+                mapSize = mapSize + 1
+                if c == self.chain then inMap = tostring(id) end
+            end
+        end
+        if mgr.pipeChains ~= nil and self.coupling ~= nil then
+            for _, c in ipairs(mgr.pipeChains) do
+                local a = c.anchorCoupling
+                if a ~= nil and (a == self.coupling
+                or (a.placeable ~= nil and a.placeable == self.coupling.placeable and a.id == self.coupling.id)) then
+                    anchoredHere = anchoredHere + 1
+                end
+            end
+        end
+        print(string.format("[SPS DIAG] arc0 press: state=%s hasChain=%s chainNetId=%s inMap=%s mapSize=%d anchoredHere=%d couplingHasPlaceable=%s pipeChains=%d",
+            tostring(state), tostring(self.chain ~= nil),
+            tostring(self.chain ~= nil and self.chain.netId or nil),
+            inMap, mapSize, anchoredHere,
+            tostring(self.coupling ~= nil and self.coupling.placeable ~= nil),
+            mgr.pipeChains ~= nil and #mgr.pipeChains or -1))
+    end
     if state == "layFirstPipe" then
         -- Start laying from anchor coupler
         if g_slurryPipeManager ~= nil then
@@ -265,20 +294,30 @@ function SPSChainActivatable:_onShortPress()
         if self.arcIndex == 0 then
             -- Remove all segments
             SPSChainActivatable.log("shortPress: removePipeChain — removing entire chain from anchor")
-            self.chain:removeFromIndex(1)
+            -- [SPS MP] Capture the chain BEFORE teardown: removeFromIndex disconnects
+            -- the connected chainStart (the anchor bez), and freeChainBindingIfNeeded
+            -- then nils BOTH chain.anchorCoupling AND this activatable's self.chain
+            -- pointer. Passing self.chain afterwards handed onChainEmpty nil — the
+            -- netId was unreachable and the removal never replicated (store first
+            -- pipe stayed on the other machine).
+            local chain = self.chain
+            chain:removeFromIndex(1)
             if g_slurryPipeManager ~= nil then
-                g_slurryPipeManager:onChainEmpty(self.chain, self.coupling)
+                g_slurryPipeManager:onChainEmpty(chain, self.coupling)
             end
             self.chain = nil
         else
             -- Remove from this segment onwards
             SPSChainActivatable.log("shortPress: removePipeChain — removing from segment %d onwards", self.arcIndex)
-            self.chain:removeFromIndex(self.arcIndex)
+            -- [SPS MP] Same capture (belt & braces — segment-arc pointers are not
+            -- nil'd by freeChainBindingIfNeeded, but don't rely on it).
+            local chain = self.chain
+            chain:removeFromIndex(self.arcIndex)
             -- [SPS MP] If that emptied the chain, finalise it exactly like the
             -- anchor-arc path so removal is replicated (commitChainRemoval) and
             -- the empty chain is cleaned up instead of being orphaned.
-            if self.chain ~= nil and #self.chain.segments == 0 and g_slurryPipeManager ~= nil then
-                g_slurryPipeManager:onChainEmpty(self.chain, self.coupling)
+            if chain ~= nil and #chain.segments == 0 and g_slurryPipeManager ~= nil then
+                g_slurryPipeManager:onChainEmpty(chain, self.coupling)
                 self.chain = nil
             end
         end
@@ -385,6 +424,18 @@ function SPSChainActivatable:_onLongPress()
                     SPSCouplerAnimator.play(self.chain.anchorCoupling.connectedPartnerCoupling.valveAnim, 1)
                 end
             end
+            -- [SPS MP] Replicate: this branch was local-only, so a guest's toggle
+            -- never reached the server (flow stayed gated) and a host's toggle never
+            -- reached guests. The event carries chain netId+role for exact remote
+            -- resolution. On the host also walk the chain to the far end, mirroring
+            -- onValveOpen (the event's run() does this for client-initiated toggles).
+            if SlurryValveStateEvent ~= nil then
+                SlurryValveStateEvent.sendEvent(nil, cc, true)
+            end
+            if g_server ~= nil and g_slurryPipeManager ~= nil
+            and g_slurryPipeManager._propagateValveState ~= nil then
+                g_slurryPipeManager:_propagateValveState(cc, true)
+            end
         end
     elseif state == "connectedValveOpen" then
         -- Anchor (arcIndex==0) toggles via the chain's last (far-end) segment
@@ -428,6 +479,14 @@ function SPSChainActivatable:_onLongPress()
                     SPSCouplerAnimator.play(self.chain.anchorCoupling.connectedPartnerCoupling.valveAnim, -1)
                 end
             end
+            -- [SPS MP] Replicate close (see the open branch above for rationale).
+            if SlurryValveStateEvent ~= nil then
+                SlurryValveStateEvent.sendEvent(nil, cc, false)
+            end
+            if g_server ~= nil and g_slurryPipeManager ~= nil
+            and g_slurryPipeManager._propagateValveState ~= nil then
+                g_slurryPipeManager:_propagateValveState(cc, false)
+            end
         end
     end
 end
@@ -469,6 +528,43 @@ end
 function SPSChainActivatable:_getState()
     -- Anchor (arcIndex == 0)
     if self.arcIndex == 0 then
+        -- [SPS MP] Re-resolve the anchored chain from the manager instead of
+        -- trusting the cached pointer. Across JIP rebuild generations (and
+        -- placeables that register more than once, creating a second generation
+        -- of coupling tables) the cached self.chain can be a stale object whose
+        -- netId is nil — its removal then never replicates, and _getState offers
+        -- "lay first pipe" while a live chain still anchors here (duplicate pipe
+        -- on the other machine). Anchors are matched by table identity OR by
+        -- (same placeable + same coupling id); when several chains match, the
+        -- netId-carrying (network-addressable) one wins.
+        if g_slurryPipeManager ~= nil and self.coupling ~= nil
+        and g_slurryPipeManager.pipeChains ~= nil then
+            local function anchorsMatch(a, b)
+                if a == b then return a ~= nil end
+                if a == nil or b == nil then return false end
+                return a.placeable ~= nil and a.placeable == b.placeable and a.id == b.id
+            end
+            local best = nil
+            local cachedStillExists = false
+            for _, c in ipairs(g_slurryPipeManager.pipeChains) do
+                if c == self.chain then cachedStillExists = true end
+                if anchorsMatch(c.anchorCoupling, self.coupling) then
+                    if best == nil or (best.netId == nil and c.netId ~= nil) then
+                        best = c
+                    end
+                end
+            end
+            if best ~= nil then
+                if best ~= self.chain then
+                    SPSChainActivatable.log("_getState: arc 0 re-resolved chain (netId=%s, was netId=%s)",
+                        tostring(best.netId), tostring(self.chain ~= nil and self.chain.netId or "no chain"))
+                    self.chain = best
+                end
+            elseif self.chain ~= nil and not cachedStillExists then
+                SPSChainActivatable.log("_getState: arc 0 dropping stale chain pointer (object no longer managed)")
+                self.chain = nil
+            end
+        end
         -- Deployable coupling not yet deployed — offer deploy (long press)
         if self.coupling ~= nil and self.coupling.deployable and not self.coupling.isDeployed then
             return "deployCoupling"
@@ -620,7 +716,14 @@ function SPSChainActivatable:_getState()
     -- Use chain.localStart (set at lock time, never reset) rather than anchorCoupling,
     -- so this still works after applyDisconnect has freed chain.anchorCoupling on drive-off.
     if self.arcIndex == 1 then
-        if self.chain == nil or self.chain.localStart == true then
+        -- Suppress the pipeRoot remove only when an anchor activatable exists to handle
+        -- removal at that position (placeable-anchored chains, localStart=true + anchor
+        -- present). A free-standing chain has anchorCoupling==nil and therefore NO anchor
+        -- activatable — this is exactly the state of any chain restored from a savegame
+        -- (localStart=true, anchor not re-linked). In that case the pipeRoot MUST offer
+        -- removal, otherwise the final chainStart segment can never be removed and it
+        -- re-broadcasts as a residual segment to every peer (host/guest desync on restart).
+        if self.chain == nil or (self.chain.localStart == true and self.chain.anchorCoupling ~= nil) then
             --print(string.format(
             --    "[SPS] _getState arcIndex==1: suppress remove — chain=%s localStart=%s",
             --    tostring(self.chain ~= nil), tostring(self.chain and self.chain.localStart)))
