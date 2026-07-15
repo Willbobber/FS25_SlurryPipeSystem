@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.8
+-- Version: 1.0.0.9
 
 -- SPSSprayerPumpControl.lua
 -- Outside control node activatable for sprayer vehicles.
@@ -10,13 +10,14 @@
 --   3. B (SPS_TOGGLE_PUMP)             — start / stop flow (valve toggle)
 --   4. Y (SPS_TOGGLE_DIRECTION)        — set load / set unload direction
 
+print("[SPS BUILD] SPSSprayerPumpControl 1.0.0.9.8 loaded")
+
 SPSSprayerPumpControl = {}
 SPSSprayerPumpControl.__index = SPSSprayerPumpControl
 
--- [SPS] Per-file debug toggle. Set true to enable [SPS SPR CTRL] trace logging.
-local DEBUG = false
+-- [SPS] Debug gate lives in scripts/SPSDebugConfig.lua (channel "SPSSprayerPumpControl").
 local function log(fmt, ...)
-    if not DEBUG then return end
+    if SPSDebugConfig == nil or not SPSDebugConfig.isOn("SPSSprayerPumpControl") then return end
     if select("#", ...) > 0 then
         print("[SPS SPR CTRL] " .. string.format(fmt, ...))
     else
@@ -173,6 +174,10 @@ function SPSSprayerPumpControl:update(dt)
         local visible = connected or canConnect or canAddIbc
         g_inputBinding:setActionEventTextVisibility(self._eventIds.activate, visible)
         if visible then
+            -- [SPS 1.0.0.9.8] Compartment readout removed from the keybind text
+            -- (user preference: no fillType/litres in the prompt). Targeting
+            -- the right tank is handled by player-nearest coupler selection in
+            -- findOverlappingSprayerCoupler instead.
             local txt
             if connected then
                 txt = g_i18n:getText("action_spsDisconnectPipe")

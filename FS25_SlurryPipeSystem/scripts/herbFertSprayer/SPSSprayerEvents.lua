@@ -1,15 +1,14 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.8
+-- Version: 1.0.0.9
 
 -- SPSSprayerEvents.lua
 -- FS25_SlurryPipeSystem
 
--- [SPS] Per-file debug toggle. Set true to enable [SPS SPR EVT] trace logging.
-local DEBUG = false
-print("[SPS BUILD] SPSSprayerEvents 1.0.0.8 loaded")
+-- [SPS] Debug gate lives in scripts/SPSDebugConfig.lua (channel "SPSSprayerEvents").
+print("[SPS BUILD] SPSSprayerEvents 1.0.0.9.5 loaded")
 local function log(fmt, ...)
-    if not DEBUG then return end
+    if SPSDebugConfig == nil or not SPSDebugConfig.isOn("SPSSprayerEvents") then return end
     if select("#", ...) > 0 then
         print("[SPS SPR EVT] " .. string.format(fmt, ...))
     else
@@ -378,5 +377,53 @@ function SPSSprayerDisconnectEvent.sendEvent(object, couplingId)
         g_server:broadcastEvent(SPSSprayerDisconnectEvent.new(object, couplingId), nil, nil, object)
     else
         g_client:getServerConnection():sendEvent(SPSSprayerDisconnectEvent.new(object, couplingId))
+    end
+end
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.0.9.5] SPSSprayerCompartmentEvent — server -> clients.
+-- Mirrors one dynamic compartment's lock state (fillType, 0 = unlocked) and
+-- level so client-side capacity recompute matches the server. Storage LEVELS
+-- travel on the vanilla Storage streams; this is ledger state only.
+-- ---------------------------------------------------------------------------
+SPSSprayerCompartmentEvent = {}
+SPSSprayerCompartmentEvent_mt = Class(SPSSprayerCompartmentEvent, Event)
+InitEventClass(SPSSprayerCompartmentEvent, "SPSSprayerCompartmentEvent")
+
+function SPSSprayerCompartmentEvent.emptyNew()
+    local self = Event.new(SPSSprayerCompartmentEvent_mt)
+    return self
+end
+
+function SPSSprayerCompartmentEvent.new(object, couplerId, fillType, level)
+    local self = SPSSprayerCompartmentEvent.emptyNew()
+    self.object    = object
+    self.couplerId = couplerId
+    self.fillType  = fillType or 0
+    self.level     = level or 0
+    return self
+end
+
+function SPSSprayerCompartmentEvent:readStream(streamId, connection)
+    self.object    = NetworkUtil.readNodeObject(streamId)
+    self.couplerId = streamReadUIntN(streamId, 8)
+    self.fillType  = streamReadInt32(streamId)
+    self.level     = streamReadFloat32(streamId)
+    self:run(connection)
+end
+
+function SPSSprayerCompartmentEvent:writeStream(streamId, connection)
+    NetworkUtil.writeNodeObject(streamId, self.object)
+    streamWriteUIntN(streamId, self.couplerId or 0, 8)
+    streamWriteInt32(streamId, self.fillType or 0)
+    streamWriteFloat32(streamId, self.level or 0)
+end
+
+function SPSSprayerCompartmentEvent:run(connection)
+    log("CompartmentEvent:run obj=%s coupler=%s fillType=%s level=%.1f",
+        tostring(self.object and self.object.configFileName), tostring(self.couplerId),
+        tostring(self.fillType), self.level or 0)
+    if self.object ~= nil and g_slurryPipeManager ~= nil
+    and g_slurryPipeManager.applySprayerCompartmentState ~= nil then
+        g_slurryPipeManager:applySprayerCompartmentState(self.object, self.couplerId, self.fillType, self.level)
     end
 end

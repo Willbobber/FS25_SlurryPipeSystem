@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.8
+-- Version: 1.0.0.9
 
 -- init.lua
 -- FS25_SlurryPipeSystem
@@ -8,15 +8,17 @@
 local SPS_MOD_DIRECTORY = g_currentModDirectory
 local SPS_MOD_NAME      = "FS25_SlurryPipeSystem"
 
-SlurryDebug.enabled = false  -- hardcoded during development
+print("[SPS BUILD] init 1.0.0.9 loaded")
 
--- [SPS SPRAY] Sprayer-issue diagnostic trace for the action-event path. Flip to
--- true to log, once per vehicle per register cycle, whether a sprayer-config
--- vehicle keeps its vanilla turn-on (B) event or has R/I stripped. Prefixed
--- [SPS SPRAY] to match the manager/override traces.
-local SPRAYER_TRACE = false
+SlurryDebug.enabled = false  -- boot default; controlled by SPSDebugConfig channel "SlurryDebug"
+
+-- [SPS SPRAY] Sprayer-issue diagnostic trace for the action-event path. Logs,
+-- once per vehicle per register cycle, whether a sprayer-config vehicle keeps
+-- its vanilla turn-on (B) event or has R/I stripped. Prefixed [SPS SPRAY] to
+-- match the manager/override traces.
+-- Gate lives in scripts/SPSDebugConfig.lua (channel "Init.SprayerTrace").
 local function sprayTrace(fmt, ...)
-    if not SPRAYER_TRACE then return end
+    if SPSDebugConfig == nil or not SPSDebugConfig.isOn("Init.SprayerTrace") then return end
     if select("#", ...) > 0 then
         print("[SPS SPRAY] " .. string.format(fmt, ...))
     else
@@ -25,7 +27,7 @@ local function sprayTrace(fmt, ...)
 end
 
 source(SPS_MOD_DIRECTORY .. "scripts/settings/SPSSettingsMenuExtension.lua")
-source(SPS_MOD_DIRECTORY .. "scripts/util/SPSConduitHUDExtension.lua")
+source(SPS_MOD_DIRECTORY .. "scripts/hud/SPSConduitHUDExtension.lua")
 
 -- ---------------------------------------------------------------------------
 -- InputHelpDisplay overrides for SPSConduitHUDExtension
@@ -135,8 +137,12 @@ local SPS_IBC_CONFIG_TO_I3D = {
 }
 
 do
-    -- Per-file debug toggle (enabled during active development).
-    local SPS_IBC_REDIRECT_DEBUG = true
+    -- Debug gate lives in scripts/SPSDebugConfig.lua (channel "Init.IbcRedirect").
+    -- NOTE: the old local flag shipped TRUE in 1.0.0.8; the registry default is
+    -- false, so the per-redirect [SPS IBC] lines are now silent unless enabled.
+    local function ibcDbg()
+        return SPSDebugConfig ~= nil and SPSDebugConfig.isOn("Init.IbcRedirect")
+    end
 
     local origLoadSharedI3DFileAsync = I3DManager.loadSharedI3DFileAsync
     I3DManager.loadSharedI3DFileAsync = function(self, filename, callOnCreate, addToPhysics,
@@ -151,7 +157,7 @@ do
                     for cfgTail, spsRel in pairs(SPS_IBC_CONFIG_TO_I3D) do
                         if cfgLower:sub(-#cfgTail) == cfgTail then
                             local spsPath = SPS_MOD_DIRECTORY .. spsRel
-                            if SPS_IBC_REDIRECT_DEBUG then
+                            if ibcDbg() then
                                 print(string.format(
                                     "[SPS IBC] i3d redirect: '%s' -> '%s' (config '%s')",
                                     tostring(filename), tostring(spsPath), tostring(cfg)))
@@ -189,7 +195,10 @@ end
 -- to vanilla via the same isAIControlled gate used by the type-level overrides.
 -- ---------------------------------------------------------------------------
 do
-    local DEBUG = false  -- set true for [SPS LT] per-call trace
+    -- Debug gate lives in scripts/SPSDebugConfig.lua (channel "Init.LoadTrigger").
+    local function ltDbg()
+        return SPSDebugConfig ~= nil and SPSDebugConfig.isOn("Init.LoadTrigger")
+    end
     local function spsBlocksFillable(fillableObject)
         if fillableObject == nil then return false end
         if g_slurryPipeManager == nil then return false end
@@ -220,7 +229,7 @@ do
         local origGetAllowsActivation = LoadTrigger.getAllowsActivation
         LoadTrigger.getAllowsActivation = function(self, fillableObject)
             local blocked = spsBlocksFillable(fillableObject)
-            if DEBUG then
+            if ltDbg() then
                 print(string.format("[SPS LT] getAllowsActivation fillable=%s blocked=%s",
                     tostring(fillableObject and fillableObject.configFileName), tostring(blocked)))
             end
@@ -237,7 +246,7 @@ do
             local origStartLoading = LoadTrigger.startLoading
             LoadTrigger.startLoading = function(self, fillType, fillableObject, fillUnitIndex)
                 if spsBlocksFillable(fillableObject) then
-                    if DEBUG then
+                    if ltDbg() then
                         print(string.format("[SPS LT] startLoading BLOCKED fillable=%s",
                             tostring(fillableObject and fillableObject.configFileName)))
                     end
@@ -281,7 +290,7 @@ do
         local origFTGetIsActivatable = FillTrigger.getIsActivatable
         FillTrigger.getIsActivatable = function(self, vehicle)
             if spsBlocksFillable(vehicle) then
-                if DEBUG then
+                if ltDbg() then
                     print(string.format("[SPS FT] getIsActivatable BLOCKED vehicle=%s",
                         tostring(vehicle and vehicle.configFileName)))
                 end
@@ -294,7 +303,7 @@ do
             local origFTFillVehicle = FillTrigger.fillVehicle
             FillTrigger.fillVehicle = function(self, vehicle, delta, dt)
                 if spsBlocksFillable(vehicle) then
-                    if DEBUG then
+                    if ltDbg() then
                         print(string.format("[SPS FT] fillVehicle BLOCKED vehicle=%s",
                             tostring(vehicle and vehicle.configFileName)))
                     end
@@ -1170,4 +1179,18 @@ function Placeable:delete(immediate)
     if origPlaceableDelete ~= nil then
         origPlaceableDelete(self, immediate)
     end
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS] Central debug registry sync. init.lua is the LAST sourceFile in
+-- modDesc, so every SPS class exists by the time this runs. Pushes the
+-- SPSDebugConfig channel values into the class-field debug switches
+-- (SlurryPipeManager.DEBUG / MP_DEBUG / SPRAYER_TRACE, SPSPipeChain.DEBUG,
+-- SlurryDebug.enabled, etc.). See scripts/SPSDebugConfig.lua.
+-- ---------------------------------------------------------------------------
+if SPSDebugConfig ~= nil and SPSDebugConfig.applyAll ~= nil then
+    SPSDebugConfig.applyAll()
+    print("[SPS INIT] SPSDebugConfig.applyAll — debug channels synced")
+else
+    print("[SPS INIT] WARNING: SPSDebugConfig not loaded — debug channels not synced")
 end

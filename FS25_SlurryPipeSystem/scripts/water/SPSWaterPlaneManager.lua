@@ -24,6 +24,8 @@
 ================================================================================
 ]]
 
+print("[SPS BUILD] SPSWaterPlaneManager 1.0.0.9.12 loaded")
+
 SPSWaterPlaneManager = {}
 local SPSWaterPlaneManager_mt = Class(SPSWaterPlaneManager)
 
@@ -125,6 +127,9 @@ end
   Manifest structure:
     <spsWaterManifest>
         <waterPlane title="Witcombe Park Farm" mapFolder="FS25_Witcombe"/>
+        <!-- optional per entry: titles="Name A;Name B"  titleContains="witcombe"
+             (case-insensitive; mapFolder is a folder INSIDE this mod's water/
+             directory — player renames of the map's mod folder never matter) -->
     </spsWaterManifest>
   
   Process:
@@ -171,17 +176,47 @@ function SPSWaterPlaneManager:_loadExternalWaterNodes()
             break  -- No more entries
         end
         
-        local entryTitle = xmlFile:getString(entryKey .. "#title")
-        local entryFolder = xmlFile:getString(entryKey .. "#mapFolder")
-        
-        -- Exact title match
-        if entryTitle == mapTitle and entryFolder ~= nil and entryFolder ~= "" then
+        local entryTitle    = xmlFile:getString(entryKey .. "#title")
+        local entryTitles   = xmlFile:getString(entryKey .. "#titles")        -- optional ;-list
+        local entryContains = xmlFile:getString(entryKey .. "#titleContains") -- optional substring
+        local entryFolder   = xmlFile:getString(entryKey .. "#mapFolder")
+
+        -- [SPS 1.0.0.9.12] Tolerant matching. The mod FOLDER name was never part
+        -- of this key (title-based, so player renames are already safe; mapFolder
+        -- points inside SPS's own water/ dir), but exact title equality was
+        -- brittle against localized titles and map-update title edits. Matching
+        -- is now case-insensitive + trimmed, an entry may list alternatives
+        -- (titles="A;B;C"), and titleContains="witcombe" opts into substring
+        -- matching for authors who want it. First matching entry wins.
+        local function norm(t)
+            if t == nil then return nil end
+            return t:lower():gsub("^%s+", ""):gsub("%s+$", "")
+        end
+        local wantedLower = norm(mapTitle)
+        local matched = false
+        if norm(entryTitle) == wantedLower then
+            matched = true
+        end
+        if not matched and entryTitles ~= nil then
+            for alt in string.gmatch(entryTitles, "[^;]+") do
+                if norm(alt) == wantedLower then
+                    matched = true
+                    break
+                end
+            end
+        end
+        if not matched and entryContains ~= nil and entryContains ~= "" then
+            if wantedLower ~= nil and wantedLower:find(norm(entryContains), 1, true) ~= nil then
+                matched = true
+            end
+        end
+        if matched and entryFolder ~= nil and entryFolder ~= "" then
             mapFolder = entryFolder
-            SlurryDebug.log(string.format("[SPS WPM] Manifest match: title='%s' -> mapFolder='%s'",
-                entryTitle, mapFolder))
+            SlurryDebug.log(string.format("[SPS WPM] Manifest match: map title '%s' -> mapFolder='%s'",
+                tostring(mapTitle), mapFolder))
             break
         end
-        
+
         entryIndex = entryIndex + 1
     end
     

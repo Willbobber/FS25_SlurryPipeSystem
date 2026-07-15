@@ -8,6 +8,8 @@
 -- Stage is declared per plant in fillPoints.xml.
 -- All pools share a global exclusion zone so no two instances overlap.
 
+print("[SPS BUILD] SPSCrustVegetation 1.0.0.9.15 loaded")
+
 SPSCrustVegetation = {}
 
 SPSCrustVegetation.THRESH = { [1] = 0.4, [2] = 0.6, [3] = 0.8 }
@@ -200,14 +202,26 @@ function SPSCrustVegetation.initForPlaceable(pEntry, modDirectory)
             print("[SPS CrustVeg] clone failed for " .. tostring(fullPath))
             return nil
         end
+        -- [SPS 1.0.0.9.15] Clones are parented to the WORLD root, not the
+        -- placeable subtree (same pattern as chain pipes). MP field logs showed
+        -- why: on sell, the engine deleted the placeable's children (our 347
+        -- clones) BEFORE our hook ran — SPS's registry went stale AND vanilla
+        -- Placeable:setOverlayColor's construction-hover node list still held
+        -- the dead ids, throwing three "Unknown entity id" shader stacks per
+        -- sell. World-parented clones are never in the placeable's tree, so
+        -- the overlay never lists them, the sell never kills them behind our
+        -- back, and deleteForPlaceable now genuinely deletes. Height above the
+        -- rising crust plane is followed in updateVisibility instead of being
+        -- inherited from the old parent.
         local lx, _, lz = worldToLocal(attachNode, wx, 0, wz)
-        link(attachNode, plantRoot)
-        setTranslation(plantRoot, lx, 0, lz)
+        local wpx, wpy, wpz = localToWorld(attachNode, lx, 0, lz)
+        link(getRootNode(), plantRoot)
+        setWorldTranslation(plantRoot, wpx, wpy, wpz)
         setRotation(plantRoot, 0, math.random() * 2 * math.pi, 0)
         local s = 0.8 + math.random() * 0.4
         setScale(plantRoot, s, s, s)
         setVisibility(plantRoot, false)
-        return { rootNode = plantRoot }
+        return { rootNode = plantRoot, wx = wpx, wy = wpy, wz = wpz }
     end
 
     for stage = 1, 3 do
@@ -248,12 +262,30 @@ function SPSCrustVegetation.updateVisibility(pEntry)
     -- Crust is a mandatory realism feature: when the master is off, hide all of it
     -- (kept in memory, not deleted, so it returns instantly when re-enabled).
     local masterOn = g_slurryPipeManager == nil or g_slurryPipeManager:isFeatureEnabled()
-    local t = (g_slurryPipeManager ~= nil and pEntry.sourceEntry ~= nil)
-        and g_slurryPipeManager:getApparentThickness(pEntry.sourceEntry) or 0
+    -- [SPS 1.0.0.9.14] Foliage keys on the store's CRUST value, not thickness.
+    -- It previously read getApparentThickness (the DM gauge), so ordinary
+    -- slurry sitting mid-gauge grew stage-1 plants on a store whose crust read
+    -- 0% (field report). Design rule restored: plants appear at crust >= 40%,
+    -- fuller stages at 60% / 80% — the same value the HUD shows as crust.
+    local t = 0
+    if g_slurryPipeManager ~= nil and pEntry.sourceEntry ~= nil
+    and g_slurryPipeManager.getSourceCrust ~= nil then
+        t = g_slurryPipeManager:getSourceCrust(pEntry.sourceEntry) or 0
+    end
+    -- Follow the rising crust plane (clones are world-parented since 1.0.0.9.15).
+    local rise = 0
+    if pEntry.sourceEntry ~= nil then
+        rise = (pEntry.sourceEntry.settle or 0) * (pEntry.sourceEntry.crustMaxRise or 0)
+    end
     for stage = 1, 3 do
         local visible = masterOn and (t >= SPSCrustVegetation.THRESH[stage])
         for _, inst in ipairs(pEntry.crustInstances[stage]) do
-            setVisibility(inst.rootNode, visible)
+            if inst.rootNode ~= nil and inst.rootNode ~= 0 and entityExists(inst.rootNode) then
+                setVisibility(inst.rootNode, visible)
+                if visible and inst.wy ~= nil then
+                    setWorldTranslation(inst.rootNode, inst.wx, inst.wy + rise, inst.wz)
+                end
+            end
         end
     end
 end
@@ -263,11 +295,10 @@ end
 -- ---------------------------------------------------------------------------
 function SPSCrustVegetation.deleteForPlaceable(pEntry)
     if pEntry.crustInstances == nil then return end
-    -- On leave-game the engine deletes the placeable's i3d subtree (including the
-    -- fillPlane / crustFoliage parent these clones are linked to) BEFORE
-    -- unregisterPlaceable runs. By the time we get here the clones may already be
-    -- freed, so delete() would throw "Unknown entity id". Guard with entityExists,
-    -- matching every other delete path in the mod.
+    -- Clones are world-parented (1.0.0.9.15), so neither sell nor leave-game
+    -- deletes them behind our back any more — this is now the one true owner.
+    -- The entityExists guard stays as cheap insurance, matching every other
+    -- delete path in the mod.
     local deleted, skipped = 0, 0
     for stage = 1, 3 do
         for _, inst in ipairs(pEntry.crustInstances[stage]) do

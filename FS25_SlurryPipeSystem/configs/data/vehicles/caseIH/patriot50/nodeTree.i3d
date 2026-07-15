@@ -46,23 +46,23 @@
       <TransformGroup name="sprayerPipeCouplers" nodeId="11">
         <TransformGroup name="patriot50A_vis" nodeId="12">
           <TransformGroup name="SPS_sprayerPipeCoupler01" translation="0.97369 1.605 -0.304813" rotation="90 90 0" nodeId="13">
-            <TransformGroup name="SPS_sprayerPipeCoupler01Arcs" translation="-1.17765e-07 0 0" nodeId="14">
-              <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="3.5 3.86333e-06 -1.5" rotation="0 0 6.87363e-05" nodeId="15"/>
-              <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="3.5 -5.42457e-06 1.5" rotation="0 0 -0.000314568" nodeId="16"/>
+            <TransformGroup name="SPS_sprayerPipeCoupler01Arcs" translation="-1.17765e-07 0 0" rotation="-90 -0 0" nodeId="14">
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="-1 0 3.5" rotation="0 0 6.87363e-05" nodeId="15"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="1 0 3.5" rotation="0 0 -0.000314568" nodeId="16"/>
             </TransformGroup>
             <Shape name="sprayerConnector" shapeId="1" clipDistance="150" nodeId="17" castsShadows="true" receiveShadows="true" materialIds="5">
               <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="18" castsShadows="true" receiveShadows="true" materialIds="6"/>
               <TransformGroup name="inNode" translation="2.49905e-08 1.64534e-08 0.205501" rotation="0 180 0" nodeId="19"/>
               <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="20"/>
             </Shape>
-            <TransformGroup name="IBCspawnPoint" translation="-0.790914 3.30874 1.605" rotation="-90 -6.86152e-06 -149.848" nodeId="838"/>
+            <TransformGroup name="IBCspawnPoint" translation="-0.790914 3.30874 1.605" rotation="-90 -6.86152e-06 -149.848" nodeId="21"/>
           </TransformGroup>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="sprayerPumpControls" nodeId="21">
-        <TransformGroup name="patriot50A_vis" nodeId="22">
-          <TransformGroup name="sprayerControlNode" translation="0.97369 1.60544 -0.304813" nodeId="23"/>
-          <TransformGroup name="exhaustNode" translation="0.97369 1.60544 -0.304813" nodeId="24"/>
+      <TransformGroup name="sprayerPumpControls" nodeId="22">
+        <TransformGroup name="patriot50A_vis" nodeId="23">
+          <TransformGroup name="sprayerControlNode" translation="0.97369 1.60544 -0.304813" nodeId="24"/>
+          <TransformGroup name="exhaustNode" translation="0.97369 1.60544 -0.304813" nodeId="25"/>
         </TransformGroup>
       </TransformGroup>
     </TransformGroup>

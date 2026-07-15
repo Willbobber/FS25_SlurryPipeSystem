@@ -2,7 +2,7 @@
 <modDesc descVersion="110">
 
     <author>Oscar Mods</author>
-    <version>1.0.0.7</version>
+    <version>1.0.0.9</version>
     <title>
         <en>Slurry Pipe System</en>
         <de>Gülle-Rohrsystem</de>
@@ -120,46 +120,72 @@ Caratteristiche:
     <l10n filenamePrefix="l10n/l10n" />
 	
 	<extraSourceFiles>
-        <sourceFile filename="scripts/util/SlurryAgitatorEvent.lua"/>
-		<sourceFile filename="scripts/util/SlurryDebug.lua" />
-        <sourceFile filename="scripts/util/SlurryNodeUtil.lua" />
-        <sourceFile filename="scripts/util/SPSChainActivatable.lua"/>
-		<sourceFile filename="scripts/util/SPSCouplerAnimator.lua"/>
-		<sourceFile filename="scripts/util/SPSCrustVegetation.lua"/>
-		<sourceFile filename="scripts/util/SPSEvents.lua" />
-		<sourceFile filename="scripts/util/SPSBlockageEvent.lua" />
-		<sourceFile filename="scripts/util/SPSPipeActivatable.lua"/>
-		<sourceFile filename="scripts/util/SPSBlockageActivatable.lua"/>
-		<sourceFile filename="scripts/util/SPSSpreaderHUD.lua"/>
-		<sourceFile filename="scripts/util/SPSPipeChain.lua"/>
-		<sourceFile filename="scripts/util/SPSPipeVisual.lua"/>
-		<sourceFile filename="scripts/util/SPSPumpControlActivatable.lua"/>
+		<!-- [SPS] Central debug registry — MUST load before every other SPS script -->
+		<sourceFile filename="scripts/debug/SPSDebugConfig.lua"/>
+		<sourceFile filename="scripts/debug/SlurryDebug.lua"/>
+
+		<!-- shared utils -->
+		<sourceFile filename="scripts/util/SlurryNodeUtil.lua"/>
 		<sourceFile filename="scripts/util/SlurryTractorCapability.lua"/>
-		<sourceFile filename="scripts/util/SPSOutsideControlActivatable.lua"/>
+		<sourceFile filename="scripts/util/SPSCrustVegetation.lua"/>
+
+		<!-- slurry MP events -->
+		<sourceFile filename="scripts/events/SPSEvents.lua"/>
+
+		<!-- chain pipes -->
+		<sourceFile filename="scripts/chains/SPSChainActivatable.lua"/>
+		<sourceFile filename="scripts/chains/SPSPipeChain.lua"/>
+
+		<!-- couplers / strap pipes / outside controls -->
+		<sourceFile filename="scripts/couplers/SPSCouplerAnimator.lua"/>
+		<sourceFile filename="scripts/couplers/SPSPipeActivatable.lua"/>
+		<sourceFile filename="scripts/couplers/SPSPipeVisual.lua"/>
+		<sourceFile filename="scripts/couplers/SPSPumpControlActivatable.lua"/>
+		<sourceFile filename="scripts/couplers/SPSOutsideControlActivatable.lua"/>
+
+		<!-- blockages -->
+		<sourceFile filename="scripts/blockage/SPSBlockageEvent.lua"/>
+		<sourceFile filename="scripts/blockage/SPSBlockageActivatable.lua"/>
+
+		<!-- HUD -->
+		<sourceFile filename="scripts/hud/SPSSpreaderHUD.lua"/>
+
+		<!-- agitators -->
+		<sourceFile filename="scripts/agitators/SlurryAgitatorEvent.lua"/>
 		<sourceFile filename="scripts/agitators/SPSFixedAgitator.lua"/>
 		<sourceFile filename="scripts/agitators/SPSFixedAgitatorEvent.lua"/>
 		<sourceFile filename="scripts/agitators/SPSFixedAgitatorActivatable.lua"/>
 		<sourceFile filename="scripts/agitators/SPSFixedAgitatorShaft.lua"/>
-		
-		<sourceFile filename="scripts/util/SPSShearBolt.lua"/>
-		<sourceFile filename="scripts/util/SPSShearBoltEvent.lua"/>
-		<sourceFile filename="scripts/util/SPSShearBoltActivatable.lua"/>
-		
+
+		<!-- shear bolt -->
+		<sourceFile filename="scripts/shearBolt/SPSShearBolt.lua"/>
+		<sourceFile filename="scripts/shearBolt/SPSShearBoltEvent.lua"/>
+		<sourceFile filename="scripts/shearBolt/SPSShearBoltActivatable.lua"/>
+
+		<!-- fert/herb sprayers -->
 		<sourceFile filename="scripts/herbFertSprayer/SPSSprayerEvents.lua"/>
 		<sourceFile filename="scripts/herbFertSprayer/SPSSprayerPipeVisual.lua"/>
 		<sourceFile filename="scripts/herbFertSprayer/SPSSprayerPipeActivatable.lua"/>
 		<sourceFile filename="scripts/herbFertSprayer/SPSSprayerPumpControl.lua"/>
-		
-		
-		<sourceFile filename="scripts/water/SPSWaterPlaneManager.lua"/>
-		
-        <sourceFile filename="scripts/manager/SlurryPipeManager.lua" />
 
-        <sourceFile filename="scripts/overrides/ManureBarrelOverride.lua" />
-        <sourceFile filename="scripts/overrides/PlaceableOverride.lua" />
-		
-        <sourceFile filename="scripts/init.lua" />
-		
+		<!-- water -->
+		<sourceFile filename="scripts/water/SPSWaterPlaneManager.lua"/>
+
+		<!-- manager: core MUST load before its SPSM_ domain modules -->
+		<sourceFile filename="scripts/manager/SlurryPipeManager.lua"/>
+		<sourceFile filename="scripts/manager/SPSM_Chains.lua"/>
+		<sourceFile filename="scripts/manager/SPSM_Couplers.lua"/>
+		<sourceFile filename="scripts/manager/SPSM_Flow.lua"/>
+		<sourceFile filename="scripts/manager/SPSM_Pressure.lua"/>
+		<sourceFile filename="scripts/manager/SPSM_Consistency.lua"/>
+		<sourceFile filename="scripts/manager/SPSM_Spreader.lua"/>
+		<sourceFile filename="scripts/manager/SPSM_Sprayers.lua"/>
+		<sourceFile filename="scripts/manager/SPSM_IBC.lua"/>
+
+		<sourceFile filename="scripts/overrides/ManureBarrelOverride.lua"/>
+		<sourceFile filename="scripts/overrides/PlaceableOverride.lua"/>
+
+		<sourceFile filename="scripts/init.lua"/>
 	</extraSourceFiles>
 	
 	<actions>

@@ -15,26 +15,6 @@
 	
 	<surfaceRef emptyNode="emptyNode" fullNode="fullNode"/>
 	
-	<!-- Pressure section optional. Omit entirely to use the SPS defaults shown below.
-		maxPressure     : ±bar ceiling; HUD reads from -this to +this
-		minThreshold    : bar of stored pressure needed before flow can start
-		minBuildTime    : seconds to reach max at a FULL tank (fast build)
-		maxBuildTime    : seconds to reach max at an EMPTY tank (slow build); scales by fill ratio
-		fallTimeWorking : seconds max->0 while fluid is still transferring (slow taper)
-		fallTimeEmpty   : seconds max->0 while venting with no transfer (faster)
-		purgeTime       : seconds to vent max->0 when flipping direction against stored pressure
-		openTop         : true = passive open-top vessel (FRC-style), never holds pressure, no gauge -->
-	<pressure
-		maxPressure="2.0"
-		minThreshold="0.3"
-		minBuildTime="10"
-		maxBuildTime="30"
-		fallTimeWorking="30"
-		fallTimeEmpty="60"
-		purgeTime="10"
-		openTop="false"
-	/>
-	
     <fillArms>
 
         <fillArm

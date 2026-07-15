@@ -1,20 +1,21 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.8
+-- Version: 1.0.0.9
 
 -- SPSSprayerPipeActivatable.lua
 -- FS25_SlurryPipeSystem
 
+print("[SPS BUILD] SPSSprayerPipeActivatable 1.0.0.9 loaded")
+
 SPSSprayerPipeActivatable = {}
 SPSSprayerPipeActivatable.__index = SPSSprayerPipeActivatable
 
--- [SPS] Per-file debug toggle. Set true to enable [SPS SPR ACT] trace logging.
+-- [SPS] Debug gate lives in scripts/SPSDebugConfig.lua (channel "SPSSprayerPipeActivatable").
 -- NOTE: this class is currently NOT instantiated anywhere (SPSSprayerPipeActivatable.new
 -- is never called — SPSSprayerPumpControl is the only active sprayer control). If these
--- logs never appear with DEBUG=true, that confirms the file is dormant.
-local DEBUG = false
+-- logs never appear with the channel on, that confirms the file is dormant.
 local function log(fmt, ...)
-    if not DEBUG then return end
+    if SPSDebugConfig == nil or not SPSDebugConfig.isOn("SPSSprayerPipeActivatable") then return end
     if select("#", ...) > 0 then
         print("[SPS SPR ACT] " .. string.format(fmt, ...))
     else

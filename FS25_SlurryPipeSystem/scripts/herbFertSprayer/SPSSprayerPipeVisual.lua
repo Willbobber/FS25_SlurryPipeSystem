@@ -1,19 +1,20 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.8
+-- Version: 1.0.0.9
 
 -- SPSSprayerPipeVisual.lua
 -- FS25_SlurryPipeSystem
 
+print("[SPS BUILD] SPSSprayerPipeVisual 1.0.0.9 loaded")
+
 SPSSprayerPipeVisual = {}
 SPSSprayerPipeVisual.__index = SPSSprayerPipeVisual
 
--- [SPS] Per-file debug toggle. Set true to enable [SPS SSPV] trace logging.
+-- [SPS] Debug gate lives in scripts/SPSDebugConfig.lua (channel "SPSSprayerPipeVisual").
 -- Hard failure prints (load ERROR, createPipe ERROR) remain unconditional — they
 -- signal genuine problems, not trace noise.
-local DEBUG = false
 local function log(fmt, ...)
-    if not DEBUG then return end
+    if SPSDebugConfig == nil or not SPSDebugConfig.isOn("SPSSprayerPipeVisual") then return end
     if select("#", ...) > 0 then
         print("[SPS SSPV] " .. string.format(fmt, ...))
     else

@@ -14,8 +14,8 @@
         <sprayerPipeCoupling
             id="1"
             mountNodeName="SPS_sprayerPipeCoupler01"
-            fillType="HERBICIDE"
-			flowDirection="BOTH"
+            fillTypeCategories="ANY"
+			capacity="40000"
             maxPipeLength="7.5"
 			connectorAnimation="3"
 		/>
@@ -23,8 +23,8 @@
 		<sprayerPipeCoupling
             id="2"
             mountNodeName="SPS_sprayerPipeCoupler02"
-            fillType="LIQUIDFERTILIZER"
-			flowDirection="BOTH"
+            fillTypeCategories="ANY"
+			capacity="40000"
             maxPipeLength="7.5"
 			connectorAnimation="3"
 		/>

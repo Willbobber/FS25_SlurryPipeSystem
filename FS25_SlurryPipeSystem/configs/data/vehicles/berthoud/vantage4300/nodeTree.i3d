@@ -46,23 +46,23 @@
       <TransformGroup name="sprayerPipeCouplers" nodeId="11">
         <TransformGroup name="vantage4300_root" nodeId="12">
           <TransformGroup name="SPS_sprayerPipeCoupler01" translation="0.830212 1.011 1.78722" rotation="20.0933 64.5169 3.81203" nodeId="13">
-            <TransformGroup name="SPS_sprayerPipeCoupler01Arcs" translation="-1.17765e-07 0 0" nodeId="14">
-              <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="-1.5 -3.24799e-08 3.5" rotation="0 0 6.87363e-05" nodeId="15"/>
-              <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="1.5 -8.71887e-06 3.5" rotation="0 0 -0.000314568" nodeId="16"/>
+            <TransformGroup name="SPS_sprayerPipeCoupler01Arcs" translation="-1.19209e-07 0 -2.98023e-08" rotation="-16.6449 -0.516721 -1.55634" nodeId="14">
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="-1 -3.24799e-08 3.5" rotation="0 0 6.87363e-05" nodeId="15"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="1 -8.71887e-06 3.5" rotation="0 0 -0.000314568" nodeId="16"/>
             </TransformGroup>
             <Shape name="sprayerConnector" shapeId="1" clipDistance="150" nodeId="17" castsShadows="true" receiveShadows="true" materialIds="5">
               <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="18" castsShadows="true" receiveShadows="true" materialIds="6"/>
               <TransformGroup name="inNode" translation="2.49905e-08 1.64534e-08 0.205501" rotation="0 180 0" nodeId="19"/>
               <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="20"/>
             </Shape>
-            <TransformGroup name="IBCspawnPoint" translation="0.224614 0.154688 4.06932" rotation="-162.71 -15.4769 173.541" nodeId="435"/>
+            <TransformGroup name="IBCspawnPoint" translation="0.224614 0.154688 4.06932" rotation="-162.71 -15.4769 173.541" nodeId="21"/>
           </TransformGroup>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="sprayerPumpControls" nodeId="21">
-        <TransformGroup name="vantage4300_root" nodeId="22">
-          <TransformGroup name="sprayerControlNode" translation="0.830212 1.01101 1.78722" nodeId="23"/>
-          <TransformGroup name="exhaustNode" translation="0.830212 1.01101 1.78722" nodeId="24"/>
+      <TransformGroup name="sprayerPumpControls" nodeId="22">
+        <TransformGroup name="vantage4300_root" nodeId="23">
+          <TransformGroup name="sprayerControlNode" translation="0.830212 1.01101 1.78722" nodeId="24"/>
+          <TransformGroup name="exhaustNode" translation="0.830212 1.01101 1.78722" nodeId="25"/>
         </TransformGroup>
       </TransformGroup>
     </TransformGroup>

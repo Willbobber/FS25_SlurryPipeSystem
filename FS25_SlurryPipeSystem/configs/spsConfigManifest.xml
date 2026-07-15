@@ -139,9 +139,14 @@
                    configFolder="mods/FS25_UKStlyleBuilding/xml/cowShedUK"/>
         <placeable path="FS25_UKStlyleBuilding/xml/cowShedUK_nonMilk.xml"
                    configFolder="mods/FS25_UKStlyleBuilding/xml/cowShedUK_nonMilk"/>
-        <placeable path="FS25_Witcombe/map/placeables/cowBarn01/cowBarn01.xml"
+        <!-- [SPS 1.0.0.9.11] Witcombe match tails start at map/ so players can
+             rename the map's mod folder freely; the wrong-placeable bail guard
+             in registerPlaceable/registerSprayerPlaceable protects against a
+             different map sharing the same relative path. configFolder stays
+             an SPS-internal path and is unaffected by user renames. -->
+        <placeable path="map/placeables/cowBarn01/cowBarn01.xml"
                    configFolder="mods/FS25_Witcombe/map/placeables/cowBarn01"/>
-        <placeable path="FS25_Witcombe/map/placeables/cowBarnParlour/cowBarnParlour.xml"
+        <placeable path="map/placeables/cowBarnParlour/cowBarnParlour.xml"
                    configFolder="mods/FS25_Witcombe/map/placeables/cowBarnParlour"/>
 		
     </placeableConfigs>
@@ -151,9 +156,9 @@
     	<placeable path="data/placeables/meridian/liquidFlatBottomTank1630/liquidFlatBottomTank1630.xml"/>
 		
 		<!-- Mod placeables -->
-		<placeable path="FS25_Witcombe/map/placeables/liquidFert/large/liquidFertLarge.xml"
+		<placeable path="map/placeables/liquidFert/large/liquidFertLarge.xml"
                    configFolder="mods/FS25_Witcombe/map/placeables/liquidFert/large"/>
-		<placeable path="FS25_Witcombe/map/placeables/liquidFert/small/liquidFertSmall.xml"
+		<placeable path="map/placeables/liquidFert/small/liquidFertSmall.xml"
                    configFolder="mods/FS25_Witcombe/map/placeables/liquidFert/small"/>
 	</sprayerPlaceableConfigs>
 
