@@ -130,6 +130,17 @@ and `outNode` somewhere in its hierarchy. SPS finds them automatically. The pipe
 drawn from this coupler's `outNode` to the partner coupler's `inNode`, so place/orient them
 where the pipe should leave and enter.
 
+**Pipe rest length:** the connection pipe is a fixed-length hose of `maxPipeLength` metres —
+slack hangs as a downward bow that pulls out as the vehicles separate, and the pipe rests on
+hard surfaces beneath it. The connection breaks past `maxPipeLength`.
+
+**Optional `IBCspawnPoint` child:** SPS can spawn a matching IBC source tank for the sprayer
+(hold **R** at the pump control while the sprayer holds a fill type and no partner coupler is
+in range — the spawned IBC matches the sprayer's current liquid, including Soil & Fertilizer
+types). By default the IBC is placed 4 m out facing the coupler; if the mount node contains a
+child named exactly `IBCspawnPoint`, the IBC spawns at that node's position and heading
+instead (height snapped to terrain). The prompt is suppressed while the sprayer is empty.
+
 ---
 
 ## 6. Pump control — `<sprayerPumpControls>`
@@ -177,9 +188,13 @@ For example, in the log the iXtrack's `connectorAnimation="1"` expects part node
 
 That warning means the animation id is valid but your mount node does not contain the part
 nodes that id drives — name your clamp/valve sub-objects to match, or omit the animation
-attribute if you do not want it. (If you need the full list of available ids and the exact
-part-node names each one expects, that catalogue lives in the SPS coupler animator script —
-ask and it can be listed.)
+attribute if you do not want it.
+
+You can also define your **own** animation ids without touching SPS: add a
+`<couplerAnimations>` block inside your `<sprayerPipeSystem>` using the same format as the
+SPS `configs/couplerAnimations.xml` (see the placeable guide §7 for the block format).
+Config-local ids are checked before the shared library, so a local id overrides a shipped
+one of the same number.
 
 ### loadAnimation (vehicle-level)
 

@@ -148,6 +148,16 @@
                    configFolder="mods/FS25_Witcombe/map/placeables/cowBarn01"/>
         <placeable path="map/placeables/cowBarnParlour/cowBarnParlour.xml"
                    configFolder="mods/FS25_Witcombe/map/placeables/cowBarnParlour"/>
+        <!-- [SPS 1.0.0.9.27] BartsoNv3 buyable liquid manure well (vanilla
+             placeable type "buyingStation" — infinite PAID SPS source, pipe
+             only, FILL only, switchable sold type).
+             The tail must mirror the RUNTIME location of the placeable xml:
+             BartsoNv3's modDesc storeItem is "liquidManureStation.xml" at the
+             MOD ROOT (no subfolder), so the tail is folder + filename only.
+             Suffix match is exact — inserting a subfolder that does not exist
+             on disk makes the entry dead. -->
+        <placeable path="FS25_BuyableManureAndOther/liquidManureStation.xml"
+                   configFolder="mods/FS25_BuyableManureAndOther/liquidManureStation"/>
 		
     </placeableConfigs>
 	

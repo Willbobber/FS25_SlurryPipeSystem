@@ -2,7 +2,7 @@
 
 <i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
   <Asset>
-    <Export program="GIANTS Editor 64bit" version="10.0.11"/>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
   </Asset>
 
   <Files>
@@ -57,12 +57,13 @@
             <Shape name="slurryHoseConnetorMale02" rotation="-180 1.86693e-05 -180" shapeId="1" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="17" castsShadows="false" receiveShadows="false" materialIds="6">
               <Shape name="hose" shapeId="2" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="18" castsShadows="true" receiveShadows="true" materialIds="5"/>
             </Shape>
-            <TransformGroup name="inNode" nodeId="23"/>
-            <TransformGroup name="outNode" rotation="0 180 0" nodeId="24"/>
+            <TransformGroup name="inNode" nodeId="19"/>
+            <TransformGroup name="outNode" rotation="0 180 0" nodeId="20"/>
+            <TransformGroup name="headHeight01" nodeId="25"/>
           </TransformGroup>
-          <TransformGroup name="slurryPlaneCentre" translation="29.9835 -1.94 59.0255" nodeId="19"/>
-          <TransformGroup name="slurryPlaneCorner1" translation="31.4835 -1.94 60.5255" nodeId="20"/>
-          <TransformGroup name="slurryPlaneCorner2" translation="28.4835 -1.94 57.5255" nodeId="21"/>
+          <TransformGroup name="slurryPlaneCentre" translation="29.9835 -1.94 59.0255" nodeId="21"/>
+          <TransformGroup name="slurryPlaneCorner1" translation="31.4835 -1.94 60.5255" nodeId="22"/>
+          <TransformGroup name="slurryPlaneCorner2" translation="28.4835 -1.94 57.5255" nodeId="23"/>
         </TransformGroup>
       </TransformGroup>
     </TransformGroup>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  FS25_SlurryPipeSystem — bundled config
+  configs/mods/BuyableHeaps/liquidManureStation/fillPoints.xml
+
+  [SPS 1.0.0.9.26] BartsoNv3 buyable liquid manure well.
+  Vanilla placeable type "buyingStation": infinite PAID source. The vanilla
+  BuyingStation charges per litre (priceScale x pricePerLiter x economy
+  multiplier) inside addFillLevelToFillableObject — SPS calls that directly,
+  so the 0.8 LIQUIDMANURE / 1.2 DIGESTATE scales in the station's own XML are
+  honoured automatically. The station's fillLitersPerSecond (200) is IGNORED;
+  the connecting tanker's own SPS fill rate applies.
+
+  Rules baked into this config:
+    * Pipe only (chain/bez). No fillPlane authored -> fill arms can never
+      detect or connect here.
+    * flowDirection="FILL" on every coupler -> discharge into the station is
+      blocked by the existing tickFlow partner-direction gate.
+    * One coupler per sold fillType via the per-coupler fillType attribute
+      (LIQUIDMANURE and DIGESTATE), matching the station's <fillType> list.
+    * No headHeightNodeName -> excluded from vehicle<->store head
+      equalisation, exactly like every store coupler without one.
+
+  nodeTree authoring (Oscar):
+    * Container group named "buyingStation" (that node exists in
+      liquidManureBuyable.i3d at 0>4) — SPS links the container's children
+      onto it at register time.
+    * Each mount node below must have "inNode" and "outNode" children
+      (chain start = inNode; bez/auto-connect exit = outNode).
+    * If zero containers resolve, the wrong-placeable bail guard skips the
+      placeable entirely (protects the filename-only manifest tail).
+
+  Optional <buyingStation> attributes:
+    fillType   default sold type when a coupler has no restriction
+               (default LIQUIDMANURE)
+    thickness  authored gauge thickness blended into the tanker on fill;
+               omit = no blend (tank average unchanged)
+    crust      authored crust value blended on fill; omit = no blend
+-->
+<slurryPipeSystem>
+    <nodeTree filename="nodeTree.i3d"/>
+
+    <!-- [SPS 1.0.0.9.27] ONE switchable coupler: #fillTypes is the ordered
+         switch cycle, #default the starting selection. switchNodeName is the
+         walk-up panel node in the nodeTree (by the electrical box);
+         switchRadius the on-foot interact distance in metres. The prompt
+         reads "Buying: <current> - switch to <next>" on the default
+         interact key. Selection is server-authoritative, MP-synced and
+         JIP-safe (SPSBuyStationEvent).
+         [SPS 1.0.0.9.28] extraFillType children sell types the vanilla
+         station does NOT declare (SPS-side purchase at
+         priceScale x pricePerLiter x economy multiplier; priceScale 0 =
+         free). Extras are appended to the switch cycle. WATER fills always
+         dilute tank thickness/crust toward 0. -->
+    <buyingStation fillTypes="LIQUIDMANURE DIGESTATE" default="LIQUIDMANURE"
+                   switchNodeName="SPS_buyTypeSwitch" switchRadius="3.0">
+        <extraFillType name="WATER" priceScale="1.0"/>
+    </buyingStation>
+
+    <pipeCouplings>
+        <pipeCoupling
+            id="1"
+            mountNodeName="SPS_pipeCoupler01"
+            flowDirection="FILL"
+            valveType="MANUAL"
+            deployable="false"
+            maxPipeLength="4.0"
+			connector="male"
+			connectorAnimation="1"
+			valveAnimation="2"
+        />
+    </pipeCouplings>
+</slurryPipeSystem>

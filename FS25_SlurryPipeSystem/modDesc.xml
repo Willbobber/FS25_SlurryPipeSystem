@@ -2,7 +2,7 @@
 <modDesc descVersion="110">
 
     <author>Oscar Mods</author>
-    <version>1.0.0.9</version>
+    <version>1.0.0.10</version>
     <title>
         <en>Slurry Pipe System</en>
         <de>Gülle-Rohrsystem</de>
@@ -182,6 +182,16 @@ Caratteristiche:
 		<sourceFile filename="scripts/manager/SPSM_Sprayers.lua"/>
 		<sourceFile filename="scripts/manager/SPSM_IBC.lua"/>
 
+		<!-- Separator (loads AFTER the manager + domain modules: wraps manager seams) -->
+		<sourceFile filename="scripts/separator/SPSSeparatorEvent.lua"/>
+		<sourceFile filename="scripts/separator/SPSSeparatorActivatable.lua"/>
+		<sourceFile filename="scripts/separator/SPSSeparator.lua"/>
+		<sourceFile filename="scripts/overrides/SPSSlurryTankExtensions.lua"/>
+		<sourceFile filename="scripts/overrides/SPSChainBondPersistence.lua"/>
+		
+		<sourceFile filename="scripts/buyStation/SPSBuyStationEvent.lua"/>
+		<sourceFile filename="scripts/buyStation/SPSBuyStationActivatable.lua"/>
+
 		<sourceFile filename="scripts/overrides/ManureBarrelOverride.lua"/>
 		<sourceFile filename="scripts/overrides/PlaceableOverride.lua"/>
 
@@ -196,8 +206,10 @@ Caratteristiche:
 		<action name="SPS_TOGGLE_ANIMATION_SPRAYER" axisType="HALF"/>
 		<action name="SPS_HUD_EDIT" 				axisType="HALF"/>
 		<action name="SPS_REPAIR_SHEARBOLT"			axisType="HALF"/>
-		<action name="SPS_TOGGLE_AGITATOR"/>
-		<action name="SPS_ENGAGE_AGITATOR"/>
+		<action name="SPS_TOGGLE_AGITATOR"			axisType="HALF"/>
+		<action name="SPS_ENGAGE_AGITATOR"			axisType="HALF"/>
+		<action name="SPS_TOGGLE_SEPARATOR"			axisType="HALF"/>
+		<action name="SPS_SEPARATOR_TIGHTNESS"		axisType="HALF"/>
 	</actions>
 	
 	<inputBinding>
@@ -228,23 +240,28 @@ Caratteristiche:
 		<actionBinding action="SPS_ENGAGE_AGITATOR">
 			<binding device="KB_MOUSE_DEFAULT" input="KEY_b"/>
 		</actionBinding>
+		<actionBinding action="SPS_TOGGLE_SEPARATOR">
+			<binding device="KB_MOUSE_DEFAULT" input="KEY_o"/>
+		</actionBinding>
+		<actionBinding action="SPS_SEPARATOR_TIGHTNESS">
+			<binding device="KB_MOUSE_DEFAULT" input="KEY_k"/>
+		</actionBinding>
 	</inputBinding>
 	
-	<specializations>
-        <specialization name="slurryAgitator" className="SlurryAgitator" filename="scripts/specializations/SlurryAgitator.lua"/>
-    </specializations>
-
     <vehicleTypes>
         <type name="manurePump" parent="implement" className="Vehicle" filename="$dataS/scripts/vehicles/Vehicle.lua">
             <specialization name="turnOnVehicle"/>
         </type>
-        <type name="slurryAgitator" parent="implement" className="Vehicle" filename="$dataS/scripts/vehicles/Vehicle.lua">
-            <specialization name="slurryAgitator"/>
-        </type>
 	</vehicleTypes>
+	
+	<placeableTypes>
+		<type name="manureHeapSeparator" parent="manureHeap" className="Placeable" filename="$dataS/scripts/placeables/Placeable.lua">
+		</type>
+	</placeableTypes>
 	
 	<storeItems>
         <storeItem xmlFilename="vehicles/PTOSlurryPump/PTOSlurryPump.xml"/>
+		<storeItem xmlFilename="placeables/separators/borger125FixedBunker/borger125FixedBunker.xml"/>
     </storeItems>
 	
 	<brands>

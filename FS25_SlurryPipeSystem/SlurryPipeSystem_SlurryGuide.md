@@ -42,13 +42,34 @@ Mixing takes time — you can't fix a badly neglected store in a few seconds. Le
 
 ### Water — fixes thickness
 
-Adding water dilutes the slurry and brings the concentration down, making it pump and spread freely again. Water is the **only** fix for slurry that's too thick once it's already well mixed.
+Adding water dilutes the slurry and brings the concentration down, making it pump and spread freely again. Once slurry is well mixed, water — or the separator described below — is the fix for slurry that's still too thick.
 
 You don't store water separately in a slurry store — any water you pipe or fill-arm in is blended straight into the slurry as it enters. SPS tankers can also draw water from lakes and ponds with a fill arm if you need a source out in the field.
 
 So the rule of thumb:
 - **Lumpy / crusted / won't spread cleanly →** mix it.
 - **Still too thick after mixing / won't pump →** add water.
+
+### Separating — strips the solids out entirely
+
+If you'd rather remove the solids than dilute them, pipe your slurry through a **screw-press
+separator** (the Börger bunker separator in the store, under the SPS brand). It pulls slurry
+in through one coupler, presses the dry matter out as stackable solid manure that drops onto
+its bunker heap, and returns the thinner liquid fraction out through the other coupler.
+
+- **Walk up to the control panel** to start and stop it, and to cycle the **screw tightness**
+  (0–100% in five steps). Tighter captures more dry matter per pass but slows the
+  throughput; looser runs faster and captures less.
+- **One pass makes it thinner, not thin.** A screw press only captures a fraction of the
+  dry matter each time through. Pipe the liquid fraction back round for another pass —
+  recirculating through the separator gets the slurry progressively thinner, no water needed.
+- The pressed solids are normal manure — load the heap and spread it like any muck.
+- The separator **halts itself** when the incoming slurry has nothing left worth pressing,
+  or when the bunker heap backs up — clear the heap and it resumes.
+- Running it can cost money per hour, depending on the machine.
+
+So you now have two ways to deal with thick slurry: **water** blends it thinner in the
+store, the **separator** physically removes the solids and hands you manure as a bonus.
 
 ---
 
@@ -83,7 +104,8 @@ If you'd rather not deal with any of this, the whole realism system — thicknes
 1. **Mix your store regularly**, and always give it a stir before loading. This is what keeps blockages away.
 2. **Don't let a store sit unmixed for seasons** — crust builds up across the year and you'll pay for it in slow flow and constant blockages.
 3. **Load from a freshly mixed store** so your tanker carries clean slurry.
-4. **If it's still too thick to pump after mixing, add water** — that's the only thing that thins it.
+4. **If it's still too thick to pump after mixing, add water** — or run it through a
+   separator to strip the solids out instead.
 5. **Check the HUD risk reading** before you set off; mix again if it's high.
 6. **Blocked in the field?** Hop out, clear it at the spreader, and mix the store better next time.
 

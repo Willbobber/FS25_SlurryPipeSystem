@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Sprayers 1.0.0.9.16 loaded")
+print("[SPS BUILD] SPSM_Sprayers 1.0.0.9.24 loaded")
 
 
 -- Applies saved sprayer animation state to a newly registered vehicle.
@@ -390,6 +390,16 @@ function SlurryPipeManager:registerSprayerVehicle(vehicle)
 
     local kp = (config.xmlKeyPrefix or "") .. "sprayerPipeSystem."
 
+    -- [SPS 1.0.0.9.24] Per-config coupler animation definitions (optional
+    -- <couplerAnimations> block inside this config's xml, same format as
+    -- configs/couplerAnimations.xml). Passed into bind() so sprayer configs
+    -- can carry their own animations; local ids shadow global ids for this
+    -- config's couplings only.
+    local localAnimLibrary = nil
+    if SPSCouplerAnimator ~= nil and SPSCouplerAnimator.parseLocal ~= nil then
+        localAnimLibrary = SPSCouplerAnimator.parseLocal(xmlFile, kp)
+    end
+
     local entry = {
         object           = vehicle,
         isVehicle        = true,
@@ -562,10 +572,10 @@ function SlurryPipeManager:registerSprayerVehicle(vehicle)
             and (couplingEntry.connectorAnimationId ~= nil or couplingEntry.valveAnimationId ~= nil) then
                 SPSCouplerAnimator.ensureLoaded(g_currentMission.spsModDirectory)
                 if couplingEntry.connectorAnimationId ~= nil then
-                    couplingEntry.connectorAnim = SPSCouplerAnimator.bind(couplingEntry.mountNode, couplingEntry.connectorAnimationId)
+                    couplingEntry.connectorAnim = SPSCouplerAnimator.bind(couplingEntry.mountNode, couplingEntry.connectorAnimationId, localAnimLibrary)
                 end
                 if couplingEntry.valveAnimationId ~= nil then
-                    couplingEntry.valveAnim = SPSCouplerAnimator.bind(couplingEntry.mountNode, couplingEntry.valveAnimationId)
+                    couplingEntry.valveAnim = SPSCouplerAnimator.bind(couplingEntry.mountNode, couplingEntry.valveAnimationId, localAnimLibrary)
                 end
                 SlurryPipeManager.log("sprayer bind DIAG (vehicle): id=%s connIds=%s/%s bound=%s/%s",
                     tostring(couplingEntry.id), tostring(couplingEntry.connectorAnimationId), tostring(couplingEntry.valveAnimationId),
@@ -887,6 +897,13 @@ function SlurryPipeManager:registerSprayerPlaceable(placeable)
 
     local kp = (config.xmlKeyPrefix or "") .. "sprayerPipeSystem."
 
+    -- [SPS 1.0.0.9.24] Per-config coupler animation definitions — see
+    -- registerSprayerVehicle.
+    local localAnimLibrary = nil
+    if SPSCouplerAnimator ~= nil and SPSCouplerAnimator.parseLocal ~= nil then
+        localAnimLibrary = SPSCouplerAnimator.parseLocal(xmlFile, kp)
+    end
+
     -- Resolve storage from silo spec (sprayer placeables must be spec_silo)
     local storage = nil
     if placeable.spec_silo ~= nil and placeable.spec_silo.storage ~= nil then
@@ -1156,10 +1173,10 @@ function SlurryPipeManager:registerSprayerPlaceable(placeable)
             and (sc.connectorAnimationId ~= nil or sc.valveAnimationId ~= nil) then
                 SPSCouplerAnimator.ensureLoaded(g_currentMission.spsModDirectory)
                 if sc.connectorAnimationId ~= nil then
-                    sc.connectorAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.connectorAnimationId)
+                    sc.connectorAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.connectorAnimationId, localAnimLibrary)
                 end
                 if sc.valveAnimationId ~= nil then
-                    sc.valveAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.valveAnimationId)
+                    sc.valveAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.valveAnimationId, localAnimLibrary)
                 end
                 SlurryPipeManager.log("sprayer bind DIAG (sc): id=%s connIds=%s/%s bound=%s/%s",
                     tostring(sc.id), tostring(sc.connectorAnimationId), tostring(sc.valveAnimationId),
@@ -1322,6 +1339,13 @@ function SlurryPipeManager:registerSprayerSourceVehicle(vehicle)
     local elementName = config.isEmbedded and "sprayerPipeSystemSource" or "sprayerPipeSystem"
     local kp = (config.xmlKeyPrefix or "") .. elementName .. "."
 
+    -- [SPS 1.0.0.9.24] Per-config coupler animation definitions — see
+    -- registerSprayerVehicle.
+    local localAnimLibrary = nil
+    if SPSCouplerAnimator ~= nil and SPSCouplerAnimator.parseLocal ~= nil then
+        localAnimLibrary = SPSCouplerAnimator.parseLocal(xmlFile, kp)
+    end
+
     -- Source = the tank's own fill unit.
     local fillUnitIndex = xmlFile:getInt(kp .. "#fillUnitIndex", 1)
     local sourceEntry = {
@@ -1418,10 +1442,10 @@ function SlurryPipeManager:registerSprayerSourceVehicle(vehicle)
             and (sc.connectorAnimationId ~= nil or sc.valveAnimationId ~= nil) then
                 SPSCouplerAnimator.ensureLoaded(g_currentMission.spsModDirectory)
                 if sc.connectorAnimationId ~= nil then
-                    sc.connectorAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.connectorAnimationId)
+                    sc.connectorAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.connectorAnimationId, localAnimLibrary)
                 end
                 if sc.valveAnimationId ~= nil then
-                    sc.valveAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.valveAnimationId)
+                    sc.valveAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.valveAnimationId, localAnimLibrary)
                 end
                 SlurryPipeManager.log("sprayer bind DIAG (sc): id=%s connIds=%s/%s bound=%s/%s",
                     tostring(sc.id), tostring(sc.connectorAnimationId), tostring(sc.valveAnimationId),

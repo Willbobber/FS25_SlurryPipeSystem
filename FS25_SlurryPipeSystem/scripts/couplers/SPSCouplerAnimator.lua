@@ -13,6 +13,8 @@
 -- disconnect) and a valveAnimation id (plays forward on valve open, reverse
 -- on valve close). Both are independent and per-coupling local.
 
+print("[SPS BUILD] SPSCouplerAnimator 1.0.0.9.24 loaded")
+
 SPSCouplerAnimator = {}
 
 -- Library cache: { [animId(int)] = { id, name, parts = { ... } } }
@@ -50,6 +52,23 @@ end
 -- Idempotent — only loads once per game session.
 function SPSCouplerAnimator.ensureLoaded(modDirectory)
     if SPSCouplerAnimator._loaded then return end
+    -- [SPS 1.0.0.9.24] The SPSM_Sprayers bind sites pass
+    -- g_currentMission.spsModDirectory, which was never assigned in 1.0.0.9.
+    -- If such a call arrived FIRST in the session it latched an EMPTY library
+    -- (order-of-registration dependent: worked on some machines, every later
+    -- bind on others printed "not in library"). Resolve a nil directory from
+    -- the manager before latching, and if still unresolvable return WITHOUT
+    -- latching so a later good call can still load.
+    if modDirectory == nil and g_slurryPipeManager ~= nil then
+        modDirectory = g_slurryPipeManager.modDirectory
+    end
+    if modDirectory == nil and g_currentMission ~= nil then
+        modDirectory = g_currentMission.spsModDirectory
+    end
+    if modDirectory == nil then
+        print("[SPS] SPSCouplerAnimator.ensureLoaded: modDirectory is nil (library NOT latched, will retry on next call)")
+        return
+    end
     SPSCouplerAnimator._loaded  = true
     SPSCouplerAnimator._library = {}
 
@@ -113,17 +132,90 @@ end
 
 
 -- ---------------------------------------------------------------------------
+-- Per-config local animation definitions
+-- ---------------------------------------------------------------------------
+
+-- [SPS 1.0.0.9.24] Parses a <couplerAnimations> block from a config's OWN xml
+-- (embedded placeable/vehicle xml or bundled fillPoints.xml). Same element
+-- format as configs/couplerAnimations.xml. Returns { [id] = entry } or nil if
+-- the block is absent/empty. The returned table is LOCAL to the config that
+-- declared it — it is passed into bind() and consulted before the global
+-- library, so a third-party config can define its own animations (including
+-- shadowing global ids 1/2) without touching SPS files and without affecting
+-- any other vehicle or placeable in the session.
+--
+-- keyPrefix must end at the owning system element including the trailing dot,
+-- e.g. "placeable.slurryPipeSystem." or kp already containing
+-- "sprayerPipeSystem." — parseLocal appends "couplerAnimations..." itself.
+function SPSCouplerAnimator.parseLocal(xmlFile, keyPrefix)
+    if xmlFile == nil or keyPrefix == nil then return nil end
+
+    local localLib = nil
+    local idx = 0
+    while true do
+        local key = string.format("%scouplerAnimations.couplerAnimation(%d)", keyPrefix, idx)
+        if not xmlFile:hasProperty(key) then break end
+
+        local id = xmlFile:getInt(key .. "#id")
+        if id ~= nil then
+            local entry = {
+                id    = id,
+                name  = xmlFile:getString(key .. "#name", "localAnim_" .. tostring(id)),
+                parts = {},
+            }
+            local pIdx = 0
+            while true do
+                local pKey = string.format("%s.part(%d)", key, pIdx)
+                if not xmlFile:hasProperty(pKey) then break end
+                local nodeName = xmlFile:getString(pKey .. "#node")
+                if nodeName ~= nil then
+                    local part = {
+                        nodeName  = nodeName,
+                        startTime = xmlFile:getFloat(pKey .. "#startTime", 0),
+                        endTime   = xmlFile:getFloat(pKey .. "#endTime",   1),
+                        startRot   = parseVec3(xmlFile:getString(pKey .. "#startRot")),
+                        endRot     = parseVec3(xmlFile:getString(pKey .. "#endRot")),
+                        startTrans = parseVec3(xmlFile:getString(pKey .. "#startTrans")),
+                        endTrans   = parseVec3(xmlFile:getString(pKey .. "#endTrans")),
+                    }
+                    table.insert(entry.parts, part)
+                end
+                pIdx = pIdx + 1
+            end
+            if localLib == nil then localLib = {} end
+            localLib[id] = entry
+            print(string.format("[SPS] local couplerAnimation id=%d '%s' loaded with %d part(s) from config xml",
+                id, entry.name, #entry.parts))
+        end
+        idx = idx + 1
+    end
+
+    return localLib
+end
+
+
+-- ---------------------------------------------------------------------------
 -- Per-coupling instance binding
 -- ---------------------------------------------------------------------------
 
 -- Resolves all named parts from the library entry against the coupling's
 -- mountNode subtree. Returns an instance table or nil if the animation id
 -- doesn't exist or no parts could be resolved.
-function SPSCouplerAnimator.bind(mountNode, animId)
-    if SPSCouplerAnimator._library == nil then return nil end
+-- [SPS 1.0.0.9.24] Optional third parameter localLibrary: a per-config table
+-- from parseLocal(). Checked BEFORE the global library so config-local ids win
+-- for that config's couplings only. All pre-existing two-argument call sites
+-- behave exactly as before (localLibrary arrives nil).
+function SPSCouplerAnimator.bind(mountNode, animId, localLibrary)
+    if SPSCouplerAnimator._library == nil and localLibrary == nil then return nil end
     if animId == nil or mountNode == nil then return nil end
 
-    local entry = SPSCouplerAnimator._library[animId]
+    local entry = nil
+    if localLibrary ~= nil then
+        entry = localLibrary[animId]
+    end
+    if entry == nil and SPSCouplerAnimator._library ~= nil then
+        entry = SPSCouplerAnimator._library[animId]
+    end
     if entry == nil then
         print("[SPS] SPSCouplerAnimator.bind: animation id=" .. tostring(animId) .. " not in library")
         return nil

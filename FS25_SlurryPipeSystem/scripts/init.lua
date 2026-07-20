@@ -8,7 +8,7 @@
 local SPS_MOD_DIRECTORY = g_currentModDirectory
 local SPS_MOD_NAME      = "FS25_SlurryPipeSystem"
 
-print("[SPS BUILD] init 1.0.0.9 loaded")
+print("[SPS BUILD] init 1.0.0.9.29 loaded")
 
 SlurryDebug.enabled = false  -- boot default; controlled by SPSDebugConfig channel "SlurryDebug"
 
@@ -589,6 +589,16 @@ function SPSMod:loadMap(filename)
             g_slurryPipeManager.onPlayerJoined, g_slurryPipeManager)
     end
 
+    -- [SPS 1.0.0.9.24] Publish the mod directory on the mission object. The
+    -- three SPSCouplerAnimator.ensureLoaded call sites in SPSM_Sprayers read
+    -- g_currentMission.spsModDirectory, which was never assigned in 1.0.0.9 —
+    -- whichever sprayer-config item registered first passed nil and latched an
+    -- EMPTY animation library for the whole session (every later coupler bind
+    -- then printed "not in library", savegame-order dependent).
+    if g_currentMission ~= nil then
+        g_currentMission.spsModDirectory = SPS_MOD_DIRECTORY
+    end
+
     g_slurryPipeManager:loadPipeColors(SPS_MOD_DIRECTORY)
     g_slurryPipeManager:loadVehicleConfigs(SPS_MOD_DIRECTORY)
     g_slurryPipeManager:loadPlaceableConfigs(SPS_MOD_DIRECTORY)
@@ -645,7 +655,7 @@ function SPSMod:loadMap(filename)
         -- Bought/saved placeables
         local placeables = ps.placeables or {}
         for _, placeable in ipairs(placeables) do
-            if placeable ~= nil and (placeable.spec_silo ~= nil or placeable.spec_husbandry ~= nil or placeable.spec_siloExtension ~= nil or placeable.spec_productionPoint ~= nil) then
+            if placeable ~= nil and (placeable.spec_silo ~= nil or placeable.spec_husbandry ~= nil or placeable.spec_siloExtension ~= nil or placeable.spec_productionPoint ~= nil or placeable.spec_buyingStation ~= nil) then
                 g_slurryPipeManager:registerPlaceable(placeable)
                 g_slurryPipeManager:registerSprayerPlaceable(placeable)
             end
@@ -654,7 +664,7 @@ function SPSMod:loadMap(filename)
         if ps.uniqueIdToReplacedPlaceableData ~= nil then
             for _, data in pairs(ps.uniqueIdToReplacedPlaceableData) do
                 local placeable = data.placeable
-                if placeable ~= nil and (placeable.spec_silo ~= nil or placeable.spec_husbandry ~= nil or placeable.spec_siloExtension ~= nil or placeable.spec_productionPoint ~= nil) then
+                if placeable ~= nil and (placeable.spec_silo ~= nil or placeable.spec_husbandry ~= nil or placeable.spec_siloExtension ~= nil or placeable.spec_productionPoint ~= nil or placeable.spec_buyingStation ~= nil) then
                     g_slurryPipeManager:registerPlaceable(placeable)
                     g_slurryPipeManager:registerSprayerPlaceable(placeable)
                 end
@@ -777,6 +787,11 @@ function SPSMod:exitHudEdit()
     g_inputBinding:setShowMouseCursor(false)
     if g_inputBinding:getContextName() == SPSMod.HUD_EDIT_CONTEXT then
         g_inputBinding:revertContext(true)
+    end
+    -- [SPS 1.0.0.9.29] Persist the dragged position / scrolled scale to the
+    -- player's own user file (per-player HUD settings).
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.saveUserSettings ~= nil then
+        g_slurryPipeManager:saveUserSettings()
     end
     print("[SPS HUD] edit mode OFF (context reverted; position/scale persist on save)")
 end
@@ -919,13 +934,13 @@ function Vehicle:registerActionEvents(excludedVehicle)
             if evTip ~= nil then
                 g_inputBinding:removeActionEvent(evTip.actionEventId)
                 specD.actionEvents[InputAction.TOGGLE_TIPSTATE] = nil
-                print("[SPS INIT] sprayer cab: removed TOGGLE_TIPSTATE (I)")
+                sprayTrace("[SPS INIT] sprayer cab: removed TOGGLE_TIPSTATE (I)")
             end
             local evGround = specD.actionEvents[InputAction.TOGGLE_TIPSTATE_GROUND]
             if evGround ~= nil then
                 g_inputBinding:removeActionEvent(evGround.actionEventId)
                 specD.actionEvents[InputAction.TOGGLE_TIPSTATE_GROUND] = nil
-                print("[SPS INIT] sprayer cab: removed TOGGLE_TIPSTATE_GROUND (R)")
+                sprayTrace("[SPS INIT] sprayer cab: removed TOGGLE_TIPSTATE_GROUND (R)")
             end
         end
         -- FillUnit's <unloading> XML element causes it to register InputAction.UNLOAD
@@ -939,7 +954,7 @@ function Vehicle:registerActionEvents(excludedVehicle)
                 g_inputBinding:removeActionEvent(evUnload.actionEventId)
                 specFU.actionEvents[InputAction.UNLOAD] = nil
                 specFU.unloadActionEventId = nil
-                print("[SPS INIT] sprayer cab: removed UNLOAD (I — pallet spawn)")
+                sprayTrace("[SPS INIT] sprayer cab: removed UNLOAD (I — pallet spawn)")
             end
         end
     end
@@ -1159,7 +1174,7 @@ function Placeable:finalizePlacement()
     if origPlaceableFinalize ~= nil then
         origPlaceableFinalize(self)
     end
-    if g_slurryPipeManager ~= nil and (self.spec_silo ~= nil or self.spec_husbandry ~= nil or self.spec_siloExtension ~= nil or self.spec_productionPoint ~= nil) then
+    if g_slurryPipeManager ~= nil and (self.spec_silo ~= nil or self.spec_husbandry ~= nil or self.spec_siloExtension ~= nil or self.spec_productionPoint ~= nil or self.spec_buyingStation ~= nil) then
         -- Avoid double-registration for placeables already registered in loadMap
         if g_slurryPipeManager:getPlaceableEntry(self) == nil then
             g_slurryPipeManager:registerPlaceable(self)
@@ -1172,7 +1187,7 @@ end
 
 local origPlaceableDelete = Placeable.delete
 function Placeable:delete(immediate)
-    if g_slurryPipeManager ~= nil and (self.spec_silo ~= nil or self.spec_husbandry ~= nil or self.spec_siloExtension ~= nil or self.spec_productionPoint ~= nil) then
+    if g_slurryPipeManager ~= nil and (self.spec_silo ~= nil or self.spec_husbandry ~= nil or self.spec_siloExtension ~= nil or self.spec_productionPoint ~= nil or self.spec_buyingStation ~= nil) then
         g_slurryPipeManager:unregisterPlaceable(self)
         g_slurryPipeManager:unregisterSprayerPlaceable(self)
     end

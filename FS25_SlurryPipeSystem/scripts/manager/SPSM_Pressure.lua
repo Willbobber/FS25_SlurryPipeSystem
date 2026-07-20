@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Pressure 1.0.0.9 loaded")
+print("[SPS BUILD] SPSM_Pressure 1.0.0.9.2 loaded")
 
 
 -- Single chokepoint for the vacuum/pump split. Returns true only for a tanker that
@@ -116,6 +116,38 @@ function SlurryPipeManager:getPressureFlowScalar(vehicle)
     local p = math.abs((entry.state ~= nil and entry.state.pressure) or 0)
     if p < cfg.minThreshold then return 0.0, true end
     return math.min(1.0, p / maxP), true
+end
+
+-- [SPS 1.0.0.9.1] Direction-aware pressure flow scalar. Field report: a tank
+-- at -2 bar with the pump flipped to Pressure discharged INSTANTLY at full
+-- rate — the sign-blind |pressure| scalar above plus resolveCouplingFlow's
+-- `return state.direction, pScalar` let stored VACUUM drive a DISCHARGE.
+-- The stored pressure may only ever drive flow in the direction it was BUILT:
+--   * DISCHARGE flows only while p >= +minThreshold (positive pressure pushes out)
+--   * FILL      flows only while p <= -minThreshold (vacuum draws in)
+--   * Anything else (sign mismatch, or the ±minThreshold dead band) -> 0.0:
+--     the level HOLDS while the purge vents -2 -> 0 and the pump rebuilds the
+--     other way; in the dead band with pumps off, head equalisation
+--     (SPSM_Flow) owns any levelling between the two sources, exactly as
+--     the spreader gate (SPSM_Spreader, signed since day one) already works.
+-- Exempt endpoints (usesPressure=false) are unchanged: (1.0, false), caller
+-- keeps its legacy pump gate. The sign convention matches the pressure tick:
+-- DISCHARGE builds toward +maxPressure, FILL toward -maxPressure.
+function SlurryPipeManager:getDirectionalPressureFlowScalar(vehicle, flowDirection)
+    local entry = self:getVehicleEntry(vehicle)
+    if entry == nil then return 1.0, false end
+    local cfg = entry.pressure
+    if not self:usesPressureModel(entry) then return 1.0, false end
+    local maxP = cfg.maxPressure
+    if maxP <= 0 then maxP = SlurryPipeManager.DEFAULT_MAX_PRESSURE end
+    local p = (entry.state ~= nil and entry.state.pressure) or 0
+    if flowDirection == SPS_DIRECTION_DISCHARGE then
+        if p < cfg.minThreshold then return 0.0, true end
+        return math.min(1.0, p / maxP), true
+    end
+    -- FILL (and any nil/other direction): only stored vacuum drives it.
+    if p > -cfg.minThreshold then return 0.0, true end
+    return math.min(1.0, -p / maxP), true
 end
 
 -- True if any connected+open coupling partner of this vehicle is a pressure-model
@@ -235,8 +267,11 @@ function SlurryPipeManager:updatePressure(dt)
                 local isFert = v ~= nil and v.spec_sprayer ~= nil
                     and v.spec_sprayer.isFertilizerSprayer == true
                 -- [SPS AI GATE] no shear wear while AI drives
+                -- [SPS 1.0.0.9.2] shearBoltEnabled: settings-menu master switch
+                -- (server-authoritative, synced via SPSSettingsSyncEvent).
                 if not isFert and not self:usesPressureModel(vEntry)
-                   and not self:isAIControlled(v) then
+                   and not self:isAIControlled(v)
+                   and self.shearBoltEnabled ~= false then
                     SPSShearBolt.update(self, vEntry, dt)
                 end
             end
@@ -332,7 +367,8 @@ function SlurryPipeManager:updatePressure(dt)
             -- block is gated by usesPressureModel above). Per-vehicle opt-in via
             -- <shearBolt bolt="true"/>. Non-vacuum slurry pumps (HVP/conduit) are
             -- handled by the dedicated loop at the top of updatePressure.
-            if SPSShearBolt ~= nil and vEntry.shearBolt == true then
+            if SPSShearBolt ~= nil and vEntry.shearBolt == true
+            and self.shearBoltEnabled ~= false then
                 SPSShearBolt.update(self, vEntry, dt)
             end
             if math.abs((state._lastLoggedPressure or 999) - p) >= 0.1 then

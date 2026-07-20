@@ -20,6 +20,7 @@
             maxPipeLength="4.0"
 			connector="male"
 			undeployedVisibleNode="liquidManureGrid02"
+			headHeightNodeName="headHeight01"
         />
  
     </pipeCouplings>

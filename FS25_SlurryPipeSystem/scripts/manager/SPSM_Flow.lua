@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Flow 1.0.0.9.18 loaded")
+print("[SPS BUILD] SPSM_Flow 1.0.0.9.28 loaded")
 
 
 function SlurryPipeManager:connectionIsFillArm(vehicle)
@@ -510,7 +510,12 @@ end
 --     FILL this is the "vacuum falls to nothing, then it flows backwards and empties"
 --     behaviour; after a DISCHARGE it continues the drain past the pressure taper.
 function SlurryPipeManager:resolveCouplingFlow(vehicle, state, pumpRunning, hasContent)
-    local pScalar, usesPressure = self:getPressureFlowScalar(vehicle)
+    -- [SPS 1.0.0.9.20] Direction-aware scalar (see getDirectionalPressureFlowScalar,
+    -- SPSM_Pressure 1.0.0.9.1): stored pressure only drives flow in the direction
+    -- it was BUILT. Flipping a -2 bar vac tank to Pressure now HOLDS the level
+    -- while the purge vents to 0 and the pump builds past +minThreshold, instead
+    -- of instantly discharging on the sign-blind |pressure| scalar.
+    local pScalar, usesPressure = self:getDirectionalPressureFlowScalar(vehicle, state.direction)
 
     if not usesPressure then
         if pumpRunning then return state.direction, 1.0 end
@@ -525,6 +530,17 @@ function SlurryPipeManager:resolveCouplingFlow(vehicle, state, pumpRunning, hasC
     -- Pressure spent (|pressure| < minThreshold) and the PTO is not replenishing it:
     -- gravity backflow OUT while slurry remains.
     if not pumpRunning and hasContent then
+        -- [SPS 1.0.0.9.20] A stored vacuum at/above minThreshold SEALS the tank —
+        -- contents are held in, not gravity-drained. Without this, flipping to
+        -- Pressure with the pump off on a -2 bar tank fell through the (now
+        -- direction-gated) scalar into gravity drain and leaked the level anyway.
+        do
+            local vEntryG = self:getVehicleEntry(vehicle)
+            if vEntryG ~= nil and vEntryG.pressure ~= nil and vEntryG.state ~= nil then
+                local minTG = vEntryG.pressure.minThreshold or SlurryPipeManager.DEFAULT_MIN_THRESHOLD
+                if (vEntryG.state.pressure or 0) <= -minTG then return nil, 0.0 end
+            end
+        end
         -- Head equalisation owns this vehicle this window: defer the one-way
         -- gravity drain so the two mechanisms never move the same slurry.
         if state ~= nil and state._equaliseActive then return nil, 0.0 end
@@ -624,24 +640,29 @@ function SlurryPipeManager:_equaliseSideIsNeutral(vehicle)
     if entry == nil then return true end
     local state = entry.state
 
-    -- [SPS EQ] A running pump of ANY type (vacuum OR HVP/conduit) owns the flow;
-    -- level equalisation must never fight it. Checked BEFORE the pressure-model
-    -- gate so non-vacuum pumped tankers (HVP, pumpType ~= "vacuum") are covered
-    -- too, not only vacuum ones. A direction purge likewise owns the flow.
+    -- [SPS 1.0.0.9.21] Pressure-model (vacuum) side FIRST, and gated on stored
+    -- pressure ALONE. A vacuum pump acts on the AIR in the tank, not the
+    -- liquid — liquid only moves under a pressure differential. So while
+    -- |pressure| < minThreshold the liquid is free to find its level, EVEN
+    -- while the pump is running the purge/build through the dead band. This
+    -- is the full flip sequence: -2 bar tank flipped to Pressure -> level
+    -- holds while the purge vents -2 -> -min (directional scalar owns it),
+    -- equalises with the coupled source across the -min..+min dead band, and
+    -- pressure takes over pushing OUT once +min is reached. The previous
+    -- pump-on / purging early-outs kept equalisation dead for the whole
+    -- transit, so the level froze from -min to +min instead of levelling.
+    if self:usesPressureModel(entry) then
+        if state == nil then return true end
+        local cfg  = entry.pressure
+        local minT = (cfg ~= nil and cfg.minThreshold) or SlurryPipeManager.DEFAULT_MIN_THRESHOLD
+        return math.abs(state.pressure or 0) < minT
+    end
+
+    -- [SPS EQ] Non-pressure pumped side (HVP, conduit): the pump moves the
+    -- LIQUID directly, so a running pump of any type owns the flow and level
+    -- equalisation must never fight it. Open-top FRC / passive vessels have
+    -- no pump and fall through to neutral.
     if self:_isPumpOn(vehicle) then return false end
-    if state ~= nil and state.purging == true then return false end
-
-    -- Pump is now off. Non-pressure-model sides (HVP off, conduit off, open-top
-    -- FRC, passive vessels) are free for gravity to level.
-    if not self:usesPressureModel(entry) then return true end
-    if state == nil then return true end
-
-    -- Vacuum tanker, pump off: still owns the flow while it holds usable vacuum
-    -- (|pressure| >= minThreshold). Only a spent vac tank (bar below min) becomes
-    -- neutral so gravity may drain it.
-    local cfg  = entry.pressure
-    local minT = (cfg ~= nil and cfg.minThreshold) or SlurryPipeManager.DEFAULT_MIN_THRESHOLD
-    if math.abs(state.pressure or 0) >= minT then return false end
     return true
 end
 
@@ -818,6 +839,21 @@ function SlurryPipeManager:_equalisePair(entryA, couplingA, entryB, couplingB, p
     if hiCoupling.flowDirection == "FILL" then return bail("hi_flowDir_FILL_only") end
     if loCoupling.flowDirection == "DISCHARGE" then return bail("lo_flowDir_DISCHARGE_only") end
 
+    -- [SPS 1.0.0.9.22] Optional per-coupler hydraulic head gate. A coupler may
+    -- declare headHeightNodeName at the highest point of its pipe run; gravity
+    -- cannot beat that crest (no siphon for slurry), so flow only runs while
+    -- the DRIVING (high) surface is above the crest of BOTH couplers involved.
+    -- Node absent = nil = no gate = behaviour unchanged (all existing configs).
+    local drivingY = math.max(yA, yB)
+    if hiCoupling.headHeightNode ~= nil and entityExists(hiCoupling.headHeightNode) then
+        local _, hy, _ = getWorldTranslation(hiCoupling.headHeightNode)
+        if drivingY <= hy then return bail("driving_below_hi_headNode") end
+    end
+    if loCoupling.headHeightNode ~= nil and entityExists(loCoupling.headHeightNode) then
+        local _, hy, _ = getWorldTranslation(loCoupling.headHeightNode)
+        if drivingY <= hy then return bail("driving_below_lo_headNode") end
+    end
+
     -- fillType comes from the high (source) side; the low side must accept it so
     -- slurry and water never equalise into each other.
     local fillType = self:_resolveSourceFillType(hiSrc)
@@ -852,6 +888,135 @@ function SlurryPipeManager:_equalisePair(entryA, couplingA, entryB, couplingB, p
 
     self:removeFromSource(hiSrc, amount, fillType, hiEntry.vehicle)
     self:addToSource(loSrc, amount, fillType, loEntry.vehicle)
+end
+
+-- [SPS 1.0.0.9.22] Resolve the STORE coupling at the far end of a vehicle
+-- coupling, for vehicle<->store head equalisation. Direct bez/strap bond:
+-- the partner coupling itself (carries .placeable + .sourceEntry). Chain run:
+-- the chain's anchor coupling when that anchor is a store coupler. Returns
+-- nil for vehicle partners, unresolvable chains, or anything else.
+function SlurryPipeManager:_equaliseResolveStoreCoupling(coupling)
+    local partner = coupling.connectedPartnerCoupling
+    if partner == nil then return nil end
+    if partner.placeable ~= nil and partner.sourceEntry ~= nil then return partner end
+    if (partner.isChainTerminus or partner.isChainStart) and partner.chain ~= nil then
+        local anchor = partner.chain.anchorCoupling
+        if anchor ~= nil and anchor.placeable ~= nil and anchor.sourceEntry ~= nil then
+            return anchor
+        end
+    end
+    return nil
+end
+
+-- [SPS 1.0.0.9.22] Head equalisation between a vehicle and a placeable STORE,
+-- opt-in per store coupler: the store coupling MUST declare headHeightNodeName
+-- (the highest point of its internal pipe run) or the pair is skipped exactly
+-- as all stores were before. Rule, both directions through the coupler: the
+-- DRIVING surface must be above the store's head node (a tower riser crest is
+-- unbeatable by gravity — no siphon), above the vehicle coupler's own head
+-- node when one is declared, and above the receiving surface (equilibrium).
+-- Mirrors _equalisePair's maths: same dead band, same taper, same fillType
+-- gating; store side reads/writes through the shared source helpers so DM
+-- pools, thickness, and deposit fillType conversion all apply as normal.
+-- Store rates: the vehicle's configured rates bound the transfer.
+function SlurryPipeManager:_equalisePairStore(entryA, couplingA, sc, passSec)
+    local vehA = entryA.vehicle
+
+    local function bail(reason)
+        if SlurryPipeManager.DEBUG and entryA.state ~= nil and entryA.state._eqLastReason ~= reason then
+            entryA.state._eqLastReason = reason
+            SlurryPipeManager.log("equalise.skip: %s <-> store(%s) reason=%s",
+                tostring(vehA and vehA.configFileName),
+                tostring(sc.placeable and sc.placeable.configFileName), reason)
+        end
+    end
+
+    -- Vehicle side must be neutral (pressure model / pump gates as usual); a
+    -- store has no pump and is always neutral.
+    if not self:_equaliseSideIsNeutral(vehA) then return bail("A_not_neutral") end
+
+    if sc.headHeightNode == nil or not entityExists(sc.headHeightNode) then
+        return bail("store_headNode_missing")
+    end
+
+    local srcA = self:resolveVehicleSource(vehA)
+    if srcA == nil then return bail("A_src_nil") end
+    -- Store source, honouring a per-coupler fillType restriction (BGA-style).
+    local srcS = self:_restrictSourceToCoupling(sc.sourceEntry, sc)
+    if srcS == nil or srcS.fillPlaneNode == nil or not entityExists(srcS.fillPlaneNode) then
+        return bail("store_src_nil")
+    end
+
+    local yA = self:_equaliseSurfaceWorldY(vehA, srcA)
+    if yA == nil then return bail("A_surfaceY_nil(noRef&noVolume)") end
+    local px, _, pz = getWorldTranslation(srcS.fillPlaneNode)
+    local yS = SlurryNodeUtil.getSurfaceWorldY(srcS, px, pz)
+    if yS == nil or yS == -math.huge then return bail("store_surfaceY_nil") end
+
+    -- Own the vehicle side this window (suppresses its gravity backflow).
+    if entryA.state ~= nil then entryA.state._equaliseActive = true end
+
+    local dY = math.abs(yA - yS)
+    if dY <= SlurryPipeManager.EQUALISE_HEAD_DEADBAND then
+        if entryA.state ~= nil and entryA.state._eqWasMoving then
+            SlurryPipeManager.log("equalise(store): settled dY=%.1fmm", dY * 1000)
+            entryA.state._eqWasMoving = false
+        end
+        return
+    end
+
+    -- Orient high -> low and gate on flowDirection restrictions.
+    local vehicleIsHigh = yA > yS
+    local hiSrc, loSrc
+    if vehicleIsHigh then
+        hiSrc, loSrc = srcA, srcS
+        if couplingA.flowDirection == "FILL" then return bail("veh_flowDir_FILL_only") end
+        if sc.flowDirection == "DISCHARGE" then return bail("store_flowDir_DISCHARGE_only") end
+    else
+        hiSrc, loSrc = srcS, srcA
+        if sc.flowDirection == "FILL" then return bail("store_flowDir_FILL_only") end
+        if couplingA.flowDirection == "DISCHARGE" then return bail("veh_flowDir_DISCHARGE_only") end
+    end
+
+    -- Hydraulic head gates: driving surface must clear the store's crest, and
+    -- the vehicle coupler's own crest when it declares one.
+    local drivingY = math.max(yA, yS)
+    local _, storeHeadY, _ = getWorldTranslation(sc.headHeightNode)
+    if drivingY <= storeHeadY then return bail("driving_below_store_headNode") end
+    if couplingA.headHeightNode ~= nil and entityExists(couplingA.headHeightNode) then
+        local _, vhy, _ = getWorldTranslation(couplingA.headHeightNode)
+        if drivingY <= vhy then return bail("driving_below_veh_headNode") end
+    end
+
+    -- fillType from the high (source) side; the low side must accept it.
+    local fillType = self:_resolveSourceFillType(hiSrc)
+    if fillType == nil then return bail("hi_fillType_nil(srcLevel<=0?)") end
+    if not self:_destAcceptsFillType(loSrc, fillType) then return bail("lo_rejects_fillType=" .. tostring(fillType)) end
+
+    local sourceLevel = self:_equaliseSourceLevel(hiSrc, fillType)
+    local destFree    = self:_equaliseDestFree(loSrc, fillType)
+    if sourceLevel <= 0 then return bail("hi_sourceLevel<=0") end
+    if destFree <= 0 then return bail("lo_destFree<=0") end
+    if entryA.state ~= nil then entryA.state._eqLastReason = nil end
+
+    -- Tapered rate, bounded by the vehicle's configured rates (a store has none).
+    local outRate = entryA.emptyLitersPerSecond or entryA.litersPerSecond or SlurryPipeManager.DEFAULT_LITERS_PER_SECOND
+    local inRate  = entryA.fillLitersPerSecond  or entryA.litersPerSecond  or SlurryPipeManager.DEFAULT_LITERS_PER_SECOND
+    local rate    = math.min(outRate, inRate)
+    local taper   = math.min(1.0, dY / SlurryPipeManager.EQUALISE_TAPER_HEAD)
+
+    local amount = rate * passSec * taper
+    amount = math.min(amount, sourceLevel, destFree)
+    if amount <= 0 then return bail("amount<=0") end
+
+    if entryA.state ~= nil and not entryA.state._eqWasMoving then
+        SlurryPipeManager.log("equalise(store): start %s %s store dY=%.3fm fillType=%d",
+            tostring(vehA and vehA.configFileName), vehicleIsHigh and "->" or "<-", dY, fillType)
+        entryA.state._eqWasMoving = true
+    end
+
+    self:removeFromSource(hiSrc, amount, fillType, vehA)
+    self:addToSource(loSrc, amount, fillType, vehA)
 end
 
 -- Server-only, throttled driver. Discovers directly-coupled vehicle pairs whose
@@ -900,7 +1065,24 @@ function SlurryPipeManager:updateLevelEqualise(dt)
                 if partnerSrc == nil then
                     skip = "partner_src_nil(chain not resolvable / not connected server-side)"
                 elseif partnerVehicle == nil then
-                    skip = "partner_not_vehicle(store/unknown)"
+                    -- [SPS 1.0.0.9.22] Vehicle <-> STORE equalisation, opt-in per
+                    -- store coupler: only a store coupling that declares
+                    -- headHeightNodeName takes part; every other store coupler is
+                    -- ignored here exactly as all stores were before.
+                    local storeCpl = self:_equaliseResolveStoreCoupling(c)
+                    if storeCpl == nil then
+                        skip = "partner_not_vehicle(store/unknown)"
+                    elseif storeCpl.headHeightNode == nil then
+                        skip = "store_no_headHeightNode(ignored)"
+                    else
+                        local idA = vehA.id or 0
+                        local key = idA .. ":store:" .. tostring(storeCpl)
+                        if not visited[key] then
+                            visited[key] = true
+                            pairCount = pairCount + 1
+                            self:_equalisePairStore(vEntry, c, storeCpl, passSec)
+                        end
+                    end
                 elseif partnerVehicle == vehA then
                     skip = "partner_is_self"
                 else
@@ -1222,7 +1404,11 @@ function SlurryPipeManager:detectArmConnection(vehicle, entry, arm)
         -- and shows in BOTH directions: a discharge stream out, or a suction
         -- stream while filling. For an exempt endpoint the scalar is 1.0 so it
         -- behaves as a simple on/off with the valve.
-        local pScalar     = self:getPressureFlowScalar(vehicle)
+        -- [SPS 1.0.0.9.20] Direction-aware: no stream during the hold window
+        -- (stored pressure opposing the selected direction) — visuals now match
+        -- the gated flow instead of showing a discharge driven by a vacuum.
+        local pScalar     = self:getDirectionalPressureFlowScalar(vehicle,
+            state ~= nil and state.direction or nil)
         local isDischarge = state ~= nil and state.direction == SPS_DIRECTION_DISCHARGE or false
         local hasFlowContent
         if isDischarge then
@@ -1538,6 +1724,15 @@ function SlurryPipeManager:tickFlow(session, dt)
         rate = rate * self:getPipeLengthFalloff(vehicle)   -- strap pipe stretch falloff
         if flowDir == SPS_DIRECTION_FILL then
             local extSrc = self:resolveExternalSource(vehicle)
+            -- [SPS 1.0.0.9.26] Buying-station source: handled whole here and
+            -- returned BEFORE the store thickness/crust helpers below, which
+            -- only know FILL_VOLUME / STORAGE_PLANE sources. The vanilla
+            -- BuyingStation does fill + per-litre charge + money HUD in one
+            -- server call — see transferFillFromBuyingStation.
+            if extSrc ~= nil and extSrc.type == SPS_SOURCE_TYPE_BUYING_STATION then
+                self:transferFillFromBuyingStation(vehicle, session, rate, fillType, extSrc)
+                return
+            end
             if extSrc ~= nil then
                 local mult = self:getFlowRateMultiplier(extSrc)   -- source (store) thickness slows the suck
                 if mult <= 0 then
@@ -1597,6 +1792,28 @@ end
 -- ---------------------------------------------------------------------------
 
 -- Returns the fillType currently held by a sourceEntry, or nil if empty.
+-- [SPS 1.0.0.9.19] Pumpable-liquid gate for UNRESTRICTED store fillType
+-- resolution. Field report (UKStyle cow shed): a husbandry Storage is a
+-- single multi-type object holding STRAW alongside LIQUIDMANURE. The
+-- unrestricted first-non-zero pairs() walk below could therefore select
+-- STRAW as the draw type — pairs() iteration order over a hash table is
+-- machine/session dependent AND can flip mid-session when a deposit adds a
+-- new fillType key (table rehash), which is why one player drained straw
+-- (both gauges falling together as the order alternated) while the author
+-- could not reproduce. Only these liquids may ever be selected by an
+-- unrestricted walk; per-coupler restrictFillType (BGA) is unaffected.
+function SlurryPipeManager:_isPumpableSourceFillType(ft)
+    if ft == nil then return false end
+    if self._pumpableSourceFillTypes == nil then
+        self._pumpableSourceFillTypes = {
+            [FillType.LIQUIDMANURE] = true,
+            [FillType.DIGESTATE]    = true,
+            [FillType.WATER]        = true,
+        }
+    end
+    return self._pumpableSourceFillTypes[ft] == true
+end
+
 -- For vehicle fill units → reads the vehicle's runtime fill type.
 -- For storage planes → walks the storage's fillType list and returns the
 -- first type with level > 0 (multi-type storages are rare; in practice
@@ -1620,10 +1837,30 @@ function SlurryPipeManager:_resolveSourceFillType(srcEntry)
             if lvl > 0 then return srcEntry.restrictFillType end
             return nil
         end
+        -- [SPS 1.0.0.9.19] Unrestricted draw: prefer the fillPlane-declared type
+        -- (srcEntry.fillType, set by SlurryNodeUtil.buildStoragePlaneSource from
+        -- fillPlane#fillType — every shipped config declares it) before any walk,
+        -- so a barn whose storage also holds STRAW deterministically offers
+        -- LIQUIDMANURE. Deposit behaviour is untouched — water/digestate IN
+        -- still convert via resolveStoreDepositFillType.
+        local declared = srcEntry.fillType
+        if declared ~= nil then
+            local declaredLvl = srcEntry.storage:getFillLevel(declared) or 0
+            if declaredLvl > 0 then return declared end
+        end
         for ft, _ in pairs(srcEntry.storage.fillTypes) do
             local lvl = srcEntry.storage:getFillLevel(ft) or 0
-            if lvl > 0 then return ft end
+            -- [SPS 1.0.0.9.19] Walk may only ever select a pumpable liquid.
+            if lvl > 0 and self:_isPumpableSourceFillType(ft) then return ft end
         end
+        return nil
+    elseif srcEntry.type == SPS_SOURCE_TYPE_BUYING_STATION then
+        -- [SPS 1.0.0.9.26] Infinite source, no level walk: offer the
+        -- coupler-restricted type, else the config-declared type — provided the
+        -- station actually sells it. [SPS 1.0.0.9.28] Sold set now includes
+        -- SPS-extra types (e.g. WATER) via buyStationSellsFillType.
+        local want = srcEntry.restrictFillType or srcEntry.fillType
+        if want ~= nil and self:buyStationSellsFillType(srcEntry, want) then return want end
         return nil
     end
     return nil
@@ -1657,6 +1894,9 @@ function SlurryPipeManager:_destAcceptsFillType(dstEntry, fillType)
         local depositType = self:resolveStoreDepositFillType(dstEntry, fillType)
         local free = dstEntry.storage:getFreeCapacity(depositType) or 0
         return free > 0
+    elseif dstEntry.type == SPS_SOURCE_TYPE_BUYING_STATION then
+        -- [SPS 1.0.0.9.26] FILL-only source — never accepts a deposit.
+        return false
     end
     return false
 end
@@ -1664,6 +1904,14 @@ end
 function SlurryPipeManager:transferFill(vehicle, session, delta, fillType)
     local extSource = self:resolveExternalSource(vehicle)
     if extSource == nil then return end
+
+    -- [SPS 1.0.0.9.26] Buying-station source routed to its own transfer path
+    -- (defensive — tickFlow already branches before reaching here; any other
+    -- caller resolving a buy-station source gets the correct paid fill too).
+    if extSource.type == SPS_SOURCE_TYPE_BUYING_STATION then
+        self:transferFillFromBuyingStation(vehicle, session, delta, fillType, extSource)
+        return
+    end
     
     -- Force fillType to WATER when filling from water source
     if extSource.type == 3 then
@@ -1748,6 +1996,116 @@ function SlurryPipeManager:transferDischarge(vehicle, session, delta, fillType)
     local applied = vehicle:addFillUnitFillLevel(vehicle:getOwnerFarmId(), session.vehicleFillUnit, -delta, fillType, ToolType.TRIGGER, nil)
     if applied >= 0 then return end
     self:addToSource(extDest, math.abs(applied), fillType, vehicle)
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.0.9.26] Buying-station fill
+-- ---------------------------------------------------------------------------
+-- Fill a tanker from a buying-station placeable (vanilla placeable type
+-- "buyingStation" — PlaceableBuyingStation.lua / BuyingStation.lua, verified
+-- source). The station is an infinite PAID source:
+-- BuyingStation:addFillLevelToFillableObject performs the whole purchase
+-- server-side — farm money gate (getMoney > 0), addFillUnitFillLevel, the
+-- per-litre charge at getEffectiveFillTypePrice (priceScale x
+-- fillType.pricePerLiter x economy multiplier) via g_currentMission:addMoney,
+-- and the delayed money-change HUD. SPS reimplements NONE of it.
+--   * Rate is the tanker's own SPS fill LPS (already pressure-scaled and
+--     pipe-length-faded by the tickFlow caller); the station's own
+--     fillLitersPerSecond is deliberately ignored.
+--   * No source decrement exists (infinite supply) — removeFromSource has a
+--     matching no-op branch.
+--   * applied <= 0 means the farm is broke or the fill unit rejected the add:
+--     treated as stalled flow (pump stays on), same as a drained store.
+--   * Server-only by construction: tickFlow sits behind the g_server guard in
+--     SlurryPipeManager:update, matching LoadTrigger:update's isServer gate
+--     around the same vanilla call.
+function SlurryPipeManager:transferFillFromBuyingStation(vehicle, session, delta, fillType, extSource)
+    if delta == nil or delta <= 0 then return end
+    local station = extSource ~= nil and extSource.station or nil
+    if station == nil then return end
+    -- Per-coupler fillType restriction wins (separate LIQUIDMANURE / DIGESTATE
+    -- couplers on one station); an empty tanker falls back to the
+    -- config-declared station type. A part-full tanker keeps its held type.
+    if extSource.restrictFillType ~= nil then
+        fillType = extSource.restrictFillType
+    elseif fillType == nil or fillType == FillType.UNKNOWN then
+        fillType = extSource.fillType
+    end
+    -- The station must actually sell this type: vanilla-provided
+    -- (BuyingStation.providedFillTypes) or SPS-extra (bundled config).
+    local sold, isExtra = self:buyStationSellsFillType(extSource, fillType)
+    if fillType == nil or not sold then
+        if not session._loggedBuyStationTypeBlock then
+            session._loggedBuyStationTypeBlock = true
+            SlurryPipeManager.log("transferFillFromBuyingStation: station does not provide fillType=%s — fill denied",
+                tostring(fillType))
+        end
+        return
+    end
+    session._loggedBuyStationTypeBlock = nil
+    local oldLevel = vehicle:getFillUnitFillLevel(session.vehicleFillUnit) or 0
+    local applied
+    if isExtra then
+        -- [SPS 1.0.0.9.28] SPS-side purchase for a type the vanilla station does
+        -- NOT declare (its getEffectiveFillTypePrice would index a nil
+        -- priceScale — verified source — so the vanilla call must not be used).
+        -- Mirrors BuyingStation:addFillLevelToFillableObject byte-for-byte in
+        -- behaviour: farm money gate (>0), fill, then charge at
+        -- priceScale x fillType.pricePerLiter x EconomyManager.getPriceMultiplier
+        -- via g_currentMission:addMoney with the station's own moneyChangeType.
+        -- priceScale 0 in the config = free (no addMoney call).
+        local farmId = vehicle:getOwnerFarmId()
+        if not (0 < g_currentMission:getMoney(farmId)) then
+            applied = 0
+        else
+            applied = vehicle:addFillUnitFillLevel(farmId, session.vehicleFillUnit,
+                delta, fillType, ToolType.TRIGGER, nil)
+            if applied ~= nil and applied > 0 then
+                local scale        = extSource.extraPriceScales[fillType] or 1.0
+                local fillTypeDesc = g_fillTypeManager:getFillTypeByIndex(fillType)
+                local pricePerLiter = scale * (fillTypeDesc ~= nil and fillTypeDesc.pricePerLiter or 0)
+                    * EconomyManager.getPriceMultiplier(fillType)
+                local price = pricePerLiter * applied
+                if price > 0 and extSource.station ~= nil then
+                    g_currentMission:addMoney(-price, farmId, extSource.station.moneyChangeType, true)
+                end
+            end
+        end
+    else
+        applied = station:addFillLevelToFillableObject(vehicle, session.vehicleFillUnit,
+            fillType, delta, nil, ToolType.TRIGGER)
+    end
+    if applied == nil or applied <= 0 then
+        -- Farm out of money (vanilla gate) or fill unit refused — stalled flow.
+        if SlurryPipeManager.DEBUG and session._lastBuyStationStall ~= true then
+            session._lastBuyStationStall = true
+            SlurryPipeManager.log("transferFillFromBuyingStation: %s applied=0 (no money or fill rejected)",
+                tostring(vehicle.configFileName))
+        end
+        return
+    end
+    session._lastBuyStationStall = nil
+    -- Optional authored consistency for bought slurry: blends run ONLY when the
+    -- bundled config declares values; undeclared leaves the tank's blended
+    -- average untouched. [SPS 1.0.0.9.28] Exception: a WATER fill always blends
+    -- thickness/crust toward 0 — water dilutes, mirroring the store-side rule
+    -- ("water adds volume but no dry matter").
+    if fillType == FillType.WATER then
+        if self.applyFillThicknessBlend ~= nil then
+            self:applyFillThicknessBlend(vehicle, oldLevel, applied, 0)
+        end
+        if self.applyFillCrustBlend ~= nil then
+            self:applyFillCrustBlend(vehicle, oldLevel, applied, 0)
+        end
+    else
+        if extSource.thickness ~= nil and self.applyFillThicknessBlend ~= nil then
+            self:applyFillThicknessBlend(vehicle, oldLevel, applied, extSource.thickness)
+        end
+        if extSource.crust ~= nil and self.applyFillCrustBlend ~= nil then
+            self:applyFillCrustBlend(vehicle, oldLevel, applied, extSource.crust)
+        end
+    end
+    session.totalTransferred = (session.totalTransferred or 0) + applied
 end
 
 -- ---------------------------------------------------------------------------
@@ -2091,6 +2449,10 @@ function SlurryPipeManager:removeFromSource(sourceEntry, amount, fillType, farmV
     elseif sourceEntry.type == 3 then  -- Water source (infinite)
         -- Water planes have infinite capacity, no removal needed
         -- Visual/sound effects could be added here
+    elseif sourceEntry.type == SPS_SOURCE_TYPE_BUYING_STATION then
+        -- [SPS 1.0.0.9.26] Infinite paid source — nothing to decrement; the
+        -- per-litre charge already happened inside the vanilla
+        -- addFillLevelToFillableObject call (transferFillFromBuyingStation).
     end
 end
 
@@ -2328,6 +2690,16 @@ function SlurryPipeManager:addToSource(sourceEntry, amount, fillType, farmVehicl
         end
     elseif sourceEntry.type == 3 then  -- Water source (infinite capacity)
         -- Water returns to water plane (infinite capacity, no action needed)
+    elseif sourceEntry.type == SPS_SOURCE_TYPE_BUYING_STATION then
+        -- [SPS 1.0.0.9.26] A buying station is a FILL-only source, never a
+        -- destination (its couplers ship flowDirection="FILL", which blocks
+        -- discharge upstream in tickFlow). Unreachable by design — hard no-op
+        -- so a mis-authored config can never dump slurry into thin air paid
+        -- or unpaid.
+        if not (self._loggedBuyStationDepositBlock == true) then
+            self._loggedBuyStationDepositBlock = true
+            SlurryPipeManager.log("addToSource: deposit into buying station blocked (FILL-only source)")
+        end
     end
 end
 

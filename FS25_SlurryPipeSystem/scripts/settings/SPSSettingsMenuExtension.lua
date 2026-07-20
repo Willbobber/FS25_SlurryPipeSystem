@@ -5,6 +5,8 @@
 -- SPSSettingsMenuExtension.lua
 -- FS25_SlurryPipeSystem
 
+print("[SPS BUILD] SPSSettingsMenuExtension 1.0.0.9.30 loaded")
+
 SPSSettingsMenuExtension = {}
 
 -- ---------------------------------------------------------------------------
@@ -30,22 +32,44 @@ function SPSSettingsMenuExtension:onFrameOpen()
 
     local onOff = { g_i18n:getText("ui_no"), g_i18n:getText("ui_yes") }
 
-    -- Section header
+    -- ------------------------------------------------------------------
+    -- [SPS 1.0.0.9.30] PER-PLAYER section -> generalSettingsLayout.
+    -- Vanilla hides the entire gameSettingsLayout for non-admin MP clients
+    -- (InGameMenuSettingsFrame:onFrameOpen, canChangeGameSettings), so
+    -- client-local preferences (pipe colour picker + spreader HUD) live in
+    -- generalSettingsLayout, which every player can always see and use.
+    -- ------------------------------------------------------------------
+
+    -- Section header (general / per-player)
+    local generalHeaderEl = TextElement.new()
+    generalHeaderEl.name = "sectionHeader"
+    generalHeaderEl:loadProfile(g_gui:getProfile("fs25_settingsSectionHeader"), true)
+    generalHeaderEl:setText(g_i18n:getText("sps_settingsHeader"))
+    self.generalSettingsLayout:addElement(generalHeaderEl)
+    generalHeaderEl:onGuiSetupFinished()
+
+    -- Slurry Pipe colour row (per-player: the colour THIS player lays with)
+    self.sps_slurryPipeColorElement = SPSSettingsMenuExtension:_addMultiTextOption(
+        self,
+        "onSPSSlurryPipeColorChanged",
+        colorTexts,
+        g_i18n:getText("sps_settingsSlurryPipe"),
+        g_i18n:getText("sps_settingsSlurryPipeTooltip"),
+        self.generalSettingsLayout
+    )
+
+    -- ------------------------------------------------------------------
+    -- GAMEPLAY section -> gameSettingsLayout (admin-gated by vanilla in MP;
+    -- server-authoritative + synced via SPSSettingsSyncEvent).
+    -- ------------------------------------------------------------------
+
+    -- Section header (gameplay)
     local headerEl = TextElement.new()
     headerEl.name = "sectionHeader"
     headerEl:loadProfile(g_gui:getProfile("fs25_settingsSectionHeader"), true)
     headerEl:setText(g_i18n:getText("sps_settingsHeader"))
     self.gameSettingsLayout:addElement(headerEl)
     headerEl:onGuiSetupFinished()
-
-    -- Slurry Pipe colour row
-    self.sps_slurryPipeColorElement = SPSSettingsMenuExtension:_addMultiTextOption(
-        self,
-        "onSPSSlurryPipeColorChanged",
-        colorTexts,
-        g_i18n:getText("sps_settingsSlurryPipe"),
-        g_i18n:getText("sps_settingsSlurryPipeTooltip")
-    )
 
     -- Master: Slurry Realism. Off = no thickness, crust, blockages or length falloff.
     self.sps_realismElement = SPSSettingsMenuExtension:_addMultiTextOption(
@@ -103,44 +127,54 @@ function SPSSettingsMenuExtension:onFrameOpen()
         g_i18n:getText("sps_settingsIbcPersistTooltip")
     )
 
-    -- Spreader HUD section
+    -- Spreader HUD section — per-player, generalSettingsLayout
     local hudHeader = TextElement.new()
     hudHeader.name = "sectionHeader"
     hudHeader:loadProfile(g_gui:getProfile("fs25_settingsSectionHeader"), true)
     hudHeader:setText(g_i18n:getText("sps_hudSettingsHeader"))
-    self.gameSettingsLayout:addElement(hudHeader)
+    self.generalSettingsLayout:addElement(hudHeader)
     hudHeader:onGuiSetupFinished()
 
     self.sps_hudEnabledElement = SPSSettingsMenuExtension:_addMultiTextOption(
         self, "onSPSHudEnabledChanged", onOff,
-        g_i18n:getText("sps_hudSetEnabled"), g_i18n:getText("sps_hudSetEnabledTooltip"))
+        g_i18n:getText("sps_hudSetEnabled"), g_i18n:getText("sps_hudSetEnabledTooltip"),
+        self.generalSettingsLayout)
     self.sps_hudImageElement = SPSSettingsMenuExtension:_addMultiTextOption(
         self, "onSPSHudImageChanged", onOff,
-        g_i18n:getText("sps_hudSetImage"), g_i18n:getText("sps_hudSetImageTooltip"))
+        g_i18n:getText("sps_hudSetImage"), g_i18n:getText("sps_hudSetImageTooltip"),
+        self.generalSettingsLayout)
     self.sps_hudFillElement = SPSSettingsMenuExtension:_addMultiTextOption(
         self, "onSPSHudFillChanged", onOff,
-        g_i18n:getText("sps_hudSetFill"), g_i18n:getText("sps_hudSetFieldTooltip"))
+        g_i18n:getText("sps_hudSetFill"), g_i18n:getText("sps_hudSetFieldTooltip"),
+        self.generalSettingsLayout)
     self.sps_hudCrustElement = SPSSettingsMenuExtension:_addMultiTextOption(
         self, "onSPSHudCrustChanged", onOff,
-        g_i18n:getText("sps_hudSetCrust"), g_i18n:getText("sps_hudSetFieldTooltip"))
+        g_i18n:getText("sps_hudSetCrust"), g_i18n:getText("sps_hudSetFieldTooltip"),
+        self.generalSettingsLayout)
     self.sps_hudThickElement = SPSSettingsMenuExtension:_addMultiTextOption(
         self, "onSPSHudThickChanged", onOff,
-        g_i18n:getText("sps_hudSetThick"), g_i18n:getText("sps_hudSetFieldTooltip"))
+        g_i18n:getText("sps_hudSetThick"), g_i18n:getText("sps_hudSetFieldTooltip"),
+        self.generalSettingsLayout)
     self.sps_hudRiskElement = SPSSettingsMenuExtension:_addMultiTextOption(
         self, "onSPSHudRiskChanged", onOff,
-        g_i18n:getText("sps_hudSetRisk"), g_i18n:getText("sps_hudSetFieldTooltip"))
+        g_i18n:getText("sps_hudSetRisk"), g_i18n:getText("sps_hudSetFieldTooltip"),
+        self.generalSettingsLayout)
     self.sps_hudPumpElement = SPSSettingsMenuExtension:_addMultiTextOption(
         self, "onSPSHudPumpChanged", onOff,
-        g_i18n:getText("sps_hudSetPump"), g_i18n:getText("sps_hudSetFieldTooltip"))
+        g_i18n:getText("sps_hudSetPump"), g_i18n:getText("sps_hudSetFieldTooltip"),
+        self.generalSettingsLayout)
 
     self.sps_hudScaleTexts  = { "50%", "75%", "100%", "125%", "150%" }
     self.sps_hudScaleValues = { 0.5, 0.75, 1.0, 1.25, 1.5 }
     self.sps_hudScaleElement = SPSSettingsMenuExtension:_addMultiTextOption(
         self, "onSPSHudScaleChanged", self.sps_hudScaleTexts,
-        g_i18n:getText("sps_hudSetScale"), g_i18n:getText("sps_hudSetScaleTooltip"))
+        g_i18n:getText("sps_hudSetScale"), g_i18n:getText("sps_hudSetScaleTooltip"),
+        self.generalSettingsLayout)
 
     self.gameSettingsLayout:invalidateLayout()
     self:updateAlternatingElements(self.gameSettingsLayout)
+    self.generalSettingsLayout:invalidateLayout()
+    self:updateAlternatingElements(self.generalSettingsLayout)
 
     self.sps_initDone = true
     SPSSettingsMenuExtension:_updateState(self)
@@ -223,80 +257,104 @@ function SPSSettingsMenuExtension:onSPSSlurryPipeColorChanged(state)
         return
     end
     g_slurryPipeManager:setCurrentPipeColor(state)
+    if g_slurryPipeManager.saveUserSettings ~= nil then g_slurryPipeManager:saveUserSettings() end
 end
 
 function SPSSettingsMenuExtension:onSPSRealismChanged(state)
     if g_slurryPipeManager == nil then return end
-    g_slurryPipeManager.realismEnabled = (state == 2)
+    -- [SPS 1.0.0.9.30] Server-authoritative: apply + MP-sync via the manager.
+    g_slurryPipeManager:requestGameplaySettings({ realismEnabled = (state == 2) })
     -- Re-grey the sub-rows immediately.
     SPSSettingsMenuExtension:_updateState(self)
 end
 
 function SPSSettingsMenuExtension:onSPSThicknessFlowChanged(state)
     if g_slurryPipeManager == nil then return end
-    g_slurryPipeManager.featureToggles.thicknessFlow = (state == 2)
+    g_slurryPipeManager:requestGameplaySettings({ thicknessFlow = (state == 2) })
 end
 
 function SPSSettingsMenuExtension:onSPSBlockagesChanged(state)
     if g_slurryPipeManager == nil then return end
-    g_slurryPipeManager.featureToggles.blockages = (state == 2)
+    g_slurryPipeManager:requestGameplaySettings({ blockages = (state == 2) })
 end
 
 function SPSSettingsMenuExtension:onSPSLengthFalloffChanged(state)
     if g_slurryPipeManager == nil then return end
-    g_slurryPipeManager.featureToggles.lengthFalloff = (state == 2)
+    g_slurryPipeManager:requestGameplaySettings({ lengthFalloff = (state == 2) })
 end
 
 function SPSSettingsMenuExtension:onSPSShearBoltChanged(state)
     if g_slurryPipeManager == nil then return end
-    g_slurryPipeManager.shearBoltEnabled = (state == 2)
+    g_slurryPipeManager:requestGameplaySettings({ shearBoltEnabled = (state == 2) })
 end
 
 function SPSSettingsMenuExtension:onSPSIbcPersistChanged(state)
     if g_slurryPipeManager == nil then return end
-    g_slurryPipeManager.ibcPersistWhenEmpty = (state == 2)
-    g_slurryPipeManager:applyIbcPersistSetting()
+    -- requestGameplaySettings runs applyIbcPersistSetting inside the apply.
+    g_slurryPipeManager:requestGameplaySettings({ ibcPersistWhenEmpty = (state == 2) })
+end
+
+-- [SPS 1.0.0.9.30] HUD callbacks are per-player: apply locally and persist to
+-- the player's own user file. Never synced — every player keeps their own HUD.
+local function spsSaveUser()
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.saveUserSettings ~= nil then
+        g_slurryPipeManager:saveUserSettings()
+    end
 end
 
 function SPSSettingsMenuExtension:onSPSHudEnabledChanged(state)
     if g_slurryPipeManager == nil then return end
     g_slurryPipeManager.hudSettings.enabled = (state == 2)
+    spsSaveUser()
+    -- Re-grey the HUD sub-rows immediately.
+    SPSSettingsMenuExtension:_updateState(self)
 end
 function SPSSettingsMenuExtension:onSPSHudImageChanged(state)
     if g_slurryPipeManager == nil then return end
     g_slurryPipeManager.hudSettings.image = (state == 2)
+    spsSaveUser()
 end
 function SPSSettingsMenuExtension:onSPSHudFillChanged(state)
     if g_slurryPipeManager == nil then return end
     g_slurryPipeManager.hudSettings.fill = (state == 2)
+    spsSaveUser()
 end
 function SPSSettingsMenuExtension:onSPSHudCrustChanged(state)
     if g_slurryPipeManager == nil then return end
     g_slurryPipeManager.hudSettings.crust = (state == 2)
+    spsSaveUser()
 end
 function SPSSettingsMenuExtension:onSPSHudThickChanged(state)
     if g_slurryPipeManager == nil then return end
     g_slurryPipeManager.hudSettings.thick = (state == 2)
+    spsSaveUser()
 end
 function SPSSettingsMenuExtension:onSPSHudRiskChanged(state)
     if g_slurryPipeManager == nil then return end
     g_slurryPipeManager.hudSettings.risk = (state == 2)
+    spsSaveUser()
 end
 function SPSSettingsMenuExtension:onSPSHudPumpChanged(state)
     if g_slurryPipeManager == nil then return end
     g_slurryPipeManager.hudSettings.pump = (state == 2)
+    spsSaveUser()
 end
 function SPSSettingsMenuExtension:onSPSHudScaleChanged(state)
     if g_slurryPipeManager == nil then return end
     local vals = { 0.5, 0.75, 1.0, 1.25, 1.5 }
     g_slurryPipeManager.hudSettings.scale = vals[state] or 1.0
+    spsSaveUser()
 end
 
 -- ---------------------------------------------------------------------------
 -- _addMultiTextOption — creates and attaches a MultiTextOptionElement row
 -- Mirrors the ELS helper pattern exactly.
 -- ---------------------------------------------------------------------------
-function SPSSettingsMenuExtension:_addMultiTextOption(frame, callbackName, texts, title, tooltip)
+function SPSSettingsMenuExtension:_addMultiTextOption(frame, callbackName, texts, title, tooltip, layout)
+    -- [SPS 1.0.0.9.30] Optional 'layout' parameter: rows default into
+    -- gameSettingsLayout (unchanged behaviour); per-player rows pass
+    -- frame.generalSettingsLayout, which vanilla never hides in MP.
+    local targetLayout = layout or frame.gameSettingsLayout
     local container = BitmapElement.new()
     container:loadProfile(g_gui:getProfile("fs25_multiTextOptionContainer"), true)
 
@@ -323,7 +381,7 @@ function SPSSettingsMenuExtension:_addMultiTextOption(frame, callbackName, texts
     titleEl:onGuiSetupFinished()
     tooltipEl:onGuiSetupFinished()
 
-    frame.gameSettingsLayout:addElement(container)
+    targetLayout:addElement(container)
     container:onGuiSetupFinished()
 
     return option
@@ -335,6 +393,13 @@ end
 local function init()
     InGameMenuSettingsFrame.onFrameOpen    = Utils.appendedFunction(InGameMenuSettingsFrame.onFrameOpen,    SPSSettingsMenuExtension.onFrameOpen)
     InGameMenuSettingsFrame.updateGameSettings = Utils.appendedFunction(InGameMenuSettingsFrame.updateGameSettings, SPSSettingsMenuExtension.updateGameSettings)
+    -- [SPS 1.0.0.9.30] Vanilla only calls updateGameSettings inside the
+    -- canChangeGameSettings branch of onFrameOpen (admin/host), so on a
+    -- non-admin MP client our state refresh would never run. updateGeneralSettings
+    -- runs unconditionally for everyone — hook it too so the per-player rows
+    -- (colour + HUD) always reflect the stored values. _updateState nil-guards
+    -- every element, so double-refresh on hosts is harmless.
+    InGameMenuSettingsFrame.updateGeneralSettings = Utils.appendedFunction(InGameMenuSettingsFrame.updateGeneralSettings, SPSSettingsMenuExtension.updateGameSettings)
 end
 
 init()

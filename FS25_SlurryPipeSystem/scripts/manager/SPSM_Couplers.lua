@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.9
+-- Version: 1.0.0.9.26
 
 -- SPSM_Couplers.lua
 -- FS25_SlurryPipeSystem
@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Couplers 1.0.0.9.3 loaded")
+print("[SPS BUILD] SPSM_Couplers 1.0.0.9.29 loaded")
 
 
 -- Applies saved coupler animation time/direction to a registered coupling.
@@ -79,6 +79,10 @@ function SlurryPipeManager:onCouplingDeploy(coupling)
         self:applyCouplingDeployState(coupling.placeable, coupling.id, true)
         SPSCouplingDeployEvent.sendEvent(coupling.placeable, coupling.id, true)
     end
+    -- [SPS 1.0.0.9.29] Lid-linked coupler: open the lid alongside the deploy.
+    -- Called once, on the originating machine only — vanilla setDirection routes
+    -- MP (client -> AnimatedObjectEvent to server; server ticks + syncs time).
+    self:_driveCouplingLid(coupling, 1)
 end
 
 function SlurryPipeManager:onCouplingUndeploy(coupling)
@@ -95,6 +99,124 @@ function SlurryPipeManager:onCouplingUndeploy(coupling)
         self:applyCouplingDeployState(coupling.placeable, coupling.id, false)
         SPSCouplingDeployEvent.sendEvent(coupling.placeable, coupling.id, false)
     end
+    -- [SPS 1.0.0.9.29] Lid-linked coupler: close the lid on undeploy, but only
+    -- once no OTHER coupler sharing the same lid is still deployed or connected
+    -- (two couplers under one lid = one shared open state).
+    if not self:_lidGroupHasActive(coupling) then
+        self:_driveCouplingLid(coupling, -1)
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.0.9.29] Lid-linked deployable couplers
+-- A store coupling may declare deployAnimatedObjectSaveId, naming a vanilla
+-- AnimatedObject in the SAME placeable's <animatedObjects> section. SPS then:
+--   * drives that object open on deploy / closed on undeploy via the vanilla
+--     AnimatedObject:setDirection API (client call auto-sends AnimatedObjectEvent
+--     to the server; server ticks and dirty-flags time to every client — no SPS
+--     sync events needed),
+--   * gates connect availability on the lid being fully open (time >= threshold),
+--   * locks the lid's walk-up trigger (getCanBeTriggered chain-wrap, the same
+--     pattern vanilla PlaceableAnimatedObjects uses for dependencies) while any
+--     linked coupler is deployed or connected.
+-- Couplings without the attribute are completely unaffected.
+-- ---------------------------------------------------------------------------
+
+SPS_LID_OPEN_TIME_MIN   = 0.99  -- animation.time at/above which the lid counts as open
+SPS_LID_CLOSED_TIME_MAX = 0.01  -- animation.time at/below which the lid counts as closed
+
+-- Lazily resolves (and caches) the linked AnimatedObject for a coupling.
+-- Installs the walk-up trigger lockout wrap exactly once per object.
+function SlurryPipeManager:getCouplingLidObject(coupling)
+    if coupling == nil or coupling.deployAnimObjectSaveId == nil then return nil end
+    if coupling.deployAnimObject ~= nil then return coupling.deployAnimObject end
+    if coupling.deployAnimObjectMissing then return nil end
+    local placeable = coupling.placeable
+    if placeable == nil or placeable.getAnimatedObjectBySaveId == nil then
+        coupling.deployAnimObjectMissing = true
+        return nil
+    end
+    local ao = placeable:getAnimatedObjectBySaveId(coupling.deployAnimObjectSaveId)
+    if ao == nil then
+        coupling.deployAnimObjectMissing = true
+        Logging.warning("[SPS] pipeCoupling id=%s: deployAnimatedObjectSaveId '%s' not found on placeable — lid link disabled for this coupler",
+            tostring(coupling.id), tostring(coupling.deployAnimObjectSaveId))
+        return nil
+    end
+    coupling.deployAnimObject = ao
+    SlurryPipeManager.log("getCouplingLidObject: resolved lid saveId=%s for couplingId=%s",
+        tostring(coupling.deployAnimObjectSaveId), tostring(coupling.id))
+    if not ao.spsLidLockInstalled then
+        ao.spsLidLockInstalled = true
+        local mgr = self
+        ao.getCanBeTriggered = Utils.overwrittenFunction(ao.getCanBeTriggered, function(_, superFunc)
+            if not superFunc(ao) then
+                return false
+            end
+            -- Lid owned by SPS while any linked coupler is deployed or connected:
+            -- the player must not be able to shut it on a live pipe.
+            if mgr:_lidLockedByCouplings(ao) then
+                return false
+            end
+            return true
+        end)
+    end
+    return ao
+end
+
+-- True when the coupling either has no lid link, or its lid is fully open.
+-- This is the connect/lay availability gate; safe to call for ANY coupling
+-- (vehicle couplings and legacy store couplings always return true).
+function SlurryPipeManager:getCouplingLidOpen(coupling)
+    local ao = self:getCouplingLidObject(coupling)
+    if ao == nil or ao.animation == nil then return true end
+    return ao.animation.time >= SPS_LID_OPEN_TIME_MIN
+end
+
+-- Drives the lid open (dir=1) or closed (dir=-1) on the machine this is called
+-- from. Vanilla setDirection handles MP routing: server raises active and ticks;
+-- a client sends AnimatedObjectEvent to the server. Idempotent — driving an
+-- already-open lid open again is clamped by AnimatedObject:update.
+function SlurryPipeManager:_driveCouplingLid(coupling, dir)
+    local ao = self:getCouplingLidObject(coupling)
+    if ao == nil then return end
+    SlurryPipeManager.log("_driveCouplingLid: couplingId=%s dir=%s time=%.3f",
+        tostring(coupling.id), tostring(dir), ao.animation ~= nil and ao.animation.time or -1)
+    ao:setDirection(dir)
+end
+
+-- True when any OTHER store coupling on the same placeable shares this
+-- coupling's lid saveId and is still deployed or connected.
+function SlurryPipeManager:_lidGroupHasActive(coupling)
+    if coupling == nil or coupling.deployAnimObjectSaveId == nil then return false end
+    for _, pEntry in ipairs(self.registeredPlaceables) do
+        if pEntry.placeable == coupling.placeable and pEntry.storeCouplings ~= nil then
+            for _, sc in ipairs(pEntry.storeCouplings) do
+                if sc ~= coupling
+                and sc.deployAnimObjectSaveId == coupling.deployAnimObjectSaveId
+                and (sc.isDeployed or sc.isConnected) then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+-- True when the given AnimatedObject is currently owned by SPS: any registered
+-- store coupling resolved to it is deployed or connected. Used by the
+-- getCanBeTriggered wrap to lock the walk-up trigger.
+function SlurryPipeManager:_lidLockedByCouplings(ao)
+    for _, pEntry in ipairs(self.registeredPlaceables) do
+        if pEntry.storeCouplings ~= nil then
+            for _, sc in ipairs(pEntry.storeCouplings) do
+                if sc.deployAnimObject == ao and (sc.isDeployed or sc.isConnected) then
+                    return true
+                end
+            end
+        end
+    end
+    return false
 end
 
 function SlurryPipeManager:applyCouplingDeployState(placeable, couplingId, isDeployed)
@@ -391,7 +513,10 @@ function SlurryPipeManager:findOverlappingCoupler(coupling)
                 if sc ~= coupling
                 and (coupling.placeable == nil or sc.placeable ~= coupling.placeable)
                 and not sc.isConnected
-                and (not sc.deployable or sc.isDeployed) then
+                and (not sc.deployable or sc.isDeployed)
+                -- [SPS 1.0.0.9.29] Lid-linked coupler is only connectable while
+                -- its lid is fully open (no lid link = always true).
+                and self:getCouplingLidOpen(sc) then
                     -- Skip if this coupling is a chain anchor with active segments
                     local hasChain = false
                     for _, chain in ipairs(self.pipeChains) do
@@ -434,6 +559,15 @@ function SlurryPipeManager:findOverlappingCoupler(coupling)
                     -- This coupling is the current anchor — block if already connected
                     -- or if it's a placeable (placeables don't reconnect)
                     isOwnChain = coupling.placeable ~= nil or ct.isConnected
+                elseif ct.chain ~= nil and ct.chain.anchorCoupling ~= nil then
+                    -- 1.0.0.9.26: chain is anchored elsewhere — it is IN SERVICE.
+                    -- Anchoring never sets isConnected on the start terminus, so
+                    -- without this it reads as free, attracts connections, and
+                    -- suppresses nearby anchors' lay prompts (field report: could
+                    -- not start the sep OUT pipe beside the anchored IN chain).
+                    -- Free-standing chains (anchorCoupling == nil) keep the
+                    -- pick-up behaviour in the branch below, unchanged.
+                    isOwnChain = true
                 else
                     -- Chain start is disconnected — any vehicle coupling may pick it up.
                     -- Only block placeable couplings from connecting to a chain start.
@@ -442,6 +576,17 @@ function SlurryPipeManager:findOverlappingCoupler(coupling)
             else
                 -- chainEnd: skip if caller is the own chain anchor
                 isOwnChain = ct.chain ~= nil and ct.chain.anchorCoupling == coupling
+                -- 1.0.0.9.26: only the FINAL segment's terminus is a valid connect
+                -- target ("laid pipe ends a vehicle can connect to"); mid-chain
+                -- joints must neither attract connections nor suppress nearby lay
+                -- prompts when their arcs overlap.
+                if not isOwnChain and ct.chain ~= nil and ct.chain.segments ~= nil then
+                    local lastSeg = ct.chain.segments[#ct.chain.segments]
+                    local lastCc  = lastSeg ~= nil and lastSeg.chainCoupling or nil
+                    if lastCc ~= nil and lastCc ~= ct then
+                        isOwnChain = true
+                    end
+                end
             end
             if not isOwnChain then
                 local apexB, arc1B, arc2B = self:_getCouplingArcNodes(ct)

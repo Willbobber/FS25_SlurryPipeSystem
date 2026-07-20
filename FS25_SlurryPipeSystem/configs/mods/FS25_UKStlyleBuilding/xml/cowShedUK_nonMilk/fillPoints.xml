@@ -21,6 +21,7 @@
         centreNodeName="slurryPlaneCentre"
         corner1NodeName="slurryPlaneCorner1"
         corner2NodeName="slurryPlaneCorner2"
+		headHeightNodeName="headHeight01"
     />
  
     <pipeCouplings>

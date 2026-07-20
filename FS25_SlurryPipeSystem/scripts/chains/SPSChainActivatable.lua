@@ -23,7 +23,7 @@ SPSChainActivatable.HOLD_THRESHOLD  = 0.8
 -- update, _getState) are intentionally NOT logged to avoid frame spam.
 -- ---------------------------------------------------------------------------
 SPSChainActivatable.DEBUG = false
-print("[SPS BUILD] SPSChainActivatable 1.0.0.8 loaded")
+print("[SPS BUILD] SPSChainActivatable 1.0.0.9.30 loaded")
 
 function SPSChainActivatable.log(fmt, ...)
     if not SPSChainActivatable.DEBUG then return end
@@ -587,6 +587,14 @@ function SPSChainActivatable:_getState()
                 if v ~= nil and g_slurryPipeManager:isVehicleConduit(v) then return nil end
             end
             if self.coupling.deployable and self.coupling.isDeployed then
+                -- [SPS 1.0.0.9.29] Lid-linked coupler: while the linked
+                -- AnimatedObject lid is still travelling, offer nothing —
+                -- retract/lay/connect only become available once the lid is
+                -- fully open. Couplers without a lid link are unaffected
+                -- (getCouplingLidOpen returns true for them).
+                if g_slurryPipeManager ~= nil and not g_slurryPipeManager:getCouplingLidOpen(self.coupling) then
+                    return nil
+                end
                 return "deployedCoupling"
             end
             
@@ -643,6 +651,12 @@ function SPSChainActivatable:_getState()
                 local exposeValve = true
                 if partner ~= nil then
                     if partner.valveType == SPS_VALVE_TYPE_HYDRAULIC then exposeValve = false end
+                    -- [SPS 1.0.0.9.30] Valve-less partner (valveType="NONE", e.g. a
+                    -- store coupler on the baseTank or the separator): the chain
+                    -- valve toggle is a remote control for the PARTNER's valve —
+                    -- with no valve there, there is nothing to open. Fall through
+                    -- to "removePipeChain" exactly as the hydraulic case does.
+                    if partner.valveType == SPS_VALVE_TYPE_NONE then exposeValve = false end
                     if g_slurryPipeManager ~= nil then
                         local v, _ = g_slurryPipeManager:_findCouplingOwner(partner)
                         if v ~= nil and g_slurryPipeManager:isVehicleConduit(v) then exposeValve = false end
@@ -687,6 +701,12 @@ function SPSChainActivatable:_getState()
             if cc.connectedPartnerCoupling ~= nil then
                 local partner = cc.connectedPartnerCoupling
                 if partner.valveType == SPS_VALVE_TYPE_HYDRAULIC then
+                    return "connectedHydraulicValve"
+                end
+                -- [SPS 1.0.0.9.30] Valve-less partner (valveType="NONE"): nothing
+                -- to open on the far side, so this end offers disconnect only —
+                -- the exact state a hydraulic partner produces.
+                if partner.valveType == SPS_VALVE_TYPE_NONE then
                     return "connectedHydraulicValve"
                 end
                 if g_slurryPipeManager ~= nil then

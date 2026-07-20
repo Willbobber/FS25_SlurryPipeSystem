@@ -177,5 +177,24 @@
 		<text name="sps_settingsIbcPersist" 			text="IBC Persists When Empty"/>
 		<text name="sps_settingsIbcPersistTooltip" 		text="Yes: emptied IBCs stay on the map (return to store or refill them). No: they disappear when emptied (default)."/>
 		<text name="action_spsAddIbc" 					text="Hold: add IBC" />
+
+		<!-- Separator -->
+		<text name="input_SPS_TOGGLE_SEPARATOR"		text="Separator Start/Stop" />
+		<text name="input_SPS_SEPARATOR_TIGHTNESS"	text="Separator Screw Tightness" />
+		<text name="action_spsSeparatorOn"			text="Separator: START" />
+		<text name="action_spsSeparatorOff"			text="Separator: STOP" />
+		<text name="action_spsSeparatorTightness"	text="Screw tightness: %d%%" />
+		<text name="warning_spsSepNoPipes"			text="Separator: connect inlet and outlet pipes" />
+		<text name="warning_spsSepNoInPipe"			text="Separator: connect inlet pipe (slurry source)" />
+		<text name="warning_spsSepNoOutPipe"		text="Separator: connect outlet pipe (slurry return)" />
+		<text name="warning_spsSepSourceEmpty"		text="Separator: slurry source is empty" />
+		<text name="warning_spsSepSourceThick"		text="Separator: source slurry too thick - add water" />
+		<text name="warning_spsSepOutputFull"		text="Separator: manure bunker is full" />
+		<text name="warning_spsSepReturnFull"		text="Separator: slurry return destination is full" />
+		<text name="info_spsSeparatorRunning"		text="Slurry separator running cost" />
+		<text name="warning_spsSepNoDm"				text="Separator: no dry matter left - stopped until fresh slurry arrives" />
+
+		<!-- Buying station -->
+		<text name="action_spsBuyStationSwitch"		text="Buying: %s - switch to %s" />
 	</texts>
 </l10n>

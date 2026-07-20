@@ -169,13 +169,32 @@
 	
 		<!-- Agitator -->
 		<text name="action_spsAgitatorConnect" 			text="Connect PTO"/>
-		<text name="action_spsAgitatorDisconnect" 		text="Disconnect PTO"/>
-		<text name="action_spsAgitatorPtoOn"  			text="Engage PTO"/>
-		<text name="action_spsAgitatorPtoOff" 			text="Disengage PTO"/>
+		<text name="action_spsAgitatorDisconnect" 		text="Scollega la PTO"/>
+		<text name="action_spsAgitatorPtoOn"  			text="Innesta la PTO"/>
+		<text name="action_spsAgitatorPtoOff" 			text="Disinnesta la PTO"/>
 		
 		<!-- IBCs -->
 		<text name="sps_settingsIbcPersist" 			text="L'IBC rimane in posizione anche quando è vuoto."/>
 		<text name="sps_settingsIbcPersistTooltip" 		text="Sì: gli IBC svuotati rimangono sulla mappa (riportali al negozio o riempili). No: scompaiono una volta svuotati (impostazione predefinita)."/>
 		<text name="action_spsAddIbc" 					text="Hold: aggiungere IBC" />
+
+		<!-- Separator -->
+		<text name="input_SPS_TOGGLE_SEPARATOR"		text="Avvio/arresto separatore" />
+		<text name="input_SPS_SEPARATOR_TIGHTNESS"	text="Serraggio coclea separatore" />
+		<text name="action_spsSeparatorOn"			text="Separatore: AVVIA" />
+		<text name="action_spsSeparatorOff"			text="Separatore: ARRESTA" />
+		<text name="action_spsSeparatorTightness"	text="Serraggio coclea: %d%%" />
+		<text name="warning_spsSepNoPipes"			text="Separatore: collega i tubi di ingresso e di uscita" />
+		<text name="warning_spsSepNoInPipe"			text="Separatore: collega il tubo di ingresso (fonte del liquame)" />
+		<text name="warning_spsSepNoOutPipe"		text="Separatore: collega il tubo di uscita (ritorno del liquame)" />
+		<text name="warning_spsSepSourceEmpty"		text="Separatore: la fonte del liquame è vuota" />
+		<text name="warning_spsSepSourceThick"		text="Separatore: liquame troppo denso — aggiungi acqua" />
+		<text name="warning_spsSepOutputFull"		text="Separatore: il bunker del letame è pieno" />
+		<text name="warning_spsSepReturnFull"		text="Separatore: la destinazione di ritorno del liquame è piena" />
+		<text name="info_spsSeparatorRunning"		text="Costo di esercizio del separatore di liquame" />
+		<text name="warning_spsSepNoDm"				text="Separatore: sostanza secca esaurita — fermo finché non arriva liquame fresco" />
+
+		<!-- Buying station -->
+		<text name="action_spsBuyStationSwitch"		text="Acquisto: %s — passa a %s" />
 	</texts>
 </l10n>

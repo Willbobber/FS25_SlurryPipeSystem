@@ -32,6 +32,7 @@
 			connector="male"
 			connectorAnimation="1"
 			valveAnimation="2"
+			headHeightNodeName="headHeight01"
         >
             <effects inletDistance="10.0">
                 <effectNode effectClass="PipeEffect" effectNode="effect" materialType="pipe"
@@ -51,6 +52,7 @@
 			connector="male"
 			connectorAnimation="1"
 			valveAnimation="2"
+			headHeightNodeName="headHeight02"
         />
  
     </pipeCouplings>

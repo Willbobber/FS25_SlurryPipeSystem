@@ -21,6 +21,7 @@
 			connector="male"
 			connectorAnimation="1"
 			valveAnimation="2"
+			headHeightNodeName="headHeight01"
         />
 
     </pipeCouplings>

@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<placeable type="manureHeapSeparator" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../shared/xml/schema/placeable.xsd">
+    <storeData>
+        <name>Borger 125</name>
+        <image>$data/placeables/brandless/manureHeap/store_manureHeap.png</image>
+        <functions>
+            <function>$l10n_function_manureHeap</function>
+        </functions>
+        <price>25000</price>
+        <dailyUpkeep>25</dailyUpkeep>
+        <lifetime>1000</lifetime>
+        <rotation>0</rotation>
+        <brand>NONE</brand>
+        <species>PLACEABLE</species>
+        <category>silos</category>
+        <brush>
+            <type>placeable</type>
+            <category>buildings</category>
+            <tab>silos</tab>
+        </brush>
+        <vertexBufferMemoryUsage>44544</vertexBufferMemoryUsage>
+        <indexBufferMemoryUsage>7936</indexBufferMemoryUsage>
+        <textureMemoryUsage>327680</textureMemoryUsage>
+        <instanceVertexBufferMemoryUsage>0</instanceVertexBufferMemoryUsage>
+        <instanceIndexBufferMemoryUsage>0</instanceIndexBufferMemoryUsage>
+        <audioMemoryUsage>0</audioMemoryUsage>
+    </storeData>
+
+    <base>
+        <filename>placeables/separators/borger125FixedBunker/borger125FixedBunker.i3d</filename>
+    </base>
+
+    <placement useRandomYRotation="false" useManualYRotation="true" placementRotationSnapAngle="90" placementPositionSnapSize="0.5" placementPositionSnapOffset="0.25" >
+        <testAreas>
+            <testArea startNode="testAreaStart01" endNode="testAreaEnd01" />
+        </testAreas>
+
+        <sounds>
+            <place template="smallImp" />
+        </sounds>
+    </placement>
+
+    <clearAreas>
+        <clearArea startNode="clearAreaStart01" widthNode="clearAreaWidth01" heightNode="clearAreaHeight01"/>
+    </clearAreas>
+
+    <leveling requireLeveling="true" maxSmoothDistance="5" maxSlope="75" maxEdgeAngle="30">
+        <levelAreas>
+            <levelArea startNode="levelAreaStart01" widthNode="levelAreaWidth01" heightNode="levelAreaHeight01"/>
+        </levelAreas>
+    </leveling>
+
+    <indoorAreas>
+        <indoorArea startNode="indoorAreaStart01" widthNode="indoorAreaWidth01" heightNode="indoorAreaHeight01" />
+    </indoorAreas>
+
+    <tipOcclusionUpdateAreas>
+        <tipOcclusionUpdateArea startNode="tipOcclusionUpdateAreaStart01" endNode="tipOcclusionUpdateAreaEnd01" />
+    </tipOcclusionUpdateAreas>
+
+    <ai>
+        <updateAreas>
+            <updateArea startNode="tipOcclusionUpdateAreaStart01" endNode="tipOcclusionUpdateAreaEnd01" />
+        </updateAreas>
+    </ai>
+
+    <triggerMarkers>
+        <triggerMarker node="loadingTriggerMarker" filename="$data/shared/assets/marker/markerIconLoad.i3d"/>
+    </triggerMarkers>
+
+    <hotspots>
+        <hotspot type="LOADING" teleportNode="loadingTriggerMarker" />
+    </hotspots>
+
+    <infoTrigger triggerNode="infoTrigger" />
+
+    <manureHeap node="manureHeap" capacity="450000" isExtension="false" needsBarn="false" >
+        <area startNode="tipAreaStart" widthNode="tipAreaWidth" heightNode="tipAreaHeight" activationTriggerNode="activationTrigger" />
+        <clearArea startNode="clearAreaStart" widthNode="clearAreaWidth" heightNode="clearAreaHeight" />
+
+        <loadingStation storageRadius="10" supportsExtension="false">
+            <loadTrigger triggerNode="loadingTrigger" aiNode="loadingTriggerAINode" fillTypes="MANURE" fillLitersPerSecond="2000" />
+        </loadingStation>
+    </manureHeap>
+	
+	<slurryPipeSystem>
+		<pipeCouplings>
+			<!-- id 1 = suction side (separator pulls whole slurry in from the connected source).
+			     id 2 = return side (thin liquid fraction pumped back out to any slurry receiver).
+			     No coupler pipe effects here: pipe streams are enclosed. The manure drop
+			     visual belongs on the separator's own drop node (SPS_dropNode below), built
+			     as a conveyor-discharge style effect in SPSSeparator pass 2. -->
+			<pipeCoupling id="1" mountNodeName="SPS_pipeCoupler01" flowDirection="IN" valveType="NONE" deployable="false" maxPipeLength="4.0" connector="female"/>
+			<pipeCoupling id="2" mountNodeName="SPS_pipeCoupler02" flowDirection="OUT" valveType="NONE" deployable="false" maxPipeLength="4.0" connector="female"/>
+		</pipeCouplings>
+
+		<!-- Screw-press separator. All values are floats so faster machine versions
+		     just carry different numbers in their own XML.
+		       ratedLitersPerHour     intake at tightness 0 (fully loose)
+		       costPerHour            money charged per hour of ACTIVE separating (0 = free)
+		       solidsDryMatter        DM fraction of the extruded solids (~0.28 for a screw press)
+		       captureEffMin/Max      share of incoming DM captured at tightness 0 / tightness 1
+		       tightMinThroughputMult intake multiplier at FULL tightness (loose = 1.0)
+		       inCouplingId/outCouplingId  explicit coupler roles (also resolved from
+		                              flowDirection="IN"/"OUT" when omitted)
+		       panelNodeName          walk-up control node (GE: add "SPS_separatorPanel" under
+		                              SPS_separator; falls back to the IN coupler mount)
+		       dropNodeName           manure discharge node for the pass-2 visual effect
+		                              (GE: add "SPS_dropNode" above the bunker tip area) -->
+		<separator ratedLitersPerHour="500000.0" costPerHour="35.0"
+		           solidsDryMatter="0.28" captureEffMin="0.15" captureEffMax="0.40"
+		           tightMinThroughputMult="0.5"
+		           inCouplingId="1" outCouplingId="2"
+		           dropChunksTexture="effects/sepDropArray54x24.dds" dropChunksSpeedScale="0.5" 
+				   dropChunksDensity="1.0" dropChunksSizeScale="0.9 0.9"
+				   panelNodeName="SPS_separatorPanel" dropNodeName="SPS_dropNode"
+		           interactRadius="4.0"/>
+	</slurryPipeSystem>
+    
+	<i3dMappings>
+        <i3dMapping id="clearAreaStart01" node="0>0|0" />
+        <i3dMapping id="clearAreaWidth01" node="0>0|0|0" />
+        <i3dMapping id="clearAreaHeight01" node="0>0|0|1" />
+        <i3dMapping id="levelAreaStart01" node="0>1|0" />
+        <i3dMapping id="levelAreaWidth01" node="0>1|0|0" />
+        <i3dMapping id="levelAreaHeight01" node="0>1|0|1" />
+        <i3dMapping id="indoorAreaStart01" node="0>2|0" />
+        <i3dMapping id="indoorAreaWidth01" node="0>2|0|0" />
+        <i3dMapping id="indoorAreaHeight01" node="0>2|0|1" />
+        <i3dMapping id="testAreaStart01" node="0>3|0" />
+        <i3dMapping id="testAreaEnd01" node="0>3|0|0" />
+        <i3dMapping id="tipOcclusionUpdateAreaStart01" node="0>4|0" />
+        <i3dMapping id="tipOcclusionUpdateAreaEnd01" node="0>4|0|0" />
+        <i3dMapping id="manureHeap" node="0>5" />
+        <i3dMapping id="loadingTrigger" node="0>5|0" />
+        <i3dMapping id="loadingTriggerAINode" node="0>5|1" />
+        <i3dMapping id="loadingTriggerMarker" node="0>5|2" />
+        <i3dMapping id="tipAreaStart" node="0>5|3|0" />
+        <i3dMapping id="tipAreaWidth" node="0>5|3|0|0" />
+        <i3dMapping id="tipAreaHeight" node="0>5|3|0|1" />
+        <i3dMapping id="activationTrigger" node="0>5|4" />
+        <i3dMapping id="clearAreaStart" node="0>5|5" />
+        <i3dMapping id="clearAreaWidth" node="0>5|5|0" />
+        <i3dMapping id="clearAreaHeight" node="0>5|5|1" />
+        <i3dMapping id="infoTrigger" node="0>5|6" />
+		<i3dMapping id="pipeCouplers" node="0>9|0"/>
+		<i3dMapping id="borger125" node="0>9|0|0"/>
+		<i3dMapping id="SPS_pipeCoupler01" node="0>9|0|0|0"/>
+		<i3dMapping id="SPS_pipeCoupler01Arcs" node="0>9|0|0|0|0"/>
+		<i3dMapping id="SPS_pipeCoupler01Arc01" node="0>9|0|0|0|0|0"/>
+		<i3dMapping id="SPS_pipeCoupler01Arc02" node="0>9|0|0|0|0|1"/>
+		<i3dMapping id="SPS_pipeCoupler02" node="0>9|0|0|1"/>
+		<i3dMapping id="SPS_pipeCoupler02Arcs" node="0>9|0|0|1|0"/>
+		<i3dMapping id="SPS_pipeCoupler02Arc01" node="0>9|0|0|1|0|0"/>
+		<i3dMapping id="SPS_pipeCoupler02Arc02" node="0>9|0|0|1|0|1"/>
+		<i3dMapping id="SPS_separatorPanel" node="0>9|0|1"/>
+		<i3dMapping id="SPS_dropNode" node="0>9|0|2"/>
+    </i3dMappings>
+</placeable>

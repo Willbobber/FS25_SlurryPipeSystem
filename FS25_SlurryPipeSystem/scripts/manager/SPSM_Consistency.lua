@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Consistency 1.0.0.9 loaded")
+print("[SPS BUILD] SPSM_Consistency 1.0.0.9.2 loaded")
 
 
 -- [SPS MP] Apply a replicated store crust/thickness state on a client. Sets the two
@@ -198,6 +198,33 @@ function SlurryPipeManager:resolveStoreDepositFillType(se, incomingFillType)
     -- overriding the "whatever the store already holds" guess below.
     if se.restrictFillType ~= nil then return se.restrictFillType end
     local levels = se.storage.getFillLevels ~= nil and se.storage:getFillLevels() or se.storage.fillLevels
+    -- [SPS 1.0.0.9.2] Content-merge rule (field report, baseTank): a store's
+    -- Storage declares the whole slurryTank CATEGORY, so levels[DIGESTATE]
+    -- exists as a key (at 0) and the natively-accepts check below deposited
+    -- digestate as a SECOND pool alongside the slurry instead of merging —
+    -- while WATER (no key in the category) fell through to conversion and
+    -- merged fine. The store's content type is whatever slurry-class liquid
+    -- it already holds: any incoming pumpable liquid (slurry, digestate,
+    -- water) merges into that held type. Held type = the non-water pumpable
+    -- liquid with the highest level; the fillPlane-declared type wins ties
+    -- for determinism. Empty store: rule inert — the first liquid in defines
+    -- the content type, and vice versa (digestate first => slurry merges in).
+    -- BGA is unaffected: its couplers return via restrictFillType above.
+    local heldType, heldLvl = nil, 0
+    if levels ~= nil then
+        for ft, lvl in pairs(levels) do
+            lvl = lvl or 0
+            if lvl > 0 and ft ~= FillType.WATER and self:_isPumpableSourceFillType(ft) then
+                if lvl > heldLvl or (lvl == heldLvl and ft == se.fillType) then
+                    heldType, heldLvl = ft, lvl
+                end
+            end
+        end
+    end
+    if heldType ~= nil and incomingFillType ~= heldType
+    and self:_isPumpableSourceFillType(incomingFillType) then
+        return heldType
+    end
     if levels ~= nil and levels[incomingFillType] ~= nil then
         return incomingFillType   -- store natively accepts this type
     end
@@ -205,7 +232,18 @@ function SlurryPipeManager:resolveStoreDepositFillType(se, incomingFillType)
     local native = se.fillType
     if levels ~= nil then
         for ft, lvl in pairs(levels) do
-            if (lvl or 0) > 0 then native = ft break end
+            -- [SPS 1.0.0.9.1] Deposit-side twin of the UKStyle cow shed straw bug:
+            -- a husbandry Storage also holds STRAW, and pairs() order can put it
+            -- first — an incoming type the store doesn't natively hold (e.g.
+            -- DIGESTATE) would then CONVERT TO STRAW on deposit. The held-type
+            -- override may only ever pick a pumpable liquid; otherwise the
+            -- fillPlane-declared native type (se.fillType) stands.
+            -- [SPS 1.0.0.9.2] WATER excluded too: a husbandry store natively
+            -- holds drinking WATER — without this, digestate pumped into a shed
+            -- whose slurry channel is empty would convert to WATER (the trough)
+            -- instead of the declared LIQUIDMANURE.
+            if (lvl or 0) > 0 and ft ~= FillType.WATER
+            and self:_isPumpableSourceFillType(ft) then native = ft break end
         end
     end
     return native

@@ -2,7 +2,7 @@
 
 <i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
   <Asset>
-    <Export program="GIANTS Editor 64bit" version="10.0.11"/>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
   </Asset>
 
   <Files>
@@ -101,8 +101,9 @@
             </Shape>
             <Shape name="grate" translation="-0.000715931 -0.689993 0.497061" rotation="90 74.5477 90" shapeId="8" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" density="0.0001" clipDistance="150" nodeId="37" castsShadows="true" receiveShadows="true" materialIds="7"/>
             <Shape name="col" translation="-2.79794 -3.39434 10.1384" rotation="90 74.5477 90" shapeId="9" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="38" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="8"/>
-            <TransformGroup name="inNode" nodeId="40"/>
-            <TransformGroup name="outNode" rotation="0 180 0" nodeId="41"/>
+            <TransformGroup name="inNode" nodeId="39"/>
+            <TransformGroup name="outNode" rotation="0 180 0" nodeId="40"/>
+            <TransformGroup name="headHeight01" nodeId="42"/>
           </TransformGroup>
         </TransformGroup>
       </TransformGroup>

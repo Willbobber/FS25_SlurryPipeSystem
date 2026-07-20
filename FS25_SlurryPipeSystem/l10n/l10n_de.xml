@@ -169,13 +169,32 @@
 	
 		<!-- Agitator -->
 		<text name="action_spsAgitatorConnect" 			text="Connect PTO"/>
-		<text name="action_spsAgitatorDisconnect" 		text="Disconnect PTO"/>
-		<text name="action_spsAgitatorPtoOn"  			text="Engage PTO"/>
-		<text name="action_spsAgitatorPtoOff" 			text="Disengage PTO"/>
+		<text name="action_spsAgitatorDisconnect" 		text="Zapfwelle trennen"/>
+		<text name="action_spsAgitatorPtoOn"  			text="Zapfwelle einschalten"/>
+		<text name="action_spsAgitatorPtoOff" 			text="Zapfwelle ausschalten"/>
 		
 		<!-- IBCs -->
 		<text name="sps_settingsIbcPersist" 			text="IBC bleibt im leeren Zustand formstabil."/>
 		<text name="sps_settingsIbcPersistTooltip" 		text="Ja: Entleerte IBCs bleiben auf der Karte (zurück zum Händler bringen oder neu befüllen). Nein: Sie verschwinden, sobald sie leer sind (Standardeinstellung)."/>
 		<text name="action_spsAddIbc" 					text="Halten: IBC hinzufügen" />
+
+		<!-- Separator -->
+		<text name="input_SPS_TOGGLE_SEPARATOR"		text="Separator Start/Stopp" />
+		<text name="input_SPS_SEPARATOR_TIGHTNESS"	text="Separator Schneckenspannung" />
+		<text name="action_spsSeparatorOn"			text="Separator: START" />
+		<text name="action_spsSeparatorOff"			text="Separator: STOPP" />
+		<text name="action_spsSeparatorTightness"	text="Schneckenspannung: %d%%" />
+		<text name="warning_spsSepNoPipes"			text="Separator: Zulauf- und Rücklaufleitung anschließen" />
+		<text name="warning_spsSepNoInPipe"			text="Separator: Zulaufleitung anschließen (Güllequelle)" />
+		<text name="warning_spsSepNoOutPipe"		text="Separator: Rücklaufleitung anschließen (Güllerücklauf)" />
+		<text name="warning_spsSepSourceEmpty"		text="Separator: Güllequelle ist leer" />
+		<text name="warning_spsSepSourceThick"		text="Separator: Gülle zu dick — Wasser hinzufügen" />
+		<text name="warning_spsSepOutputFull"		text="Separator: Mistbunker ist voll" />
+		<text name="warning_spsSepReturnFull"		text="Separator: Rücklaufziel ist voll" />
+		<text name="info_spsSeparatorRunning"		text="Betriebskosten Gülleseparator" />
+		<text name="warning_spsSepNoDm"				text="Separator: keine Trockenmasse mehr — gestoppt, bis frische Gülle ankommt" />
+
+		<!-- Buying station -->
+		<text name="action_spsBuyStationSwitch"		text="Kauf: %s — wechseln zu %s" />
 	</texts>
 </l10n>

@@ -1,9 +1,11 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.8
+-- Version: 1.0.0.9.25
 
 -- SPSPipeVisual.lua
 -- FS25_SlurryPipeSystem
+
+print("[SPS BUILD] SPSPipeVisual 1.0.0.9.25 loaded")
 
 SPSPipeVisual = {}
 SPSPipeVisual.__index = SPSPipeVisual
@@ -26,6 +28,84 @@ SPSPipeVisual.__index = SPSPipeVisual
 SPSPipeVisual.NUM_INTERIOR_BONES = 14
 SPSPipeVisual.TENSION_FACTOR     = 0.4
 SPSPipeVisual.SAG_FACTOR         = 0.08
+
+-- ---------------------------------------------------------------------------
+-- [SPS FLOOR] _stripFloorBitsRec
+-- Removes the floor-ray bits (STATIC_OBJECT/TERRAIN/BUILDING/ROAD) from the
+-- collisionFilterGroup of every shape inside a freshly loaded pipe i3d, once,
+-- at load time. Without this the downward floor ray hits the pipe's OWN
+-- kinematic collision capsules (group 0x11004 contains the BUILDING bit),
+-- which lifted bones onto themselves and caused a per-frame bounce feedback
+-- loop. After stripping, the ray physically cannot see any SPS pipe — only
+-- real floors. getCollisionFilterGroup / setCollisionFilterGroup and
+-- getHasClassId(node, ClassIds.SHAPE) usage is source-confirmed in vanilla
+-- CollisionFlag.lua. VEHICLE / CAMERA_BLOCKING bits are left untouched.
+-- ---------------------------------------------------------------------------
+function SPSPipeVisual._stripFloorBitsRec(node)
+    if node == nil or node == 0 then return end
+    if CollisionFlag == nil or bit32 == nil then return end
+    if SPSPipeVisual._floorStripMask == nil then
+        SPSPipeVisual._floorStripMask = bit32.bnot(
+            CollisionFlag.STATIC_OBJECT
+            + CollisionFlag.TERRAIN
+            + CollisionFlag.BUILDING
+            + CollisionFlag.ROAD)
+    end
+    if getHasClassId(node, ClassIds.SHAPE) then
+        local group = getCollisionFilterGroup(node)
+        if group ~= nil and group ~= 0 then
+            setCollisionFilterGroup(node, bit32.band(group, SPSPipeVisual._floorStripMask))
+        end
+    end
+    for i = 0, getNumOfChildren(node) - 1 do
+        SPSPipeVisual._stripFloorBitsRec(getChildAt(node, i))
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS FLOOR] Static-surface floor support.
+-- The terrain heightmap alone cannot see concrete pads, building floors,
+-- bridge decks, or roads, so a short downward raycast is combined with the
+-- heightmap and the HIGHER of the two becomes the pipe floor.
+-- Mask (built lazily from vanilla CollisionFlag, source-confirmed):
+--   STATIC_OBJECT (bit 1) + TERRAIN (bit 8) + BUILDING (bit 12) + ROAD (bit 13)
+-- The ray starts FLOOR_RAY_UP above the bone and casts straight down for
+-- FLOOR_RAY_UP + FLOOR_RAY_DOWN metres. Starting just above the bone is
+-- deliberate: a deck high above a pipe running underneath it is never hit,
+-- so pipes routed under bridges are not wrongly lifted onto them.
+-- Engine call pattern taken from vanilla RaycastUtil.raycastClosest.
+-- Falls back to the plain terrain height if CollisionFlag or RaycastUtil
+-- are unavailable.
+-- NOTE: requires pipe i3d collision shapes to use group 0x10004 (not 0x11004,
+-- whose BUILDING bit would let the ray hit the pipe's own components).
+-- ---------------------------------------------------------------------------
+SPSPipeVisual.FLOOR_RAY_UP   = 0.5
+SPSPipeVisual.FLOOR_RAY_DOWN = 2.0
+SPSPipeVisual._floorRayMask  = nil
+
+function SPSPipeVisual.getFloorWorldY(px, py, pz, terrainY)
+    if SPSPipeVisual._floorRayMask == nil then
+        if CollisionFlag ~= nil and RaycastUtil ~= nil
+        and CollisionFlag.STATIC_OBJECT ~= nil and CollisionFlag.TERRAIN ~= nil
+        and CollisionFlag.BUILDING ~= nil and CollisionFlag.ROAD ~= nil then
+            SPSPipeVisual._floorRayMask = CollisionFlag.STATIC_OBJECT
+                + CollisionFlag.TERRAIN
+                + CollisionFlag.BUILDING
+                + CollisionFlag.ROAD
+        else
+            return terrainY
+        end
+    end
+    local hitId, _, hitY, _ = RaycastUtil.raycastClosest(
+        px, py + SPSPipeVisual.FLOOR_RAY_UP, pz,
+        0, -1, 0,
+        SPSPipeVisual.FLOOR_RAY_UP + SPSPipeVisual.FLOOR_RAY_DOWN,
+        SPSPipeVisual._floorRayMask)
+    if hitId ~= nil and hitId ~= 0 and hitY ~= nil and hitY > terrainY then
+        return hitY
+    end
+    return terrainY
+end
 
 function SPSPipeVisual.new(modDirectory)
     local self = setmetatable({}, SPSPipeVisual)
@@ -71,6 +151,8 @@ function SPSPipeVisual:createPipe(nodeA, nodeB, startConnectorType, endConnector
         print("[SPS SPPV] createPipe: ERROR loadI3DFile failed")
         return nil
     end
+    -- [SPS FLOOR] make this pipe invisible to the floor ray (see _stripFloorBitsRec)
+    SPSPipeVisual._stripFloorBitsRec(i3dRoot)
     link(getRootNode(), i3dRoot)
 
     local pipeRoot = getChildAt(i3dRoot, 0)
@@ -271,6 +353,8 @@ function SPSPipeVisual:updatePipe(inst)
         -- Terrain clamp: lift bone if below terrain + pipe radius offset
         if g_currentMission ~= nil and g_currentMission.terrainRootNode ~= nil then
             local ty = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, px, 0, pz)
+            -- [SPS FLOOR] also rest on static surfaces (concrete/buildings/bridges/roads)
+            ty = SPSPipeVisual.getFloorWorldY(px, py, pz, ty)
             local minY = ty + SPSPipeVisual.SAG_FACTOR
             if py < minY then
                 py = minY

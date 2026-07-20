@@ -23,6 +23,11 @@ SPS_VALVE_TYPE_HYDRAULIC = "HYDRAULIC"
 SPS_VALVE_TYPE_MANUAL    = "MANUAL"
 SPS_VALVE_TYPE_NONE      = "NONE"
 
+-- [SPS 1.0.0.9.26] Source-entry type tag for buying-station placeables
+-- (vanilla placeable type "buyingStation", e.g. buyable liquid manure wells).
+-- String-typed like "FILL_UNIT_ONLY" so SlurryNodeUtil needs no change.
+SPS_SOURCE_TYPE_BUYING_STATION = "BUYING_STATION"
+
 SPS_MAX_CONNECT_DIST    = 5.9   -- max distance (m) at which two couplers can connect
 SPS_AUTODISCONNECT_DIST = 6.0   -- distance (m) at which a connected pipe auto-disconnects
 
@@ -79,7 +84,9 @@ end
 -- print(), so each call keeps its own "[SPS ...]" prefix. Flip to true to trace.
 -- ---------------------------------------------------------------------------
 SlurryPipeManager.MP_DEBUG = false
-print("[SPS BUILD] SlurryPipeManager 1.0.0.9.16 loaded")
+print("[SPS BUILD] SlurryPipeManager 1.0.0.9.30 loaded")
+-- findOverlappingCoupler: from couplingId
+-- _applyPendingCouplerAnimation: couplingId
 
 function SlurryPipeManager.logMP(...)
     if not SlurryPipeManager.MP_DEBUG then return end
@@ -206,6 +213,10 @@ function SlurryPipeManager.new()
         blockages     = true,   -- spread blockage system (Pass 2)
         lengthFalloff = true,   -- flow drop over strap-pipe length
     }
+    -- [SPS 1.0.0.9.30] PTO shear bolt master switch (settings menu). Independent
+    -- of the realism master; consumed at the SPSShearBolt.update call sites in
+    -- SPSM_Pressure. Server-authoritative, synced via SPSSettingsSyncEvent.
+    self.shearBoltEnabled           = true
     -- Spreader HUD (top-centre DB readout) — player-configurable, persisted per savegame.
     -- posX/posY nil => centred at top until the player drags it.
     self.hudSettings = {
@@ -409,6 +420,9 @@ function SlurryPipeManager:loadPipeColors(modDirectory)
     end
     for i, c in ipairs(self.pipeColors) do
     end
+    -- [SPS 1.0.0.9.30] Palette is loaded — apply the player's own saved
+    -- HUD/colour preferences (per-user file, all machines incl. MP clients).
+    self:loadUserSettings()
 end
 
 function SlurryPipeManager:setCurrentPipeColor(index)
@@ -419,6 +433,109 @@ function SlurryPipeManager:setCurrentPipeColor(index)
     local c = self.pipeColors[index]
     self.currentPipeColorIndex = index
     self.currentPipeColor      = { r = c.r, g = c.g, b = c.b }
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.0.9.30] Per-user settings (HUD + pipe colour picker)
+-- These are per-PLAYER preferences, so they persist in the local user profile
+-- (getUserProfileAppPath(), same writable root vanilla uses for storeItems.csv
+-- in FSBaseMission:consoleCommandExportStoreItems) instead of the savegame.
+-- Every machine — host, dedicated client, listen guest — keeps its own file.
+-- The legacy savegame keys are still written/read for back-compat; the user
+-- file, when present, wins (loadUserSettings is re-run after the savegame
+-- values are applied in loadCouplingConnections).
+-- ---------------------------------------------------------------------------
+function SlurryPipeManager.getUserSettingsPath()
+    if getUserProfileAppPath == nil then return nil end
+    return getUserProfileAppPath() .. "FS25_SlurryPipeSystem_user.xml"
+end
+
+function SlurryPipeManager:saveUserSettings()
+    local path = SlurryPipeManager.getUserSettingsPath()
+    if path == nil then return end
+    local xmlFile = XMLFile.create("spsUserSettings", path, "spsUserSettings")
+    if xmlFile == nil then return end
+    local hs = self.hudSettings or {}
+    xmlFile:setInt  ("spsUserSettings#colorIndex", self.currentPipeColorIndex or 1)
+    xmlFile:setBool ("spsUserSettings#hudEnabled", hs.enabled ~= false)
+    xmlFile:setBool ("spsUserSettings#hudImage",   hs.image   ~= false)
+    xmlFile:setBool ("spsUserSettings#hudFill",    hs.fill    ~= false)
+    xmlFile:setBool ("spsUserSettings#hudCrust",   hs.crust   ~= false)
+    xmlFile:setBool ("spsUserSettings#hudThick",   hs.thick   ~= false)
+    xmlFile:setBool ("spsUserSettings#hudRisk",    hs.risk    ~= false)
+    xmlFile:setBool ("spsUserSettings#hudPump",    hs.pump    ~= false)
+    xmlFile:setFloat("spsUserSettings#hudScale",   hs.scale or 1.0)
+    if hs.posX ~= nil then xmlFile:setFloat("spsUserSettings#hudPosX", hs.posX) end
+    if hs.posY ~= nil then xmlFile:setFloat("spsUserSettings#hudPosY", hs.posY) end
+    xmlFile:save()
+    xmlFile:delete()
+end
+
+function SlurryPipeManager:loadUserSettings()
+    local path = SlurryPipeManager.getUserSettingsPath()
+    if path == nil then return end
+    local xmlFile = XMLFile.loadIfExists("spsUserSettings", path, nil)
+    if xmlFile == nil then return end
+    self.hudSettings = self.hudSettings or {}
+    local hs = self.hudSettings
+    hs.enabled = xmlFile:getBool("spsUserSettings#hudEnabled", hs.enabled ~= false)
+    hs.image   = xmlFile:getBool("spsUserSettings#hudImage",   hs.image   ~= false)
+    hs.fill    = xmlFile:getBool("spsUserSettings#hudFill",    hs.fill    ~= false)
+    hs.crust   = xmlFile:getBool("spsUserSettings#hudCrust",   hs.crust   ~= false)
+    hs.thick   = xmlFile:getBool("spsUserSettings#hudThick",   hs.thick   ~= false)
+    hs.risk    = xmlFile:getBool("spsUserSettings#hudRisk",    hs.risk    ~= false)
+    hs.pump    = xmlFile:getBool("spsUserSettings#hudPump",    hs.pump    ~= false)
+    hs.scale   = xmlFile:getFloat("spsUserSettings#hudScale",  hs.scale or 1.0)
+    if xmlFile:hasProperty("spsUserSettings#hudPosX") then hs.posX = xmlFile:getFloat("spsUserSettings#hudPosX", 0.5) end
+    if xmlFile:hasProperty("spsUserSettings#hudPosY") then hs.posY = xmlFile:getFloat("spsUserSettings#hudPosY", 0.985) end
+    local colorIndex = xmlFile:getInt("spsUserSettings#colorIndex")
+    xmlFile:delete()
+    if colorIndex ~= nil then
+        self:setCurrentPipeColor(colorIndex)
+    end
+    self._userSettingsLoaded = true
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.0.9.30] Gameplay settings (server-authoritative, MP-synced)
+-- applyGameplaySettings sets the fields locally; when broadcast=true on the
+-- server it also pushes the full set to every client via SPSSettingsSyncEvent.
+-- requestGameplaySettings is the single entry point the settings menu uses:
+-- the server applies + broadcasts; a client applies optimistically and sends
+-- the request to the server (which rebroadcasts to the other clients).
+-- ---------------------------------------------------------------------------
+function SlurryPipeManager:applyGameplaySettings(t, broadcast)
+    if t == nil then return end
+    if t.realismEnabled ~= nil then self.realismEnabled = t.realismEnabled == true end
+    self.featureToggles = self.featureToggles or {}
+    if t.thicknessFlow ~= nil then self.featureToggles.thicknessFlow = t.thicknessFlow ~= false end
+    if t.blockages ~= nil then self.featureToggles.blockages = t.blockages ~= false end
+    if t.lengthFalloff ~= nil then self.featureToggles.lengthFalloff = t.lengthFalloff ~= false end
+    if t.shearBoltEnabled ~= nil then self.shearBoltEnabled = t.shearBoltEnabled ~= false end
+    if t.ibcPersistWhenEmpty ~= nil then
+        self.ibcPersistWhenEmpty = t.ibcPersistWhenEmpty == true
+        self:applyIbcPersistSetting()
+    end
+    if broadcast == true and g_server ~= nil and SPSSettingsSyncEvent ~= nil then
+        local ft = self.featureToggles
+        g_server:broadcastEvent(SPSSettingsSyncEvent.new(
+            self.realismEnabled, ft.thicknessFlow, ft.blockages, ft.lengthFalloff,
+            self.shearBoltEnabled, self.ibcPersistWhenEmpty), false, nil, nil)
+    end
+end
+
+function SlurryPipeManager:requestGameplaySettings(t)
+    if t == nil then return end
+    if g_server ~= nil then
+        self:applyGameplaySettings(t, true)
+    else
+        -- Client: apply optimistically, then ask the server to apply +
+        -- rebroadcast to the other clients (this sender is excluded there).
+        self:applyGameplaySettings(t, false)
+        if SPSSettingsSyncEvent ~= nil and SPSSettingsSyncEvent.sendRequest ~= nil then
+            SPSSettingsSyncEvent.sendRequest()
+        end
+    end
 end
 
 -- Single gate for every realism feature. Returns false whenever the master is off.
@@ -583,6 +700,17 @@ function SlurryPipeManager:registerVehicle(vehicle)
     end
 
     local kp = config.xmlKeyPrefix or ""
+
+    -- [SPS 1.0.0.9.24] Per-config coupler animation definitions: an optional
+    -- <couplerAnimations> block inside THIS config's xml (same format as
+    -- configs/couplerAnimations.xml). nil when absent. Passed into every
+    -- bind() below so third-party configs can define their own animations
+    -- without editing SPS files; local ids shadow global ids for this
+    -- config's couplings only.
+    local localAnimLibrary = nil
+    if SPSCouplerAnimator ~= nil and SPSCouplerAnimator.parseLocal ~= nil then
+        localAnimLibrary = SPSCouplerAnimator.parseLocal(xmlFile, kp .. "slurryPipeSystem.")
+    end
 
     local entry = {
         vehicle               = vehicle,
@@ -1243,16 +1371,23 @@ function SlurryPipeManager:registerVehicle(vehicle)
                     if ftName == nil then return nil end
                     return g_fillTypeManager:getFillTypeIndexByName(ftName)
                 end)(),
+                -- [SPS 1.0.0.9.25] Optional hydraulic head node: the highest point
+                -- of this coupler's pipework. When present, gravity/head
+                -- equalisation only flows while the DRIVING surface is above this
+                -- node (a crest gravity cannot beat — no siphon for slurry).
+                -- Absent = nil = no gate = unchanged legacy behaviour. Pumped
+                -- (pressure) flow ignores it entirely.
+                headHeightNode      = findLinkedNode(xmlFile:getString(cKey .. "#headHeightNodeName")),
             }
             -- Bind coupler animations if either id is declared on this coupling.
             if SPSCouplerAnimator ~= nil
             and (couplingEntry.connectorAnimationId ~= nil or couplingEntry.valveAnimationId ~= nil) then
                 SPSCouplerAnimator.ensureLoaded(self.modDirectory)
                 if couplingEntry.connectorAnimationId ~= nil then
-                    couplingEntry.connectorAnim = SPSCouplerAnimator.bind(couplingEntry.mountNode, couplingEntry.connectorAnimationId)
+                    couplingEntry.connectorAnim = SPSCouplerAnimator.bind(couplingEntry.mountNode, couplingEntry.connectorAnimationId, localAnimLibrary)
                 end
                 if couplingEntry.valveAnimationId ~= nil then
-                    couplingEntry.valveAnim = SPSCouplerAnimator.bind(couplingEntry.mountNode, couplingEntry.valveAnimationId)
+                    couplingEntry.valveAnim = SPSCouplerAnimator.bind(couplingEntry.mountNode, couplingEntry.valveAnimationId, localAnimLibrary)
                 end
                 SlurryPipeManager.log("sprayer bind DIAG (vehicle): id=%s connIds=%s/%s bound=%s/%s",
                     tostring(couplingEntry.id), tostring(couplingEntry.connectorAnimationId), tostring(couplingEntry.valveAnimationId),
@@ -1942,6 +2077,15 @@ function SlurryPipeManager:registerPlaceable(placeable)
 
     local kp = config.xmlKeyPrefix or ""
 
+    -- [SPS 1.0.0.9.24] Per-config coupler animation definitions — see
+    -- registerVehicle. Makes the <couplerAnimations> block inside a
+    -- third-party placeable's own xml (as shipped in the cow shed example)
+    -- actually functional.
+    local localAnimLibrary = nil
+    if SPSCouplerAnimator ~= nil and SPSCouplerAnimator.parseLocal ~= nil then
+        localAnimLibrary = SPSCouplerAnimator.parseLocal(xmlFile, kp .. "slurryPipeSystem.")
+    end
+
     -- Optional nodeTree: links SPS nodes onto the placeable hierarchy.
     local linkedNodes = {}
     local nodeTreePath = xmlFile:getString(kp .. "slurryPipeSystem.nodeTree#filename")
@@ -2191,6 +2335,99 @@ function SlurryPipeManager:registerPlaceable(placeable)
             SlurryDebug.log("registerPlaceable: no storage found for coupling-only placeable " .. tostring(placeable.configFileName))
         end
     end
+    -- [SPS 1.0.0.9.26] Buying-station placeable (vanilla type "buyingStation",
+    -- PlaceableBuyingStation/BuyingStation.lua — verified source): an infinite
+    -- PAID source. No Storage object exists; the vanilla station performs the
+    -- whole purchase (fill + per-litre charge + money HUD) inside
+    -- addFillLevelToFillableObject, so the sourceEntry only carries the station
+    -- handle plus the config-declared fillType. Pipe-only by construction: no
+    -- fillPlane is authored, so fill arms can never detect or connect to it.
+    if sourceEntry == nil and placeable.spec_buyingStation ~= nil
+    and placeable.spec_buyingStation.buyingStation ~= nil then
+        local bsFillTypeName = xmlFile:getString(kp .. "slurryPipeSystem.buyingStation#fillType", "LIQUIDMANURE")
+        -- [SPS 1.0.0.9.27] Switchable sold type on ONE coupler: #fillTypes is a
+        -- space-separated ordered cycle (e.g. "LIQUIDMANURE DIGESTATE") with
+        -- optional #default selection. Legacy single #fillType still works
+        -- (one-entry cycle = switch prompt never shows). The live selection is
+        -- sourceEntry.fillType — _resolveSourceFillType and
+        -- transferFillFromBuyingStation already read exactly that field, so the
+        -- walk-up switch only ever mutates it (server-authoritative via
+        -- SPSBuyStationEvent).
+        local bsFillTypes = {}
+        local bsTypesStr = xmlFile:getString(kp .. "slurryPipeSystem.buyingStation#fillTypes", nil)
+        if bsTypesStr ~= nil then
+            for ftName in bsTypesStr:gmatch("%S+") do
+                local ftIdx = g_fillTypeManager:getFillTypeIndexByName(ftName)
+                if ftIdx ~= nil then
+                    table.insert(bsFillTypes, ftIdx)
+                else
+                    SlurryDebug.log("registerPlaceable: buyingStation#fillTypes unknown fillType '" .. tostring(ftName) .. "' ignored")
+                end
+            end
+        end
+        if #bsFillTypes == 0 then
+            table.insert(bsFillTypes, g_fillTypeManager:getFillTypeIndexByName(bsFillTypeName) or FillType.LIQUIDMANURE)
+        end
+        local bsDefault = nil
+        local bsDefaultStr = xmlFile:getString(kp .. "slurryPipeSystem.buyingStation#default", nil)
+        if bsDefaultStr ~= nil then
+            bsDefault = g_fillTypeManager:getFillTypeIndexByName(bsDefaultStr)
+        end
+        local bsSelected = bsFillTypes[1]
+        if bsDefault ~= nil then
+            for _, ftIdx in ipairs(bsFillTypes) do
+                if ftIdx == bsDefault then bsSelected = bsDefault break end
+            end
+        end
+        -- [SPS 1.0.0.9.28] SPS-extra sold types: fillTypes the vanilla station
+        -- does NOT declare (e.g. WATER on a slurry well). The vanilla purchase
+        -- path would crash on them (getEffectiveFillTypePrice indexes
+        -- fillTypePricesScale, nil for undeclared types — verified source), so
+        -- transferFillFromBuyingStation performs the SPS-side purchase for
+        -- these with the same price maths, at the per-type #priceScale below
+        -- (0 = free). Declared as child elements:
+        --   <extraFillType name="WATER" priceScale="0.1"/>
+        -- Extra types are appended to the switch cycle after #fillTypes.
+        local bsExtraScales = {}
+        local extraIdx = 0
+        while true do
+            local eKey = string.format(kp .. "slurryPipeSystem.buyingStation.extraFillType(%d)", extraIdx)
+            if not xmlFile:hasProperty(eKey) then break end
+            local eName = xmlFile:getString(eKey .. "#name", nil)
+            local eIdx  = eName ~= nil and g_fillTypeManager:getFillTypeIndexByName(eName) or nil
+            if eIdx ~= nil then
+                local already = false
+                for _, ftIdx in ipairs(bsFillTypes) do
+                    if ftIdx == eIdx then already = true break end
+                end
+                if not already then
+                    table.insert(bsFillTypes, eIdx)
+                end
+                bsExtraScales[eIdx] = xmlFile:getFloat(eKey .. "#priceScale", 1.0)
+            else
+                SlurryDebug.log("registerPlaceable: buyingStation.extraFillType unknown fillType '" .. tostring(eName) .. "' ignored")
+            end
+            extraIdx = extraIdx + 1
+        end
+        sourceEntry = {
+            type       = SPS_SOURCE_TYPE_BUYING_STATION,
+            placeable  = placeable,
+            station    = placeable.spec_buyingStation.buyingStation,
+            fillType   = bsSelected,
+            fillTypes  = bsFillTypes,
+            -- [SPS 1.0.0.9.28] fillType -> priceScale for SPS-extra sold types
+            -- (empty when only vanilla-declared types are sold).
+            extraPriceScales = bsExtraScales,
+            -- Optional authored consistency for bought slurry. nil = no blend
+            -- applied on fill (tank average unchanged) — see
+            -- transferFillFromBuyingStation.
+            thickness  = xmlFile:getFloat(kp .. "slurryPipeSystem.buyingStation#thickness", nil),
+            crust      = xmlFile:getFloat(kp .. "slurryPipeSystem.buyingStation#crust", nil),
+            debugLabel = tostring(placeable.configFileName):match("([^/]+)%.xml$") or "buyingStation",
+        }
+        SlurryDebug.log("registerPlaceable: buying-station sourceEntry for " .. tostring(placeable.configFileName)
+            .. " (types=" .. tostring(#bsFillTypes) .. ")")
+    end
     if sourceEntry ~= nil then
         table.insert(self.sourceEntries, sourceEntry)
     end
@@ -2305,6 +2542,25 @@ function SlurryPipeManager:registerPlaceable(placeable)
                 inletDistance            = 1.5,
                 effectPlaying            = false,
                 undeployedVisibleNodes   = undeployedVisibleNodes,
+                -- [SPS 1.0.0.9.25] Optional hydraulic head node for this store
+                -- coupler: the highest point of the internal pipe run (e.g. a
+                -- slurry tower's fill riser crest). REQUIRED for this coupler to
+                -- take part in vehicle<->store head equalisation — a store
+                -- coupler without it is ignored by equalisation exactly as all
+                -- store couplers were before (pumped flow unaffected). Gravity
+                -- flow through this coupler, in EITHER direction, only runs
+                -- while the driving surface is above this node.
+                headHeightNode           = findDeepLinkedNode(xmlFile:getString(cKey .. "#headHeightNodeName", nil)),
+                -- [SPS 1.0.0.9.29] Optional lid link: saveId of a vanilla
+                -- AnimatedObject on THIS placeable (modder's own <animatedObjects>
+                -- section). When declared, SPS drives that object open on deploy /
+                -- closed on undeploy (vanilla AnimatedObject self-syncs in MP), the
+                -- coupler only connects while the lid is fully open, and the lid's
+                -- walk-up trigger is locked while any linked coupler is deployed or
+                -- connected. Absent = unchanged legacy deploy behaviour.
+                deployAnimObjectSaveId   = xmlFile:getString(cKey .. "#deployAnimatedObjectSaveId", nil),
+                deployAnimObject         = nil,   -- resolved lazily by SPSM_Couplers:getCouplingLidObject
+                deployAnimObjectMissing  = false, -- warn-once latch when saveId doesn't resolve
             }
             -- Find inNode and outNode children of the mountNode
             for i = 0, getNumOfChildren(mountNode) - 1 do
@@ -2321,10 +2577,10 @@ function SlurryPipeManager:registerPlaceable(placeable)
             and (sc.connectorAnimationId ~= nil or sc.valveAnimationId ~= nil) then
                 SPSCouplerAnimator.ensureLoaded(self.modDirectory)
                 if sc.connectorAnimationId ~= nil then
-                    sc.connectorAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.connectorAnimationId)
+                    sc.connectorAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.connectorAnimationId, localAnimLibrary)
                 end
                 if sc.valveAnimationId ~= nil then
-                    sc.valveAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.valveAnimationId)
+                    sc.valveAnim = SPSCouplerAnimator.bind(sc.mountNode, sc.valveAnimationId, localAnimLibrary)
                 end
                 SlurryPipeManager.log("sprayer bind DIAG (sc): id=%s connIds=%s/%s bound=%s/%s",
                     tostring(sc.id), tostring(sc.connectorAnimationId), tostring(sc.valveAnimationId),
@@ -2483,6 +2739,21 @@ function SlurryPipeManager:registerPlaceable(placeable)
             pEntry.fixedAgitatorActivatable = fixedAgitatorAct
             g_currentMission.activatableObjectsSystem:addActivatable(fixedAgitatorAct)
         end
+    end
+
+    -- [SPS 1.0.0.9.27] Buying-station type switch: walk-up activatable on the
+    -- config-declared switch node (the panel by the electrical box), cycling
+    -- the sold fillType. Only meaningful when more than one type is declared —
+    -- getIsActivatable hides itself for single-type stations. Must run before
+    -- xmlFile:delete (reads switchNodeName / switchRadius).
+    if sourceEntry ~= nil and sourceEntry.type == SPS_SOURCE_TYPE_BUYING_STATION
+    and SPSBuyStationActivatable ~= nil
+    and g_currentMission ~= nil and g_currentMission.activatableObjectsSystem ~= nil then
+        local switchNode = findLinkedNode(xmlFile:getString(kp .. "slurryPipeSystem.buyingStation#switchNodeName", nil))
+        local switchRadius = xmlFile:getFloat(kp .. "slurryPipeSystem.buyingStation#switchRadius", 3.0)
+        local buyAct = SPSBuyStationActivatable.new(pEntry, switchNode, switchRadius)
+        pEntry.buyStationActivatable = buyAct
+        g_currentMission.activatableObjectsSystem:addActivatable(buyAct)
     end
 
     if xmlFileOwned then xmlFile:delete() end
@@ -2744,6 +3015,11 @@ function SlurryPipeManager:unregisterPlaceable(placeable)
             if entry.fixedAgitatorActivatable ~= nil then
                 entry.fixedAgitatorActivatable:delete()
                 entry.fixedAgitatorActivatable = nil
+            end
+            -- [SPS 1.0.0.9.27] Buying-station type-switch activatable cleanup.
+            if entry.buyStationActivatable ~= nil then
+                entry.buyStationActivatable:delete()
+                entry.buyStationActivatable = nil
             end
             if SPSFixedAgitator ~= nil and entry.fixedAgitator ~= nil then
                 SPSFixedAgitator.cleanup(entry)
@@ -3165,6 +3441,10 @@ function SlurryPipeManager:loadCouplingConnections(savePath)
     hs.scale   = xmlFile:getFloat("slurryPipeSystem#hudScale",  1.0)
     if xmlFile:hasProperty("slurryPipeSystem#hudPosX") then hs.posX = xmlFile:getFloat("slurryPipeSystem#hudPosX", 0.5) end
     if xmlFile:hasProperty("slurryPipeSystem#hudPosY") then hs.posY = xmlFile:getFloat("slurryPipeSystem#hudPosY", 0.985) end
+    -- [SPS 1.0.0.9.30] The savegame HUD/colour keys above are legacy (they are
+    -- shared across all players). Re-apply the per-user file on top so each
+    -- player's own preferences win on every machine, host included.
+    self:loadUserSettings()
 
     -- Load thickness data into a pending map keyed by rounded placeable position
     -- Actual application happens in tryResolvePendingConnections after placeables register
@@ -3851,6 +4131,30 @@ function SlurryPipeManager:sendFullStateToConnection(connection)
         end
     end
 
+    -- 12) [SPS 1.0.0.9.27] Buying-station selected sold type, so a late joiner's
+    -- switch prompt (and any fill it watches) shows the live selection instead
+    -- of the config default. Sent whenever the station is switchable.
+    if SPSBuyStationEvent ~= nil then
+        for _, pEntry in ipairs(self.registeredPlaceables) do
+            local se = pEntry.sourceEntry
+            if se ~= nil and se.type == SPS_SOURCE_TYPE_BUYING_STATION
+            and se.fillTypes ~= nil and #se.fillTypes > 1 then
+                local name = g_fillTypeManager:getFillTypeNameByIndex(se.fillType)
+                if name ~= nil then
+                    connection:sendEvent(SPSBuyStationEvent.new(
+                        SPSBuyStationEvent.STATE, pEntry.placeable, name))
+                end
+            end
+        end
+    end
+
+    -- 13) [SPS 1.0.0.9.30] Gameplay settings (realism / sub-features / shear
+    -- bolt / IBC persist), so a late joiner's manager and settings menu show
+    -- the live server values instead of the defaults.
+    if SPSSettingsSyncEvent ~= nil and SPSSettingsSyncEvent.sendCurrent ~= nil then
+        SPSSettingsSyncEvent.sendCurrent(connection)
+    end
+
     local d = self._dumpCounts
     SlurryPipeManager.logMP(string.format("[SPS MP] sendFullStateToConnection: chains=%d chainBonds=%d directBonds=%d deploy=%d crust=%d valves=%d pump=%d flow=%d agit=%d fixedAgit=%d blockage=%d shear=%d spreaderValve=%d sprayerConnect=%d",
         chainCount, d.chainBond, d.direct, d.deploy, d.crust, d.valve, d.pump, d.flow,
@@ -4035,6 +4339,90 @@ end
 function SlurryPipeManager:isSpreaderImplement(vehicle)
     local entry = self:getVehicleEntry(vehicle)
     return entry ~= nil and entry.isSpreaderImplement == true
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.0.9.27] Buying-station sold-type switch (single switchable coupler)
+-- ---------------------------------------------------------------------------
+-- Returns pEntry, sourceEntry for a registered buying-station placeable.
+function SlurryPipeManager:getBuyStationEntry(placeable)
+    for _, pEntry in ipairs(self.registeredPlaceables) do
+        if pEntry.placeable == placeable then
+            local se = pEntry.sourceEntry
+            if se ~= nil and se.type == SPS_SOURCE_TYPE_BUYING_STATION then
+                return pEntry, se
+            end
+            return nil, nil
+        end
+    end
+    return nil, nil
+end
+
+-- Walk-up request: cycle to the next sold type in the config-declared order.
+-- On the server this applies immediately (and broadcasts STATE); on a client
+-- it sends SPSBuyStationEvent.REQ_SETTYPE and waits for the STATE broadcast.
+function SlurryPipeManager:requestBuyStationTypeToggle(placeable)
+    local _, se = self:getBuyStationEntry(placeable)
+    if se == nil or se.fillTypes == nil or #se.fillTypes < 2 then return end
+    local curIdx = 1
+    for i, ft in ipairs(se.fillTypes) do
+        if ft == se.fillType then curIdx = i break end
+    end
+    local nextFt = se.fillTypes[(curIdx % #se.fillTypes) + 1]
+    if g_server ~= nil then
+        self:applyBuyStationType(placeable, nextFt, true)
+    elseif SPSBuyStationEvent ~= nil then
+        local name = g_fillTypeManager:getFillTypeNameByIndex(nextFt)
+        if name ~= nil then
+            SPSBuyStationEvent.sendTypeRequest(placeable, name)
+        end
+    end
+end
+
+-- [SPS 1.0.0.9.28] Does this buy-station sourceEntry sell the given type?
+-- Sold if the vanilla station provides it (getIsFillTypeSupported) OR it is an
+-- SPS-extra type declared in the bundled config. Returns sold, isExtra —
+-- isExtra=true routes the purchase through the SPS-side path in
+-- transferFillFromBuyingStation (the vanilla path would crash on undeclared
+-- types, see getEffectiveFillTypePrice).
+function SlurryPipeManager:buyStationSellsFillType(se, fillTypeIndex)
+    if se == nil or fillTypeIndex == nil then return false, false end
+    if se.extraPriceScales ~= nil and se.extraPriceScales[fillTypeIndex] ~= nil then
+        return true, true
+    end
+    if se.station ~= nil and se.station.getIsFillTypeSupported ~= nil
+    and se.station:getIsFillTypeSupported(fillTypeIndex) then
+        return true, false
+    end
+    return false, false
+end
+
+-- Sets the selected sold type. Validated against the config-declared cycle
+-- AND the station's sold set (vanilla-provided OR SPS-extra), so a
+-- stale/forged event can never select a type the station does not sell.
+-- broadcast=true only on the server after a local apply
+-- (SPSBuyStationEvent.sendState); clients applying a STATE broadcast pass
+-- false.
+function SlurryPipeManager:applyBuyStationType(placeable, fillTypeIndex, broadcast)
+    local _, se = self:getBuyStationEntry(placeable)
+    if se == nil or fillTypeIndex == nil then return end
+    local inCycle = false
+    for _, ft in ipairs(se.fillTypes or {}) do
+        if ft == fillTypeIndex then inCycle = true break end
+    end
+    if not inCycle then return end
+    if not self:buyStationSellsFillType(se, fillTypeIndex) then
+        SlurryPipeManager.log("applyBuyStationType: station does not sell fillType=%s — ignored",
+            tostring(g_fillTypeManager:getFillTypeNameByIndex(fillTypeIndex)))
+        return
+    end
+    se.fillType = fillTypeIndex
+    SlurryPipeManager.log("applyBuyStationType: %s -> %s",
+        tostring(placeable.configFileName),
+        tostring(g_fillTypeManager:getFillTypeNameByIndex(fillTypeIndex)))
+    if broadcast == true and g_server ~= nil and SPSBuyStationEvent ~= nil then
+        SPSBuyStationEvent.sendState(placeable, fillTypeIndex)
+    end
 end
 
 function SlurryPipeManager:getPlaceableEntry(placeable)

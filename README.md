@@ -22,9 +22,18 @@ actually thickens, crusts and blocks if you neglect it.
   transfer through it.
 - **Animated couplers and valves** — clamp handles close on connect, valve wheels rotate on
   open.
+- **Lid-linked deployable couplers** — a store coupler can drive the placeable's own vanilla
+  animated lid: deploy opens it, connect requires it fully open, and the lid locks while a
+  pipe is live.
+- **Pipes rest on real surfaces** — laid pipes and connection pipes settle onto concrete
+  pads, building floors, bridge decks and roads, not just the terrain.
 - **Coloured pipes** — pick from a palette per pipe segment, stored per save.
 - **Multi-fill-type support** — works with `LIQUIDMANURE` and `DIGESTATE`; transfers
-  automatically pick whichever fill type is actually present.
+  automatically pick whichever fill type is actually present, and mixed deposits merge into
+  the type already held.
+- **Gravity head equalisation** — opt-in per coupler: levels equalise between connected
+  vessels by gravity, gated on the pipe's high point, so slurry only runs downhill when it
+  genuinely can.
 
 **Pumps & pressure**
 - **Pump types** — `vacuum` (stored ±bar pressure model with a gauge), `HVP` high-volume
@@ -43,8 +52,15 @@ actually thickens, crusts and blocks if you neglect it.
   thick slurry.
 - **Agitation** — a manager-driven agitator works on any registered vehicle with an agitator
   tip node, no specialization required.
+- **Slurry separation** — the Börger screw-press separator placeable strips dry matter out
+  of piped slurry: solids drop onto its manure bunker, the thinner liquid fraction returns
+  through the pipe. Walk-up start/stop and a five-step screw tightness control; recirculate
+  for progressively thinner slurry.
 - **Water intake** — fill arms can draw water straight from map lakes and ponds wherever the
   map provides SPS water planes.
+- **Buying station support** — a compatible buying-station placeable (FS25_BuyableManureAndOther)
+  acts as a paid, infinite pipe-only source, with a walk-up switch to choose which sold
+  liquid the coupler dispenses.
 
 **Spreading**
 - **Dribble bars & band spreaders** — per-outlet blockage modelling, distributor macerator,
@@ -121,31 +137,46 @@ FS25_SlurryPipeSystem/
 │
 └── scripts/                                    ← Lua source
     ├── init.lua                                ← entry point (loaded last)
+    ├── debug/
+    │   └── SPSDebugConfig.lua / SlurryDebug.lua ← channel-gated debug registry + markers
     ├── manager/
-    │   └── SlurryPipeManager.lua               ← singleton manager
-    ├── util/                                    ← shared helpers, pipes, activatables, HUD
-    │   ├── SlurryDebug.lua / SlurryNodeUtil.lua / SlurryTractorCapability.lua
+    │   ├── SlurryPipeManager.lua               ← singleton manager (core)
+    │   └── SPSM_Chains / SPSM_Couplers / SPSM_Flow / SPSM_Pressure /
+    │       SPSM_Consistency / SPSM_Spreader / SPSM_Sprayers / SPSM_IBC .lua
+    │                                           ← domain modules of the manager
+    ├── events/
+    │   └── SPSEvents.lua                       ← network events
+    ├── chains/
+    │   └── SPSPipeChain.lua / SPSChainActivatable.lua
+    ├── couplers/
+    │   ├── SPSPipeVisual.lua / SPSPipeActivatable.lua / SPSCouplerAnimator.lua
+    │   └── SPSPumpControlActivatable.lua / SPSOutsideControlActivatable.lua
+    ├── blockage/
+    │   └── SPSBlockageActivatable.lua / SPSBlockageEvent.lua
+    ├── shearBolt/
+    │   └── SPSShearBolt.lua / SPSShearBoltActivatable.lua / SPSShearBoltEvent.lua
+    ├── agitators/
     │   ├── SlurryAgitatorEvent.lua
-    │   ├── SPSPipeChain.lua / SPSPipeVisual.lua          ← chain + bezier pipe driver
-    │   ├── SPSPipeActivatable.lua / SPSChainActivatable.lua / SPSPumpControlActivatable.lua
-    │   ├── SPSOutsideControlActivatable.lua / SPSBlockageActivatable.lua / SPSBlockageEvent.lua
-    │   ├── SPSCouplerAnimator.lua                        ← coupler / valve animator
-    │   ├── SPSCrustVegetation.lua                        ← crust foliage
-    │   ├── SPSShearBolt.lua / SPSShearBoltActivatable.lua / SPSShearBoltEvent.lua
-    │   ├── SPSSpreaderHUD.lua / SPSConduitHUDExtension.lua
-    │   └── SPSEvents.lua                                 ← network events
-    ├── settings/
-    │   └── SPSSettingsMenuExtension.lua         ← in-game settings page (source()'d late)
-    ├── water/
-    │   └── SPSWaterPlaneManager.lua             ← map water detection
-    ├── herbFertSprayer/                         ← fertiliser / herbicide sprayer support
+    │   └── SPSFixedAgitator / SPSFixedAgitatorShaft / SPSFixedAgitatorActivatable /
+    │       SPSFixedAgitatorEvent .lua          ← fixed PTO agitator placeable system
+    ├── separator/
+    │   └── SPSSeparator.lua / SPSSeparatorActivatable.lua / SPSSeparatorEvent.lua
+    ├── buyStation/
+    │   └── SPSBuyStationActivatable.lua / SPSBuyStationEvent.lua
+    ├── hud/
+    │   └── SPSSpreaderHUD.lua                  ← (+ SPSConduitHUDExtension.lua, source()'d)
+    ├── herbFertSprayer/                        ← fertiliser / herbicide sprayer support
     │   ├── SPSSprayerPumpControl.lua / SPSSprayerEvents.lua
     │   └── SPSSprayerPipeVisual.lua / SPSSprayerPipeActivatable.lua
-    ├── specializations/
-    │   └── SlurryAgitator.lua                   ← agitator specialization
+    ├── water/
+    │   └── SPSWaterPlaneManager.lua            ← map water detection
+    ├── util/
+    │   └── SlurryNodeUtil.lua / SlurryTractorCapability.lua / SPSCrustVegetation.lua
+    ├── settings/
+    │   └── SPSSettingsMenuExtension.lua        ← in-game settings page (source()'d late)
     └── overrides/
-        ├── ManureBarrelOverride.lua
-        └── PlaceableOverride.lua
+        ├── ManureBarrelOverride.lua / PlaceableOverride.lua
+        └── SPSSlurryTankExtensions.lua / SPSChainBondPersistence.lua
 ```
 
 > Note: the doc filenames above are placeholders — rename them to whatever you commit. The
@@ -174,14 +205,19 @@ before any manifest lookup. The manifest is only consulted when no embedded bloc
 A third-party retexture of a vehicle can ship its own embedded block and get SPS integration
 without affecting other instances of the same base vehicle, and without touching SPS.
 
-### Coupler animations come from the shared library
+### Coupler animations come from the shared library — or your own
 
 Coupler clamp and valve animations are defined in the SPS-bundled
-`configs/couplerAnimations.xml`. A coupling references an existing animation by integer `id`
+`configs/couplerAnimations.xml`. A coupling references an animation by integer `id`
 (`connectorAnimation` / `valveAnimation`), and SPS resolves that animation's named part nodes
-**under the coupling's mount node** and drives them. To use an animation you name your
-clamp/valve sub-objects to match the part names that id expects (the file lists them); to add
-a genuinely new animation you would extend that library, which is an SPS-side change.
+**under the coupling's mount node** and drives them. To use a shipped animation you name your
+clamp/valve sub-objects to match the part names that id expects (the file lists them).
+
+You can also define your **own** animations without touching SPS: put a
+`<couplerAnimations>` block inside your embedded `<slurryPipeSystem>` /
+`<sprayerPipeSystem>`, using the same format as the shipped file. Config-local ids are
+checked before the shared library, so a local id overrides a shipped one of the same number.
+See the placeable guide §7 for the block format.
 
 ### Path-based manifest matching (internal)
 
@@ -203,6 +239,12 @@ like the liquidmanure equivalent.
 
 - **Manual Attach** — load-order-safe; SPS detects FS25_manualAttach and routes pipe-related
   connection-hose checks through its API when present.
+- **Soil & Fertilizer (TheCodingDad, FS25_SoilFertilizer)** — all twelve S&F custom liquid
+  IBC tanks are recognised: SPS spawns the matching branded IBC for a connected sprayer's
+  fill type, with correct labelling and pipe connections. No S&F files are touched.
+- **Buyable Manure And Other (BartsoNv3, FS25_BuyableManureAndOther)** — the liquid manure
+  buying station registers as a paid, infinite SPS pipe source, with a walk-up switch
+  between its sold liquids. Purchases charge through the station's own pricing.
 - **Real autosave** — SPS save data is preserved across autosaves.
 - **Multiplayer** — server-authoritative state; valve toggles, connections, pressure, pump
   and shear-bolt state all sync via dedicated events.

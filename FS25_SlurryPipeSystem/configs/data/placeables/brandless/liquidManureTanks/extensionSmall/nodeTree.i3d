@@ -88,7 +88,7 @@
       <Custommap name="detailNormal" fileId="6"/>
       <Custommap name="detailDiffuse" fileId="7"/>
     </Material>
-    <Material name="slurryPit_mat" materialId="57">
+    <Material name="slurryPit_mat" materialId="13">
       <Texture fileId="28"/>
       <Normalmap fileId="29"/>
       <Glossmap fileId="30"/>
@@ -124,13 +124,14 @@
             <Shape name="slurryPit_propsSwapped" translation="-0.359952 -0.950649 9.26196" rotation="-0 -90 0" shapeId="3" clipDistance="300" nodeId="37" castsShadows="true" receiveShadows="true" materialIds="15">
               <Shape name="slurryPit_screws" shapeId="4" clipDistance="300" nodeId="38" castsShadows="true" receiveShadows="true" materialIds="7"/>
               <Shape name="slurryPit_platform" shapeId="5" clipDistance="300" nodeId="39" castsShadows="true" receiveShadows="true" materialIds="14"/>
-              <Shape name="slurryPitRamp" rotation="0 -0 4.26554e-06" shapeId="6" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="300" nodeId="40" castsShadows="true" receiveShadows="true" materialIds="57,8"/>
+              <Shape name="slurryPitRamp" rotation="0 -0 4.26554e-06" shapeId="6" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="300" nodeId="40" castsShadows="true" receiveShadows="true" materialIds="13,8"/>
               <Shape name="slurryPit_fenceNew" rotation="0 -0 4.26554e-06" shapeId="7" clipDistance="300" nodeId="41" castsShadows="true" receiveShadows="true" materialIds="5"/>
               <Shape name="slurryPit_alpsRoadFence02New" rotation="0 -0 4.26554e-06" shapeId="8" clipDistance="300" nodeId="42" castsShadows="true" receiveShadows="true" materialIds="6"/>
               <Shape name="collisionNew" translation="5.75184e-08 -1.14454 0" rotation="0 -0 2.87937e-06" shapeId="9" static="true" collisionFilterGroup="0x3e" collisionFilterMask="0xfffffbff" nodeId="43" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="11"/>
             </Shape>
             <TransformGroup name="inNode" nodeId="44"/>
             <TransformGroup name="outNode" rotation="0 180 0" nodeId="45"/>
+            <TransformGroup name="headHeight01" nodeId="53"/>
           </TransformGroup>
           <TransformGroup name="slurryPlaneCentre" nodeId="46"/>
           <TransformGroup name="slurryPlaneEdge" translation="-9 0 0" nodeId="47"/>

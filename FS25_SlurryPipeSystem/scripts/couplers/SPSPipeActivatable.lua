@@ -1,9 +1,11 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.8
+-- Version: 1.0.0.9.30
 
 -- SPSPipeActivatable.lua
 -- FS25_SlurryPipeSystem
+
+print("[SPS BUILD] SPSPipeActivatable 1.0.0.9.30 loaded")
 
 SPSPipeActivatable = {}
 SPSPipeActivatable.__index = SPSPipeActivatable
@@ -233,6 +235,15 @@ function SPSPipeActivatable:_getState()
         end
         if coupling.valveType == SPS_VALVE_TYPE_HYDRAULIC then
             -- Valve is cab-controlled — only allow disconnect, no valve prompts
+            return "disconnectOnly"
+        end
+        -- [SPS 1.0.0.9.30] Valve-less coupler (valveType="NONE", e.g. the baseTank
+        -- and separator store couplers): there is no valve to open, so never offer
+        -- the "Disconnect / Open Valve" prompt — disconnect only. Flow is
+        -- unaffected: the separator ignores valve state entirely, and
+        -- tanker-driven flow is gated by the VEHICLE coupling's valve, which
+        -- applyValveState mirrors onto this partner for the effect gate.
+        if coupling.valveType == SPS_VALVE_TYPE_NONE then
             return "disconnectOnly"
         end
         if coupling.valveOpen then

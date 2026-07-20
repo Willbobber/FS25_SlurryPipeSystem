@@ -202,6 +202,7 @@ The strap-pipe coupling point on the tanker (walk-up connect).
 | `connector`            | `male`   | `male` / `female` — matched against the partner end. |
 | `connectorAnimation`   | —        | Coupler animation id. |
 | `valveAnimation`       | —        | Valve animation id. |
+| `headHeightNodeName`   | —        | Opt-in gravity head gate — see below. |
 | `cylinderedConfigIndex`| —        | Optional config gate, see §13. |
 | `configType`           | `cylindered` | Config type for the gate. |
 
@@ -210,6 +211,25 @@ SPS finds them automatically as the in/out flow points.
 
 A coupling automatically gets a walk-up **connect** activatable and a **lay chain**
 activatable.
+
+Pipe visuals from a coupling rest on hard surfaces automatically — laid chains and
+connection pipes settle onto concrete pads, floors, bridge decks and roads as well as the
+terrain. No configuration is needed.
+
+### Gravity head equalisation — `headHeightNodeName` (optional)
+
+By default a coupling takes no part in gravity equalisation and behaves exactly as before.
+Declaring `headHeightNodeName` opts the coupling in: name a node placed at the **highest
+point of the pipe run** from that coupling (e.g. the top of the tank neck or the crest the
+hose climbs over). While connected, levels then equalise by gravity between the two vessels —
+but only while the driving surface is **above** every declared head node and the receiving
+surface, so slurry cannot magically climb over a crest it could not really clear. Both
+vehicle and store couplings support the attribute; a pair where neither end declares it is
+ignored by equalisation entirely.
+
+`connectorAnimation` / `valveAnimation` ids come from the SPS shared animation library — or
+from a `<couplerAnimations>` block you define inside your own `<slurryPipeSystem>` (same
+format as the shared file; local ids win). See the placeable guide §7 for the block format.
 
 ---
 

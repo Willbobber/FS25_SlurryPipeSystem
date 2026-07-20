@@ -2,7 +2,7 @@
 
 <i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
   <Asset>
-    <Export program="GIANTS Editor 64bit" version="10.0.11"/>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
   </Asset>
 
   <Files>
@@ -83,12 +83,13 @@
               <Shape name="hideHose02" shapeId="2" kinematic="true" compound="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="25" castsShadows="true" receiveShadows="true" materialIds="5"/>
             </Shape>
             <Shape name="liquidManureGrid01" translation="-0.34818 -0.372893 1.0876" rotation="-0 -90 0" shapeId="3" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="300" nodeId="26" castsShadows="true" receiveShadows="true" materialIds="8"/>
-            <TransformGroup name="inNode" nodeId="31"/>
-            <TransformGroup name="outNode" rotation="0 180 0" nodeId="32"/>
+            <TransformGroup name="inNode" nodeId="27"/>
+            <TransformGroup name="outNode" rotation="0 180 0" nodeId="28"/>
+            <TransformGroup name="headHeight01" nodeId="33"/>
           </TransformGroup>
-          <Shape name="liquidManure01" translation="-25.1472 -0.0889607 -9.03994" shapeId="4" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="300" nodeId="27" castsShadows="true" receiveShadows="true" materialIds="7">
-            <Shape name="liquidManureFillPlane" shapeId="5" nodeId="28" castsShadows="true" receiveShadows="true" materialIds="6"/>
-            <Shape name="liquidManureGrid02" shapeId="6" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="300" nodeId="29" castsShadows="true" receiveShadows="true" materialIds="8"/>
+          <Shape name="liquidManure01" translation="-25.1472 -0.0889607 -9.03994" shapeId="4" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="300" nodeId="29" castsShadows="true" receiveShadows="true" materialIds="7">
+            <Shape name="liquidManureFillPlane" shapeId="5" nodeId="30" castsShadows="true" receiveShadows="true" materialIds="6"/>
+            <Shape name="liquidManureGrid02" shapeId="6" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="300" nodeId="31" castsShadows="true" receiveShadows="true" materialIds="8"/>
           </Shape>
         </TransformGroup>
       </TransformGroup>

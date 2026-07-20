@@ -171,13 +171,32 @@
 	
 		<!-- Agitator -->
 		<text name="action_spsAgitatorConnect" 			text="Connect PTO"/>
-		<text name="action_spsAgitatorDisconnect" 		text="Disconnect PTO"/>
-		<text name="action_spsAgitatorPtoOn"  			text="Engage PTO"/>
-		<text name="action_spsAgitatorPtoOff" 			text="Disengage PTO"/>
+		<text name="action_spsAgitatorDisconnect" 		text="Aftakas loskoppelen"/>
+		<text name="action_spsAgitatorPtoOn"  			text="Aftakas inschakelen"/>
+		<text name="action_spsAgitatorPtoOff" 			text="Aftakas uitschakelen"/>
 		
 		<!-- IBCs -->
 		<text name="sps_settingsIbcPersist" 			text="IBC blijft behouden in lege toestand"/>
 		<text name="sps_settingsIbcPersistTooltip" 		text="Ja: geleegde IBC's blijven op de kaart staan ​​(breng ze terug naar de winkel of vul ze opnieuw). Nee: ze verdwijnen zodra ze leeg zijn (standaardinstelling)."/>
 		<text name="action_spsAddIbc" 					text="Aanhouden: IBC toevoegen" />
+
+		<!-- Separator -->
+		<text name="input_SPS_TOGGLE_SEPARATOR"		text="Separator start/stop" />
+		<text name="input_SPS_SEPARATOR_TIGHTNESS"	text="Separator vijzelspanning" />
+		<text name="action_spsSeparatorOn"			text="Separator: START" />
+		<text name="action_spsSeparatorOff"			text="Separator: STOP" />
+		<text name="action_spsSeparatorTightness"	text="Vijzelspanning: %d%%" />
+		<text name="warning_spsSepNoPipes"			text="Separator: sluit de aanvoer- en afvoerslang aan" />
+		<text name="warning_spsSepNoInPipe"			text="Separator: sluit de aanvoerslang aan (mestbron)" />
+		<text name="warning_spsSepNoOutPipe"		text="Separator: sluit de afvoerslang aan (mestretour)" />
+		<text name="warning_spsSepSourceEmpty"		text="Separator: mestbron is leeg" />
+		<text name="warning_spsSepSourceThick"		text="Separator: mest te dik — voeg water toe" />
+		<text name="warning_spsSepOutputFull"		text="Separator: mestbunker is vol" />
+		<text name="warning_spsSepReturnFull"		text="Separator: retourbestemming voor mest is vol" />
+		<text name="info_spsSeparatorRunning"		text="Bedrijfskosten mestseparator" />
+		<text name="warning_spsSepNoDm"				text="Separator: geen droge stof meer — gestopt tot er verse mest aankomt" />
+
+		<!-- Buying station -->
+		<text name="action_spsBuyStationSwitch"		text="Kopen: %s — wissel naar %s" />
 	</texts>
 </l10n>

@@ -169,13 +169,32 @@
 	
 		<!-- Agitator -->
 		<text name="action_spsAgitatorConnect" 			text="Connect PTO"/>
-		<text name="action_spsAgitatorDisconnect" 		text="Disconnect PTO"/>
-		<text name="action_spsAgitatorPtoOn"  			text="Engage PTO"/>
-		<text name="action_spsAgitatorPtoOff" 			text="Disengage PTO"/>
+		<text name="action_spsAgitatorDisconnect" 		text="Déconnecter la PdF"/>
+		<text name="action_spsAgitatorPtoOn"  			text="Engager la PdF"/>
+		<text name="action_spsAgitatorPtoOff" 			text="Désengager la PdF"/>
 		
 		<!-- IBCs -->
 		<text name="sps_settingsIbcPersist" 			text="Le GRV reste en place lorsqu'il est vide"/>
 		<text name="sps_settingsIbcPersistTooltip" 		text="Oui : les cuves IBC vides restent sur la carte (rapportez-les au magasin ou remplissez-les). Non : elles disparaissent une fois vides (paramètre par défaut)."/>
 		<text name="action_spsAddIbc" 					text="Maintien : ajouter IBC" />
+
+		<!-- Separator -->
+		<text name="input_SPS_TOGGLE_SEPARATOR"		text="Séparateur marche/arrêt" />
+		<text name="input_SPS_SEPARATOR_TIGHTNESS"	text="Serrage de la vis du séparateur" />
+		<text name="action_spsSeparatorOn"			text="Séparateur : MARCHE" />
+		<text name="action_spsSeparatorOff"			text="Séparateur : ARRÊT" />
+		<text name="action_spsSeparatorTightness"	text="Serrage de la vis : %d%%" />
+		<text name="warning_spsSepNoPipes"			text="Séparateur : raccordez les tuyaux d'entrée et de sortie" />
+		<text name="warning_spsSepNoInPipe"			text="Séparateur : raccordez le tuyau d'entrée (source de lisier)" />
+		<text name="warning_spsSepNoOutPipe"		text="Séparateur : raccordez le tuyau de sortie (retour du lisier)" />
+		<text name="warning_spsSepSourceEmpty"		text="Séparateur : la source de lisier est vide" />
+		<text name="warning_spsSepSourceThick"		text="Séparateur : lisier trop épais — ajoutez de l'eau" />
+		<text name="warning_spsSepOutputFull"		text="Séparateur : le bac à fumier est plein" />
+		<text name="warning_spsSepReturnFull"		text="Séparateur : la destination du retour de lisier est pleine" />
+		<text name="info_spsSeparatorRunning"		text="Coût de fonctionnement du séparateur de lisier" />
+		<text name="warning_spsSepNoDm"				text="Séparateur : plus de matière sèche — arrêté jusqu'à l'arrivée de lisier frais" />
+
+		<!-- Buying station -->
+		<text name="action_spsBuyStationSwitch"		text="Achat : %s — passer à %s" />
 	</texts>
 </l10n>

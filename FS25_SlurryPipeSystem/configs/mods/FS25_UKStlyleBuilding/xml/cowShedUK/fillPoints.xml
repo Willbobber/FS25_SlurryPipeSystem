@@ -33,6 +33,7 @@
             deployable="true"
             maxPipeLength="4.0"
 			connector="male"
+			headHeightNodeName="headHeight01"
         />
  
     </pipeCouplings>

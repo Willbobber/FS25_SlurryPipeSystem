@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.8
+-- Version: 1.0.0.9.25
 
 -- SPSPipeChain.lua
 -- FS25_SlurryPipeSystem
@@ -12,6 +12,84 @@ SPSPipeChain.PIPE_LENGTH   = 4.0
 SPSPipeChain.PLAYER_OFFSET = 0.75
 SPSPipeChain.NUM_BONES         = 14
 SPSPipeChain.PIPE_FLOOR_RADIUS = 0.08    -- measured: bone centre to pipe bottom
+
+-- ---------------------------------------------------------------------------
+-- [SPS FLOOR] _stripFloorBitsRec
+-- Removes the floor-ray bits (STATIC_OBJECT/TERRAIN/BUILDING/ROAD) from the
+-- collisionFilterGroup of every shape inside a freshly loaded pipe i3d, once,
+-- at load time. Without this the downward floor ray hits the pipe's OWN
+-- kinematic collision capsules (group 0x11004 contains the BUILDING bit),
+-- which lifted bones onto themselves and caused a per-frame bounce feedback
+-- loop. After stripping, the ray physically cannot see any SPS pipe — only
+-- real floors. getCollisionFilterGroup / setCollisionFilterGroup and
+-- getHasClassId(node, ClassIds.SHAPE) usage is source-confirmed in vanilla
+-- CollisionFlag.lua. VEHICLE / CAMERA_BLOCKING bits are left untouched.
+-- ---------------------------------------------------------------------------
+function SPSPipeChain._stripFloorBitsRec(node)
+    if node == nil or node == 0 then return end
+    if CollisionFlag == nil or bit32 == nil then return end
+    if SPSPipeChain._floorStripMask == nil then
+        SPSPipeChain._floorStripMask = bit32.bnot(
+            CollisionFlag.STATIC_OBJECT
+            + CollisionFlag.TERRAIN
+            + CollisionFlag.BUILDING
+            + CollisionFlag.ROAD)
+    end
+    if getHasClassId(node, ClassIds.SHAPE) then
+        local group = getCollisionFilterGroup(node)
+        if group ~= nil and group ~= 0 then
+            setCollisionFilterGroup(node, bit32.band(group, SPSPipeChain._floorStripMask))
+        end
+    end
+    for i = 0, getNumOfChildren(node) - 1 do
+        SPSPipeChain._stripFloorBitsRec(getChildAt(node, i))
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS FLOOR] Static-surface floor support.
+-- The terrain heightmap alone cannot see concrete pads, building floors,
+-- bridge decks, or roads, so a short downward raycast is combined with the
+-- heightmap and the HIGHER of the two becomes the pipe floor.
+-- Mask (built lazily from vanilla CollisionFlag, source-confirmed):
+--   STATIC_OBJECT (bit 1) + TERRAIN (bit 8) + BUILDING (bit 12) + ROAD (bit 13)
+-- The ray starts FLOOR_RAY_UP above the reference Y and casts straight down
+-- for FLOOR_RAY_UP + FLOOR_RAY_DOWN metres. Starting just above the pipe is
+-- deliberate: a deck high above a pipe running underneath it is never hit,
+-- so pipes routed under bridges are not wrongly lifted onto them.
+-- Engine call pattern taken from vanilla RaycastUtil.raycastClosest.
+-- Falls back to the plain terrain height if CollisionFlag or RaycastUtil
+-- are unavailable.
+-- NOTE: requires pipe i3d collision shapes to use group 0x10004 (not 0x11004,
+-- whose BUILDING bit would let the ray hit the pipe's own components).
+-- ---------------------------------------------------------------------------
+SPSPipeChain.FLOOR_RAY_UP   = 0.5
+SPSPipeChain.FLOOR_RAY_DOWN = 2.0
+SPSPipeChain._floorRayMask  = nil
+
+function SPSPipeChain.getFloorWorldY(px, py, pz, terrainY)
+    if SPSPipeChain._floorRayMask == nil then
+        if CollisionFlag ~= nil and RaycastUtil ~= nil
+        and CollisionFlag.STATIC_OBJECT ~= nil and CollisionFlag.TERRAIN ~= nil
+        and CollisionFlag.BUILDING ~= nil and CollisionFlag.ROAD ~= nil then
+            SPSPipeChain._floorRayMask = CollisionFlag.STATIC_OBJECT
+                + CollisionFlag.TERRAIN
+                + CollisionFlag.BUILDING
+                + CollisionFlag.ROAD
+        else
+            return terrainY
+        end
+    end
+    local hitId, _, hitY, _ = RaycastUtil.raycastClosest(
+        px, py + SPSPipeChain.FLOOR_RAY_UP, pz,
+        0, -1, 0,
+        SPSPipeChain.FLOOR_RAY_UP + SPSPipeChain.FLOOR_RAY_DOWN,
+        SPSPipeChain._floorRayMask)
+    if hitId ~= nil and hitId ~= 0 and hitY ~= nil and hitY > terrainY then
+        return hitY
+    end
+    return terrainY
+end
 
 -- ---------------------------------------------------------------------------
 -- Debug logging
@@ -26,7 +104,7 @@ SPSPipeChain.PIPE_FLOOR_RADIUS = 0.08    -- measured: bone centre to pipe bottom
 -- loop body itself is skipped entirely when logging is off.
 -- ---------------------------------------------------------------------------
 SPSPipeChain.DEBUG = false
-print("[SPS BUILD] SPSPipeChain 1.0.0.8 loaded")
+print("[SPS BUILD] SPSPipeChain 1.0.0.9.26 loaded")
 
 function SPSPipeChain.log(fmt, ...)
     if not SPSPipeChain.DEBUG then return end
@@ -229,7 +307,9 @@ function SPSPipeChain:lockLivePipe()
 
     -- [SPS MP] Replicate the committed chain to all peers (server applies +
     -- broadcasts; client sends a request the server applies authoritatively).
+    if SlurryPipeManager ~= nil and SlurryPipeManager.MP_DEBUG then
     print(string.format("[SPS MP] lockLivePipe DONE netId=%s segs=%d", tostring(self.netId), #self.segments))
+        end
     if g_slurryPipeManager ~= nil and g_slurryPipeManager.commitChainState ~= nil then
         g_slurryPipeManager:commitChainState(self)
     end
@@ -306,6 +386,8 @@ function SPSPipeChain:_loadPipe(startX, startY, startZ, startRY, colorR, colorG,
         SPSPipeChain.log("_loadPipe: ERROR failed to load slurryPipe.i3d")
         return nil
     end
+    -- [SPS FLOOR] make this pipe invisible to the floor ray (see _stripFloorBitsRec)
+    SPSPipeChain._stripFloorBitsRec(i3dRoot)
 
     local pipeRoot        = getChildAt(i3dRoot, 0)
     local startConnectors = getChildAt(pipeRoot, 1)
@@ -469,6 +551,11 @@ function SPSPipeChain:update(dt)
     local ey = sy
     if terrain ~= nil then
         ey = getTerrainHeightAtWorldPos(terrain, ex, 0, ez)
+        -- [SPS FLOOR] live end also rests on static surfaces. The player's own
+        -- Y is the ray reference so laying on a bridge/concrete pad (where the
+        -- heightmap is far below the player's feet) finds the deck underfoot.
+        local _, playerY, _ = getWorldTranslation(g_localPlayer.rootNode)
+        ey = SPSPipeChain.getFloorWorldY(ex, playerY, ez, ey)
     end
     local _, floorOffset, _ = getTranslation(seg.endFloorLevel)
 
@@ -572,12 +659,16 @@ function SPSPipeChain:_terrainClampBones(seg)
         end
     end
 
-    -- Sample terrain at every other interior bone (1,3,5,7,9,11,13 = 7 queries).
-    local terrainMinY = {}   -- stores terrain+radius floor for each sampled bone
+    -- [SPS FLOOR] Sample the floor at EVERY interior bone (14 queries). This
+    -- runs once at lock time, not per frame, so the extra raycasts are free.
+    -- Each bone combines the terrain heightmap with a static-surface raycast
+    -- so chain pipes rest on concrete pads, building floors, bridges and roads.
+    local terrainMinY = {}   -- stores floor+radius for each sampled bone
     local anyClamped = false
-    for i = 1, NUM, 2 do
+    for i = 1, NUM do
         if pos[i] ~= nil then
             local ty = getTerrainHeightAtWorldPos(terrain, pos[i][1], 0, pos[i][3])
+            ty = SPSPipeChain.getFloorWorldY(pos[i][1], pos[i][2], pos[i][3], ty)
             local minY = ty + RADIUS
             terrainMinY[i] = minY
             if pos[i][2] < minY then
@@ -824,6 +915,8 @@ function SPSPipeChain:addDockingStation()
     local rx, ry, rz = getWorldRotation(lastSeg.endConnectors)
     local terrain  = g_currentMission ~= nil and g_currentMission.terrainRootNode or nil
     local terrainY = (terrain ~= nil) and getTerrainHeightAtWorldPos(terrain, ex, 0, ez) or ey
+    -- [SPS FLOOR] docking station also sits on static surfaces (one-off query)
+    terrainY = SPSPipeChain.getFloorWorldY(ex, ey, ez, terrainY)
 
     removeFromPhysics(dsNode)
     link(getRootNode(), dsNode)

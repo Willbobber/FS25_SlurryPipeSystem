@@ -1,4 +1,4 @@
-print("[SPS BUILD] SPSEvents 1.0.0.9.3 loaded")
+print("[SPS BUILD] SPSEvents 1.0.0.9.5 loaded")
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
 -- Version: 1.0.0.9.2
@@ -935,8 +935,10 @@ function SPSChainStateEvent:readStream(streamId, connection)
 end
 
 function SPSChainStateEvent:run(connection)
+    if SlurryPipeManager ~= nil and SlurryPipeManager.MP_DEBUG then
     print(string.format("[SPS MP] StateEvent.run RECV netId=%s removed=%s fromServer=%s",
         tostring(self.netId), tostring(self.removed), tostring(connection:getIsServer())))
+        end
     -- State events are authoritative and only ever travel server -> clients.
     -- If a server somehow receives one from a client, relay defensively (but do
     -- not include the sender, who is the authority for nothing here).
@@ -1122,8 +1124,10 @@ function SPSChainRequestEvent:readStream(streamId, connection)
 end
 
 function SPSChainRequestEvent:run(connection)
+    if SlurryPipeManager ~= nil and SlurryPipeManager.MP_DEBUG then
     print(string.format("[SPS MP] RequestEvent.run RECV netId=%s removed=%s server=%s",
         tostring(self.netId), tostring(self.removed), tostring(g_server ~= nil)))
+        end
     -- Client -> server only. Apply authoritatively on the server (which itself
     -- broadcasts SPSChainStateEvent). No-op if somehow received on a client.
     if g_server ~= nil and g_slurryPipeManager ~= nil
@@ -1206,9 +1210,11 @@ function SPSChainConnectEvent:readStream(streamId, connection)
 end
 
 function SPSChainConnectEvent:run(connection)
+    if SlurryPipeManager ~= nil and SlurryPipeManager.MP_DEBUG then
     print(string.format("[SPS MP] ChainConnectEvent.run RECV netId=%s seg=%s connected=%s fromServer=%s",
         tostring(self.chainNetId), tostring(self.terminusSegIndex),
         tostring(self.connected), tostring(connection:getIsServer())))
+        end
     -- If the server received this from a client, relay to the other clients
     -- (excluding the sender, who applied optimistically).
     if not connection:getIsServer() then
@@ -1271,8 +1277,10 @@ function SPSDockingStationEvent:readStream(streamId, connection)
 end
 
 function SPSDockingStationEvent:run(connection)
+    if SlurryPipeManager ~= nil and SlurryPipeManager.MP_DEBUG then
     print(string.format("[SPS MP] DockingStationEvent.run RECV netId=%s isAdd=%s fromServer=%s",
         tostring(self.chainNetId), tostring(self.isAdd), tostring(connection:getIsServer())))
+        end
     -- Server relays a client's change to the other clients (the sender applied
     -- optimistically, so it is excluded from the rebroadcast).
     if not connection:getIsServer() then
@@ -1491,4 +1499,98 @@ function SPSChainLiveEvent.sendCancel(netId)
         return
     end
     spsSendEventToServer(ev)
+end
+-- ===========================================================================
+-- SPSSettingsSyncEvent
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.0.9.5] Server-authoritative sync of the gameplay settings rows
+-- (realism master, thickness flow, blockages, length falloff, shear bolt
+-- master, IBC persistence). Flow:
+--   * an admin on a CLIENT changes a row -> requestGameplaySettings applies
+--     locally (optimistic) and sends this event to the server,
+--   * the server applies authoritatively and rebroadcasts to the other
+--     clients (sender excluded — it already applied),
+--   * the SERVER/host changing a row applies + broadcasts to everyone,
+--   * late joiners receive the current set in the manager's join dump.
+-- HUD settings are deliberately NOT in this event — they are per-player and
+-- persist in each player's own user file (see saveUserSettings).
+-- ---------------------------------------------------------------------------
+SPSSettingsSyncEvent = {}
+local SPSSettingsSyncEvent_mt = Class(SPSSettingsSyncEvent, Event)
+InitEventClass(SPSSettingsSyncEvent, "SPSSettingsSyncEvent")
+
+function SPSSettingsSyncEvent.emptyNew()
+    local self = Event.new(SPSSettingsSyncEvent_mt)
+    return self
+end
+
+function SPSSettingsSyncEvent.new(realismEnabled, thicknessFlow, blockages, lengthFalloff, shearBoltEnabled, ibcPersistWhenEmpty)
+    local self = SPSSettingsSyncEvent.emptyNew()
+    self.realismEnabled      = realismEnabled ~= false
+    self.thicknessFlow       = thicknessFlow ~= false
+    self.blockages           = blockages ~= false
+    self.lengthFalloff       = lengthFalloff ~= false
+    self.shearBoltEnabled    = shearBoltEnabled ~= false
+    self.ibcPersistWhenEmpty = ibcPersistWhenEmpty == true
+    return self
+end
+
+function SPSSettingsSyncEvent:readStream(streamId, connection)
+    self.realismEnabled      = streamReadBool(streamId)
+    self.thicknessFlow       = streamReadBool(streamId)
+    self.blockages           = streamReadBool(streamId)
+    self.lengthFalloff       = streamReadBool(streamId)
+    self.shearBoltEnabled    = streamReadBool(streamId)
+    self.ibcPersistWhenEmpty = streamReadBool(streamId)
+    self:run(connection)
+end
+
+function SPSSettingsSyncEvent:writeStream(streamId, connection)
+    streamWriteBool(streamId, self.realismEnabled)
+    streamWriteBool(streamId, self.thicknessFlow)
+    streamWriteBool(streamId, self.blockages)
+    streamWriteBool(streamId, self.lengthFalloff)
+    streamWriteBool(streamId, self.shearBoltEnabled)
+    streamWriteBool(streamId, self.ibcPersistWhenEmpty)
+end
+
+function SPSSettingsSyncEvent:run(connection)
+    if not connection:getIsServer() then
+        -- Server received an admin client's request: rebroadcast to the other
+        -- clients (sender excluded — it applied optimistically on send).
+        g_server:broadcastEvent(self, false, connection)
+    end
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.applyGameplaySettings ~= nil then
+        g_slurryPipeManager:applyGameplaySettings({
+            realismEnabled      = self.realismEnabled,
+            thicknessFlow       = self.thicknessFlow,
+            blockages           = self.blockages,
+            lengthFalloff       = self.lengthFalloff,
+            shearBoltEnabled    = self.shearBoltEnabled,
+            ibcPersistWhenEmpty = self.ibcPersistWhenEmpty,
+        })
+    end
+end
+
+function SPSSettingsSyncEvent.sendCurrent(connection)
+    -- Join-dump helper: send the manager's current gameplay settings to one
+    -- freshly joined connection. Server-side only.
+    local mgr = g_slurryPipeManager
+    if mgr == nil or connection == nil then return end
+    local ft = mgr.featureToggles or {}
+    connection:sendEvent(SPSSettingsSyncEvent.new(
+        mgr.realismEnabled, ft.thicknessFlow, ft.blockages, ft.lengthFalloff,
+        mgr.shearBoltEnabled, mgr.ibcPersistWhenEmpty))
+end
+
+function SPSSettingsSyncEvent.sendRequest()
+    -- Client-side helper: send the manager's current (optimistically applied)
+    -- gameplay settings to the server. Uses the file-local server-connection
+    -- wrapper, which the manager cannot reach directly.
+    local mgr = g_slurryPipeManager
+    if mgr == nil then return end
+    local ft = mgr.featureToggles or {}
+    spsSendEventToServer(SPSSettingsSyncEvent.new(
+        mgr.realismEnabled, ft.thicknessFlow, ft.blockages, ft.lengthFalloff,
+        mgr.shearBoltEnabled, mgr.ibcPersistWhenEmpty))
 end

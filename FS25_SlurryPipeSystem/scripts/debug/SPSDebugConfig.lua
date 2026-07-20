@@ -88,6 +88,17 @@ SPSDebugConfig.channels = {
     ["SlurryAgitator"]                 = false, -- RESERVED (not yet wired)
     ["SlurryAgitatorEvent"]            = false, -- RESERVED (not yet wired)
 
+    -- ------------------------------------------------------------ separator
+    ["SPSSeparator"]                   = false, -- [SPS SEPARATOR] core trace
+    ["SPSSeparatorActivatable"]        = false, -- [SPS SEP ACT] walk-up control trace
+    ["SPSSeparatorEvent"]              = false, -- [SPS SEP EVT] MP event trace
+    ["SPSSlurryTankExtensions"]        = false, -- [SPS TANK EXT] slurry tank extension disabling
+    ["SPSChainBondPersistence"]        = false, -- [SPS BOND SAVE] non-vehicle bond save trace
+
+    -- --------------------------------------------------------- buying station
+    ["SPSBuyStationActivatable"]       = false, -- [SPS BUY ACT] type-switch walk-up trace
+    ["SPSBuyStationEvent"]             = false, -- [SPS BUY EVT] MP event trace
+
     -- ------------------------------------------------------------ shear bolt
     ["SPSShearBolt"]                   = false, -- shear bolt wear trace
     ["SPSShearBoltActivatable"]        = false, -- RESERVED (not yet wired)
@@ -156,6 +167,27 @@ function SPSDebugConfig.applyAll()
     if SPSFixedAgitatorShaft ~= nil then
         SPSFixedAgitatorShaft.DEBUG = ch["SPSFixedAgitatorShaft"] == true
     end
+    if SPSSeparator ~= nil then
+        SPSSeparator.DEBUG = ch["SPSSeparator"] == true
+    end
+    if SPSSeparatorActivatable ~= nil then
+        SPSSeparatorActivatable.DEBUG = ch["SPSSeparatorActivatable"] == true
+    end
+    if SPSSeparatorEvent ~= nil then
+        SPSSeparatorEvent.DEBUG = ch["SPSSeparatorEvent"] == true
+    end
+    if SPSSlurryTankExtensions ~= nil then
+        SPSSlurryTankExtensions.DEBUG = ch["SPSSlurryTankExtensions"] == true
+    end
+    if SPSChainBondPersistence ~= nil then
+        SPSChainBondPersistence.DEBUG = ch["SPSChainBondPersistence"] == true
+    end
+    if SPSBuyStationActivatable ~= nil then
+        SPSBuyStationActivatable.DEBUG = ch["SPSBuyStationActivatable"] == true
+    end
+    if SPSBuyStationEvent ~= nil then
+        SPSBuyStationEvent.DEBUG = ch["SPSBuyStationEvent"] == true
+    end
     if SlurryDebug ~= nil then
         SlurryDebug.enabled = ch["SlurryDebug"] == true
     end
@@ -212,4 +244,4 @@ if addConsoleCommand ~= nil then
         "consoleDebug", SPSDebugConfig)
 end
 
-print("[SPS BUILD] SPSDebugConfig 1.0.0.9 loaded")
+print("[SPS BUILD] SPSDebugConfig 1.0.0.9.1 loaded")

@@ -2,7 +2,7 @@
 
 <i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
   <Asset>
-    <Export program="GIANTS Editor 64bit" version="10.0.11"/>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
   </Asset>
 
   <Files>
@@ -98,8 +98,9 @@
               </TransformGroup>
             </Shape>
             <Shape name="grate" translation="-0.000715931 -0.689993 0.497061" rotation="90 74.5477 90" shapeId="8" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" density="0.0001" clipDistance="150" nodeId="35" castsShadows="true" receiveShadows="true" materialIds="7"/>
-            <TransformGroup name="inNode" nodeId="37"/>
-            <TransformGroup name="outNode" rotation="0 180 0" nodeId="38"/>
+            <TransformGroup name="inNode" nodeId="36"/>
+            <TransformGroup name="outNode" rotation="0 180 0" nodeId="37"/>
+            <TransformGroup name="headHeight01" nodeId="39"/>
           </TransformGroup>
         </TransformGroup>
       </TransformGroup>
