@@ -3,41 +3,129 @@
 
 <!-- FS25_SlurryPipeSystem — Placeable fillPoints.xml -->
 <!-- Author: Oscar Mods -->
-<!-- Version: 1.0.0.0 -->
+<!-- Version: 1.0.0.9.31 -->
 
-<slurryPipeSystem agitator="false">
+<!-- crustGrow: crusting speed for every store on this placeable.
+     1.0 = baseline, 720 game hours (30 in-game days) clean -> fully crusted.
+     Note there is deliberately NO agitator="true" on this root element. When
+     <slurryStores> is present, each store declares its own #agitator - so the
+     slurry lagoon crusts while the digestate side, which has no store, does not. -->
+<slurryPipeSystem crustGrow="1.0">
 
     <nodeTree filename="nodeTree.i3d"/>
-	
+
+    <!-- ===================================================================
+         Slurry stores
+         ===================================================================
+         Each <slurryStore> binds ONE fill type of this placeable's Storage to
+         ONE authored fill plane. A production point has no engine-driven fill
+         plane, so SPS drives it: local Y = minY + (level / capacity) * (maxY -
+         minY), recomputed every tick on server and client alike.
+
+         Level and capacity both come from the placeable's OWN storage block —
+         bga250kw.xml declares LIQUIDMANURE capacity 24000 — so the plane always
+         matches the level on the production point's display, whether slurry
+         left through the fill arm, through a coupler, or was consumed by the
+         BGA's own biogasLiquidManure production.
+
+         minY / maxY are measured in #node's local frame and set the visual
+         travel ONLY. They do not affect capacity.
+
+         Child node names (#fillPlaneNode, crust nodes) resolve from #node
+         downwards, so a second store can duplicate the whole nodeTree group and
+         rename only the group node.
+         =================================================================== -->
+    <slurryStores>
+
+        <!-- poolFillTypes: the set of fill types treated as ONE body of liquid,
+             both for the plane height and for the dry-matter / crust model.
+             This matters more on a BGA than anywhere else. A production point
+             keeps everything in a SINGLE Storage object - here that is SILAGE,
+             MANURE, LIQUIDMANURE and DIGESTATE together. Naming LIQUIDMANURE
+             explicitly is what stops 102,000 l of silage and 460,000 l of
+             digestate being counted as slurry in this lagoon.
+             Omitting it defaults to just #fillType, which is the same result
+             here - it is written out so the intent is obvious to anyone reading
+             this file, and so a second store added later cannot silently
+             inherit the wrong body.
+             To pool two types into one pit (slurry + digestate, one plane, one
+             crust) write: poolFillTypes="LIQUIDMANURE DIGESTATE" -->
+        <slurryStore
+            id="1"
+            node="slurryStore01"
+            fillType="LIQUIDMANURE"
+            poolFillTypes="LIQUIDMANURE"
+            fillPlaneNode="slurryPit_fillPlane01"
+            minY="0.0"
+            maxY="1.9"
+            shape="round"
+            centreNodeName="slurryPlaneCentre01"
+            edgeNodeName="slurryPlaneEdge01"
+            hideWhenEmpty="true"
+            agitator="true">
+
+            <!-- Per-store crust nodes. The plant list and density are declared
+                 once at placeable level in <crust> below; only the nodes that
+                 the crust rides on are per store. -->
+            <crust
+                planeNode="crust_fillPlane01"
+                foliageNode="crustFoliage01"
+                maxRise="0.16"/>
+
+        </slurryStore>
+
+    </slurryStores>
+
     <pipeCouplings>
 
+        <!-- #storeId binds this coupler to slurryStore01: a draw or deposit
+             through it moves that store's level, and therefore its plane. -->
         <pipeCoupling
             id="1"
             mountNodeName="SPS_pipeCoupler01"
+            storeId="1"
             fillType="LIQUIDMANURE"
-			flowDirection="BOTH"
+            flowDirection="BOTH"
             valveType="MANUAL"
             deployable="false"
             maxPipeLength="4.0"
-			connector="male"
-			connectorAnimation="1"
-			valveAnimation="2"
+            connector="male"
+            connectorAnimation="1"
+            valveAnimation="2"
         />
-		
-		<pipeCoupling
+
+        <!-- No #storeId: coupling-only. Reads and writes the same Storage on
+             the DIGESTATE fill type (capacity 460000) with no plane and no arm
+             detection. The per-coupler #fillType restriction keeps it from
+             offering the store's slurry. -->
+        <pipeCoupling
             id="2"
             mountNodeName="SPS_pipeCoupler02"
             fillType="DIGESTATE"
-			flowDirection="BOTH"
+            flowDirection="BOTH"
             valveType="MANUAL"
             deployable="false"
             maxPipeLength="4.0"
-			connector="male"
-			connectorAnimation="1"
-			valveAnimation="2"
+            connector="male"
+            connectorAnimation="1"
+            valveAnimation="2"
         />
-		
+
     </pipeCouplings>
 
-    
+    <!-- Placeable-level crust: density and plant list, shared by every store on
+         this placeable. Without this block no vegetation is created at all —
+         the per-store <crust> element only supplies node names. -->
+    <crust density="3.0" edgeMargin="0.1">
+        <plant stage="1" i3d="i3d/foliage/grass01.i3d"  weight="6"/>
+        <plant stage="2" i3d="i3d/foliage/grass02.i3d"  weight="5"/>
+        <plant stage="3" i3d="i3d/foliage/grass03.i3d"  weight="5"/>
+        <plant stage="2" i3d="i3d/foliage/barley01.i3d" weight="4"/>
+        <plant stage="3" i3d="i3d/foliage/barley02.i3d" weight="4"/>
+        <plant stage="3" i3d="i3d/foliage/barley03.i3d" weight="3"/>
+        <plant stage="3" i3d="i3d/foliage/barley04.i3d" weight="3"/>
+        <plant stage="3" i3d="i3d/foliage/mushroom.i3d" weight="3"/>
+        <plant stage="3" i3d="i3d/foliage/nettle.i3d"   weight="3"/>
+    </crust>
+
 </slurryPipeSystem>

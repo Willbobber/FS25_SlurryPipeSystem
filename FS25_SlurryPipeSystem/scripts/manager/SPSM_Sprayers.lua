@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.9
+-- Version: 1.0.0.10.3
 
 -- SPSM_Sprayers.lua
 -- FS25_SlurryPipeSystem
@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Sprayers 1.0.0.9.24 loaded")
+print("[SPS BUILD] SPSM_Sprayers 1.0.0.10.3 loaded")
 
 
 -- Applies saved sprayer animation state to a newly registered vehicle.
@@ -808,6 +808,413 @@ function SlurryPipeManager:_dynCompartmentWithdraw(entry, sc, fillType, amount)
     end
 end
 
+-- [SPS 1.0.0.9.25] Orphan liquid adoption.
+-- Liquid can enter the vanilla Storage without SPS seeing it: dev/console
+-- fills and the store's own buy/fill trigger both write straight to
+-- storage.fillLevels, leaving every dynamic compartment ledger at nil/0 —
+-- so FILL out stops with compartment-empty despite a visibly full tank.
+-- This sweep computes, per fillType, the ORPHAN level = aggregate storage
+-- level minus the sum of locked compartment ledgers (types owned by fixed
+-- #capacity declarations are skipped — their level legitimately lives in
+-- the aggregate). Any orphan is adopted into unlocked dynamic couplers in
+-- ascending id order, each capped at its #capacity, using the normal
+-- lock-until-empty rules (dynAllowed respected). Storage levels are NOT
+-- touched — the liquid is already there; only the ledger is credited.
+-- Server-authoritative; clients receive the result via the existing
+-- SPSSprayerCompartmentEvent sync. Silent no-op when nothing is orphaned.
+-- Called at registration (after restore/reconcile) and from the
+-- compartment-empty branch of tickSprayerFlow so mid-session external
+-- fills are picked up without a reload.
+function SlurryPipeManager:_adoptOrphanSprayerLiquid(entry)
+    if g_server == nil then return false end
+    if entry == nil or entry.dynCouplers == nil or #entry.dynCouplers == 0 then return false end
+    local storage = entry.sourceEntry ~= nil and entry.sourceEntry.storage or nil
+    if storage == nil or storage.fillLevels == nil then return false end
+    -- Sum of locked compartment ledgers per type.
+    local ledger = {}
+    for _, sc in ipairs(entry.dynCouplers) do
+        if sc.dynFillType ~= nil then
+            ledger[sc.dynFillType] = (ledger[sc.dynFillType] or 0) + (sc.dynLevel or 0)
+        end
+    end
+    -- Orphan per type, skipping fixed-declaration types (aggregate-owned).
+    local orphanTypes = {}
+    local orphanLevels = {}
+    for ft, lvl in pairs(storage.fillLevels) do
+        if (entry.spsFixedCaps == nil or entry.spsFixedCaps[ft] == nil) then
+            local orphan = (lvl or 0) - (ledger[ft] or 0)
+            if orphan > 0.001 then
+                table.insert(orphanTypes, ft)
+                orphanLevels[ft] = orphan
+            end
+        end
+    end
+    if #orphanTypes == 0 then return false end
+    table.sort(orphanTypes)
+    local adopted = false
+    -- [SPS 1.0.0.9.29] Top-up pass: external fills into a tank ALREADY
+    -- locked to that type raise the aggregate but not the ledger, so the
+    -- liquid could not be withdrawn. Credit same-type orphan into locked
+    -- couplers (up to each coupler's own capacity) before assigning any
+    -- free couplers.
+    for _, sc in ipairs(entry.dynCouplers) do
+        if sc.dynFillType ~= nil then
+            local lockedFt = sc.dynFillType
+            local orphan = orphanLevels[lockedFt]
+            if orphan ~= nil and orphan > 0.001 then
+                local room = (sc.spsCapacity or 0) - (sc.dynLevel or 0)
+                if room > 0.001 then
+                    local take = math.min(room, orphan)
+                    sc.dynLevel = (sc.dynLevel or 0) + take
+                    orphanLevels[lockedFt] = orphan - take
+                    adopted = true
+                    SlurryPipeManager.log("compartment TOP-UP: %s coupler=%s %s +%.1f l (external fill)",
+                        tostring(entry.object and entry.object.configFileName), tostring(sc.id),
+                        tostring(g_fillTypeManager:getFillTypeNameByIndex(lockedFt) or lockedFt), take)
+                    self:_syncSprayerCompartment(entry, sc, true)
+                end
+            end
+        end
+    end
+    -- Unlocked couplers in ascending id order (local sorted copy).
+    local free = {}
+    for _, sc in ipairs(entry.dynCouplers) do
+        if sc.dynFillType == nil then table.insert(free, sc) end
+    end
+    if #free == 0 then
+        if adopted then self:_recomputeSprayerDynCapacities(entry) end
+        return adopted
+    end
+    table.sort(free, function(a, b) return (a.id or 0) < (b.id or 0) end)
+    -- [SPS 1.0.0.10.3] Walk restarts at the head of the free list for EVERY orphan
+    -- type, and a coupler is only consumed when it actually accepts the type.
+    -- Previously a single cursor was declared outside this loop and advanced on every
+    -- pass including refusals, so a free tank that rejected type A was never offered
+    -- type B and was silently burned. That diverged from _dynStoreComputeOccupancy —
+    -- which resets its cursor per type and only removes couplers it assigns — so the
+    -- gate could believe liquid was housed while this sweep left it unadopted and
+    -- therefore unpumpable. Only visible with per-coupler dynAllowed restrictions;
+    -- a dynAllowAny store behaved identically either way. The two are now the same
+    -- algorithm, which is the invariant the gate's accounting depends on.
+    for _, ft in ipairs(orphanTypes) do
+        local remaining = orphanLevels[ft]
+        local i = 1
+        while remaining > 0.001 and i <= #free do
+            local sc = free[i]
+            if sc.dynAllowAny == true or (sc.dynAllowed ~= nil and sc.dynAllowed[ft] == true) then
+                local take = math.min(remaining, sc.spsCapacity or remaining)
+                sc.dynFillType = ft
+                sc.dynLevel    = take
+                remaining      = remaining - take
+                adopted        = true
+                SlurryPipeManager.log("compartment ADOPT: %s coupler=%s -> %s %.1f l (external fill)",
+                    tostring(entry.object and entry.object.configFileName), tostring(sc.id),
+                    tostring(g_fillTypeManager:getFillTypeNameByIndex(ft) or ft), take)
+                self:_syncSprayerCompartment(entry, sc, true)
+                table.remove(free, i)
+            else
+                i = i + 1
+            end
+        end
+        if remaining > 0.001 then
+            SlurryPipeManager.log("compartment ADOPT: %s — %.1f l of %s left unadopted (no free compartment)",
+                tostring(entry.object and entry.object.configFileName), remaining,
+                tostring(g_fillTypeManager:getFillTypeNameByIndex(ft) or ft))
+        end
+    end
+    if adopted then
+        self:_recomputeSprayerDynCapacities(entry)
+    end
+    return adopted
+end
+
+-- [SPS 1.0.0.9.27] Per-tank occupancy gate for dynamic stores.
+-- A dynamic store is N physical tanks (dynCouplers), one fillType per tank,
+-- lock-until-empty, and EACH tank has its own total: the #capacity
+-- attribute on its <sprayerPipeCoupling> in fillPoints.xml. Modders may
+-- declare unequal tanks (e.g. three at 40000, one at 20000) and the gate
+-- honours each declared value exactly. Vanilla Storage has no such notion:
+-- with no per-type capacity entry getFreeCapacity falls into its
+-- shared-pool branch (capacity − Σ levels) and setFillLevel clamps only
+-- against the global capacity — so the store's own buy/fill trigger and
+-- dev controls could push a 5th distinct type into a 4-tank store, or
+-- overfill one type past its tank.
+-- Occupancy is computed by SIMULATING the exact assignment the adoption
+-- sweep performs: locked compartments own their couplers; each unadopted
+-- orphan type (aggregate level above its ledger sum) is then greedily
+-- assigned free couplers in ascending id order (fillType index order
+-- between types, dynAllowed respected), each capped at that coupler's own
+-- capacity. The simulation and the sweep therefore always agree, before
+-- and after adoption runs.
+-- Per type: maxLevel = Σ capacities of tanks holding it (locked+assigned)
+-- + Σ capacities of remaining free tanks that allow it (growth claims
+-- whole tanks; adoption locks them as the liquid actually arrives).
+-- A NEW type is admitted only while a remaining free tank allows it.
+-- Fixed #capacity types are untouched (aggregate-owned, vanilla rules).
+-- [SPS 1.0.0.10.3] Returns: assignedCaps (per-type total capacity of the tanks
+-- holding or claiming that type), freeCouplers (tanks still unassigned after the
+-- simulation, ascending id). The "isFixed, isActive, allowedNew, maxLevel" tuple
+-- described above is what _dynStoreTypeGate below returns, not this function.
+function SlurryPipeManager:_dynStoreComputeOccupancy(entry, storage)
+    local lockedCapsByType, assignedCaps = {}, {}
+    local freeCouplers = {}
+    for _, sc in ipairs(entry.dynCouplers) do
+        if sc.dynFillType ~= nil then
+            lockedCapsByType[sc.dynFillType] = (lockedCapsByType[sc.dynFillType] or 0) + (sc.spsCapacity or 0)
+            assignedCaps[sc.dynFillType]     = (assignedCaps[sc.dynFillType] or 0) + (sc.spsCapacity or 0)
+        else
+            table.insert(freeCouplers, sc)
+        end
+    end
+    table.sort(freeCouplers, function(a, b) return (a.id or 0) < (b.id or 0) end)
+    -- Unhoused orphans, assigned exactly as _adoptOrphanSprayerLiquid would.
+    -- [SPS 1.0.0.9.30] Net against the CAPACITY of couplers already locked
+    -- to the type, not the ledger: right after a fill-session CLAIM the
+    -- coupler is locked with ledger 0 while the liquid sits in the
+    -- aggregate (top-up credits it later, at registration/tick). Using the
+    -- ledger made that liquid look homeless and virtually consumed a free
+    -- coupler, burning one tank per claimed type — a 4-tank store refused
+    -- the 4th product. Liquid within a same-type locked tank's capacity is
+    -- housed; only the excess needs a free coupler.
+    local orphanTypes, orphanLevels = {}, {}
+    if storage ~= nil and storage.fillLevels ~= nil then
+        for ft, lvl in pairs(storage.fillLevels) do
+            if (entry.spsFixedCaps == nil or entry.spsFixedCaps[ft] == nil) then
+                local orphan = (lvl or 0) - (lockedCapsByType[ft] or 0)
+                if orphan > 0.001 then
+                    table.insert(orphanTypes, ft)
+                    orphanLevels[ft] = orphan
+                end
+            end
+        end
+    end
+    table.sort(orphanTypes)
+    for _, ft in ipairs(orphanTypes) do
+        local remaining = orphanLevels[ft]
+        local i = 1
+        while remaining > 0.001 and i <= #freeCouplers do
+            local sc = freeCouplers[i]
+            if sc.dynAllowAny == true or (sc.dynAllowed ~= nil and sc.dynAllowed[ft] == true) then
+                local cap = sc.spsCapacity or remaining
+                assignedCaps[ft] = (assignedCaps[ft] or 0) + cap
+                remaining = remaining - math.min(remaining, cap)
+                table.remove(freeCouplers, i)
+            else
+                i = i + 1
+            end
+        end
+        -- Present but no tank could take it: still active, zero grant.
+        if assignedCaps[ft] == nil then assignedCaps[ft] = 0 end
+    end
+    return assignedCaps, freeCouplers
+end
+
+function SlurryPipeManager:_dynStoreTypeGate(entry, storage, ft)
+    if entry == nil or entry.dynCouplers == nil or #entry.dynCouplers == 0 then
+        return false, false, true, math.huge
+    end
+    if entry.spsFixedCaps ~= nil and entry.spsFixedCaps[ft] ~= nil then
+        return true, false, true, math.huge
+    end
+    local assignedCaps, freeCouplers = self:_dynStoreComputeOccupancy(entry, storage)
+    -- [SPS 1.0.0.9.29] No automatic growth: an active type is capped at
+    -- the tanks it already holds. The NEXT free tank allowing ft (ascending
+    -- id) is reported separately so the fill-session logic can claim
+    -- exactly one tank per fill activation (press R again = one more tank).
+    local nextCoupler = nil
+    for _, sc in ipairs(freeCouplers) do
+        if sc.dynAllowAny == true or (sc.dynAllowed ~= nil and sc.dynAllowed[ft] == true) then
+            nextCoupler = sc
+            break
+        end
+    end
+    if assignedCaps[ft] ~= nil then
+        return false, true, true, assignedCaps[ft], nextCoupler
+    end
+    if nextCoupler ~= nil then
+        -- New type: admitted, first session limited to that one tank.
+        return false, false, true, 0, nextCoupler
+    end
+    return false, false, false, 0
+end
+
+-- [SPS 1.0.0.9.26] Per-instance Storage wrappers for dynamic stores.
+-- Installed on the store's own Storage object only (no class override, no
+-- other storages affected). All external entry paths confirmed from vanilla
+-- source: PlaceableSilo fills via storage:getFreeCapacity + setFillLevel;
+-- StorageSystem aggregates via getFreeCapacity; dev fills land in
+-- setFillLevel. Withdrawals (level decreases) always pass. SPS's own
+-- compartment deposit locks the compartment BEFORE setFillLevel, so the
+-- type is active by the time the wrapper sees it — pipe flow unaffected.
+function SlurryPipeManager:_installDynStoreGate(entry)
+    local storage = entry ~= nil and entry.sourceEntry ~= nil and entry.sourceEntry.storage or nil
+    if storage == nil then return end
+    if entry.dynCouplers == nil or #entry.dynCouplers == 0 then return end
+    if storage._spsDynGateInstalled == true then return end
+    storage._spsDynGateInstalled = true
+    -- [SPS 1.0.0.9.28] Global capacity override: the placeable's own XML
+    -- declares one total for the whole Storage (e.g. 40000) and vanilla
+    -- enforces it in setFillLevel's clamp and getFreeCapacity's
+    -- shared-pool branch — capping the ENTIRE store at one tank's worth.
+    -- For a dynamic store the authoritative totals are the fillPoints
+    -- coupler capacities: override storage.capacity with their sum (plus
+    -- any fixed #capacity declarations) so the store XML amount is
+    -- ignored and per-tank limits from the gate are what actually bind.
+    -- Runs identically on server and clients at registration, so the
+    -- network aggregate stays consistent.
+    do
+        local total = 0
+        for _, sc in ipairs(entry.dynCouplers) do
+            total = total + (sc.spsCapacity or 0)
+        end
+        for _, cap in pairs(entry.spsFixedCaps or {}) do
+            total = total + cap
+        end
+        if total > 0 and storage.capacity ~= total then
+            SlurryPipeManager.log("dyn store capacity override: %s %s -> %d (sum of fillPoints coupler capacities)",
+                tostring(entry.object and entry.object.configFileName),
+                tostring(storage.capacity), total)
+            storage.capacity = total
+        end
+    end
+    local manager = self
+    local origSupported = storage.getIsFillTypeSupported
+    local origFreeCap   = storage.getFreeCapacity
+    local origSetLevel  = storage.setFillLevel
+    -- [SPS 1.0.0.10.3] Park everything the uninstall needs on the storage itself.
+    -- The three wrappers below are closures over `entry`, so leaving them in place
+    -- after the placeable is unregistered pins the dead entry (and through it the
+    -- deleted placeable) for as long as the Storage lives, and any late vanilla
+    -- call would be gated against a store that no longer exists. storage.capacity
+    -- is overridden below, so its original is saved here too.
+    storage._spsDynGateRestore = {
+        getIsFillTypeSupported = origSupported,
+        getFreeCapacity        = origFreeCap,
+        setFillLevel           = origSetLevel,
+        capacity               = storage.capacity,
+    }
+    -- [SPS 1.0.0.9.29] Fill sessions: one tank per fill activation.
+    -- The trigger gives Storage no activation signal, so a session is
+    -- detected by a gap in the fill stream: no accepted increase for
+    -- SPS_DYN_FILL_SESSION_GAP_MS = release + press R again = new session.
+    -- While a stream is hot, an active type is clamped at the tanks it
+    -- already holds; once cold, getFreeCapacity advertises exactly the
+    -- NEXT allowing free tank (so re-activation is possible) and the first
+    -- accepted increase claims (locks) that one coupler for the type.
+    local SPS_DYN_FILL_SESSION_GAP_MS = 1500
+    storage._spsFillSession = storage._spsFillSession or {}
+    local function sessionIsCold(stg, ft)
+        local last = stg._spsFillSession[ft]
+        return last == nil or ((g_time or 0) - last) > SPS_DYN_FILL_SESSION_GAP_MS
+    end
+    local function claimNextTank(stg, ft, nextCoupler)
+        if g_server == nil or nextCoupler == nil then return false end
+        nextCoupler.dynFillType = ft
+        nextCoupler.dynLevel    = nextCoupler.dynLevel or 0
+        SlurryPipeManager.log("compartment CLAIM (new fill): %s coupler=%s -> %s (%d l tank)",
+            tostring(entry.object and entry.object.configFileName), tostring(nextCoupler.id),
+            tostring(g_fillTypeManager:getFillTypeNameByIndex(ft) or ft),
+            nextCoupler.spsCapacity or 0)
+        manager:_recomputeSprayerDynCapacities(entry)
+        manager:_syncSprayerCompartment(entry, nextCoupler, true)
+        return true
+    end
+    storage.getIsFillTypeSupported = function(stg, ft)
+        if origSupported(stg, ft) ~= true then return false end
+        local isFixed, isActive, allowedNew = manager:_dynStoreTypeGate(entry, stg, ft)
+        if isFixed or isActive then return true end
+        return allowedNew
+    end
+    storage.getFreeCapacity = function(stg, ft)
+        local isFixed, isActive, allowedNew, maxLevel, nextCoupler = manager:_dynStoreTypeGate(entry, stg, ft)
+        if isFixed then return origFreeCap(stg, ft) end
+        if not isActive and not allowedNew then return 0 end
+        -- [SPS 1.0.0.9.31] The gate's room is authoritative here. Do NOT
+        -- min() against vanilla's per-type free capacity: the capacity
+        -- recompute writes storage.capacities[ft] = sum of tanks CURRENTLY
+        -- locked to ft (correct for the info panel), so once those tanks
+        -- are full vanilla reports 0 free — which crushed the cold
+        -- next-tank advertisement to zero and made a same-type refill into
+        -- a further free tank impossible ("tank 1 is full of DAP"). The
+        -- global total is already overridden to the sum of all coupler
+        -- capacities, so the gate's whole-tank accounting is the only
+        -- binding constraint.
+        local lvl = stg:getFillLevel(ft) or 0
+        local room = maxLevel - lvl
+        if room > 0.001 then
+            return room
+        end
+        -- Assigned tanks full: advertise the next tank only when the
+        -- stream is cold, so pressing R again can start a new session.
+        if nextCoupler ~= nil and sessionIsCold(stg, ft) then
+            return math.max(nextCoupler.spsCapacity or 0, 0)
+        end
+        return 0
+    end
+    storage.setFillLevel = function(stg, fillLevel, ft, fillInfo)
+        -- Clients receive server-authoritative levels through
+        -- readUpdateStream -> setFillLevel; never gate those.
+        if g_server == nil then
+            return origSetLevel(stg, fillLevel, ft, fillInfo)
+        end
+        local cur = stg.fillLevels ~= nil and (stg.fillLevels[ft] or 0) or 0
+        if fillLevel > cur then
+            local isFixed, isActive, allowedNew, maxLevel, nextCoupler = manager:_dynStoreTypeGate(entry, stg, ft)
+            if not isFixed then
+                if not isActive and not allowedNew then
+                    if stg._spsGateLogged ~= ft then
+                        stg._spsGateLogged = ft
+                        SlurryPipeManager.log("dyn store gate: %s refused %s — no free tank",
+                            tostring(entry.object and entry.object.configFileName),
+                            tostring(g_fillTypeManager:getFillTypeNameByIndex(ft) or ft))
+                    end
+                    return
+                end
+                if fillLevel > maxLevel + 0.001 then
+                    -- Beyond assigned tanks: allowed only as a NEW session,
+                    -- claiming exactly one more tank.
+                    if nextCoupler ~= nil and sessionIsCold(stg, ft) then
+                        if claimNextTank(stg, ft, nextCoupler) then
+                            maxLevel = maxLevel + (nextCoupler.spsCapacity or 0)
+                        end
+                    end
+                    if fillLevel > maxLevel then fillLevel = maxLevel end
+                end
+                if fillLevel > cur then
+                    stg._spsFillSession[ft] = g_time or 0
+                end
+            end
+        end
+        return origSetLevel(stg, fillLevel, ft, fillInfo)
+    end
+    SlurryPipeManager.log("dyn store gate: installed on %s (%d tank(s))",
+        tostring(entry.object and entry.object.configFileName), #entry.dynCouplers)
+end
+
+-- [SPS 1.0.0.10.3] Balance for _installDynStoreGate. Restores the three wrapped
+-- Storage functions and the original global capacity, then clears the install
+-- latch so a later re-registration of the same Storage installs cleanly. Safe to
+-- call on an entry that never had a gate (no latch = no-op), and safe to call
+-- twice. Called from unregisterSprayerPlaceable.
+function SlurryPipeManager:_uninstallDynStoreGate(entry)
+    local storage = entry ~= nil and entry.sourceEntry ~= nil and entry.sourceEntry.storage or nil
+    if storage == nil then return end
+    local saved = storage._spsDynGateRestore
+    if saved == nil then return end
+    storage.getIsFillTypeSupported = saved.getIsFillTypeSupported
+    storage.getFreeCapacity        = saved.getFreeCapacity
+    storage.setFillLevel           = saved.setFillLevel
+    if saved.capacity ~= nil then
+        storage.capacity = saved.capacity
+    end
+    storage._spsDynGateRestore  = nil
+    storage._spsDynGateInstalled = nil
+    storage._spsFillSession      = nil
+    storage._spsGateLogged       = nil
+    SlurryPipeManager.log("dyn store gate: uninstalled from %s",
+        tostring(entry.object and entry.object.configFileName))
+end
+
 -- Client-side apply (event + join dump). Levels of the vanilla Storage arrive
 -- via its own update stream; this mirrors only the compartment ledger so the
 -- capacity recompute matches the server.
@@ -1291,6 +1698,13 @@ function SlurryPipeManager:registerSprayerPlaceable(placeable)
             end
         end
     end
+    -- [SPS 1.0.0.9.25] Adopt liquid that arrived outside SPS (dev fill /
+    -- store's own buy trigger) so it is pumpable through dynamic couplers.
+    self:_adoptOrphanSprayerLiquid(entry)
+    -- [SPS 1.0.0.9.26] One-type-per-tank gate on this store's Storage:
+    -- external fills (buy trigger, dev) are refused once every tank is
+    -- occupied, and active types are capped to whole-tank grants.
+    self:_installDynStoreGate(entry)
 
     if xmlFileOwned then xmlFile:delete() end
     table.insert(self.registeredSprayerPlaceables, entry)
@@ -1562,6 +1976,9 @@ function SlurryPipeManager:unregisterSprayerPlaceable(placeable)
                     setVisibility(nodeId, false)
                 end
             end
+            -- [SPS 1.0.0.10.3] Balance the per-instance Storage gate installed at
+            -- registration, so the wrappers do not outlive the entry they close over.
+            self:_uninstallDynStoreGate(entry)
             table.remove(self.registeredSprayerPlaceables, i)
             return
         end
@@ -2252,6 +2669,12 @@ function SlurryPipeManager:tickSprayerFlow(session, dt)
     if dynStoreCoupler ~= nil then
         if state.direction == SPS_SPRAYER_DIRECTION_FILL then
             -- store -> vehicle: an unlocked compartment holds nothing.
+            -- [SPS 1.0.0.9.25] Before declaring it empty, sweep for liquid
+            -- that entered the aggregate Storage outside SPS (dev fill /
+            -- store buy trigger) and adopt it into free compartments.
+            if dynStoreCoupler.dynFillType == nil or (dynStoreCoupler.dynLevel or 0) <= 0 then
+                self:_adoptOrphanSprayerLiquid(dynEntry)
+            end
             if dynStoreCoupler.dynFillType == nil or (dynStoreCoupler.dynLevel or 0) <= 0 then
                 strace("STOP:compartment-empty", "coupler=" .. tostring(dynStoreCoupler.id))
                 return

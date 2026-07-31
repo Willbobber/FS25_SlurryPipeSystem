@@ -3,7 +3,7 @@
     <annotation>Copyright (C) GIANTS Software GmbH, All Rights Reserved.</annotation>
 
     <storeData>
-        <name>PTO Slurry pmp</name>
+        <name>PTO Slurry pump</name>
         <specs>
             <neededPower>120</neededPower>
         </specs>

@@ -27,13 +27,19 @@ So your job as a mapper is just to mark where the water is and how high its surf
 
 ## 2. The node tree — `SPS_waterNodes`
 
-Add this transform group as a child of the map's **terrain root node**, in the map i3d. SPS
-finds it with `getChild(terrainRootNode, "SPS_waterNodes")`, so the name must be exactly
-`SPS_waterNodes` and it must sit under the terrain root.
+Add this transform group **anywhere in your map's i3d scenegraph** — under a `water`
+group, a `misc` group, wherever suits your map's organisation. SPS deep-searches the
+map's node tree at load, so the only requirement is the exact name `SPS_waterNodes`.
+
+Alternatively, if you prefer to keep the nodes out of your map i3d entirely, export
+them as a standalone file named exactly `SPS_waterNodes.i3d` and place it in the
+**root of your map mod folder**. SPS looks for this file automatically — no manifest,
+no SPS edit, nothing to register.
 
 ```
-terrain (terrainRootNode)
-└── SPS_waterNodes                      <- exact name, child of terrain root
+yourMap (map i3d)
+└── water (or any group, any depth)
+    └── SPS_waterNodes                  <- exact name, anywhere in the map tree
     ├── lakeNorth                       <- one node per water body (the "plane")
     │   ├── lakeNorth_01                <- a "quad group" (name ends with _<digits>)
     │   │   ├── node1                   <- corner 1
@@ -123,8 +129,8 @@ and will not cause multiplayer issues.
 
 ## 6. Checklist
 
-1. In the map i3d, add a transform group named exactly `SPS_waterNodes` under the terrain
-   root.
+1. Add a transform group named exactly `SPS_waterNodes` anywhere in your map's i3d —
+   OR ship a standalone `SPS_waterNodes.i3d` in the root of your map mod folder.
 2. Add one child node per water body, positioned at the **water surface height** (its Y).
 3. Under each, add one or more quad groups named `…_01`, `…_02`, …
 4. Give each quad exactly four corner nodes `node1`–`node4` at the patch corners (XZ).

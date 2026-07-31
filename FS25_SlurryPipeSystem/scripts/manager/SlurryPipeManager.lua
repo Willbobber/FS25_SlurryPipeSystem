@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.9
+-- Version: 1.0.0.10.4
 
 -- SlurryPipeManager.lua
 -- FS25_SlurryPipeSystem
@@ -84,7 +84,7 @@ end
 -- print(), so each call keeps its own "[SPS ...]" prefix. Flip to true to trace.
 -- ---------------------------------------------------------------------------
 SlurryPipeManager.MP_DEBUG = false
-print("[SPS BUILD] SlurryPipeManager 1.0.0.9.30 loaded")
+print("[SPS BUILD] SlurryPipeManager 1.0.0.10.4 loaded")
 -- findOverlappingCoupler: from couplingId
 -- _applyPendingCouplerAnimation: couplingId
 
@@ -107,11 +107,44 @@ SlurryPipeManager.DEFAULT_FALL_TIME_EMPTY   = 30    -- sec max->0 while venting,
 SlurryPipeManager.DEFAULT_PURGE_TIME        = 10    -- sec to vent from max to 0 on direction flip
 SlurryPipeManager.DEFAULT_GRAVITY_FLOW_SCALAR = 0.5 -- backflow/gravity rate as a fraction of base flow when pressure is spent
 SlurryPipeManager.DEFAULT_LENGTH_FALLOFF_FLOOR = 0.5 -- min flow fraction at full strap-pipe stretch (1.0 = no falloff)
-SlurryPipeManager.BLOCKAGE_CRUST_MIN        = 0.3   -- tanker-carried crust below which only the base (foreign-object) chance applies
-SlurryPipeManager.BLOCKAGE_BASE_CHANCE      = 0.0015-- per-outlet random clog chance even on clean slurry (wood/debris/foreign object)
-SlurryPipeManager.BLOCKAGE_DM_BONUS         = 0.5   -- extra blockage multiplier at the jam point (thick + crusted is worst); 0 = DM has no effect
-SlurryPipeManager.SETTLE_YEARS_TO_FULL      = 1.0   -- game years of no mixing for crust to grow 0 -> 100% (grows every in-game day)
-SlurryPipeManager.AGITATION_RATE_MULT       = 2.0   -- [SPS AGIT] mixing speed multiplier (1.0 = base, 2.0 = double). Testing tuner.
+-- [SPS BLOCKAGE v1.0.0.10.4] Banded blockage model. Blockages are caused by LUMPS,
+-- i.e. the crust the tanker is carrying; dry matter's job is slowing the pump, not
+-- clogging the bar, so it is only a mild amplifier here. A macerator is a lump
+-- smasher with a finite capacity: below BLOCKAGE_OUTLET_CRUST_MIN it takes the
+-- punishment and the outlets stay clear (only the base foreign-object chance
+-- applies); above it, lumps get past and the outlets start to clog too. A bar with
+-- NO macerator node has no such protection and its outlets are exposed from
+-- BLOCKAGE_OUTLET_CRUST_MIN_RAW upward -- which is the whole reason to fit one.
+--
+-- Every value below is a DEFAULT. Each may be overridden per vehicle on the
+-- <blockageNodes> container in that vehicle's fillPoints.xml, so a fine-orifice
+-- trailing shoe can be authored more fragile than a splash plate.
+SlurryPipeManager.BLOCKAGE_MACERATOR_CRUST_MIN = 0.25 -- carried crust below which the macerator copes and nothing lump-driven happens
+SlurryPipeManager.BLOCKAGE_OUTLET_CRUST_MIN    = 0.60 -- the macerator's capacity ceiling: past this, lumps reach the outlets
+SlurryPipeManager.BLOCKAGE_OUTLET_CRUST_MIN_RAW = 0.25 -- outlet threshold when NO macerator is fitted (unprotected bar)
+-- Retained under its original name because SPSSpreaderHUD reads it for the risk
+-- band; it now means "the crust at which lumps first become a factor at all".
+SlurryPipeManager.BLOCKAGE_CRUST_MIN        = 0.25  -- tanker-carried crust below which only the base (foreign-object) chance applies
+SlurryPipeManager.BLOCKAGE_BASE_CHANCE      = 0.001 -- per-BAR random clog chance even on clean slurry (wood/debris/foreign object)
+SlurryPipeManager.BLOCKAGE_DM_BONUS         = 0.25  -- extra blockage multiplier at the jam point (thick + crusted is worst); 0 = DM has no effect
+-- [SPS CRUST v1.0.0.10.2] Crust timing. Both values are ABSOLUTE in-game hours and
+-- are deliberately independent of the player's daysPerPeriod setting: crust forms on
+-- a physical timescale, not a seasonal one, so these numbers mean the same thing on
+-- every save. Both are consumed as a linear rate against the shared monotonic game
+-- clock (Environment:getMonotonicHour), so they are timescale-correct and survive
+-- sleeping, fast-forward and save/load without drift.
+--   grow:  settle += hours / CRUST_GROW_HOURS  * storeCrustGrow
+--   mix:   settle -= hours / CRUST_MIX_HOURS   * agitatorCrustMix
+SlurryPipeManager.CRUST_GROW_HOURS          = 720.0 -- game hours of no mixing for crust to grow 0 -> 100% (30 in-game days)
+SlurryPipeManager.CRUST_MIX_HOURS           = 2.0   -- game hours of continuous stirring for 100% -> 0% at crustMix="1"
+-- Per-vehicle / per-placeable XML multipliers are clamped into this band on read so a
+-- typo can never make a store uncrustable or a mixer instantaneous. Higher = faster.
+SlurryPipeManager.CRUST_MULT_MIN            = 0.1
+SlurryPipeManager.CRUST_MULT_MAX            = 10.0
+-- Legacy names retained ONLY so any third-party script still reading them does not
+-- index a nil. Nothing inside SPS consumes these any more.
+SlurryPipeManager.SETTLE_YEARS_TO_FULL      = 1.0   -- DEPRECATED (superseded by CRUST_GROW_HOURS)
+SlurryPipeManager.AGITATION_RATE_MULT       = 1.0   -- DEPRECATED (folded into CRUST_MIX_HOURS)
 -- Two-pool slurry model. A store tracks litres of dry matter (solids); liquid is the
 -- live (totalFill - solids). The true dry-matter fraction DM = solids/total is mapped
 -- onto the 0..1 player-facing thickness gauge: DM_FRESH reads 0%, DM_JAMMED reads 100%.
@@ -121,8 +154,14 @@ SlurryPipeManager.DM_FRESH                  = 0.06  -- dry-matter fraction shown
 SlurryPipeManager.DM_JAMMED                 = 0.15  -- dry-matter fraction shown as 100% (un-pumpable even fully mixed)
 SlurryPipeManager.DM_REMOVAL_LIQUID_BIAS    = 1.6   -- liquid leaves at this multiple of its share (>1 = liquid pulled first)
 SlurryPipeManager.WARNING_RANGE             = 15    -- metres: blinking flow warnings only show when in-cab or this close on foot
-SlurryPipeManager.BLOCKAGE_OUTLET_CHANCE    = 0.0
-SlurryPipeManager.BLOCKAGE_MACERATOR_CHANCE = 0.005
+-- [SPS BLOCKAGE v1.0.0.10.4] Ramp slopes, added on top of BLOCKAGE_BASE_CHANCE and
+-- scaled by how far carried crust has climbed past that row's threshold. Sized
+-- against a ~5 minute tankful, i.e. 50 rolls at BLOCKAGE_ROLL_INTERVAL: fully mixed
+-- slurry gives roughly a 5% chance of any stoppage per load, a month-unstirred store
+-- around 70% on both rows. OUTLET_CHANCE was previously 0.0, which meant crust had
+-- no effect whatsoever on the outlets and only the macerator ever responded to it.
+SlurryPipeManager.BLOCKAGE_OUTLET_CHANCE    = 0.030
+SlurryPipeManager.BLOCKAGE_MACERATOR_CHANCE = 0.027
 SlurryPipeManager.BLOCKAGE_ROLL_INTERVAL    = 6000
 SlurryPipeManager.BLOCKAGE_CLEAR_RADIUS     = 0.75
 
@@ -267,10 +306,12 @@ function SlurryPipeManager:delete()
     -- [SPS 1.0.0.9.15] Crust foliage clones are world-parented and no longer
     -- die with the map's placeables — delete them explicitly on mission end.
     if SPSCrustVegetation ~= nil and SPSCrustVegetation.deleteForPlaceable ~= nil then
+        -- [SPS 1.0.0.9.31] Plant instances moved from pEntry.crustInstances onto the
+        -- STORE entry, so the old pEntry-level guard would now never fire and the
+        -- clones would survive mission end. deleteForPlaceable is idempotent and does
+        -- its own has-anything check across every store, so call it unconditionally.
         for _, entry in ipairs(self.registeredPlaceables) do
-            if entry.crustInstances ~= nil then
-                SPSCrustVegetation.deleteForPlaceable(entry)
-            end
+            SPSCrustVegetation.deleteForPlaceable(entry)
         end
     end
     self.registeredPlaceables  = {}
@@ -547,6 +588,139 @@ function SlurryPipeManager:isFeatureEnabled(key)
     if key == nil then return true end
     return self.featureToggles[key] ~= false
 end
+
+-- ---------------------------------------------------------------------------
+-- [SPS CRUST v1.0.0.10.2] Shared game clock
+--
+-- Every time-based crust process (store crusting, mobile agitator, fixed PTO
+-- agitator) reads game hours from ONE source: Giants' own monotonic clock,
+-- Environment:getMonotonicHour() = currentMonotonicDay * 24 + dayTime / 3600000.
+--
+-- Why not dt: converting a real-millisecond dt into game time needs the live
+-- timescale, and the previous code used Environment.timeAdjustment for that.
+-- timeAdjustment is NOT a timescale -- Environment.lua sets it as
+-- 1 / daysPerPeriod, a season-length normaliser -- so every crust process was
+-- running at 1/daysPerPeriod of REAL time and ignoring the player's timescale
+-- entirely. Reading the monotonic hour instead is timescale-correct by
+-- construction (Environment advances dayTime by dt * getEffectiveTimeScale())
+-- and is jump-safe: sleeping, fast-forward and save/load simply produce a
+-- larger delta rather than silently losing time.
+-- ---------------------------------------------------------------------------
+
+-- Absolute game hour, or nil while the environment is not yet available.
+function SlurryPipeManager:getGameHour()
+    local env = g_currentMission ~= nil and g_currentMission.environment or nil
+    if env == nil or env.getMonotonicHour == nil then return nil end
+    local ok, h = pcall(env.getMonotonicHour, env)
+    if not ok or type(h) ~= "number" then return nil end
+    return h
+end
+
+-- Game hours elapsed since this owner last consumed the clock.
+--
+-- owner is any table with a life at least as long as the process (a vehicle
+-- entry, a fixedAgitator table, the manager itself); field is the key the
+-- last-read stamp is parked under, so one owner can drive several independent
+-- processes. Returns 0 on the first call (nothing to charge yet) and 0 on any
+-- backwards step, so a clock rewind can never produce negative mixing.
+--
+-- IMPORTANT: an intermittent process (an agitator that stops and restarts) MUST
+-- call releaseGameHours when it goes inactive. Otherwise the whole idle period
+-- lands on its first active tick as one enormous delta.
+function SlurryPipeManager:consumeGameHours(owner, field)
+    if owner == nil then return 0 end
+    local now = self:getGameHour()
+    if now == nil then return 0 end
+    local last = owner[field]
+    owner[field] = now
+    if last == nil then return 0 end
+    local d = now - last
+    if d <= 0 then return 0 end
+    return d
+end
+
+-- Drop an owner's stamp so the next consumeGameHours starts fresh at 0.
+function SlurryPipeManager:releaseGameHours(owner, field)
+    if owner ~= nil then owner[field] = nil end
+end
+
+-- Clamp an XML-supplied crust multiplier into the sane band. nil -> 1.0.
+function SlurryPipeManager.clampCrustMult(v)
+    if type(v) ~= "number" then return 1.0 end
+    return math.max(SlurryPipeManager.CRUST_MULT_MIN,
+           math.min(SlurryPipeManager.CRUST_MULT_MAX, v))
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.0.10.3] <effects> parameter reader
+--
+-- Until now the ONLY things read from an <effects> block were the two node
+-- names; every timing and shaping value was hardcoded identically for every
+-- vehicle and placeable in the mod, so the attributes already authored in the
+-- shipped configs (startDelay, maxBending, extraDistance, ...) did nothing.
+-- They are now read here.
+--
+-- Shape is unchanged and index-ordered, exactly as the configs already author it:
+--   <effects>
+--       <effectNode effectNode="effect"          .../>   <!-- 0 = stream -->
+--       <effectNode effectNode="pipeEffectSmoke" .../>   <!-- 1 = smoke  -->
+--   </effects>
+--
+-- TIMES ARE IN SECONDS, matching every other time attribute in SPS (<pressure>
+-- minBuildTime, <spreaderAnimation> stopDelay) and matching the values already
+-- authored in the shipped configs -- startDelay="0.1" on a smoke node is the
+-- 100 ms the code used to hardcode. Converted to engine milliseconds here.
+--
+-- Every default reproduces the previous hardcoded value exactly, so a config
+-- that declares nothing behaves byte-for-byte as it did in V1.0.0.10.
+--
+-- effectClass, materialType and positionUpdateNodes remain unread: the effect
+-- objects are built directly rather than through the effect manager's schema,
+-- so the class and the smoke node are structural, not selectable.
+-- ---------------------------------------------------------------------------
+function SlurryPipeManager.readEffectParams(xmlFile, effectsKey)
+    local function secs(key, defaultSeconds)
+        local v = xmlFile:getFloat(key, nil)
+        if type(v) ~= "number" or v < 0 then v = defaultSeconds end
+        return v * 1000
+    end
+    local sKey = effectsKey .. ".effectNode(0)"   -- stream
+    local mKey = effectsKey .. ".effectNode(1)"   -- smoke
+
+    local ep = {}
+    ep.stream = {
+        maxBending    = xmlFile:getFloat(sKey .. "#maxBending",    0.8),
+        extraDistance = xmlFile:getFloat(sKey .. "#extraDistance", 0.1),
+        fadeInTime    = secs(sKey .. "#fadeInTime",    1.0),
+        fadeOutTime   = secs(sKey .. "#fadeOutTime",   1.0),
+        planeFadeTime = secs(sKey .. "#planeFadeTime", 1.0),
+        startDelay    = secs(sKey .. "#startDelay",    0.0),
+        stopDelay     = secs(sKey .. "#stopDelay",     0.0),
+    }
+    ep.smoke = {
+        fadeInTime    = secs(mKey .. "#fadeInTime",    1.0),
+        fadeOutTime   = secs(mKey .. "#fadeOutTime",   1.0),
+        planeFadeTime = secs(mKey .. "#planeFadeTime", 1.0),
+        startDelay    = secs(mKey .. "#startDelay",    0.1),
+        stopDelay     = secs(mKey .. "#stopDelay",     0.1),
+        alignToWorldY = xmlFile:getBool(mKey .. "#alignToWorldY", true),
+    }
+    return ep
+end
+
+-- Fallback set used when a build site has no <effects> block to read from
+-- (the legacy single effect resolved by node name). Identical to the values
+-- hardcoded before 1.0.0.10.3.
+function SlurryPipeManager.defaultEffectParams()
+    return {
+        stream = { maxBending = 0.8, extraDistance = 0.1, fadeInTime = 1000,
+                   fadeOutTime = 1000, planeFadeTime = 1000,
+                   startDelay = 0, stopDelay = 0 },
+        smoke  = { fadeInTime = 1000, fadeOutTime = 1000, planeFadeTime = 1000,
+                   startDelay = 100, stopDelay = 100, alignToWorldY = true },
+    }
+end
+
 function SlurryPipeManager:findVehicleConfigForVehicle(vehicle)
     SlurryPipeManager.log("findVehicleConfigForVehicle: %s", tostring(vehicle and vehicle.configFileName))
     if vehicle.configFileName == nil then return nil end
@@ -1058,6 +1232,10 @@ function SlurryPipeManager:registerVehicle(vehicle)
             if eNode ~= nil and sNode ~= nil then
                 armEntry.effectNode = eNode
                 armEntry.smokeNode  = sNode
+                -- [SPS 1.0.0.10.3] Per-arm effect timing/shaping, read from this
+                -- arm's own <effects> block. Held on the arm entry so two arms on
+                -- one tanker can differ, and consumed by buildSpsPipeEffectSet.
+                armEntry.effectParams = SlurryPipeManager.readEffectParams(xmlFile, armEffectKey)
             end
         end
 
@@ -1157,8 +1335,12 @@ function SlurryPipeManager:registerVehicle(vehicle)
     -- the legacy single effect (entry.effectNode/smokeNode) and once per arm that
     -- declares its own embedded <effects> nodes, so a tanker can show more than one
     -- stream (one per arm variant).
-    local function buildSpsPipeEffectSet(effectNode, smokeNode)
+    -- [SPS 1.0.0.10.3] effectParams supplies every timing/shaping value that used
+    -- to be hardcoded here. nil is accepted and falls back to the old constants,
+    -- so an arm with no <effects> attributes is unchanged.
+    local function buildSpsPipeEffectSet(effectNode, smokeNode, effectParams)
         if not vehicle.isClient then return nil end
+        local ep = effectParams or SlurryPipeManager.defaultEffectParams()
         if effectNode ~= nil and smokeNode ~= nil then
             -- Register classes if needed
             if g_effectManager:getEffectClass("PipeEffect") == nil and PipeEffect ~= nil then
@@ -1175,8 +1357,8 @@ function SlurryPipeManager:registerVehicle(vehicle)
             pe.baseDirectory = vehicle.baseDirectory
             pe.rootNodes     = effectNode
             pe.node          = getChildAt(effectNode, 0)  -- pipeEffect Shape, not the TG
-            pe.maxBending    = 0.8
-            pe.extraDistance = 0.1
+            pe.maxBending    = ep.stream.maxBending
+            pe.extraDistance = ep.stream.extraDistance
             pe.updateDistance = true
             pe.distance      = 0
             pe.controlPointY = 0
@@ -1190,13 +1372,13 @@ function SlurryPipeManager:registerVehicle(vehicle)
             pe.dynamicFillType = false
             pe.hasValidMaterial = false
             pe.lastFillTypeIndex = nil
-            pe.fadeInTime    = 1000
-            pe.fadeOutTime   = 1000
-            pe.startDelay    = 0
-            pe.stopDelay     = 0
-            pe.currentDelay  = 0
+            pe.fadeInTime    = ep.stream.fadeInTime
+            pe.fadeOutTime   = ep.stream.fadeOutTime
+            pe.startDelay    = ep.stream.startDelay
+            pe.stopDelay     = ep.stream.stopDelay
+            pe.currentDelay  = ep.stream.startDelay
             pe.state         = ShaderPlaneEffect.STATE_OFF
-            pe.planeFadeTime = 1000
+            pe.planeFadeTime = ep.stream.planeFadeTime
             pe.fadeCur = { -1, 1 }
             pe.fadeDir = { 1, 1 }
             pe.fadeX   = { -1, 1 }
@@ -1228,18 +1410,18 @@ function SlurryPipeManager:registerVehicle(vehicle)
             se.dynamicFillType = false
             se.hasValidMaterial = false
             se.lastFillTypeIndex = nil
-            se.fadeInTime    = 1000
-            se.fadeOutTime   = 1000
-            se.startDelay    = 100
-            se.stopDelay     = 100
-            se.currentDelay  = 100
+            se.fadeInTime    = ep.smoke.fadeInTime
+            se.fadeOutTime   = ep.smoke.fadeOutTime
+            se.startDelay    = ep.smoke.startDelay
+            se.stopDelay     = ep.smoke.stopDelay
+            se.currentDelay  = ep.smoke.startDelay
             se.state         = ShaderPlaneEffect.STATE_OFF
-            se.planeFadeTime = 1000
+            se.planeFadeTime = ep.smoke.planeFadeTime
             se.fadeCur = { -1, 1 }
             se.fadeDir = { 1, 1 }
             se.fadeX   = { -1, 1 }
             se.fadeY   = { -1, 1 }
-            se.alignToWorldY  = true
+            se.alignToWorldY  = ep.smoke.alignToWorldY
             se.alignXAxisToWorldY = false
             se.alwaysVisibile = false
             se.showOnFirstUse = false
@@ -1288,14 +1470,24 @@ function SlurryPipeManager:registerVehicle(vehicle)
     -- Legacy single effect (separate nodeTree.i3d, or embedded effect/pipeEffectSmoke
     -- resolved by name above). Unchanged behaviour.
     if entry.effectNode ~= nil and entry.smokeNode ~= nil and #entry.armEntries > 0 then
-        entry.pipeEffects = buildSpsPipeEffectSet(entry.effectNode, entry.smokeNode)
+        -- [SPS 1.0.0.10.3] The legacy single effect resolves its nodes by name
+        -- ("effect" / "pipeEffectSmoke") rather than from an <effects> block, so
+        -- there was nowhere to author its timing. An OPTIONAL top-level
+        -- <slurryPipeSystem><effects> block is now honoured for exactly that;
+        -- absent, the previous hardcoded values are used unchanged.
+        local legacyKey = kp .. "slurryPipeSystem.effects"
+        local legacyParams = xmlFile:hasProperty(legacyKey)
+            and SlurryPipeManager.readEffectParams(xmlFile, legacyKey)
+            or  SlurryPipeManager.defaultEffectParams()
+        entry.pipeEffects = buildSpsPipeEffectSet(entry.effectNode, entry.smokeNode, legacyParams)
     end
 
     -- Per-arm effects (embedded i3d): each arm that resolved its own effect/smoke
     -- nodes gets an independent stream, so multiple arms on one tanker can each emit.
     for _, armE in ipairs(entry.armEntries) do
         if armE.effectNode ~= nil and armE.smokeNode ~= nil then
-            armE.pipeEffects = buildSpsPipeEffectSet(armE.effectNode, armE.smokeNode)
+            armE.pipeEffects = buildSpsPipeEffectSet(armE.effectNode, armE.smokeNode,
+                armE.effectParams)
         end
     end
 
@@ -1403,6 +1595,31 @@ function SlurryPipeManager:registerVehicle(vehicle)
     -- read here and played on block/clear if present, skipped if absent. A node named
     -- *Macerator is the central distributor: blocking it stops the whole bar. The
     -- macerator and centre node share a spot, so they are never both flagged.
+
+    -- [SPS BLOCKAGE v1.0.0.10.4] Optional per-vehicle blockage tuning, authored as
+    -- attributes on the <blockageNodes> CONTAINER (not on individual nodes, since
+    -- these describe the bar as a whole). Every attribute is optional; anything
+    -- absent falls back to the global default, so existing configs load unchanged
+    -- and this whole block is inert unless a modder opts in. Values are clamped so a
+    -- typo cannot produce a bar that clogs every roll or never clogs at all.
+    local btKey = kp .. "slurryPipeSystem.blockageNodes"
+    if xmlFile:hasProperty(btKey) then
+        local function readTune(attr, default, lo, hi)
+            local v = xmlFile:getFloat(btKey .. "#" .. attr)
+            if v == nil then return default end
+            return math.max(lo, math.min(hi, v))
+        end
+        entry.blockageTuning = {
+            baseChance        = readTune("baseChance",        nil, 0.0, 1.0),
+            maceratorCrustMin = readTune("maceratorCrustMin", nil, 0.0, 1.0),
+            maceratorChance   = readTune("maceratorChance",   nil, 0.0, 1.0),
+            outletCrustMin    = readTune("outletCrustMin",    nil, 0.0, 1.0),
+            outletCrustMinRaw = readTune("outletCrustMinRaw", nil, 0.0, 1.0),
+            outletChance      = readTune("outletChance",      nil, 0.0, 1.0),
+            dmBonus           = readTune("dmBonus",           nil, 0.0, 10.0),
+        }
+    end
+
     local blockageIndex = 0
     while true do
         local bKey = string.format(kp .. "slurryPipeSystem.blockageNodes.blockageNode(%d)", blockageIndex)
@@ -1847,6 +2064,11 @@ function SlurryPipeManager:registerVehicle(vehicle)
     -- Works for any vehicle type — no specialization required
     entry.agitatorTipNode = nil
     entry.agitatorIsActive = false
+    -- [SPS CRUST v1.0.0.10.2] Per-vehicle mixing speed. 1.0 = baseline
+    -- (CRUST_MIX_HOURS to clear a full crust); 2.0 = twice as fast, i.e. half the
+    -- time. Clamped on read so a bad XML value cannot make mixing instantaneous.
+    entry.agitatorCrustMix = SlurryPipeManager.clampCrustMult(
+        xmlFile:getFloat(kp .. "slurryPipeSystem.agitator#crustMix", 1.0))
     local agitatorTipNodeName = xmlFile:getString(kp .. "slurryPipeSystem.agitator#tipNode", nil)
     if agitatorTipNodeName ~= nil then
         local compRoot = vehicle.components ~= nil and vehicle.components[1] ~= nil
@@ -2301,9 +2523,71 @@ function SlurryPipeManager:registerPlaceable(placeable)
     elseif planeShape ~= nil then
     end
 
+    -- [SPS 1.0.0.9.31] Multi-store placeables (<slurryStores>). Parsed BEFORE the
+    -- legacy single <fillPlane> so store 1 can become the primary sourceEntry: every
+    -- existing lookup, save path, coupler binding and HUD read then works unchanged
+    -- against it, and the extra stores ride alongside in pEntry.storeSources.
+    -- Returns nil when the block is absent, leaving the legacy path below untouched.
+    local storeSources = nil
+    if SlurryPipeManager.parseSlurryStores ~= nil then
+        storeSources = self:parseSlurryStores(placeable, xmlFile, kp, findLinkedNode)
+    end
+
+    -- [SPS 1.0.0.10.3] <fillPlane> and <slurryStores> are alternatives, not
+    -- companions. Declaring both was previously unguarded: the legacy crust block
+    -- further down would re-parent the placeable-level crust mesh onto the singular
+    -- fill plane while initStoreCrust re-parented store 1's crust mesh onto the
+    -- store plane, leaving one mesh bound to a node the other owner also moves.
+    -- <slurryStores> wins (it is the more specific declaration) and the singular
+    -- block is ignored from here on, announced unconditionally so the config author
+    -- sees it in a player log with no debug channels enabled.
+    local legacyPlaneIgnored = false
+    if storeSources ~= nil and #storeSources > 0 and fillPlaneNode ~= nil and fillPlaneNode ~= 0 then
+        legacyPlaneIgnored = true
+        print("[SPS WARNING] " .. tostring(placeable.configFileName)
+            .. ": both <fillPlane> and <slurryStores> are declared. These are"
+            .. " alternatives — <slurryStores> is being used and the singular"
+            .. " <fillPlane> block (including its crust nodes) is ignored."
+            .. " Remove <fillPlane> from this config.")
+    end
+
     local sourceEntry = nil
-    if fillPlaneNode ~= nil and (placeable.spec_silo ~= nil or placeable.spec_husbandry ~= nil or placeable.spec_siloExtension ~= nil) then
+    if storeSources ~= nil and #storeSources > 0 then
+        sourceEntry = storeSources[1]
+        SlurryDebug.log("registerPlaceable: " .. tostring(#storeSources) .. " slurryStore(s) on "
+            .. tostring(placeable.configFileName) .. " — store 1 is primary")
+    elseif fillPlaneNode ~= nil and (placeable.spec_silo ~= nil or placeable.spec_husbandry ~= nil or placeable.spec_siloExtension ~= nil) then
         sourceEntry = SlurryNodeUtil.buildStoragePlaneSource(placeable, fillPlaneNode, minY, maxY, fillType, planeBounds)
+    elseif fillPlaneNode ~= nil and placeable.spec_productionPoint ~= nil then
+        -- [SPS 1.0.0.9.31] A production point has no engine-driven fill plane: nothing
+        -- in vanilla links its Storage levels to a plane node, so a plane authored via
+        -- the legacy singular <fillPlane> block would sit frozen at its authored height
+        -- and report a constant surface Y to arm detection. <slurryStores> exists for
+        -- exactly this case (it drives the plane itself) — say so rather than silently
+        -- building a broken source. Fall through to coupling-only so the couplers,
+        -- which do not need a plane, keep working.
+        print("[SPS WARNING] " .. tostring(placeable.configFileName)
+            .. ": <fillPlane> is not supported on a production point because nothing drives"
+            .. " the plane. Use <slurryStores><slurryStore .../></slurryStores> instead."
+            .. " Continuing with coupling-only access.")
+        local storage = nil
+        if placeable.spec_productionPoint.productionPoint ~= nil
+        and placeable.spec_productionPoint.productionPoint.storage ~= nil then
+            storage = placeable.spec_productionPoint.productionPoint.storage
+        end
+        if storage ~= nil then
+            sourceEntry = {
+                type      = SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE,
+                placeable = placeable,
+                storage   = storage,
+                fillPlaneNode = nil,
+                minY      = 0,
+                maxY      = 1,
+                fillType  = fillType,
+                planeBounds = nil,
+                debugLabel = tostring(placeable.configFileName):match("([^/]+)%.xml$") or "placeable",
+            }
+        end
     elseif fillPlaneNode == nil and (placeable.spec_husbandry ~= nil or placeable.spec_productionPoint ~= nil) then
         -- No fill plane authored — husbandry/production point placeable with coupling-only access.
         -- Build a minimal sourceEntry so coupling flow can read/write the storage
@@ -2431,6 +2715,19 @@ function SlurryPipeManager:registerPlaceable(placeable)
     if sourceEntry ~= nil then
         table.insert(self.sourceEntries, sourceEntry)
     end
+    -- [SPS 1.0.0.9.31] Stores 2..n are real sources too — an arm dipped in the second
+    -- lagoon resolves through self.sourceEntries like any other. Store 1 is already in
+    -- (it IS sourceEntry), so start at 2 and never double-insert it.
+    if storeSources ~= nil then
+        for i = 2, #storeSources do
+            table.insert(self.sourceEntries, storeSources[i])
+        end
+    end
+
+    -- [SPS 1.0.0.9.31] Couplers are built before pEntry exists, but store binding
+    -- needs the same lookup pEntry would provide. A stub carrying just the two fields
+    -- getStoreSources reads keeps that lookup on one code path instead of two.
+    local pEntryStub = { storeSources = storeSources, sourceEntry = sourceEntry }
 
     -- Pipe couplings: mountNodeName (nodeTree) or node+offset (i3dMapping legacy)
     local storeCouplings = {}
@@ -2526,7 +2823,21 @@ function SlurryPipeManager:registerPlaceable(placeable)
                 connectedTarget          = nil,
                 connectedPartnerCoupling = nil,
                 pipeId                   = nil,
-                sourceEntry              = sourceEntry,
+                -- [SPS 1.0.0.9.31] #storeId binds this coupler to one declared
+                -- <slurryStore>, so a draw through it moves that lagoon's level and
+                -- therefore that lagoon's plane. Omitted (or no stores declared) keeps
+                -- the legacy behaviour of pointing at the placeable's primary source;
+                -- the existing per-coupler #fillType restriction still applies on top,
+                -- which is what lets a second coupler serve DIGESTATE off the same
+                -- Storage with no store of its own.
+                sourceEntry              = (function()
+                    if storeSources == nil then return sourceEntry end
+                    local declaredStoreId = xmlFile:getInt(cKey .. "#storeId", nil)
+                    local declaredFtName  = xmlFile:getString(cKey .. "#fillType", nil)
+                    local declaredFt      = declaredFtName ~= nil
+                        and g_fillTypeManager:getFillTypeIndexByName(declaredFtName) or nil
+                    return self:getStoreSourceForCoupling(pEntryStub, declaredStoreId, declaredFt)
+                end)(),
                 -- [SPS] Per-coupler fillType restriction (e.g. BGA500's separate
                 -- LIQUIDMANURE / DIGESTATE couplers on one shared storage). nil = no
                 -- restriction declared in XML = unchanged legacy behaviour.
@@ -2599,6 +2910,11 @@ function SlurryPipeManager:registerPlaceable(placeable)
             local effectNodeName = xmlFile:getString(cKey .. ".effects.effectNode(0)#effectNode")
             local smokeNodeName  = xmlFile:getString(cKey .. ".effects.effectNode(1)#effectNode")
             sc.inletDistance     = xmlFile:getFloat(cKey .. ".effects#inletDistance", 1.5)
+            -- [SPS 1.0.0.10.3] Same per-config effect timing the vehicle side now
+            -- reads, so a placeable inlet stream can be tuned independently too.
+            local ep = xmlFile:hasProperty(cKey .. ".effects")
+                and SlurryPipeManager.readEffectParams(xmlFile, cKey .. ".effects")
+                or  SlurryPipeManager.defaultEffectParams()
             if g_client ~= nil and effectNodeName ~= nil and smokeNodeName ~= nil then
                 local effectNode = findLinkedNode(effectNodeName)
                 if effectNode ~= nil then
@@ -2616,8 +2932,8 @@ function SlurryPipeManager:registerPlaceable(placeable)
                         pe.baseDirectory      = placeable.baseDirectory or ""
                         pe.rootNodes          = effectNode
                         pe.node               = getChildAt(effectNode, 0)
-                        pe.maxBending         = 0.8
-                        pe.extraDistance      = 0.1
+                        pe.maxBending         = ep.stream.maxBending
+                        pe.extraDistance      = ep.stream.extraDistance
                         pe.updateDistance     = true
                         pe.distance           = 0
                         pe.controlPointY      = 0
@@ -2631,13 +2947,13 @@ function SlurryPipeManager:registerPlaceable(placeable)
                         pe.dynamicFillType    = false
                         pe.hasValidMaterial   = false
                         pe.lastFillTypeIndex  = nil
-                        pe.fadeInTime         = 1000
-                        pe.fadeOutTime        = 1000
-                        pe.startDelay         = 0
-                        pe.stopDelay          = 0
-                        pe.currentDelay       = 0
+                        pe.fadeInTime         = ep.stream.fadeInTime
+                        pe.fadeOutTime        = ep.stream.fadeOutTime
+                        pe.startDelay         = ep.stream.startDelay
+                        pe.stopDelay          = ep.stream.stopDelay
+                        pe.currentDelay       = ep.stream.startDelay
                         pe.state              = ShaderPlaneEffect.STATE_OFF
-                        pe.planeFadeTime      = 1000
+                        pe.planeFadeTime      = ep.stream.planeFadeTime
                         pe.fadeCur            = { -1, 1 }
                         pe.fadeDir            = { 1, 1 }
                         pe.fadeX              = { -1, 1 }
@@ -2667,18 +2983,18 @@ function SlurryPipeManager:registerPlaceable(placeable)
                         se.dynamicFillType    = false
                         se.hasValidMaterial   = false
                         se.lastFillTypeIndex  = nil
-                        se.fadeInTime         = 1000
-                        se.fadeOutTime        = 1000
-                        se.startDelay         = 100
-                        se.stopDelay          = 100
-                        se.currentDelay       = 100
+                        se.fadeInTime         = ep.smoke.fadeInTime
+                        se.fadeOutTime        = ep.smoke.fadeOutTime
+                        se.startDelay         = ep.smoke.startDelay
+                        se.stopDelay          = ep.smoke.stopDelay
+                        se.currentDelay       = ep.smoke.startDelay
                         se.state              = ShaderPlaneEffect.STATE_OFF
-                        se.planeFadeTime      = 1000
+                        se.planeFadeTime      = ep.smoke.planeFadeTime
                         se.fadeCur            = { -1, 1 }
                         se.fadeDir            = { 1, 1 }
                         se.fadeX              = { -1, 1 }
                         se.fadeY              = { -1, 1 }
-                        se.alignToWorldY      = true
+                        se.alignToWorldY      = ep.smoke.alignToWorldY
                         se.alignXAxisToWorldY = false
                         se.alwaysVisibile     = false
                         se.showOnFirstUse     = false
@@ -2712,11 +3028,19 @@ function SlurryPipeManager:registerPlaceable(placeable)
         placeable        = placeable,
         config           = config,
         sourceEntry      = sourceEntry,
+        -- [SPS 1.0.0.9.31] Full store list for a <slurryStores> placeable; nil for
+        -- every legacy one. getStoreSources(pEntry) hides the difference from callers.
+        storeSources     = storeSources,
         storeCouplings   = storeCouplings,
         linkedNodes      = linkedNodes,
         hiddenNodes      = hiddenNodes,
         hiddenCollisions = hiddenCollisions,
         agitatorEnabled  = xmlFile:getBool(kp .. "slurryPipeSystem#agitator", false),
+        -- [SPS CRUST v1.0.0.10.2] Per-store crusting speed. 1.0 = baseline
+        -- (CRUST_GROW_HOURS from clean to fully crusted); 0.5 = a covered tank that
+        -- crusts at half rate, 1.5 = an exposed open lagoon. Clamped on read.
+        crustGrowMult    = SlurryPipeManager.clampCrustMult(
+                               xmlFile:getFloat(kp .. "slurryPipeSystem#crustGrow", 1.0)),
         crustConfig      = SPSCrustVegetation ~= nil and SPSCrustVegetation.readConfig(xmlFile, kp) or nil,
         crustInstances   = nil,
         pipeAnimNode     = xmlFile:getNode(kp .. "slurryPipeSystem.pipeAnimNode#node", nil, placeable.components, placeable.i3dMappings),
@@ -2762,28 +3086,49 @@ function SlurryPipeManager:registerPlaceable(placeable)
     -- Mark whether this store participates in the thickness model, then restore its
     -- saved two-pool state if available (migrating old single-thickness saves).
     if sourceEntry ~= nil and sourceEntry.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
-        sourceEntry.thickeningEnabled = pEntry.agitatorEnabled == true
+        -- [SPS 1.0.0.9.31] A <slurryStore> declares its own #agitator, already applied
+        -- in parseSlurryStores — a slurry lagoon crusts while a digestate lagoon beside
+        -- it need not. Only fall back to the placeable-level flag when no store set it.
+        if storeSources == nil then
+            sourceEntry.thickeningEnabled = pEntry.agitatorEnabled == true
+        end
     end
-    if self._pendingThickness ~= nil and sourceEntry ~= nil then
+    -- [SPS 1.0.0.9.31] Restore per store. A saved entry matches when the placeable
+    -- position is within a metre AND the store ids agree; a legacy entry (#storeId
+    -- absent, read as 0) matches the primary store only, so old saves land exactly
+    -- where they used to. Each entry is consumed once, so two lagoons at one position
+    -- cannot both claim the same pool.
+    if self._pendingThickness ~= nil then
         local compNode = placeable.components ~= nil and placeable.components[1] ~= nil
             and placeable.components[1].node or nil
         if compNode ~= nil then
             local px, py, pz = getWorldTranslation(compNode)
-            for i, pt in ipairs(self._pendingThickness) do
-                local dx, dy, dz = px - pt.px, py - pt.py, pz - pt.pz
-                if (dx*dx + dy*dy + dz*dz) <= 1.0 then
-                    sourceEntry.thicknessDayCount = pt.dayCount
-                    if pt.hasPools then
-                        sourceEntry.solids = pt.solids
-                        sourceEntry.settle = pt.settle
-                    else
-                        -- Old #thickness gauge: treat it as settling (mixable) and let
-                        -- solids lazy-init at fresh DM.
-                        sourceEntry._migratedSettle = pt.thickness
+            local allStores  = (storeSources ~= nil and #storeSources > 0)
+                and storeSources
+                or (sourceEntry ~= nil and { sourceEntry } or {})
+            for storeIdx, se in ipairs(allStores) do
+                for i, pt in ipairs(self._pendingThickness) do
+                    local dx, dy, dz = px - pt.px, py - pt.py, pz - pt.pz
+                    local savedId = pt.storeId or 0
+                    local wantId  = se.storeId or 0
+                    local idMatch = (savedId == wantId)
+                        or (savedId == 0 and storeIdx == 1)
+                    if (dx*dx + dy*dy + dz*dz) <= 1.0 and idMatch then
+                        se.thicknessDayCount = pt.dayCount
+                        if pt.hasPools then
+                            se.solids = pt.solids
+                            se.settle = pt.settle
+                        else
+                            -- Old #thickness gauge: treat it as settling (mixable) and let
+                            -- solids lazy-init at fresh DM.
+                            se._migratedSettle = pt.thickness
+                        end
+                        table.remove(self._pendingThickness, i)
+                        SlurryDebug.log("[SPS Thickness] restored store pools for "
+                            .. tostring(placeable.configFileName)
+                            .. " store " .. tostring(wantId))
+                        break
                     end
-                    table.remove(self._pendingThickness, i)
-                    SlurryDebug.log("[SPS Thickness] restored store pools for " .. tostring(placeable.configFileName))
-                    break
                 end
             end
         end
@@ -2805,7 +3150,9 @@ function SlurryPipeManager:registerPlaceable(placeable)
     -- the placeable's own tree (findLinkedNode already falls back to that) and re-parent
     -- it onto fillPlaneNode here, replicating exactly what the linker does. On baseTank it
     -- is already parented there, so the re-parent is guarded and skipped. Additive.
-    if pEntry.crustConfig ~= nil and sourceEntry ~= nil
+    -- [SPS 1.0.0.10.3] Skipped entirely when <slurryStores> is present: those stores
+    -- bind their own crust plane and foliage anchor per store in initStoreCrust.
+    if pEntry.crustConfig ~= nil and sourceEntry ~= nil and not legacyPlaneIgnored
     and fillPlaneNode ~= nil and fillPlaneNode ~= 0 then
         local cc = pEntry.crustConfig
         if cc.planeNode ~= nil and cc.planeNode ~= "" then
@@ -2845,8 +3192,13 @@ function SlurryPipeManager:registerPlaceable(placeable)
         end
     end
 
-    -- Scatter crust vegetation on the fill plane if configured
-    if pEntry.crustConfig ~= nil and SPSCrustVegetation ~= nil then
+    -- Scatter crust vegetation on the fill plane if configured.
+    -- [SPS 1.0.0.9.31] Multi-store placeables do this per store instead — each lagoon
+    -- parents its own crust mesh, binds its own foliage anchor and holds its own plant
+    -- instances — so the single-plane path below is skipped when stores are present.
+    if storeSources ~= nil then
+        self:initStoreCrust(pEntry)
+    elseif pEntry.crustConfig ~= nil and SPSCrustVegetation ~= nil then
         SPSCrustVegetation.initForPlaceable(pEntry, self.modDirectory)
     end
 end
@@ -2948,6 +3300,16 @@ function SlurryPipeManager:unregisterPlaceable(placeable)
             if entry.sourceEntry ~= nil then
                 for j, src in ipairs(self.sourceEntries) do
                     if src == entry.sourceEntry then table.remove(self.sourceEntries, j) break end
+                end
+            end
+            -- [SPS 1.0.0.9.31] Stores 2..n were inserted into self.sourceEntries at
+            -- registration alongside the primary; drop them here too or a sold
+            -- multi-lagoon placeable leaves dangling sources behind.
+            if entry.storeSources ~= nil then
+                for k = 2, #entry.storeSources do
+                    for j, src in ipairs(self.sourceEntries) do
+                        if src == entry.storeSources[k] then table.remove(self.sourceEntries, j) break end
+                    end
                 end
             end
             -- [SPS 1.0.0.9.3] Run every domain's detach handler (chains anchored
@@ -3188,23 +3550,33 @@ function SlurryPipeManager:saveCouplingConnections(savePath)
     if hs.posY ~= nil then xmlFile:setFloat("slurryPipeSystem#hudPosY", hs.posY) end
 
     -- Save per-placeable slurry thickness and day counter
+    -- [SPS 1.0.0.9.31] One entry PER STORE, not per placeable. Entries are keyed by
+    -- placeable world position plus #storeId, because a multi-lagoon placeable has
+    -- several independent dry-matter pools at one position and the position alone can
+    -- no longer identify which. #storeId is omitted (read back as 0) for a legacy
+    -- single-store placeable, and the loader treats 0 as "the primary store", so old
+    -- savegames restore unchanged.
     local thickIdx = 0
     for _, pEntry in ipairs(self.registeredPlaceables) do
-        if pEntry.sourceEntry ~= nil and pEntry.sourceEntry.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
-            local se  = pEntry.sourceEntry
-            local wx, wy, wz = 0, 0, 0
-            if pEntry.placeable ~= nil and pEntry.placeable.components ~= nil
-            and pEntry.placeable.components[1] ~= nil then
-                wx, wy, wz = getWorldTranslation(pEntry.placeable.components[1].node)
+        local wx, wy, wz = 0, 0, 0
+        if pEntry.placeable ~= nil and pEntry.placeable.components ~= nil
+        and pEntry.placeable.components[1] ~= nil then
+            wx, wy, wz = getWorldTranslation(pEntry.placeable.components[1].node)
+        end
+        for _, se in ipairs(self:getStoreSources(pEntry)) do
+            if se.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
+                local base = string.format("slurryPipeSystem.thicknesses.entry(%d)", thickIdx)
+                xmlFile:setFloat(base .. "#px",            wx)
+                xmlFile:setFloat(base .. "#py",            wy)
+                xmlFile:setFloat(base .. "#pz",            wz)
+                xmlFile:setFloat(base .. "#solids",        se.solids or 0)
+                xmlFile:setFloat(base .. "#settle",        se.settle or 0)
+                xmlFile:setInt(base   .. "#dayCount",      se.thicknessDayCount or 0)
+                if se.storeId ~= nil then
+                    xmlFile:setInt(base .. "#storeId",     se.storeId)
+                end
+                thickIdx = thickIdx + 1
             end
-            local base = string.format("slurryPipeSystem.thicknesses.entry(%d)", thickIdx)
-            xmlFile:setFloat(base .. "#px",            wx)
-            xmlFile:setFloat(base .. "#py",            wy)
-            xmlFile:setFloat(base .. "#pz",            wz)
-            xmlFile:setFloat(base .. "#solids",        se.solids or 0)
-            xmlFile:setFloat(base .. "#settle",        se.settle or 0)
-            xmlFile:setInt(base   .. "#dayCount",      se.thicknessDayCount or 0)
-            thickIdx = thickIdx + 1
         end
     end
 
@@ -3463,6 +3835,8 @@ function SlurryPipeManager:loadCouplingConnections(savePath)
             settle    = xmlFile:getFloat(base .. "#settle",    0),
             thickness = xmlFile:getFloat(base .. "#thickness", 0),
             dayCount  = xmlFile:getInt(base   .. "#dayCount",  0),
+            -- 0 = legacy entry with no store id: applies to the primary store.
+            storeId   = xmlFile:getInt(base   .. "#storeId",   0),
         })
         thickIdx = thickIdx + 1
     end
@@ -3586,7 +3960,7 @@ function SlurryPipeManager:_tryResolveMPPending()
     -- Store crust next: apply once the store placeable has registered on this client.
     local keptSC = {}
     for _, e in ipairs(self._pendingMPStoreCrust) do
-        if self:applyStoreCrustState(e.placeable, e.solids, e.settle, true) then
+        if self:applyStoreCrustState(e.placeable, e.solids, e.settle, true, e.storeIndex) then
             SlurryPipeManager.logMP("[SPS MP] _tryResolveMPPending: store crust RESOLVED")
         else
             table.insert(keptSC, e)   -- store still not registered
@@ -3971,13 +4345,24 @@ function SlurryPipeManager:sendFullStateToConnection(connection)
     -- 3c) Store crust/thickness. Raise the crust plane and show crust foliage on the
     -- joiner for any store that has aged. Uses the same one-way SPSStoreCrustEvent the
     -- live change-detection pass uses.
+    -- [SPS 1.0.0.9.31] One dump per store, carrying the same 1-based index the live
+    -- pass sends, so a joiner rebuilds every lagoon on a multi-store placeable rather
+    -- than only its primary. Single-store placeables dump index 1 exactly as before.
     for _, pEntry in ipairs(self.registeredPlaceables) do
-        local se = pEntry.sourceEntry
-        if se ~= nil and se.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE
-        and ((se.settle or 0) > 0 or (se.solids or 0) > 0) then
-            connection:sendEvent(SPSStoreCrustEvent.new(pEntry.placeable, se.solids or 0, se.settle or 0))
-            self._dumpCounts.crust = self._dumpCounts.crust + 1
+        for i, se in ipairs(self:getStoreSources(pEntry)) do
+            if se.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE
+            and ((se.settle or 0) > 0 or (se.solids or 0) > 0) then
+                connection:sendEvent(SPSStoreCrustEvent.new(pEntry.placeable, se.solids or 0, se.settle or 0, i))
+                self._dumpCounts.crust = self._dumpCounts.crust + 1
+            end
         end
+    end
+
+    -- [SPS 1.0.0.9.31] Channel-gated snapshot of every store's level/solids/settle at
+    -- the moment of the join dump, so a joiner's view can be diffed against the
+    -- server's if a lagoon comes up wrong. Silent unless SPSM_Stores is on.
+    if self.logStoreMPState ~= nil then
+        self:logStoreMPState("JIP-dump")
     end
 
     -- 4) Open valves (vehicle couplers, placeable store couplers, chain termini).
@@ -4581,10 +4966,15 @@ function SlurryPipeManager:update(dt)
     -- slurry (DM_FRESH) and a fall as a proportional draw. SPS transfers keep _lastTotal
     -- in step themselves, so they are never double-counted here.
     if g_server ~= nil and self:isFeatureEnabled() then
+        -- [SPS 1.0.0.9.31] Iterate every store on the placeable, not just the primary.
+        -- The gate moved from pEntry.agitatorEnabled to the per-store thickeningEnabled
+        -- flag, which registerPlaceable sets from pEntry.agitatorEnabled for every
+        -- legacy placeable — so single-store behaviour is unchanged.
         for _, pEntry in ipairs(self.registeredPlaceables) do
-            if pEntry.agitatorEnabled and pEntry.sourceEntry ~= nil
-            and pEntry.sourceEntry.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
-                self:_reconcileStorePools(pEntry.sourceEntry)
+            for _, se in ipairs(self:getStoreSources(pEntry)) do
+                if se.thickeningEnabled and se.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
+                    self:_reconcileStorePools(se)
+                end
             end
         end
     end
@@ -4595,39 +4985,85 @@ function SlurryPipeManager:update(dt)
     -- Server-authoritative, since settle is server state. Flush at settle 0, full at 1.0.
     if g_server ~= nil and self:isFeatureEnabled() then
         for _, pEntry in ipairs(self.registeredPlaceables) do
-            local se = pEntry.sourceEntry
-            if se ~= nil and se.crustPlaneNode ~= nil and se.crustPlaneNode ~= 0 then
-                local settle = se.settle or 0
-                setTranslation(se.crustPlaneNode, 0, settle * (se.crustMaxRise or 0), 0)
+            for _, se in ipairs(self:getStoreSources(pEntry)) do
+                if se.crustPlaneNode ~= nil and se.crustPlaneNode ~= 0 then
+                    local settle = se.settle or 0
+                    setTranslation(se.crustPlaneNode, 0, settle * (se.crustMaxRise or 0), 0)
+                end
             end
         end
     end
 
-    -- Crust growth: an unmixed store crusts continuously. Each in-game day it gains a
-    -- slice sized so a full year (12 periods) takes it 0 -> 100%, independent of the
-    -- player's daysPerPeriod setting. Mixing (applyAgitation) drives it back down; the
-    -- moment mixing stops it starts climbing again. Only while the store holds slurry.
-    if g_server ~= nil and self:isFeatureEnabled() and g_currentMission ~= nil and g_currentMission.environment ~= nil then
-        local env     = g_currentMission.environment
-        local today   = env.currentMonotonicDay
-        local dpp     = env.daysPerPeriod or 1
-        if self._lastMonotonicDay == nil then
-            self._lastMonotonicDay = today
-        elseif today ~= self._lastMonotonicDay then
-            local daysElapsed = math.max(1, today - self._lastMonotonicDay)
-            self._lastMonotonicDay = today
-            -- 12 periods per game year; SETTLE_YEARS_TO_FULL years to crust over.
-            local daysToFull = 12 * dpp * SlurryPipeManager.SETTLE_YEARS_TO_FULL
-            local perDay     = (daysToFull > 0) and (1.0 / daysToFull) or 0
-            local gain       = perDay * daysElapsed
+    -- [SPS 1.0.0.9.31] Drive SPS-owned fill planes from their store level. A silo's
+    -- plane is moved by the engine and is never touched here; a production point has
+    -- no such driver, so its plane is ours to move. Runs on server AND client and
+    -- outside the realism gate — this is the visual for a vanilla storage level, and
+    -- vanilla syncs those levels itself, so both sides derive the same height.
+    if SlurryPipeManager.updateStorePlanes ~= nil then
+        self:updateStorePlanes()
+    end
+
+    -- [SPS 1.0.0.10.3] Refresh crust foliage when the SLURRY SURFACE moves.
+    --
+    -- Every existing updateVisibility call site is driven by a CRUST change
+    -- (applyStoreCrustState, applyAgitation, and the growth loop below, which is
+    -- gated on settle actually changing). Nothing was driven by the fill level, so
+    -- plants never followed a filling or emptying pit -- they were left at the
+    -- height the surface happened to be at when the placeable registered, and a pit
+    -- that then filled simply buried them.
+    --
+    -- Runs on server AND client, and outside the realism gate: this is the visual
+    -- position of a vanilla storage level, and updateVisibility hides everything
+    -- itself when the master toggle is off. One getWorldTranslation per store per
+    -- tick, and the refresh only fires when the height actually stepped, so a store
+    -- sitting full for a season costs the read and nothing else.
+    if SPSCrustVegetation ~= nil and SPSCrustVegetation.updateVisibility ~= nil then
+        for _, pEntry in ipairs(self.registeredPlaceables) do
+            for _, se in ipairs(self:getStoreSources(pEntry)) do
+                if se.crustInstances ~= nil
+                and se.fillPlaneNode ~= nil and se.fillPlaneNode ~= 0
+                and entityExists(se.fillPlaneNode) then
+                    local _, planeY, _ = getWorldTranslation(se.fillPlaneNode)
+                    if se._foliageLastPlaneY == nil
+                    or math.abs(planeY - se._foliageLastPlaneY) > 0.005 then
+                        se._foliageLastPlaneY = planeY
+                        SPSCrustVegetation.updateVisibility(pEntry, se)
+                    end
+                end
+            end
+        end
+    end
+
+    -- [SPS CRUST v1.0.0.10.2] Crust growth: an unmixed store crusts continuously.
+    -- Driven per tick off the shared monotonic game clock rather than the old
+    -- whole-day step, so the crust plane rises smoothly instead of jumping once per
+    -- in-game day, and the rate is now ABSOLUTE (CRUST_GROW_HOURS) instead of being
+    -- scaled by daysPerPeriod. Mixing (applyAgitation) drives it back down; the moment
+    -- mixing stops it starts climbing again. Only while the store holds slurry.
+    --
+    -- The clock is consumed ONCE per tick into a local, then applied to every store,
+    -- so all stores advance in lockstep and no store can be charged twice. The
+    -- previous _lastMonotonicDay catch-up is no longer needed: a time jump (sleep,
+    -- fast-forward, load) simply arrives as a larger hour delta.
+    if g_server ~= nil and self:isFeatureEnabled() then
+        local growHours = self:consumeGameHours(self, "_crustGrowHourStamp")
+        if growHours > 0 and SlurryPipeManager.CRUST_GROW_HOURS > 0 then
+            local basePerHour = 1.0 / SlurryPipeManager.CRUST_GROW_HOURS
             for _, pEntry in ipairs(self.registeredPlaceables) do
-                if pEntry.agitatorEnabled and pEntry.sourceEntry ~= nil and pEntry.sourceEntry.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
-                    local se = pEntry.sourceEntry
-                    self:_ensureStorePools(se)
-                    if self:_getStoreTotalFill(se) > 0 then
-                        se.settle = math.min(1.0, (se.settle or 0) + gain)
-                        if SPSCrustVegetation ~= nil then
-                            SPSCrustVegetation.updateVisibility(pEntry)
+                -- Per-store XML multiplier: covered tanks crust slower, open lagoons faster.
+                local growMult = SlurryPipeManager.clampCrustMult(pEntry.crustGrowMult)
+                local gain     = basePerHour * growHours * growMult
+                if gain > 0 then
+                    for _, se in ipairs(self:getStoreSources(pEntry)) do
+                        if se.thickeningEnabled and se.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
+                            self:_ensureStorePools(se)
+                            if self:_getStoreTotalFill(se) > 0 then
+                                local before = se.settle or 0
+                                se.settle = math.min(1.0, before + gain)
+                                if se.settle ~= before and SPSCrustVegetation ~= nil then
+                                    SPSCrustVegetation.updateVisibility(pEntry, se)
+                                end
+                            end
                         end
                     end
                 end
@@ -4642,19 +5078,24 @@ function SlurryPipeManager:update(dt)
     -- on a material change in settle or dry-matter fraction so it only sends when the
     -- crust visibly moves (grows per in-game day; DM changes on fill/deposit/mix).
     if g_server ~= nil and self:isFeatureEnabled() then
+        -- [SPS 1.0.0.9.31] One send per store, carrying the 1-based store index so a
+        -- multi-lagoon placeable's crusts stay independent across the wire. Index 1 is
+        -- the primary sourceEntry, which is what every single-store placeable sends.
         for _, pEntry in ipairs(self.registeredPlaceables) do
-            local se = pEntry.sourceEntry
-            if se ~= nil and se.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
-                local solids = se.solids or 0
-                local settle = se.settle or 0
-                local total  = self:_getStoreTotalFill(se)
-                local dm     = (total > 0) and (solids / total) or 0
-                if se._syncedSettle == nil
-                or math.abs(settle - se._syncedSettle) > 0.002
-                or math.abs(dm - (se._syncedDM or -1)) > 0.002 then
-                    se._syncedSettle = settle
-                    se._syncedDM     = dm
-                    SPSStoreCrustEvent.sendEvent(pEntry.placeable, solids, settle)
+            local sources = self:getStoreSources(pEntry)
+            for i, se in ipairs(sources) do
+                if se.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
+                    local solids = se.solids or 0
+                    local settle = se.settle or 0
+                    local total  = self:_getStoreTotalFill(se)
+                    local dm     = (total > 0) and (solids / total) or 0
+                    if se._syncedSettle == nil
+                    or math.abs(settle - se._syncedSettle) > 0.002
+                    or math.abs(dm - (se._syncedDM or -1)) > 0.002 then
+                        se._syncedSettle = settle
+                        se._syncedDM     = dm
+                        SPSStoreCrustEvent.sendEvent(pEntry.placeable, solids, settle, i)
+                    end
                 end
             end
         end
@@ -4662,10 +5103,12 @@ function SlurryPipeManager:update(dt)
 
     -- Manager-driven agitator: runs for any registered vehicle with an agitatorTipNode.
     -- No specialization required — works for any vehicle type including ModHub mods.
+    -- [SPS CRUST v1.0.0.10.2] Each agitator now consumes the shared monotonic game
+    -- clock through its OWN per-entry stamp rather than a single dt-derived scalar.
+    -- The stamp is released the moment the agitator goes inactive, so a mixer that is
+    -- lifted out, has its PTO pulled, or whose tractor is switched off cannot bank
+    -- idle time and dump it as one huge mixing step when it restarts.
     if g_server ~= nil and self:isFeatureEnabled() then
-        local env       = g_currentMission ~= nil and g_currentMission.environment or nil
-        local timeScale = env ~= nil and env.timeAdjustment or 1
-        local dtHours   = (dt * 0.001) * timeScale / 3600
         for _, vEntry in ipairs(self.registeredVehicles) do
             if vEntry.agitatorTipNode ~= nil and entityExists(vEntry.agitatorTipNode) then
                 local tipNode = vEntry.agitatorTipNode
@@ -4681,24 +5124,34 @@ function SlurryPipeManager:update(dt)
                     local tx, ty, tz   = getWorldTranslation(tipNode)
                     local foundEntry   = nil
                     for _, pEntry in ipairs(self.registeredPlaceables) do
-                        local se = pEntry.sourceEntry
-                        if se ~= nil and se.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE
-                        and se.planeBounds ~= nil then
-                            if SlurryNodeUtil.isNodeInPlaneBounds(tipNode, se.planeBounds) then
-                                local surfY = SlurryNodeUtil.getSurfaceWorldY(se, tx, tz)
-                                if surfY ~= -math.huge and ty <= surfY then
-                                    foundEntry = se
-                                    break
+                        for _, se in ipairs(self:getStoreSources(pEntry)) do
+                            if se.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE
+                            and se.planeBounds ~= nil then
+                                if SlurryNodeUtil.isNodeInPlaneBounds(tipNode, se.planeBounds) then
+                                    local surfY = SlurryNodeUtil.getSurfaceWorldY(se, tx, tz)
+                                    if surfY ~= -math.huge and ty <= surfY then
+                                        foundEntry = se
+                                        break
+                                    end
                                 end
                             end
                         end
+                        if foundEntry ~= nil then break end
                     end
                     vEntry.agitatorIsActive = foundEntry ~= nil
                     if foundEntry ~= nil then
-                        self:applyAgitation(foundEntry, dtHours)
+                        local hours = self:consumeGameHours(vEntry, "_agitatorHourStamp")
+                        if hours > 0 then
+                            self:applyAgitation(foundEntry, hours, vEntry.agitatorCrustMix)
+                        end
+                    else
+                        -- Submerged check failed this tick: stop the clock so the time
+                        -- spent out of the slurry is never charged as mixing.
+                        self:releaseGameHours(vEntry, "_agitatorHourStamp")
                     end
                 else
                     vEntry.agitatorIsActive = false
+                    self:releaseGameHours(vEntry, "_agitatorHourStamp")
                 end
                 -- Sync state change to clients
                 if vEntry.agitatorIsActive ~= wasActive then

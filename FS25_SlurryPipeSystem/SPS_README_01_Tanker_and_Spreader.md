@@ -257,10 +257,64 @@ that has **only** blockage nodes (no arms, no couplings) is treated as a *spread
 
 A node whose name contains `Macerator` is treated as the central distributor: blocking it
 stops the whole bar. The macerator has no work-area section, so do not give it a
-`workAreaNode`.
+`workAreaNode`. You may declare several macerator nodes (for separate animation points on a
+wide bar) — they are treated as one logical macerator and block together.
 
 Each outlet gets a walk-up, hold-to-clear blockage activatable that only appears while that
 node is blocked and only clears once the bar is stopped.
+
+### How a blockage is decided
+
+Blockages are caused by **lumps**, i.e. the crust the tanker is carrying, inherited from the
+store's crust level at fill time. Dry matter is only a mild amplifier — its real job is
+slowing the pump, not clogging the bar. Mixing the store before you fill is what keeps the
+bar clear.
+
+The macerator is a lump smasher with a finite capacity, so the two rows have separate crust
+thresholds:
+
+- **Macerator** — exposed from `maceratorCrustMin` upward. It is the part taking the
+  punishment while it is coping.
+- **Outlets** — protected until `outletCrustMin`, the point at which lumps start getting
+  past the macerator. A bar with **no macerator node** has no such protection and uses the
+  lower `outletCrustMinRaw` instead.
+
+A roll is taken every 6 seconds while the bar is actually spreading (discharge active, the
+spreader valve open, and not AI-driven). The macerator and the outlets roll independently.
+The outlet roll is taken **once for the bar**, and a random still-open outlet takes it — not
+once per outlet, so a wide bar is not inherently more fragile than a narrow one.
+
+### Tuning per vehicle — `<blockageNodes>` attributes
+
+Every attribute below is optional and sits on the **container**, not on individual nodes.
+Omit any and it inherits the global default, so an existing config needs no changes.
+
+```xml
+<blockageNodes baseChance="0.001" maceratorCrustMin="0.25" maceratorChance="0.027"
+               outletCrustMin="0.60" outletCrustMinRaw="0.25"
+               outletChance="0.030" dmBonus="0.25">
+    ...
+</blockageNodes>
+```
+
+| Attribute           | Default | Meaning |
+|---------------------|---------|---------|
+| `baseChance`        | 0.001   | Per-roll, per-**bar** chance of a foreign-object clog (wood, stone) even on perfectly clean slurry. Applies to both rows. |
+| `maceratorCrustMin` | 0.25    | Carried crust below which the macerator copes and nothing lump-driven happens. |
+| `maceratorChance`   | 0.027   | Per-roll chance added on top of `baseChance` at full crust, scaled by how far crust has climbed past `maceratorCrustMin`. |
+| `outletCrustMin`    | 0.60    | The macerator's capacity ceiling. Below this the outlets stay clear. Used only when a macerator node exists. |
+| `outletCrustMinRaw` | 0.25    | Outlet threshold when **no** macerator is fitted. |
+| `outletChance`      | 0.030   | Per-roll chance added on top of `baseChance` at full crust, scaled past whichever outlet threshold applies. |
+| `dmBonus`           | 0.25    | Extra multiplier at the dry-matter jam point, applied to both rows. `0` = dry matter has no effect on blockages. |
+
+Chances are clamped 0–1 on read (`dmBonus` 0–10), so a typo cannot produce a bar that clogs
+every roll.
+
+Sized against a five-minute tankful (about 50 rolls), the defaults give roughly a 5% chance
+of any stoppage on freshly agitated slurry and around 70% on a store left unmixed for a
+month. A wide-bore splash plate with no macerator should be authored well above the
+unprotected default — the shipped Farmtech Supercis 800 and Joskin Cobra configs use
+`outletCrustMinRaw="0.85"`, `outletChance="0.010"`, `baseChance="0.0005"` as a reference.
 
 ### Optional spreader animation
 
@@ -333,12 +387,19 @@ A single walk-up node that exposes PTO and/or direction controls outside the cab
 ```xml
 <slurryPipeSystem agitatorOnly="false">
     ...
-    <agitator tipNode="agitatorTip"/>
+    <agitator tipNode="agitatorTip" crustMix="1.0"/>
 </slurryPipeSystem>
 ```
 
 - `agitator#tipNode` — optional node used as the agitator tip. Works on any vehicle type.
+- `agitator#crustMix` — optional mixing-speed multiplier, default `1.0`, clamped 0.1–10.
+  `1.0` clears a full crust in the baseline 2 game hours of continuous stirring; `2.0`
+  does it in one. Lets a big PTO mixer be rated above a small one.
 - `agitatorOnly="true"` (root attribute) — marks the vehicle as agitator-only.
+
+Mixing runs on absolute game time via the shared monotonic clock, so it means the same
+thing on every save regardless of season length, and it is timescale-correct through
+sleeping and fast-forward. Multiple agitators working the same store stack additively.
 
 ### Sounds (client side)
 

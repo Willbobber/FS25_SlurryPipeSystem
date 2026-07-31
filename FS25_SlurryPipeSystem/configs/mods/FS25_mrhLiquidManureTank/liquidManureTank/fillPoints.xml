@@ -6,7 +6,14 @@
 <!-- Author: Oscar Mods -->
 <!-- Version: 1.0.0.0 -->
 
-<slurryPipeSystem agitator="true">
+<!-- crustGrow: how fast THIS store crusts over.
+     1.0 = baseline, 720 game hours (30 in-game days) clean -> fully crusted.
+     0.5 = a covered tank, half rate.  1.5 = an exposed open lagoon.
+     Absolute game hours - the same on every save, whatever daysPerPeriod is set to.
+     Clamped 0.1-10.0 on read, so a typo can never make a store uncrustable.
+     agitator="true" is unchanged and is still what opts this store into the crust
+     model at all - without it, crustGrow does nothing. -->
+<slurryPipeSystem agitator="true" crustGrow="1.0">
  
     <nodeTree filename="nodeTree.i3d"/>
 	
@@ -69,9 +76,17 @@
         <node name="collisionFillTower"/>
     </hideCollisions>
 	
-	<fixedAgitator turnOffIfNotAllowed="true">
+	<!-- crustMix: how fast THIS fixed unit clears crust.
+	     1.0 = baseline, 2 game hours of continuous stirring for 100% -> 0%.
+	     2.0 = twice as fast (a full clear in 1 hour). Clamped 0.1-10.0.
+	     Same attribute and meaning as the tractor-mounted agitator's, so a
+	     permanently installed lagoon mixer can be rated separately from a PTO unit.
+	     The clock only runs while the unit is actually mixing - engine on, PTO
+	     engaged, and slurry at or above the level node below. Idle time is never
+	     banked and cashed in later. -->
+	<fixedAgitator turnOffIfNotAllowed="true" crustMix="1.0">
 		<input inputNode="ptoNodeAttached" detachNode="ptoNodeDetached" filename="$data/shared/assets/powerTakeOffs/walterscheidW.xml" materialTemplateName="SHARED_BLACK1" decalMaterialTemplateName="WALTERSCHEID_YELLOW1"/>
-		<level node="agitatorLevelNode "/>
+		<level node="agitatorLevelNode"/>
 		<animationNodes>
             <animationNode node="blades" rotSpeed="1000" rotAxis="1" turnOnFadeTime="2" turnOffFadeTime="8" />
         </animationNodes>
@@ -93,4 +108,3 @@
 	</crust>
 	
 </slurryPipeSystem>
-

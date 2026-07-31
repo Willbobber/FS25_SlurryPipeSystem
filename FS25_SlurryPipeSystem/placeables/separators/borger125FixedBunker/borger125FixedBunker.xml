@@ -2,7 +2,7 @@
 <placeable type="manureHeapSeparator" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../shared/xml/schema/placeable.xsd">
     <storeData>
         <name>Borger 125</name>
-        <image>$data/placeables/brandless/manureHeap/store_manureHeap.png</image>
+        <image>placeables/separators/borger125FixedBunker/icon_borger125.png</image>
         <functions>
             <function>$l10n_function_manureHeap</function>
         </functions>
@@ -18,12 +18,6 @@
             <category>buildings</category>
             <tab>silos</tab>
         </brush>
-        <vertexBufferMemoryUsage>44544</vertexBufferMemoryUsage>
-        <indexBufferMemoryUsage>7936</indexBufferMemoryUsage>
-        <textureMemoryUsage>327680</textureMemoryUsage>
-        <instanceVertexBufferMemoryUsage>0</instanceVertexBufferMemoryUsage>
-        <instanceIndexBufferMemoryUsage>0</instanceIndexBufferMemoryUsage>
-        <audioMemoryUsage>0</audioMemoryUsage>
     </storeData>
 
     <base>
@@ -74,7 +68,7 @@
 
     <infoTrigger triggerNode="infoTrigger" />
 
-    <manureHeap node="manureHeap" capacity="450000" isExtension="false" needsBarn="false" >
+    <manureHeap node="manureHeap" capacity="33000" isExtension="false" needsBarn="false" >
         <area startNode="tipAreaStart" widthNode="tipAreaWidth" heightNode="tipAreaHeight" activationTriggerNode="activationTrigger" />
         <clearArea startNode="clearAreaStart" widthNode="clearAreaWidth" heightNode="clearAreaHeight" />
 
@@ -107,14 +101,15 @@
 		                              SPS_separator; falls back to the IN coupler mount)
 		       dropNodeName           manure discharge node for the pass-2 visual effect
 		                              (GE: add "SPS_dropNode" above the bunker tip area) -->
-		<separator ratedLitersPerHour="500000.0" costPerHour="35.0"
+				<separator ratedLitersPerHour="500000.0" costPerHour="35.0"
 		           solidsDryMatter="0.28" captureEffMin="0.15" captureEffMax="0.40"
 		           tightMinThroughputMult="0.5"
 		           inCouplingId="1" outCouplingId="2"
 		           dropChunksTexture="effects/sepDropArray54x24.dds" dropChunksSpeedScale="0.5" 
 				   dropChunksDensity="1.0" dropChunksSizeScale="0.9 0.9"
 				   panelNodeName="SPS_separatorPanel" dropNodeName="SPS_dropNode"
-		           interactRadius="4.0"/>
+		           interactRadius="4.0"
+				/>
 	</slurryPipeSystem>
     
 	<i3dMappings>

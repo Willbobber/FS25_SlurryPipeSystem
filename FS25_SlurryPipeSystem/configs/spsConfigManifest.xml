@@ -64,6 +64,10 @@
             configFolder="mods/FS25_samson_pgII20Genesis/data"/>
 		<vehicle path="FS25_Kotte_TSA/tsa.xml"
             configFolder="mods/FS25_Kotte_TSA"/>
+		<vehicle path="FS25_precisionFarming/vehicles/wienhoff/ta25ProfiLine/ta25ProfiLine.xml"
+            configFolder="FS25_precisionFarming/vehicles/wienhoff/ta25ProfiLine"/>
+		<vehicle path="FS25_precisionFarming/vehicles/wienhoff/ta25ProfiLine/ta25ProfiLineBundle.xml"
+            configFolder="FS25_precisionFarming/vehicles/wienhoff/ta25ProfiLine"/>
 			
         <!-- PTOSlurryPump uses embedded <slurryPipeSystem>, no manifest entry needed -->
     </vehicleConfigs>
@@ -85,7 +89,12 @@
 		<!-- Mod vehicles -->
         <vehicle path="FS25_hardiNavigator4000/navigator4000.xml"
             configFolder="mods/FS25_hardiNavigator4000"/>
-		
+			
+		<vehicle path="FS25_precisionFarming/vehicles/johnDeere/r700i/r700i.xml"
+            configFolder="FS25_precisionFarming/vehicles/johnDeere/r700i"/>
+		<vehicle path="FS25_precisionFarming/vehicles/johnDeere/r975i/r975i.xml"
+            configFolder="FS25_precisionFarming/vehicles/johnDeere/r975i"/>
+			
 	</sprayerVehicleConfigs>
 	
     <placeableConfigs>
@@ -99,7 +108,6 @@
         <placeable path="data/placeables/rudolfHormann/cowBarnMedium/cowBarnMedium.xml"/>
         <placeable path="data/placeables/rudolfHormann/pigBarnBig/pigBarnBig.xml"/>
         <placeable path="data/placeables/rudolfHormann/pigBarnMedium/pigBarnMedium.xml"/>
-		<placeable path="data/placeables/meridian/liquidFlatBottomTank1630/liquidFlatBottomTank1630.xml"/>
 		
 		<placeable path="data/placeables/planET/bga99kw/bga99kw.xml"/>
 		<placeable path="data/placeables/planET/bga250kw/bga250kw.xml"/>
@@ -159,6 +167,12 @@
         <placeable path="FS25_BuyableManureAndOther/liquidManureStation.xml"
                    configFolder="mods/FS25_BuyableManureAndOther/liquidManureStation"/>
 		
+		<!-- Witcombe Placeable pack -->
+		<placeable path="FS25_witcombe_buildings_pack/cowBarn01.xml"
+                   configFolder="mods/FS25_witcombe_buildings_pack/cowBarn01"/>
+		<placeable path="FS25_witcombe_buildings_pack/cowBarnParlour.xml"
+                   configFolder="mods/FS25_witcombe_buildings_pack/cowBarnParlour"/>
+		
     </placeableConfigs>
 	
 	<sprayerPlaceableConfigs>
@@ -170,6 +184,12 @@
                    configFolder="mods/FS25_Witcombe/map/placeables/liquidFert/large"/>
 		<placeable path="map/placeables/liquidFert/small/liquidFertSmall.xml"
                    configFolder="mods/FS25_Witcombe/map/placeables/liquidFert/small"/>
+				   
+		<!-- Witcombe Placeable pack -->
+		<placeable path="FS25_witcombe_buildings_pack/liquidFertLarge.xml"
+                   configFolder="mods/FS25_witcombe_buildings_pack/liquidFertLarge"/>
+		<placeable path="FS25_witcombe_buildings_pack/liquidFertSmall.xml"
+                   configFolder="mods/FS25_witcombe_buildings_pack/liquidFertSmall"/>
 	</sprayerPlaceableConfigs>
 
 	<!--
@@ -218,5 +238,6 @@
 				 configFolder="IBCs/fertilizerTank"/>
 		<vehicle path="FS25_SoilFertilizer/objects/liquidTank/fungicide/liquidTank_fungicide.xml"
 				 configFolder="IBCs/fertilizerTank"/>
+				 
 	</sprayerSourceVehicleConfigs>
 </spsConfigManifest>

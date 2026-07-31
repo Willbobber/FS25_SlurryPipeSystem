@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.9
+-- Version: 1.0.0.10.4
 
 -- SPSM_Spreader.lua
 -- FS25_SlurryPipeSystem
@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Spreader 1.0.0.9 loaded")
+print("[SPS BUILD] SPSM_Spreader 1.0.0.10.4 loaded")
 
 
 function SlurryPipeManager:vehicleHasSpreader(vehicle)
@@ -160,38 +160,85 @@ function SlurryPipeManager:updateBlockages(dt)
                 entry.blockageRollTimer = (entry.blockageRollTimer or 0) + dt
                 if entry.blockageRollTimer >= SlurryPipeManager.BLOCKAGE_ROLL_INTERVAL then
                     entry.blockageRollTimer = 0
-                    -- Blockages are driven by the CRUST (un-mixed lumpiness) the tanker
-                    -- carries, since mixing the store is what clears it. Crust below
-                    -- BLOCKAGE_CRUST_MIN contributes nothing; above it the chance ramps to
-                    -- full. A small base chance always applies even on clean slurry, to
-                    -- emulate a foreign object (wood/stone). Dry matter mildly amplifies
-                    -- the result so thick AND crusted is the worst case.
-                    local crust      = self:getTankerCrust(controller)
-                    local crustScale = 0.0
-                    if crust > SlurryPipeManager.BLOCKAGE_CRUST_MIN then
-                        local span = 1.0 - SlurryPipeManager.BLOCKAGE_CRUST_MIN
-                        crustScale = span > 0 and ((crust - SlurryPipeManager.BLOCKAGE_CRUST_MIN) / span) or 1.0
-                        crustScale = math.min(1.0, math.max(0.0, crustScale))
+                    -- [SPS BLOCKAGE v1.0.0.10.4] Blockages are driven by the CRUST
+                    -- (un-mixed lumpiness) the tanker carries, since mixing the store is
+                    -- what clears it. Dry matter is only a mild amplifier -- its real job
+                    -- is slowing the pump (getFlowRateMultiplier), not clogging the bar.
+                    --
+                    -- The macerator is a lump smasher with a finite capacity, so the two
+                    -- rows now have SEPARATE crust thresholds:
+                    --   macerator: exposed from BLOCKAGE_MACERATOR_CRUST_MIN upward -- it
+                    --              is the part taking the punishment.
+                    --   outlets:   protected until BLOCKAGE_OUTLET_CRUST_MIN, the point at
+                    --              which lumps start getting past the macerator. A bar with
+                    --              NO macerator node gets no protection and uses the lower
+                    --              BLOCKAGE_OUTLET_CRUST_MIN_RAW instead.
+                    --
+                    -- Any of these may be overridden per vehicle via entry.blockageTuning
+                    -- (attributes on the <blockageNodes> container); nil falls back to the
+                    -- global default.
+                    local tune = entry.blockageTuning or {}
+                    local baseChance  = tune.baseChance        or SlurryPipeManager.BLOCKAGE_BASE_CHANCE
+                    local macCrustMin = tune.maceratorCrustMin or SlurryPipeManager.BLOCKAGE_MACERATOR_CRUST_MIN
+                    local macSlope    = tune.maceratorChance   or SlurryPipeManager.BLOCKAGE_MACERATOR_CHANCE
+                    local outSlope    = tune.outletChance      or SlurryPipeManager.BLOCKAGE_OUTLET_CHANCE
+                    local dmBonus     = tune.dmBonus           or SlurryPipeManager.BLOCKAGE_DM_BONUS
+
+                    -- Is a macerator actually fitted to THIS bar? Drives which outlet
+                    -- threshold applies and whether the macerator row is rolled at all.
+                    local hasMacerator = false
+                    for _, b in ipairs(list) do
+                        if b.isMacerator then hasMacerator = true break end
                     end
+                    local outCrustMin
+                    if hasMacerator then
+                        outCrustMin = tune.outletCrustMin    or SlurryPipeManager.BLOCKAGE_OUTLET_CRUST_MIN
+                    else
+                        outCrustMin = tune.outletCrustMinRaw or SlurryPipeManager.BLOCKAGE_OUTLET_CRUST_MIN_RAW
+                    end
+
+                    local crust = self:getTankerCrust(controller)
+                    -- 0 at the threshold, 1 at fully crusted.
+                    local function crustRamp(minCrust)
+                        if crust <= minCrust then return 0.0 end
+                        local span = 1.0 - minCrust
+                        if span <= 0 then return 1.0 end
+                        return math.min(1.0, math.max(0.0, (crust - minCrust) / span))
+                    end
+
                     local dmSpan  = SlurryPipeManager.DM_JAMMED - SlurryPipeManager.DM_FRESH
                     local dmFac   = dmSpan > 0 and ((self:gaugeToDM(self:getTankerThickness(controller)) - SlurryPipeManager.DM_FRESH) / dmSpan) or 0
                     dmFac         = math.min(1.0, math.max(0.0, dmFac))
-                    local dmMult  = 1.0 + SlurryPipeManager.BLOCKAGE_DM_BONUS * dmFac
+                    local dmMult  = 1.0 + dmBonus * dmFac
 
-                    local maceratorChance = (SlurryPipeManager.BLOCKAGE_BASE_CHANCE + SlurryPipeManager.BLOCKAGE_MACERATOR_CHANCE * crustScale) * dmMult
-                    local outletChance    = (SlurryPipeManager.BLOCKAGE_BASE_CHANCE + SlurryPipeManager.BLOCKAGE_OUTLET_CHANCE   * crustScale) * dmMult
+                    local maceratorChance = (baseChance + macSlope * crustRamp(macCrustMin)) * dmMult
+                    local outletChance    = (baseChance + outSlope * crustRamp(outCrustMin)) * dmMult
 
+                    -- A blocked macerator already stops the whole bar, so nothing is
+                    -- flowing and neither row is rolled while it stands.
                     if not self:isMaceratorBlocked(vehicle) then
-                        if math.random() < maceratorChance then
+                        -- The two rows now roll INDEPENDENTLY. Previously the outlets were
+                        -- only rolled on ticks where the macerator did not block, which
+                        -- perversely gave the outlets FEWER chances the worse the slurry got.
+                        if hasMacerator and math.random() < maceratorChance then
                             for _, b in ipairs(list) do
                                 if b.isMacerator then self:setBlockageState(vehicle, b, true) end
                             end
-                        else
-                            for _, b in ipairs(list) do
-                                if not b.isMacerator and not b.blocked and math.random() < outletChance then
-                                    self:setBlockageState(vehicle, b, true)
-                                end
+                        end
+
+                        -- ONE roll for the bar, then a random still-open outlet takes it.
+                        -- Rolling per outlet made a wide bar inherently more clog-prone than
+                        -- a narrow one purely for having more nodes: at the old per-outlet
+                        -- base chance a 12-outlet bar suffered a foreign-object clog on
+                        -- roughly 6 loads in 10 of perfectly clean, freshly mixed slurry.
+                        local open = {}
+                        for _, b in ipairs(list) do
+                            if not b.isMacerator and not b.blocked then
+                                open[#open + 1] = b
                             end
+                        end
+                        if #open > 0 and math.random() < outletChance then
+                            self:setBlockageState(vehicle, open[math.random(#open)], true)
                         end
                     end
                 end

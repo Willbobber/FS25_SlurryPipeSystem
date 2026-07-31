@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.9
+-- Version: 1.0.0.10.3
 
 -- SPSM_Consistency.lua
 -- FS25_SlurryPipeSystem
@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Consistency 1.0.0.9.2 loaded")
+print("[SPS BUILD] SPSM_Consistency 1.0.0.10.3 loaded")
 
 
 -- [SPS MP] Apply a replicated store crust/thickness state on a client. Sets the two
@@ -22,39 +22,60 @@ print("[SPS BUILD] SPSM_Consistency 1.0.0.9.2 loaded")
 -- burst arrives before the placeable finishes SPS-registration), the value is queued
 -- and retried by _tryResolveMPPending as placeables register — without this the join
 -- dump was dropped and the store only corrected on the next live change.
-function SlurryPipeManager:applyStoreCrustState(placeable, solids, settle, fromDrain)
+-- [SPS 1.0.0.10.3] storeIndex is the 1-based store the value belongs to, matching
+-- getStoreSources order — SPSStoreCrustEvent has carried it since 1.0.0.9.31 but the
+-- parameter was missing here, so the argument was silently dropped and every incoming
+-- crust value landed on the primary store. A single-store placeable always sends 1,
+-- which resolves to pEntry.sourceEntry exactly as before.
+function SlurryPipeManager:applyStoreCrustState(placeable, solids, settle, fromDrain, storeIndex)
+    storeIndex = storeIndex or 1
     for _, pEntry in ipairs(self.registeredPlaceables) do
-        if pEntry.placeable == placeable and pEntry.sourceEntry ~= nil then
-            local se = pEntry.sourceEntry
-            se.solids = solids
-            se.settle = settle
-            if se.crustPlaneNode ~= nil and se.crustPlaneNode ~= 0 then
-                setTranslation(se.crustPlaneNode, 0, settle * (se.crustMaxRise or 0), 0)
+        if pEntry.placeable == placeable then
+            -- getStoreSourceByIndex warns and falls back to the primary when the two
+            -- machines disagree about store count, so the crust still lands somewhere
+            -- sensible rather than being dropped.
+            local se = nil
+            if self.getStoreSourceByIndex ~= nil then
+                se = self:getStoreSourceByIndex(pEntry, storeIndex)
+            else
+                se = pEntry.sourceEntry
             end
-            if SPSCrustVegetation ~= nil then
-                SPSCrustVegetation.updateVisibility(pEntry)
+            if se ~= nil then
+                se.solids = solids
+                se.settle = settle
+                if se.crustPlaneNode ~= nil and se.crustPlaneNode ~= 0 then
+                    setTranslation(se.crustPlaneNode, 0, settle * (se.crustMaxRise or 0), 0)
+                end
+                if SPSCrustVegetation ~= nil then
+                    SPSCrustVegetation.updateVisibility(pEntry, se)
+                end
+                return true
             end
-            return true
         end
     end
     if not fromDrain then
-        self:_queuePendingStoreCrust(placeable, solids, settle)
+        self:_queuePendingStoreCrust(placeable, solids, settle, storeIndex)
     end
     return false
 end
 
 -- [SPS MP] Queue a store crust value whose placeable is not registered yet. Only the
 -- latest value per placeable is kept (crust is absolute state, not a delta).
-function SlurryPipeManager:_queuePendingStoreCrust(placeable, solids, settle)
+-- [SPS 1.0.0.10.3] Keyed on placeable AND storeIndex. Keying on the placeable alone
+-- meant a multi-store placeable's lagoons overwrote each other in the join burst and
+-- only one survived to be applied; the index is also what _tryResolveMPPending needs
+-- to hand back to applyStoreCrustState.
+function SlurryPipeManager:_queuePendingStoreCrust(placeable, solids, settle, storeIndex)
     if self._pendingMPStoreCrust == nil then self._pendingMPStoreCrust = {} end
+    storeIndex = storeIndex or 1
     for _, e in ipairs(self._pendingMPStoreCrust) do
-        if e.placeable == placeable then
+        if e.placeable == placeable and (e.storeIndex or 1) == storeIndex then
             e.solids = solids
             e.settle = settle
             return
         end
     end
-    table.insert(self._pendingMPStoreCrust, { placeable = placeable, solids = solids, settle = settle })
+    table.insert(self._pendingMPStoreCrust, { placeable = placeable, solids = solids, settle = settle, storeIndex = storeIndex })
     SlurryPipeManager.logMP(string.format("[SPS MP] queued pending store crust (pending=%d)", #self._pendingMPStoreCrust))
 end
 
@@ -86,13 +107,56 @@ end
 -- Total slurry held by a store, summed across every fill type it tracks. Slurry and
 -- digestate share one fillPlane and are treated as a single pile, so the dry-matter
 -- maths must see the combined level rather than a single fillType's level.
+-- [SPS 1.0.0.10.3] Pool-scoped total. This is the litre count the whole two-pool
+-- dry-matter model is built on (solids seeding, reconcile deltas, crust growth gate,
+-- separator maths), so it must count ONLY the body of liquid this store represents.
+--
+-- It previously summed every entry in the Storage. That is the third head of the
+-- UKStyle cow shed straw bug already fixed at the draw layer
+-- (_resolveSourceFillType, 1.0.0.9.19) and the deposit layer
+-- (resolveStoreDepositFillType, 1.0.0.9.1/.2): a husbandry Storage is one
+-- multi-type object holding STRAW and drinking WATER alongside LIQUIDMANURE, and a
+-- production point Storage holds SILAGE and MANURE alongside LIQUIDMANURE and
+-- DIGESTATE. Summing all of it meant straw bales and silage were booked as slurry —
+-- seeding solids from silage tonnage, charging a silage delivery as fresh slurry
+-- inflow through _reconcileStorePools, and holding the crust growth gate
+-- (total > 0) true over an empty lagoon.
+--
+-- Selection order, mirroring the two fixes above:
+--   1. se.poolFillTypes  - a <slurryStore #poolFillTypes> declaration is explicit
+--                          and authoritative. On a multi-store placeable every
+--                          store shares ONE Storage object, so this is also the
+--                          only thing that gives two lagoons different totals
+--                          instead of both reading the same aggregate.
+--   2. slurry liquids    - no declaration: sum LIQUIDMANURE + DIGESTATE only, via
+--                          the existing _isPumpableSourceFillType gate with WATER
+--                          excluded — the same "ft ~= FillType.WATER and
+--                          _isPumpableSourceFillType(ft)" pair used by
+--                          resolveStoreDepositFillType. Water pumped into a slurry
+--                          store is CONVERTED to the held or declared type on
+--                          deposit and never persists as WATER, so a WATER level in
+--                          one of these Storages is never part of the slurry body —
+--                          on a husbandry it is the drinking trough. This keeps
+--                          baseTank's slurry+digestate combined body intact (they
+--                          are one pit, one plane, one crust) while excluding straw,
+--                          silage, solid manure and trough water.
+--   3. se.fillType       - no levels table at all: fall back to the declared type.
 function SlurryPipeManager:_getStoreTotalFill(se)
     if se == nil or se.storage == nil then return 0 end
     local levels = se.storage.getFillLevels ~= nil and se.storage:getFillLevels() or se.storage.fillLevels
     if levels ~= nil then
         local total = 0
-        for _, lvl in pairs(levels) do
-            total = total + (lvl or 0)
+        local pool  = se.poolFillTypes
+        for ft, lvl in pairs(levels) do
+            local counts
+            if pool ~= nil then
+                counts = pool[ft] == true
+            else
+                counts = ft ~= FillType.WATER and self:_isPumpableSourceFillType(ft)
+            end
+            if counts then
+                total = total + (lvl or 0)
+            end
         end
         return total
     end
@@ -378,30 +442,57 @@ function SlurryPipeManager:getThicknessWarning(sourceEntry)
     return "none"
 end
 
--- Called by SlurryAgitator spec each tick while actively stirring.
--- dtHours: game hours elapsed this tick (dt * 0.001 / 3600 * timeScale).
--- Reduces thickness by dtHours / hoursPerTenPercent where
--- hoursPerTenPercent = daysPerPeriod * 24 / 10 — matching the accumulation rate.
-function SlurryPipeManager:applyAgitation(sourceEntry, dtHours)
+-- [SPS CRUST v1.0.0.10.2] Called by every mixing source each tick while actively
+-- stirring: the tractor-mounted PTO agitator (SlurryPipeManager.update) and the
+-- fixed tank-mounted PTO agitator (SPSFixedAgitator.updateAll).
+--
+--   gameHours: game hours elapsed since this agitator last mixed, taken from the
+--              shared monotonic clock via SlurryPipeManager:consumeGameHours. NOT a
+--              dt-derived value -- see the clock helpers for why.
+--   crustMix:  that agitator's XML speed multiplier (crustMix="2" mixes twice as
+--              fast, i.e. clears a full crust in half CRUST_MIX_HOURS). nil -> 1.0.
+--
+-- Rate is now ABSOLUTE: a full 100% -> 0% clear takes CRUST_MIX_HOURS game hours at
+-- crustMix="1", on every save regardless of daysPerPeriod. Two agitators working the
+-- same store each call in with their own hours and multiplier, so their effect stacks
+-- additively -- which is the intended behaviour for a second mixer.
+--
+-- The separator is deliberately NOT a caller here. It lowers crust by physically
+-- REMOVING dry matter (SPSSeparator scales settle down in proportion to the shrinking
+-- solids pool), which is a different mechanism from re-suspension and must not be
+-- double-counted against the mixing clock.
+function SlurryPipeManager:applyAgitation(sourceEntry, gameHours, crustMix)
     if not self:isFeatureEnabled() then return end
     if sourceEntry == nil then return end
     if sourceEntry.type ~= SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then return end
+    if type(gameHours) ~= "number" or gameHours <= 0 then return end
     self:_ensureStorePools(sourceEntry)
     -- Mixing re-suspends settled solids: it only removes the settling offset. It can
     -- never lower the dry-matter fraction, so a store whose DM is already jammed stays
     -- jammed no matter how long it is stirred (the player must add water instead).
     if (sourceEntry.settle or 0) <= 0 then return end
-    local env = g_currentMission ~= nil and g_currentMission.environment or nil
-    local dpp = (env ~= nil and env.daysPerPeriod or 28)
-    local hoursPerTenPercent = dpp * 24 / 10
-    local reduction = (dtHours / hoursPerTenPercent) * (SlurryPipeManager.AGITATION_RATE_MULT or 1.0)  -- [SPS AGIT] testing tuner
+    local mixHours = SlurryPipeManager.CRUST_MIX_HOURS or 2.0
+    if mixHours <= 0 then return end
+    local mult      = SlurryPipeManager.clampCrustMult(crustMix)
+    local reduction = (gameHours / mixHours) * mult
     sourceEntry.settle = math.max(0.0, (sourceEntry.settle or 0) - reduction)
     --SlurryDebug.log("[SPS Agitation] gauge now " .. string.format("%.2f", self:getApparentThickness(sourceEntry) * 100) .. "%")
-    -- Update vegetation visibility for the matching placeable
+    -- Update vegetation visibility for the matching placeable. Resolved through
+    -- getStoreSources so a secondary lagoon on a multi-store placeable refreshes its
+    -- own crust foliage too; the old identity test against pEntry.sourceEntry only
+    -- ever matched the primary store and left the others visually stale.
     if SPSCrustVegetation ~= nil then
         for _, pEntry in ipairs(self.registeredPlaceables) do
-            if pEntry.sourceEntry == sourceEntry then
-                SPSCrustVegetation.updateVisibility(pEntry)
+            local matched = false
+            if self.getStoreSources ~= nil then
+                for _, se in ipairs(self:getStoreSources(pEntry)) do
+                    if se == sourceEntry then matched = true break end
+                end
+            elseif pEntry.sourceEntry == sourceEntry then
+                matched = true
+            end
+            if matched then
+                SPSCrustVegetation.updateVisibility(pEntry, sourceEntry)
                 break
             end
         end

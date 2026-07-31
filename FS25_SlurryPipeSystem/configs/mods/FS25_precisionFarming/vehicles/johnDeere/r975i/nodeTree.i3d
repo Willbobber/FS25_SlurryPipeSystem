@@ -42,10 +42,10 @@
   </Shapes>
 
   <Scene>
-    <TransformGroup name="SPS_navigator4000" nodeId="10">
+    <TransformGroup name="SPS_r975i" nodeId="10">
       <TransformGroup name="sprayerPipeCouplers" nodeId="11">
-        <TransformGroup name="navigator4000_vis" nodeId="12">
-          <TransformGroup name="SPS_sprayerPipeCoupler01" translation="0.759 1.08667 2.30985" rotation="44.5616 79.949 0" nodeId="13">
+        <TransformGroup name="r975i_vis" nodeId="12">
+          <TransformGroup name="SPS_sprayerPipeCoupler01" translation="1.08531 0.992669 2.01367" rotation="101.286 82.8265 57.2544" nodeId="13">
             <TransformGroup name="SPS_sprayerPipeCoupler01Arcs" translation="-7.45058e-08 0 0" rotation="-44.5616 4.26887e-07 0" nodeId="14">
               <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="-1 0 3.5" rotation="0 0 6.87363e-05" nodeId="15"/>
               <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="1 0 3.5" rotation="0 0 -0.000314568" nodeId="16"/>
@@ -60,8 +60,8 @@
         </TransformGroup>
       </TransformGroup>
       <TransformGroup name="sprayerPumpControls" nodeId="22">
-        <TransformGroup name="navigator4000_vis" nodeId="23">
-          <TransformGroup name="sprayerControlNode" translation="0.75913 1.08667 2.30985" nodeId="24"/>
+        <TransformGroup name="r975i_vis" nodeId="23">
+          <TransformGroup name="sprayerControlNode" translation="1.32603 1.08667 2.54536" nodeId="24"/>
           <TransformGroup name="exhaustNode" translation="0.75913 1.08667 2.30985" nodeId="25"/>
         </TransformGroup>
       </TransformGroup>

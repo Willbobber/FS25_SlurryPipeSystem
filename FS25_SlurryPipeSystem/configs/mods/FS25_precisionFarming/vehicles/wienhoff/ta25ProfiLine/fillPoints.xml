@@ -58,5 +58,8 @@
     <outsideControls>
 		<outsideControl mountNodeName="pumpControl01" pto="true" direction="false"/>
 	</outsideControls>
-
+	
+	<tractorMountFillArms>
+		<tractorMountFillArm />
+	</tractorMountFillArms>
 </slurryPipeSystem>

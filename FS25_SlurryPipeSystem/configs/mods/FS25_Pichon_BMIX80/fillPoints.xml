@@ -9,7 +9,6 @@
 
     <nodeTree filename="nodeTree.i3d"/>
 
-    <agitator tipNode="SPS_agitatorTip"/>
-	
-	
+    <agitator tipNode="SPS_agitatorTip" crustMix="1.0"/>
+	<!-- Baseline is CRUST_MIX_HOURS = 2 game hours of continuous stirring for 100% → 0% at crustMix="1.0". -->
 </slurryPipeSystem>

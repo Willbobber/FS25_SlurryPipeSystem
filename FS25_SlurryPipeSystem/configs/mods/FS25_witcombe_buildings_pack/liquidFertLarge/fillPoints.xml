@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Witcombe Fert Tank Large -->
+
+<!-- FS25_SlurryPipeSystem — Placeable fillPoints.xml -->
+<!-- Author: Oscar Mods -->
+<!-- Version: 1.0.0.0 -->
+
+<sprayerPipeSystem>
+
+    <nodeTree filename="nodeTree.i3d"/>
+	
+    <sprayerPipeCouplings>
+
+        <sprayerPipeCoupling
+            id="1"
+            mountNodeName="SPS_sprayerPipeCoupler01"
+            fillTypeCategories="ANY"
+			capacity="40000"
+			flowDirection="BOTH"
+            maxPipeLength="7.5"
+			connectorAnimation="3"
+		/>
+		<sprayerPipeCoupling
+            id="2"
+            mountNodeName="SPS_sprayerPipeCoupler02"
+            fillTypeCategories="ANY"
+			capacity="40000"
+			flowDirection="BOTH"
+            maxPipeLength="7.5"
+			connectorAnimation="3"
+		/>
+		<sprayerPipeCoupling
+            id="3"
+            mountNodeName="SPS_sprayerPipeCoupler03"
+            fillTypeCategories="ANY"
+			capacity="40000"
+			flowDirection="BOTH"
+            maxPipeLength="7.5"
+			connectorAnimation="3"
+		/>
+		<sprayerPipeCoupling
+            id="4"
+            mountNodeName="SPS_sprayerPipeCoupler04"
+            fillTypeCategories="ANY"
+			capacity="40000"
+			flowDirection="BOTH"
+            maxPipeLength="7.5"
+			connectorAnimation="3"
+		/>
+    </sprayerPipeCouplings>
+
+</sprayerPipeSystem>

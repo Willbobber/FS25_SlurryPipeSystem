@@ -95,7 +95,12 @@
 		<outsideControl mountNodeName="pumpControl01" pto="true" direction="false"/>
 	</outsideControls>
 	
-	<blockageNodes>
+	<!-- [SPS 1.0.0.10.4] Blockage tuning. This is a single wide-bore splash plate with
+	     no macerator, and it is the machine's only outlet - blocking it stops
+	     spreading entirely. Tuned well above the unprotected-bar default so only
+	     genuinely foul slurry can plug it. Remove any attribute to inherit. -->
+	<blockageNodes baseChance="0.0005" outletCrustMinRaw="0.85"
+	               outletChance="0.010" dmBonus="0.25">
         <blockageNode workAreaConfigIndex="0" mountNodeName="SPS_blockageNodeSplashPlate" workAreaNode="workArea01" blockageAnimation="splashPlate"/>
 		<blockageNode workAreaConfigIndex="1" mountNodeName="SPS_blockageNodeSplashPlate" workAreaNode="workArea02" blockageAnimation="splashPlate"/>
 	</blockageNodes>

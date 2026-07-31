@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.8
+-- Version: 1.0.0.10.3
 --
 -- SPSFixedAgitator.lua
 -- ---------------------------------------------------------------------------
@@ -25,6 +25,8 @@
 -- spin, agitation. No walterscheid shaft visual yet (step 2). PTO sound is the
 -- immediate next add once connect is verified in-game.
 -- ---------------------------------------------------------------------------
+
+print("[SPS BUILD] SPSFixedAgitator 1.0.0.10.3 loaded")
 
 SPSFixedAgitator = {}
 
@@ -87,6 +89,20 @@ function SPSFixedAgitator.readConfig(xmlFile, kp)
     local cfg = {}
     cfg.turnOffIfNotAllowed = xmlFile:getBool(base .. "#turnOffIfNotAllowed", true)
     cfg.maxConnectDistance  = xmlFile:getFloat(base .. "#maxConnectDistance", 0.2)
+    -- [SPS CRUST v1.0.0.10.2] Mixing speed for this fixed unit. 1.0 = baseline
+    -- (SlurryPipeManager.CRUST_MIX_HOURS to clear a full crust); 2.0 = twice as fast.
+    -- Same attribute name and meaning as the tractor-mounted agitator's crustMix, so a
+    -- permanently installed lagoon mixer can be rated separately from a PTO unit.
+    cfg.crustMix = xmlFile:getFloat(base .. "#crustMix", 1.0)
+    if SlurryPipeManager ~= nil and SlurryPipeManager.clampCrustMult ~= nil then
+        cfg.crustMix = SlurryPipeManager.clampCrustMult(cfg.crustMix)
+    end
+    -- [SPS 1.0.0.10.3] Which <slurryStore> this fixed unit stirs, matching the
+    -- store's #id. Omitted (the only possible value before <slurryStores> existed)
+    -- means the placeable's primary store, so every existing config is unchanged.
+    -- Without this a fixed agitator on a multi-lagoon placeable always mixed store 1
+    -- regardless of which lagoon its shaft was actually standing in.
+    cfg.storeId = xmlFile:getInt(base .. "#storeId", nil)
 
     -- <input inputNode=".." detachNode=".." filename=".." .../>
     cfg.inputNodeName    = xmlFile:getString(base .. ".input#inputNode", nil)
@@ -378,18 +394,56 @@ end
 -- motor), drive running state, apply agitation, sync transitions. All peers:
 -- ramp + spin the blades from the running flag.
 -- ---------------------------------------------------------------------------
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.0.10.3] Resolve the store this fixed agitator stirs.
+-- Honours cfg.storeId against the placeable's declared <slurryStore #id> list;
+-- falls back to the primary sourceEntry when no id is declared, when the manager
+-- predates the store module, or when the declared id does not exist (warned once
+-- so a typo is visible in a player log with no debug channels enabled).
+-- ---------------------------------------------------------------------------
+function SPSFixedAgitator.resolveStoreSource(manager, pEntry, fa)
+    if pEntry == nil then return nil end
+    local wantId = fa ~= nil and fa.cfg ~= nil and fa.cfg.storeId or nil
+    if wantId == nil or manager == nil or manager.getStoreSources == nil then
+        return pEntry.sourceEntry
+    end
+    for _, se in ipairs(manager:getStoreSources(pEntry)) do
+        if se.storeId == wantId then return se end
+    end
+    if fa._storeIdWarned ~= true then
+        fa._storeIdWarned = true
+        print("[SPS WARNING] fixedAgitator on "
+            .. tostring(pEntry.placeable ~= nil and pEntry.placeable.configFileName or "?")
+            .. " references storeId=" .. tostring(wantId)
+            .. " which does not exist — mixing the primary store instead")
+    end
+    return pEntry.sourceEntry
+end
+
+
 function SPSFixedAgitator.updateAll(manager, dt)
     if manager == nil or manager.registeredPlaceables == nil then return end
     local dtSec = dt * 0.001
 
     local doServer = g_server ~= nil and manager.isFeatureEnabled ~= nil and manager:isFeatureEnabled()
-    local env       = g_currentMission ~= nil and g_currentMission.environment or nil
-    local timeScale = env ~= nil and env.timeAdjustment or 1
-    local dtHours   = (dt * 0.001) * timeScale / 3600
+    -- [SPS CRUST v1.0.0.10.2] Game hours are no longer derived from dt here. Each
+    -- fixed agitator draws from the shared monotonic clock through its own stamp
+    -- (manager:consumeGameHours) at the point it actually mixes, and releases that
+    -- stamp whenever it stops or drops below the level node -- so idle time is never
+    -- banked and cashed in as one huge mixing step on restart.
 
     for _, pEntry in ipairs(manager.registeredPlaceables) do
         local fa = pEntry.fixedAgitator
         if fa ~= nil then
+            -- [SPS CRUST v1.0.0.10.2] No tractor bound (or the realism master is off):
+            -- the server branch below never runs, so drop the mixing clock here rather
+            -- than letting a stale stamp survive across a detach/reattach cycle.
+            if fa.connectedVehicle == nil or not doServer then
+                if manager.releaseGameHours ~= nil then
+                    manager:releaseGameHours(fa, "_agitatorHourStamp")
+                end
+            end
+
             -- ---- server authority ----
             if doServer and fa.connectedVehicle ~= nil then
                 local veh  = fa.connectedVehicle
@@ -409,34 +463,59 @@ function SPSFixedAgitator.updateAll(manager, dt)
 
                     -- Level gate: only mix while the slurry surface is at/above the
                     -- level node. Blades still spin (fa.running); mixing is extra.
+                    -- [SPS 1.0.0.10.3] Both the level gate and the mixing call now
+                    -- run against the store this unit is declared to stir, not the
+                    -- placeable's primary source. On a single-store placeable the
+                    -- resolver returns pEntry.sourceEntry, so nothing changes.
+                    local storeSe = SPSFixedAgitator.resolveStoreSource(manager, pEntry, fa)
+
                     local aboveLevel = true
                     if fa.levelNode ~= nil and fa.levelNode ~= 0 and entityExists(fa.levelNode)
-                    and pEntry.sourceEntry ~= nil and SlurryNodeUtil ~= nil then
+                    and storeSe ~= nil and SlurryNodeUtil ~= nil then
                         local lx, ly, lz = getWorldTranslation(fa.levelNode)
-                        local surfaceY = SlurryNodeUtil.getSurfaceWorldY(pEntry.sourceEntry, lx, lz)
+                        local surfaceY = SlurryNodeUtil.getSurfaceWorldY(storeSe, lx, lz)
                         aboveLevel = surfaceY ~= nil and surfaceY > -math.huge and surfaceY >= ly
                         fa._lastSurfaceY, fa._lastLevelY = surfaceY, ly
                     end
 
                     if fa.running and aboveLevel then
-                        if manager.applyAgitation ~= nil and pEntry.sourceEntry ~= nil then
-                            local before = pEntry.sourceEntry.settle or 0
-                            manager:applyAgitation(pEntry.sourceEntry, dtHours)
+                        if manager.applyAgitation ~= nil and storeSe ~= nil then
+                            local before = storeSe.settle or 0
+                            local hours  = 0
+                            if manager.consumeGameHours ~= nil then
+                                hours = manager:consumeGameHours(fa, "_agitatorHourStamp")
+                            end
+                            local mix = (fa.cfg ~= nil and fa.cfg.crustMix) or 1.0
+                            if hours > 0 then
+                                manager:applyAgitation(storeSe, hours, mix)
+                            end
                             -- Throttled mixing log (~1s) so the effect is visible.
                             fa._mixLogT = (fa._mixLogT or 0) + dt
                             if fa._mixLogT >= 1000 then
                                 fa._mixLogT = 0
-                                log("mixing: settle %.4f -> %.4f (surfaceY=%.2f levelY=%.2f)",
-                                    before, pEntry.sourceEntry.settle or 0,
+                                log("mixing store %s: settle %.4f -> %.4f (surfaceY=%.2f levelY=%.2f)",
+                                    tostring(storeSe.storeId or "primary"),
+                                    before, storeSe.settle or 0,
                                     fa._lastSurfaceY or -1, fa._lastLevelY or -1)
                             end
                         end
                     elseif fa.running and not aboveLevel then
+                        -- [SPS CRUST v1.0.0.10.2] Slurry has dropped below the level
+                        -- node: stop the clock, or the drained period is charged as
+                        -- mixing the moment the store is refilled.
+                        if manager.releaseGameHours ~= nil then
+                            manager:releaseGameHours(fa, "_agitatorHourStamp")
+                        end
                         fa._mixLogT = (fa._mixLogT or 0) + dt
                         if fa._mixLogT >= 1000 then
                             fa._mixLogT = 0
                             log("engaged but below level — not mixing (surfaceY=%.2f levelY=%.2f)",
                                 fa._lastSurfaceY or -1, fa._lastLevelY or -1)
+                        end
+                    else
+                        -- Not running (PTO disengaged, tractor off, shaft detached).
+                        if manager.releaseGameHours ~= nil then
+                            manager:releaseGameHours(fa, "_agitatorHourStamp")
                         end
                     end
 

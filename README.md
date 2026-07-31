@@ -47,9 +47,10 @@ actually thickens, crusts and blocks if you neglect it.
 **Slurry that behaves like slurry**
 - **Thickness / dry matter** — slurry thickens as dry matter concentrates; thickness affects
   flow and spread.
-- **Crust & blockages** — an unmixed store crusts over the season; crusted, lumpy slurry can
-  block spreader outlets and the macerator. Mixing clears the risk; **adding water** dilutes
-  thick slurry.
+- **Crust & blockages** — an unmixed store crusts over on a fixed physical timescale (720
+  game hours, roughly 30 in-game days, whatever your season length); crusted, lumpy slurry
+  blocks spreader outlets and the macerator. Mixing clears the risk in about 2 game hours;
+  **adding water** dilutes thick slurry.
 - **Agitation** — a manager-driven agitator works on any registered vehicle with an agitator
   tip node, no specialization required.
 - **Slurry separation** — the Börger screw-press separator placeable strips dry matter out
@@ -63,8 +64,8 @@ actually thickens, crusts and blocks if you neglect it.
   liquid the coupler dispenses.
 
 **Spreading**
-- **Dribble bars & band spreaders** — per-outlet blockage modelling, distributor macerator,
-  and a spreader HUD.
+- **Dribble bars & band spreaders** — per-outlet blockage modelling with a macerator that
+  shields the outlets up to its capacity, per-vehicle tuning, and a spreader HUD.
 - **Fertiliser / herbicide sprayers** — load liquid fertiliser or herbicide through the same
   coupler-and-pipe system via a dedicated sprayer integration, operated from a single
   walk-up pump control. No pressure model on sprayers — flow is a flat rate.

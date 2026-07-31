@@ -100,6 +100,63 @@ Surface Y = `minY + (fillLevel / capacity) * (maxY - minY)`. The shape nodes def
 XZ footprint the arm must be over (their Y is ignored). Omit `shape` and the store still works
 for piped access; the shape is what enables arm-into-pit surface detection.
 
+> **`<fillPlane>` and `<slurryStores>` are alternatives, never companions.** Declaring both
+> logs a warning and `<slurryStores>` wins — the singular block, including its crust nodes,
+> is ignored. `<fillPlane>` is also **not supported on a production point**: nothing in
+> vanilla drives a production point's plane node, so it would sit frozen at its authored
+> height. Production points must use `<slurryStores>` (§3A), which drives the plane itself.
+
+---
+
+## 3A. Multi-store placeables — `<slurryStores>`
+
+For a placeable with **more than one lagoon**, or for any **production point** (biogas
+plant, etc.) where vanilla does not drive the plane. SPS drives each declared plane itself,
+every tick, on both server and client.
+
+```xml
+<slurryStores>
+    <slurryStore id="1" node="slurryStore01" fillPlaneNode="slurryPit_fillPlane"
+                 minY="0.0" maxY="1.8" fillType="LIQUIDMANURE"
+                 poolFillTypes="LIQUIDMANURE DIGESTATE"
+                 shape="rectangle" centreNodeName="slurryPlaneCentre01"
+                 corner1NodeName="pitCorner1" corner2NodeName="pitCorner2"
+                 agitator="true" hideWhenEmpty="true">
+        <crust planeNode="crust_fillPlane" foliageNode="crustFoliage" maxRise="0.16"/>
+    </slurryStore>
+    <slurryStore id="2" node="slurryStore02" ... />
+</slurryStores>
+```
+
+| Attribute         | Default        | Meaning |
+|-------------------|----------------|---------|
+| `id`              | position index | Store id, used for saving and multiplayer sync. Keep stable once a save exists. |
+| `node`            | —              | Root node of this store's subtree. **Required** — the store is skipped if not found. All the store's other nodes are resolved inside this subtree, so duplicating a lagoon only means renaming this root. |
+| `fillPlaneNode`   | —              | The surface plane node. Driven in Y by SPS. |
+| `minY` / `maxY`   | 0 / 1          | Local Y of the surface when empty / full. |
+| `fillType`        | `LIQUIDMANURE` | This store's content type. |
+| `poolFillTypes`   | `fillType`     | Space-separated set of fill types treated as **one body of liquid** sharing this plane and crust (e.g. `LIQUIDMANURE DIGESTATE` on a BGA). Unknown names are warned about and ignored. |
+| `shape`           | —              | `round` or `rectangle` — XZ detection footprint, same meaning as `<fillPlane>`. |
+| `centreNodeName`  | —              | Centre of the detection area. |
+| `edgeNodeName`    | —              | `round`: rim node. |
+| `corner1NodeName` / `corner2NodeName` | — | `rectangle`: opposite corners. |
+| `agitator`        | `false`        | Whether this store participates in the thickness / crust model. |
+| `hideWhenEmpty`   | `true`         | Hide the plane at zero fill level. |
+
+Store 1 becomes the placeable's **primary** source, so every existing coupler binding, save
+path and HUD readout keeps working unchanged; the remaining stores ride alongside it.
+
+Each store keeps its **own** dry matter, crust and thickness, saved independently and synced
+independently in multiplayer. A fixed agitator stirs the store named by its `storeId` (§6A).
+Detection bounds nodes should live **inside** the store's own subtree so a lagoon can be
+copy-pasted wholesale.
+
+### Per-store crust
+
+`<crust>` inside a `<slurryStore>` takes `planeNode`, `foliageNode` and `maxRise` with the
+same meanings as the placeable-level block in §6. Plants, density and edge margin are read
+from the placeable-level `<crust>` block and shared across stores.
+
 ---
 
 ## 4. Pipe couplings — `<pipeCouplings>` (store inlet/outlet)
@@ -213,6 +270,36 @@ entirely. The pipe mesh must be the **first child** of the effect transform grou
 resolved by child position, not by name). `inletDistance` (default 1.5) sets the effect
 length.
 
+### Effect timing and shaping
+
+Each `<effectNode>` accepts its own timing attributes. All are optional; omitted or negative
+values fall back to the defaults below, which match the values hardcoded before 1.0.0.10.3.
+Times are in **seconds**.
+
+```xml
+<effects inletDistance="1.5">
+    <effectNode effectNode="inletEffectTG" maxBending="0.8" extraDistance="0.1"
+                fadeInTime="1.0" fadeOutTime="1.0" planeFadeTime="1.0"
+                startDelay="0.0" stopDelay="0.0"/>
+    <effectNode effectNode="smokeNode" fadeInTime="1.0" fadeOutTime="1.0"
+                planeFadeTime="1.0" startDelay="0.1" stopDelay="0.1"
+                alignToWorldY="true"/>
+</effects>
+```
+
+| Attribute       | Stream (index 0) | Smoke (index 1) | Meaning |
+|-----------------|------------------|-----------------|---------|
+| `maxBending`    | 0.8              | —               | How far the slurry stream may bend. |
+| `extraDistance` | 0.1              | —               | Extra length past the resolved endpoint, in metres. |
+| `fadeInTime`    | 1.0              | 1.0             | Seconds to fade the effect in. |
+| `fadeOutTime`   | 1.0              | 1.0             | Seconds to fade the effect out. |
+| `planeFadeTime` | 1.0              | 1.0             | Seconds to fade the effect plane. |
+| `startDelay`    | 0.0              | 0.1             | Seconds between flow starting and the effect appearing. |
+| `stopDelay`     | 0.0              | 0.1             | Seconds between flow stopping and the effect ending. |
+| `alignToWorldY` | —                | `true`          | Keep the smoke node upright in world space. |
+
+The same attributes are read on fill arm effect blocks.
+
 ---
 
 ## 5. Hiding base-game parts — `<hideNodes>` / `<hideCollisions>`
@@ -237,12 +324,17 @@ from physics, by `name` (deep search, all matches) or by `node` index/mapping pa
 ## 6. Agitation / thickening / crust — `agitator` + `<crust>`
 
 ```xml
-<slurryPipeSystem agitator="true">
+<slurryPipeSystem agitator="true" crustGrow="1.0">
 ```
 
 `agitator="true"` (default false) makes the store participate in the slurry thickness model —
 its content thickens over time and can be agitated. Leave off for a simple always-liquid
 source.
+
+`crustGrow` (default `1.0`, clamped 0.1–10) scales how fast **this store** crusts over. The
+baseline is 720 game hours from clean to fully crusted, absolute and independent of season
+length. `0.5` = a covered or sheltered tank that takes twice as long; `2.0` = an exposed pit
+that skins over in half the time.
 
 ### Crust visuals — `<crust>` (optional, embedded-supported)
 
@@ -270,6 +362,57 @@ store settles:
 
 Foliage appears in stages as crust builds (roughly 40 / 60 / 80% crust) and clears again as
 the store is agitated.
+
+---
+
+## 6A. Fixed PTO agitator — `<fixedAgitator>`
+
+A permanently installed lagoon mixer. The player drives a tractor up to it, connects a PTO
+shaft, and it mixes the store it sits in — no tanker required. Optional; omit the block
+entirely and nothing is registered.
+
+```xml
+<slurryPipeSystem>
+    <fixedAgitator turnOffIfNotAllowed="true" maxConnectDistance="0.2" crustMix="1.0">
+        <input inputNode="agitatorInput" detachNode="agitatorDetach"
+               filename="shaft/ptoShaft.i3d" zOffset="0"
+               distanceNode="ptoDistanceNode"/>
+        <level node="agitatorLevelNode"/>
+        <animationNodes>
+            <animationNode node="paddle01" rotSpeed="180" rotAxis="2"
+                           turnOnFadeTime="1" turnOffFadeTime="1"/>
+        </animationNodes>
+        <sounds>
+            <turnedOn linkNode="agitatorSoundNode" template="pto01" volumeScale="1"/>
+        </sounds>
+    </fixedAgitator>
+</slurryPipeSystem>
+```
+
+| Attribute                        | Default            | Meaning |
+|----------------------------------|--------------------|---------|
+| `turnOffIfNotAllowed`            | `true`             | Shut down automatically when the connection is no longer valid. |
+| `maxConnectDistance`             | 0.2                | Metres within which the tractor's PTO must sit to connect. |
+| `crustMix`                       | 1.0                | Mixing-speed multiplier, clamped 0.1–10. Same meaning as the vehicle agitator's — `2.0` clears a full crust in half the baseline 2 game hours. Lets a permanent lagoon mixer be rated separately from a PTO unit. |
+| `storeId`                        | primary store      | Which `<slurryStore>` (§3A) this unit stirs, matching that store's `#id`. Omit on a single-store placeable. A referenced id that does not exist is warned about once in the log. |
+| `input#inputNode`                | —                  | Node the PTO shaft attaches to. |
+| `input#detachNode`               | —                  | Node used for the detach position. |
+| `input#filename`                 | —                  | Shaft i3d, relative to your config folder. |
+| `input#zOffset`                  | 0                  | Z offset applied to the spawned shaft. |
+| `input#distanceNode`             | `ptoDistanceNode`  | Node the connect distance is measured from. |
+| `level#node`                     | `agitatorLevelNode`| The slurry surface must be at or above this node's world Y for mixing to occur. Blades still spin below it — only the crust re-suspension is gated. |
+| `animationNode#node`             | —                  | A rotating blade/paddle node. |
+| `animationNode#rotSpeed`         | 0                  | Degrees per second. |
+| `animationNode#rotAxis`          | 2                  | `1` = X, `2` = Y, `3` = Z. |
+| `animationNode#turnOnFadeTime`   | 1                  | Seconds to spin up. |
+| `animationNode#turnOffFadeTime`  | 1                  | Seconds to spin down. |
+| `sounds.turnedOn#linkNode`       | —                  | Node the running sound is attached to. |
+| `sounds.turnedOn#template`       | —                  | Base-game sound template name. |
+| `sounds.turnedOn#volumeScale`    | 1                  | Volume multiplier. |
+
+On a multi-store placeable (§3A) declare `storeId` so the unit stirs the right lagoon —
+without it a fixed agitator always mixes the primary store no matter which lagoon its shaft
+stands in. Several agitators working the same store stack additively.
 
 ---
 
@@ -477,6 +620,8 @@ first child + arc points, plus `inNode`/`outNode`).
 2. Slurry store: ensure it is real storage (`spec_silo` / `spec_husbandry` /
    `spec_siloExtension`).
 3. `<fillPlane>` with `node`, `minY`, `maxY`, `fillType`, and a `shape` for arm detection.
+   For more than one lagoon, or for any production point, use `<slurryStores>` (§3A)
+   **instead** — never both.
 4. `<pipeCouplings>` — each mount node needs the arc-apex first child (2 arc points) and
    `inNode` + `outNode` direct children.
 5. Hide replaced vanilla parts with `<hideNodes>` / `<hideCollisions>`.
@@ -486,4 +631,5 @@ first child + arc points, plus `inNode`/`outNode`).
 7. Optional: link a coupler to your own animated lid with `deployAnimatedObjectSaveId`
    (one shared AnimatedObject per lid), and opt into gravity equalisation with
    `headHeightNodeName`.
-8. Load and confirm `registerPlaceable - registered …`; missing nodes are named in the log.
+8. Optional: a permanently installed lagoon mixer via `<fixedAgitator>` (§6A).
+9. Load and confirm `registerPlaceable - registered …`; missing nodes are named in the log.

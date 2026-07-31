@@ -1,4 +1,4 @@
-print("[SPS BUILD] SPSEvents 1.0.0.9.5 loaded")
+print("[SPS BUILD] SPSEvents 1.0.0.9.31 loaded")
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
 -- Version: 1.0.0.9.2
@@ -1323,11 +1323,16 @@ function SPSStoreCrustEvent.emptyNew()
     return self
 end
 
-function SPSStoreCrustEvent.new(placeable, solids, settle)
+-- [SPS 1.0.0.9.31] storeIndex identifies WHICH lagoon on the placeable this value
+-- belongs to (1-based, matching getStoreSources order). A placeable with a single
+-- store always sends 1, which resolves to its primary sourceEntry — so the wire
+-- shape gained one byte and nothing else about the behaviour changed.
+function SPSStoreCrustEvent.new(placeable, solids, settle, storeIndex)
     local self = SPSStoreCrustEvent.emptyNew()
-    self.placeable = placeable
-    self.solids    = solids or 0
-    self.settle    = settle or 0
+    self.placeable  = placeable
+    self.solids     = solids or 0
+    self.settle     = settle or 0
+    self.storeIndex = storeIndex or 1
     return self
 end
 
@@ -1335,24 +1340,26 @@ function SPSStoreCrustEvent:writeStream(streamId, connection)
     NetworkUtil.writeNodeObject(streamId, self.placeable)
     streamWriteFloat32(streamId, self.solids)
     streamWriteFloat32(streamId, self.settle)
+    streamWriteUInt8(streamId, self.storeIndex or 1)
 end
 
 function SPSStoreCrustEvent:readStream(streamId, connection)
-    self.placeable = NetworkUtil.readNodeObject(streamId)
-    self.solids    = streamReadFloat32(streamId)
-    self.settle    = streamReadFloat32(streamId)
+    self.placeable  = NetworkUtil.readNodeObject(streamId)
+    self.solids     = streamReadFloat32(streamId)
+    self.settle     = streamReadFloat32(streamId)
+    self.storeIndex = streamReadUInt8(streamId)
     self:run(connection)
 end
 
 function SPSStoreCrustEvent:run(connection)
     if g_slurryPipeManager ~= nil and g_slurryPipeManager.applyStoreCrustState ~= nil then
-        g_slurryPipeManager:applyStoreCrustState(self.placeable, self.solids, self.settle)
+        g_slurryPipeManager:applyStoreCrustState(self.placeable, self.solids, self.settle, false, self.storeIndex)
     end
 end
 
-function SPSStoreCrustEvent.sendEvent(placeable, solids, settle)
+function SPSStoreCrustEvent.sendEvent(placeable, solids, settle, storeIndex)
     if g_server == nil then return end
-    g_server:broadcastEvent(SPSStoreCrustEvent.new(placeable, solids, settle), nil, nil, placeable)
+    g_server:broadcastEvent(SPSStoreCrustEvent.new(placeable, solids, settle, storeIndex), nil, nil, placeable)
 end
 
 

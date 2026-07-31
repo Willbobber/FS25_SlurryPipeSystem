@@ -24,7 +24,7 @@
 ================================================================================
 ]]
 
-print("[SPS BUILD] SPSWaterPlaneManager 1.0.0.9.12 loaded")
+print("[SPS BUILD] SPSWaterPlaneManager 1.0.0.10.3 loaded")
 
 SPSWaterPlaneManager = {}
 local SPSWaterPlaneManager_mt = Class(SPSWaterPlaneManager)
@@ -79,10 +79,32 @@ function SPSWaterPlaneManager:loadWaterPlanes()
     
     -- If not found in map scenegraph, try loading external i3d
     if rootNode == nil or not entityExists(rootNode) then
-        print("[SPS WPM] No SPS_waterNodes in map scenegraph, checking for external i3d...")
-        rootNode = self:_loadExternalWaterNodes()
+        -- [SPS 1.0.0.9.25] The direct terrain-root getChild was the only map-embedded
+        -- lookup, but GE does not allow authoring children under the terrain node, so
+        -- the "map-embedded" path documented in the README was impossible to use.
+        -- Two new sources, tried in order before the SPS-bundled manifest:
+        --   1. Deep search of the map's own scenegraph — g_currentMission.maps holds
+        --      every map i3d root node (BaseMission.lua:65/:346, linked to getRootNode()
+        --      at :347). The mapper may parent SPS_waterNodes anywhere in their map.
+        --   2. Map-shipped external i3d — SPS_waterNodes.i3d in the map mod's own
+        --      folder root (g_currentMission.loadedMapBaseDirectory, set at
+        --      BaseMission.lua:297 and never cleared). No SPS edit, no manifest.
+        rootNode = self:_findWaterNodesInMapScenegraph()
         if rootNode ~= nil then
-            loadedFromExternal = true
+            print("[SPS WPM] Found SPS_waterNodes in map scenegraph (deep search)")
+        end
+        if rootNode == nil then
+            rootNode = self:_loadMapFolderWaterNodes()
+            if rootNode ~= nil then
+                loadedFromExternal = true
+            end
+        end
+        if rootNode == nil then
+            print("[SPS WPM] No SPS_waterNodes in map scenegraph, checking for external i3d...")
+            rootNode = self:_loadExternalWaterNodes()
+            if rootNode ~= nil then
+                loadedFromExternal = true
+            end
         end
     else
         print("[SPS WPM] Found SPS_waterNodes in map scenegraph")
@@ -140,6 +162,98 @@ end
   
   Returns root node or nil if not found.
 ]]
+
+--[[
+  [SPS 1.0.0.9.25] Deep search the map's own scenegraph for a node named
+  "SPS_waterNodes". Source: BaseMission.lua:65 (self.maps = {}), :346
+  (table.insert(self.maps, node) in loadMapFinished) — g_currentMission.maps
+  holds the root node of every loaded map i3d. Walking only these roots scopes
+  the search to the map tree, so the mapper may parent SPS_waterNodes anywhere
+  in their map (e.g. under a "water" or "misc" group). Runs once at mission
+  load. Returns the found node or nil. Nodes belong to the map — never deleted
+  by SPS (waterNodesLoadedExternal stays false for this source).
+]]
+function SPSWaterPlaneManager:_findWaterNodesInMapScenegraph()
+    if g_currentMission == nil or g_currentMission.maps == nil then
+        return nil
+    end
+
+    local function search(node)
+        if node == nil or node == 0 or not entityExists(node) then return nil end
+        if getName(node) == "SPS_waterNodes" then return node end
+        for i = 0, getNumOfChildren(node) - 1 do
+            local found = search(getChildAt(node, i))
+            if found ~= nil then return found end
+        end
+        return nil
+    end
+
+    for _, mapNode in pairs(g_currentMission.maps) do
+        local found = search(mapNode)
+        if found ~= nil then
+            return found
+        end
+    end
+
+    return nil
+end
+
+--[[
+  [SPS 1.0.0.9.25] Map-shipped external i3d: the mapper drops a file named
+  SPS_waterNodes.i3d in the ROOT of their own map mod folder. Source for the
+  path: BaseMission.lua:293 (Utils.getModNameAndBaseDirectory(filename)) and
+  :297 (self.loadedMapBaseDirectory = baseDirectory, set once at map load and
+  never cleared). Loaded tree is linked under terrainRootNode exactly like the
+  SPS-bundled manifest path so both external sources share one coordinate-space
+  and cleanup model (waterNodesLoadedExternal -> delete on teardown).
+  Returns the SPS_waterNodes root or nil if the map ships no such file.
+]]
+function SPSWaterPlaneManager:_loadMapFolderWaterNodes()
+    if g_currentMission == nil then
+        return nil
+    end
+    local mapDir = g_currentMission.loadedMapBaseDirectory
+    if mapDir == nil or mapDir == "" then
+        return nil
+    end
+
+    local i3dPath = mapDir .. "SPS_waterNodes.i3d"
+
+    -- [SPS 1.0.0.9.26] fileExists guard (vanilla usage: FSBaseMission.lua:1968)
+    -- — probing loadI3DFile on a missing path makes the ENGINE print
+    -- "Error: i3d ... could not be found" in every log on every map that
+    -- ships no such file. Check existence first; silent skip when absent.
+    if not fileExists(i3dPath) then
+        return nil
+    end
+
+    -- loadI3DFile returns nil/0 if the file doesn't exist — same probe pattern
+    -- as the manifest loader below.
+    local rootNode = loadI3DFile(i3dPath, false, false, false)
+    if rootNode == nil or rootNode == 0 then
+        return nil
+    end
+
+    -- Link to terrain root so nodes are in correct coordinate space
+    link(g_currentMission.terrainRootNode, rootNode)
+
+    -- The loaded i3d root should be named "SPS_waterNodes" or have it as first child
+    local actualRoot = rootNode
+    if getName(rootNode) ~= "SPS_waterNodes" then
+        if getNumOfChildren(rootNode) > 0 then
+            local firstChild = getChildAt(rootNode, 0)
+            if getName(firstChild) == "SPS_waterNodes" then
+                actualRoot = firstChild
+            end
+        end
+    end
+
+    SlurryDebug.log(string.format("[SPS WPM] Loaded map-shipped water nodes from: %s (root: %s)",
+        i3dPath, getName(actualRoot)))
+
+    return actualRoot
+end
+
 function SPSWaterPlaneManager:_loadExternalWaterNodes()
     if g_currentMission == nil or g_currentMission.missionInfo == nil then
         return nil

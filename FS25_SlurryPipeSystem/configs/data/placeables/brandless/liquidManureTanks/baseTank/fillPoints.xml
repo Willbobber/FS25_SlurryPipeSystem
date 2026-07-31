@@ -5,8 +5,15 @@
 <!-- Author: Oscar Mods -->
 <!-- Version: 1.0.0.0 -->
 
-<slurryPipeSystem agitator="true">
- 
+<!-- crustGrow: how fast THIS store crusts over.
+     1.0 = baseline, 720 game hours (30 in-game days) clean -> fully crusted.
+     0.5 = a covered tank, half rate.  1.5 = an exposed open lagoon.
+     Absolute game hours - the same on every save, whatever daysPerPeriod is set to.
+     Clamped 0.1-10.0 on read, so a typo can never make a store uncrustable.
+     agitator="true" is unchanged and is still what opts this store into the crust
+     model at all - without it, crustGrow does nothing. -->
+<slurryPipeSystem agitator="true" crustGrow="1.0">
+
     <nodeTree filename="nodeTree.i3d"/>
 	
     <fillPlane

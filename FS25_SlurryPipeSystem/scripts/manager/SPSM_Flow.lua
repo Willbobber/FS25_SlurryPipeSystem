@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.9
+-- Version: 1.0.0.10.3
 
 -- SPSM_Flow.lua
 -- FS25_SlurryPipeSystem
@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Flow 1.0.0.9.28 loaded")
+print("[SPS BUILD] SPSM_Flow 1.0.0.10.3 loaded")
 
 
 function SlurryPipeManager:connectionIsFillArm(vehicle)
@@ -1400,23 +1400,48 @@ function SlurryPipeManager:detectArmConnection(vehicle, entry, arm)
     if armEffects ~= nil then
         local valveOpen   = state ~= nil and state.valveOpen or false
         local fillLevel   = vehicle.getFillUnitFillLevel ~= nil and vehicle:getFillUnitFillLevel(arm.fillUnitIndex) or 0
-        -- The stream follows actual flow, which is pressure-driven (not the PTO),
-        -- and shows in BOTH directions: a discharge stream out, or a suction
-        -- stream while filling. For an exempt endpoint the scalar is 1.0 so it
-        -- behaves as a simple on/off with the valve.
-        -- [SPS 1.0.0.9.20] Direction-aware: no stream during the hold window
-        -- (stored pressure opposing the selected direction) — visuals now match
-        -- the gated flow instead of showing a discharge driven by a vacuum.
-        local pScalar     = self:getDirectionalPressureFlowScalar(vehicle,
-            state ~= nil and state.direction or nil)
-        local isDischarge = state ~= nil and state.direction == SPS_DIRECTION_DISCHARGE or false
+        -- [SPS 1.0.0.10.3] The stream now asks resolveCouplingFlow the same question
+        -- tickFlow asks, instead of re-deriving its own answer from the pressure
+        -- scalar alone.
+        --
+        -- The bug this fixes: getDirectionalPressureFlowScalar returns TWO values,
+        -- (scalar, usesPressure), and for an endpoint that is NOT on the pressure
+        -- model it returns a hardcoded 1.0, false (SPSM_Pressure: "if not
+        -- self:usesPressureModel(entry) then return 1.0, false end"). The old line
+        -- captured only the scalar and discarded the usesPressure flag, so on an
+        -- exempt endpoint "pScalar > 0" was permanently true and the stream played on
+        -- valve-open alone — with the pump OFF and nothing actually moving. Real flow
+        -- was correct throughout: resolveCouplingFlow gates that same case on
+        -- pumpRunning and returns nil, 0.0. Only the visual disagreed.
+        --
+        -- Routing through resolveCouplingFlow also brings the stream three behaviours
+        -- it never had: the exempt pump gate above, gravity backflow (which resolves
+        -- to DISCHARGE even while the selector reads FILL, so the content test now
+        -- follows the RESOLVED direction rather than the selected one), and the
+        -- sealed-vacuum and partner-pressurising suppressions.
+        --
+        -- Pressure-model behaviour is unchanged: a stored vacuum still drives the
+        -- suction stream after the PTO stops, because it is still genuinely drawing.
+        local pumpRunning
+        if self:isVehicleSelfPowered(vehicle) then
+            pumpRunning = state ~= nil and state.pumpRunning == true
+        else
+            pumpRunning = vehicle.getIsTurnedOn ~= nil and vehicle:getIsTurnedOn() or false
+        end
+        local flowDir, pScalar = nil, 0
+        if state ~= nil then
+            flowDir, pScalar = self:resolveCouplingFlow(vehicle, state, pumpRunning, fillLevel > 0)
+        end
+        pScalar = pScalar or 0
+        local isDischarge = flowDir == SPS_DIRECTION_DISCHARGE
         local hasFlowContent
         if isDischarge then
             hasFlowContent = fillLevel > 0      -- discharging: slurry must be in the tank
         else
             hasFlowContent = foundSource ~= nil -- filling: a source must be present to draw from
         end
-        local shouldPlay  = arm.isConnected and valveOpen and pScalar > 0 and hasFlowContent
+        local shouldPlay  = arm.isConnected and valveOpen and flowDir ~= nil
+            and pScalar > 0 and hasFlowContent
         if shouldPlay then
             if not arm.effectPlaying then
                 local effectFillType = vehicle:getFillUnitFillType(arm.fillUnitIndex)
@@ -1847,6 +1872,20 @@ function SlurryPipeManager:_resolveSourceFillType(srcEntry)
         if declared ~= nil then
             local declaredLvl = srcEntry.storage:getFillLevel(declared) or 0
             if declaredLvl > 0 then return declared end
+        end
+        -- [SPS 1.0.0.10.3] A store declared via <slurryStore> is a discrete lagoon
+        -- with its own plane and its own body of liquid, but every store on one
+        -- placeable shares ONE Storage object. The unrestricted walk below is
+        -- therefore a cross-lagoon leak on a multi-store placeable: dipping an arm
+        -- into an EMPTY digestate lagoon would find LIQUIDMANURE in the shared
+        -- Storage and draw the neighbouring lagoon's slurry through a plane that
+        -- never moves. When the store declares a pool, the walk is confined to it.
+        if srcEntry.poolFillTypes ~= nil then
+            for ft, _ in pairs(srcEntry.poolFillTypes) do
+                local lvl = srcEntry.storage:getFillLevel(ft) or 0
+                if lvl > 0 and self:_isPumpableSourceFillType(ft) then return ft end
+            end
+            return nil
         end
         for ft, _ in pairs(srcEntry.storage.fillTypes) do
             local lvl = srcEntry.storage:getFillLevel(ft) or 0

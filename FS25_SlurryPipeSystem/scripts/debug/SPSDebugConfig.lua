@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.9
+-- Version: 1.0.0.10.3
 
 -- SPSDebugConfig.lua
 -- FS25_SlurryPipeSystem
@@ -48,6 +48,7 @@ SPSDebugConfig.channels = {
     ["SPSM_Flow"]                      = false, -- RESERVED
     ["SPSM_Pressure"]                  = false, -- RESERVED
     ["SPSM_Consistency"]               = false, -- RESERVED
+    ["SPSM_Stores"]                    = false, -- [SPS STORES] slurryStore parse / plane drive / MP trace
     ["SPSM_Spreader"]                  = false, -- RESERVED
     ["SPSM_Sprayers"]                  = false, -- RESERVED
     ["SPSM_IBC"]                       = false, -- RESERVED
@@ -188,6 +189,9 @@ function SPSDebugConfig.applyAll()
     if SPSBuyStationEvent ~= nil then
         SPSBuyStationEvent.DEBUG = ch["SPSBuyStationEvent"] == true
     end
+    if SPSM_Stores ~= nil then
+        SPSM_Stores.DEBUG = ch["SPSM_Stores"] == true
+    end
     if SlurryDebug ~= nil then
         SlurryDebug.enabled = ch["SlurryDebug"] == true
     end
@@ -244,4 +248,4 @@ if addConsoleCommand ~= nil then
         "consoleDebug", SPSDebugConfig)
 end
 
-print("[SPS BUILD] SPSDebugConfig 1.0.0.9.1 loaded")
+print("[SPS BUILD] SPSDebugConfig 1.0.0.10.3 loaded")

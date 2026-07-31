@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
+  </Asset>
+
+  <Files>
+    <File fileId="4" filename="$data/shaders/vehicleShader.xml"/>
+    <File fileId="2" filename="$data/shared/default_normal.dds"/>
+    <File fileId="3" filename="$data/shared/default_vmask.dds"/>
+    <File fileId="6" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="7" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_diffuse.png"/>
+    <File fileId="5" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_specular.png"/>
+    <File fileId="1" filename="$data/shared/white_diffuse.dds"/>
+  </Files>
+
+
+  <Materials>
+    <Material name="black_plasticPainted_mat" materialId="57" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="5"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="7"/>
+      <CustomParameter name="colorScale" value="0.006 0.006 0.006"/>
+    </Material>
+    <Material name="red_plasticPainted_mat" materialId="58" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="5"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="7"/>
+      <CustomParameter name="colorScale" value="0.359 0.033 0.035"/>
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="nodeTree.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="SPS_liquidFertLarge" nodeId="62">
+      <TransformGroup name="sprayerPipeCouplers" nodeId="63">
+        <TransformGroup name="storage" nodeId="64">
+          <TransformGroup name="SPS_sprayerPipeCoupler01" translation="3.74952 0.339639 -0.64464" rotation="0 180 0" nodeId="65">
+            <TransformGroup name="SPS_sprayerPipeCoupler01Arcs" nodeId="66">
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="-1.2 0 3.5" nodeId="67"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="1.2 0 3.5" nodeId="68"/>
+            </TransformGroup>
+            <Shape name="sprayerConnector" shapeId="1" clipDistance="150" nodeId="69" castsShadows="true" receiveShadows="true" materialIds="57">
+              <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="70" castsShadows="true" receiveShadows="true" materialIds="58"/>
+              <TransformGroup name="inNode" translation="2.49905e-08 1.64534e-08 0.205501" rotation="0 180 0" nodeId="71"/>
+              <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="72"/>
+            </Shape>
+          </TransformGroup>
+          <TransformGroup name="SPS_sprayerPipeCoupler02" translation="1.24686 0.34 -0.644639" rotation="-180 -5.00896e-06 -180" nodeId="118">
+            <TransformGroup name="SPS_sprayerPipeCoupler02Arcs" translation="0 -4.47035e-07 -9.85825e-09" rotation="5.00896e-06 -0 -5.00896e-06" nodeId="119">
+              <TransformGroup name="SPS_sprayerPipeCoupler02Arc01" translation="-1.2 0 3.5" nodeId="120"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler02Arc02" translation="1.2 0 3.5" nodeId="121"/>
+            </TransformGroup>
+            <Shape name="sprayerConnector" translation="0 -4.47035e-07 1.16232e-06" rotation="5.00896e-06 -1.22133e-12 -5.00896e-06" shapeId="1" clipDistance="150" nodeId="122" castsShadows="true" receiveShadows="true" materialIds="57">
+              <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="123" castsShadows="true" receiveShadows="true" materialIds="58"/>
+              <TransformGroup name="inNode" translation="2.49905e-08 1.64534e-08 0.205501" rotation="180 -5.00896e-06 180" nodeId="124"/>
+              <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="125"/>
+            </Shape>
+          </TransformGroup>
+          <TransformGroup name="SPS_sprayerPipeCoupler03" translation="-1.25083 0.339639 -0.64464" rotation="0 180 0" nodeId="85">
+            <TransformGroup name="SPS_sprayerPipeCoupler03Arcs" nodeId="86">
+              <TransformGroup name="SPS_sprayerPipeCoupler03Arc01" translation="-1.2 0 3.5" nodeId="87"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler03Arc02" translation="1.2 0 3.5" nodeId="88"/>
+            </TransformGroup>
+            <Shape name="sprayerConnector" shapeId="1" clipDistance="150" nodeId="89" castsShadows="true" receiveShadows="true" materialIds="57">
+              <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="90" castsShadows="true" receiveShadows="true" materialIds="58"/>
+              <TransformGroup name="inNode" translation="2.49905e-08 1.64534e-08 0.205501" rotation="0 180 0" nodeId="91"/>
+              <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="92"/>
+            </Shape>
+          </TransformGroup>
+          <TransformGroup name="SPS_sprayerPipeCoupler04" translation="-3.74715 0.33964 -0.644638" rotation="-180 -5.00896e-06 -180" nodeId="95">
+            <TransformGroup name="SPS_sprayerPipeCoupler04Arcs" translation="0 -4.47035e-07 -9.85825e-09" rotation="5.00896e-06 -0 -5.00896e-06" nodeId="96">
+              <TransformGroup name="SPS_sprayerPipeCoupler04Arc01" translation="-1.2 0 3.5" nodeId="97"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler04Arc02" translation="1.2 0 3.5" nodeId="98"/>
+            </TransformGroup>
+            <Shape name="sprayerConnector" translation="0 -4.47035e-07 1.16232e-06" rotation="5.00896e-06 -1.22133e-12 -5.00896e-06" shapeId="1" clipDistance="150" nodeId="99" castsShadows="true" receiveShadows="true" materialIds="57">
+              <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="100" castsShadows="true" receiveShadows="true" materialIds="58"/>
+              <TransformGroup name="inNode" translation="2.49905e-08 1.64534e-08 0.205501" rotation="180 -5.00896e-06 180" nodeId="101"/>
+              <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="102"/>
+            </Shape>
+          </TransformGroup>
+        </TransformGroup>
+      </TransformGroup>
+    </TransformGroup>
+  </Scene>
+
+</i3D>

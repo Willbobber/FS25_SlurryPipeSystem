@@ -21,7 +21,12 @@
          blockageAnimation is OPTIONAL per node:
            - present -> that animation plays on block (forward) and clear (reverse)
            - absent  -> no animation is played for that node (skipped). -->
-    <blockageNodes>
+    <!-- [SPS 1.0.0.10.4] Blockage tuning for this bar. All optional - remove any
+         attribute to inherit the global default. Crust is the tanker-carried
+         lumpiness; the macerator absorbs it up to outletCrustMin, past which
+         lumps reach the outlets. dmBonus is the thick-slurry amplifier. -->
+    <blockageNodes baseChance="0.001" maceratorCrustMin="0.25" maceratorChance="0.027"
+                   outletCrustMin="0.60" outletChance="0.030" dmBonus="0.25">
         <blockageNode mountNodeName="SPS_blockageNodeMacerator01" blockageAnimation="blockMacerator01"/>
 		<blockageNode mountNodeName="SPS_blockageNodeMacerator02" blockageAnimation="blockMacerator02"/>
 		

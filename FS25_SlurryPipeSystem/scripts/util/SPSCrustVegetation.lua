@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.8
+-- Version: 1.0.0.10.3
 
 -- SPSCrustVegetation.lua
 -- Manages procedural vegetation on slurry fill planes.
@@ -8,7 +8,7 @@
 -- Stage is declared per plant in fillPoints.xml.
 -- All pools share a global exclusion zone so no two instances overlap.
 
-print("[SPS BUILD] SPSCrustVegetation 1.0.0.9.15 loaded")
+print("[SPS BUILD] SPSCrustVegetation 1.0.0.10.3 loaded")
 
 SPSCrustVegetation = {}
 
@@ -79,9 +79,15 @@ end
 -- ---------------------------------------------------------------------------
 -- initForPlaceable
 -- ---------------------------------------------------------------------------
-function SPSCrustVegetation.initForPlaceable(pEntry, modDirectory)
+-- [SPS 1.0.0.9.31] sourceEntry is now an explicit optional argument. A placeable
+-- declaring <slurryStores> calls this once per store, passing that store's entry, and
+-- the resulting plant instances are held on the STORE (sourceEntry.crustInstances)
+-- rather than the placeable — two lagoons on one BGA keep separate plant sets, and
+-- each follows its own crust plane. Omitting the argument selects the placeable's
+-- primary source, which is exactly what every single-plane placeable did before.
+function SPSCrustVegetation.initForPlaceable(pEntry, modDirectory, sourceEntry)
     local cfg         = pEntry.crustConfig
-    local sourceEntry = pEntry.sourceEntry
+    sourceEntry       = sourceEntry or pEntry.sourceEntry
     print("[SPS CrustVeg] initForPlaceable: " .. tostring(pEntry.placeable ~= nil and pEntry.placeable.configFileName or "nil")
         .. " cfg=" .. tostring(cfg ~= nil)
         .. " sourceEntry=" .. tostring(sourceEntry ~= nil)
@@ -105,6 +111,30 @@ function SPSCrustVegetation.initForPlaceable(pEntry, modDirectory)
         .. tostring(attachNode == sourceEntry.crustFoliageNode and "crustFoliage" or "slurryPlane")
         .. " (" .. tostring(attachNode) .. ")")
 
+    -- [SPS 1.0.0.10.3] Keep the attach node so updateVisibility can recompute each
+    -- plant's world position from it LIVE. Clones are world-parented (1.0.0.9.15),
+    -- so nothing about the slurry surface height reaches them automatically.
+    sourceEntry.crustAttachNode = attachNode
+
+    -- Does the attach node already sit under the crust plane? If so it inherits the
+    -- settle rise through its parent and updateVisibility must NOT add it again.
+    -- A store with no crust mesh falls back to the slurry plane, which carries the
+    -- surface height but not the rise, so there the rise IS applied. Walked once
+    -- here rather than assumed, because both authoring styles ship.
+    sourceEntry.crustFoliageInheritsRise = false
+    if sourceEntry.crustPlaneNode ~= nil and sourceEntry.crustPlaneNode ~= 0 then
+        local n = attachNode
+        while n ~= nil and n ~= 0 do
+            if n == sourceEntry.crustPlaneNode then
+                sourceEntry.crustFoliageInheritsRise = true
+                break
+            end
+            n = getParent(n)
+        end
+    end
+    print("[SPS CrustVeg] foliage inherits crust rise = "
+        .. tostring(sourceEntry.crustFoliageInheritsRise))
+
     local area
     if bounds.shape == "round" then
         area = math.pi * bounds.radius * bounds.radius
@@ -127,7 +157,7 @@ function SPSCrustVegetation.initForPlaceable(pEntry, modDirectory)
         end
     end
 
-    pEntry.crustInstances = { [1] = {}, [2] = {}, [3] = {} }
+    sourceEntry.crustInstances = { [1] = {}, [2] = {}, [3] = {} }
 
     -- Load each unique i3d exactly once, cache the template node, then clone
     -- per instance. This avoids one loadI3DFile call (and one engine load-log
@@ -221,7 +251,11 @@ function SPSCrustVegetation.initForPlaceable(pEntry, modDirectory)
         local s = 0.8 + math.random() * 0.4
         setScale(plantRoot, s, s, s)
         setVisibility(plantRoot, false)
-        return { rootNode = plantRoot, wx = wpx, wy = wpy, wz = wpz }
+        -- [SPS 1.0.0.10.3] lx/lz are the plant's position ON the attach node and are
+        -- what updateVisibility re-projects through the LIVE node every refresh.
+        -- wx/wy/wz are kept only as the load-time fallback for the pre-1.0.0.10.3
+        -- path (and so an instance restored without lx/lz still renders).
+        return { rootNode = plantRoot, lx = lx, lz = lz, wx = wpx, wy = wpy, wz = wpz }
     end
 
     for stage = 1, 3 do
@@ -234,7 +268,7 @@ function SPSCrustVegetation.initForPlaceable(pEntry, modDirectory)
                     local inst  = placeInstance(wx, wz, plant)
                     if inst ~= nil then
                         table.insert(allPlaced, { wx, wz })
-                        table.insert(pEntry.crustInstances[stage], inst)
+                        table.insert(sourceEntry.crustInstances[stage], inst)
                     end
                 end
             end
@@ -248,17 +282,23 @@ function SPSCrustVegetation.initForPlaceable(pEntry, modDirectory)
         end
     end
 
-    local total = #pEntry.crustInstances[1] + #pEntry.crustInstances[2] + #pEntry.crustInstances[3]
-    SlurryDebug.log("[SPS CrustVeg] placed " .. total .. " instances on " .. tostring(pEntry.placeable.configFileName))
+    local total = #sourceEntry.crustInstances[1] + #sourceEntry.crustInstances[2] + #sourceEntry.crustInstances[3]
+    SlurryDebug.log("[SPS CrustVeg] placed " .. total .. " instances on "
+        .. tostring(pEntry.placeable.configFileName)
+        .. (sourceEntry.storeId ~= nil and (" store " .. tostring(sourceEntry.storeId)) or ""))
 
-    SPSCrustVegetation.updateVisibility(pEntry)
+    SPSCrustVegetation.updateVisibility(pEntry, sourceEntry)
 end
 
 -- ---------------------------------------------------------------------------
 -- updateVisibility
 -- ---------------------------------------------------------------------------
-function SPSCrustVegetation.updateVisibility(pEntry)
-    if pEntry.crustInstances == nil then return end
+-- [SPS 1.0.0.9.31] Operates on ONE store. Called with an explicit sourceEntry by the
+-- multi-store paths; called without one it falls back to the placeable's primary
+-- source, which is the single-plane behaviour. Instances live on the store entry.
+function SPSCrustVegetation.updateVisibility(pEntry, sourceEntry)
+    sourceEntry = sourceEntry or pEntry.sourceEntry
+    if sourceEntry == nil or sourceEntry.crustInstances == nil then return end
     -- Crust is a mandatory realism feature: when the master is off, hide all of it
     -- (kept in memory, not deleted, so it returns instantly when re-enabled).
     local masterOn = g_slurryPipeManager == nil or g_slurryPipeManager:isFeatureEnabled()
@@ -268,22 +308,48 @@ function SPSCrustVegetation.updateVisibility(pEntry)
     -- 0% (field report). Design rule restored: plants appear at crust >= 40%,
     -- fuller stages at 60% / 80% — the same value the HUD shows as crust.
     local t = 0
-    if g_slurryPipeManager ~= nil and pEntry.sourceEntry ~= nil
-    and g_slurryPipeManager.getSourceCrust ~= nil then
-        t = g_slurryPipeManager:getSourceCrust(pEntry.sourceEntry) or 0
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.getSourceCrust ~= nil then
+        t = g_slurryPipeManager:getSourceCrust(sourceEntry) or 0
     end
-    -- Follow the rising crust plane (clones are world-parented since 1.0.0.9.15).
-    local rise = 0
-    if pEntry.sourceEntry ~= nil then
-        rise = (pEntry.sourceEntry.settle or 0) * (pEntry.sourceEntry.crustMaxRise or 0)
+    -- [SPS 1.0.0.10.3] Height is now re-projected through the LIVE attach node every
+    -- refresh instead of being added to a world Y frozen at registration.
+    --
+    -- The bug this fixes: clones are world-parented (1.0.0.9.15), so the only height
+    -- they ever received was inst.wy (captured once, at whatever the surface height
+    -- happened to be when the placeable registered) plus settle * crustMaxRise --
+    -- 0.16 m at most on baseTank. The slurry surface itself travels the full
+    -- minY..maxY of the fill plane, 0.763 m on that same tank. The crust MESH tracked
+    -- it correctly because it is genuinely parented to the fill plane, but the plants
+    -- could not: a pit near full simply swallowed them, while a part-full pit left
+    -- them showing. Two identical tanks at different levels therefore looked like one
+    -- had foliage and one had none.
+    --
+    -- The attach node is inside the fill-plane subtree, so re-projecting each plant's
+    -- stored local XZ through it picks up the surface height for free, on server and
+    -- client alike, with no extra state to sync.
+    local attachNode = sourceEntry.crustAttachNode
+    if attachNode ~= nil and (attachNode == 0 or not entityExists(attachNode)) then
+        attachNode = nil
     end
+    -- Only added when the attach node does NOT already inherit it through the crust
+    -- plane; adding it in that case would double-count the rise.
+    local rise = (sourceEntry.settle or 0) * (sourceEntry.crustMaxRise or 0)
+    if sourceEntry.crustFoliageInheritsRise then rise = 0 end
+
     for stage = 1, 3 do
         local visible = masterOn and (t >= SPSCrustVegetation.THRESH[stage])
-        for _, inst in ipairs(pEntry.crustInstances[stage]) do
+        for _, inst in ipairs(sourceEntry.crustInstances[stage]) do
             if inst.rootNode ~= nil and inst.rootNode ~= 0 and entityExists(inst.rootNode) then
                 setVisibility(inst.rootNode, visible)
-                if visible and inst.wy ~= nil then
-                    setWorldTranslation(inst.rootNode, inst.wx, inst.wy + rise, inst.wz)
+                if visible then
+                    if attachNode ~= nil and inst.lx ~= nil and inst.lz ~= nil then
+                        local wx, wy, wz = localToWorld(attachNode, inst.lx, 0, inst.lz)
+                        setWorldTranslation(inst.rootNode, wx, wy + rise, wz)
+                    elseif inst.wy ~= nil then
+                        -- Fallback: no live attach node (dead handle) or an instance
+                        -- with no stored local XZ. Pre-1.0.0.10.3 behaviour.
+                        setWorldTranslation(inst.rootNode, inst.wx, inst.wy + rise, inst.wz)
+                    end
                 end
             end
         end
@@ -293,21 +359,40 @@ end
 -- ---------------------------------------------------------------------------
 -- deleteForPlaceable
 -- ---------------------------------------------------------------------------
+-- [SPS 1.0.0.9.31] Deletes every store's plants, not just the primary's. Sources are
+-- resolved through the manager so a multi-store placeable tears down all its lagoons;
+-- if the manager is gone (shutdown ordering) it falls back to the primary entry.
 function SPSCrustVegetation.deleteForPlaceable(pEntry)
-    if pEntry.crustInstances == nil then return end
+    local sources = nil
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.getStoreSources ~= nil then
+        sources = g_slurryPipeManager:getStoreSources(pEntry)
+    end
+    if sources == nil or #sources == 0 then
+        sources = pEntry.sourceEntry ~= nil and { pEntry.sourceEntry } or {}
+    end
+    local hasAny = false
+    for _, se in ipairs(sources) do
+        if se.crustInstances ~= nil then hasAny = true break end
+    end
+    if not hasAny then return end
     -- Clones are world-parented (1.0.0.9.15), so neither sell nor leave-game
     -- deletes them behind our back any more — this is now the one true owner.
     -- The entityExists guard stays as cheap insurance, matching every other
     -- delete path in the mod.
     local deleted, skipped = 0, 0
-    for stage = 1, 3 do
-        for _, inst in ipairs(pEntry.crustInstances[stage]) do
-            if inst.rootNode ~= nil and inst.rootNode ~= 0 and entityExists(inst.rootNode) then
-                delete(inst.rootNode)
-                deleted = deleted + 1
-            else
-                skipped = skipped + 1
+    for _, se in ipairs(sources) do
+        if se.crustInstances ~= nil then
+            for stage = 1, 3 do
+                for _, inst in ipairs(se.crustInstances[stage]) do
+                    if inst.rootNode ~= nil and inst.rootNode ~= 0 and entityExists(inst.rootNode) then
+                        delete(inst.rootNode)
+                        deleted = deleted + 1
+                    else
+                        skipped = skipped + 1
+                    end
+                end
             end
+            se.crustInstances = nil
         end
     end
     print("[SPS CrustVeg] deleteForPlaceable: deleted=" .. tostring(deleted)
