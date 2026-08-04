@@ -166,6 +166,15 @@
              on disk makes the entry dead. -->
         <placeable path="FS25_BuyableManureAndOther/liquidManureStation.xml"
                    configFolder="mods/FS25_BuyableManureAndOther/liquidManureStation"/>
+
+        <!-- PlanET BGA Modular (Kastor [D-S-Agrarservice]) — liquid manure and
+             digestate stores. Both placeables are productionPoints with their own
+             storage, so the coupling-only sourceEntry is built automatically. The
+             nodeTree container ("productionPoint") exists in each placeable i3d. -->
+        <placeable path="FS25_PlanET_BGA_Modular/xml/PlanET_Guelle.xml"
+                   configFolder="mods/FS25_PlanET_BGA_Modular/xml/PlanET_Guelle"/>
+        <placeable path="FS25_PlanET_BGA_Modular/xml/PlanET_Gaerreste.xml"
+                   configFolder="mods/FS25_PlanET_BGA_Modular/xml/PlanET_Gaerreste"/>
 		
 		<!-- Witcombe Placeable pack -->
 		<placeable path="FS25_witcombe_buildings_pack/cowBarn01.xml"
