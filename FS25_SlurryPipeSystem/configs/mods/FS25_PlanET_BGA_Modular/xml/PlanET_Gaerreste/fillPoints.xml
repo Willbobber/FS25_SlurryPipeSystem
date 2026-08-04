@@ -6,6 +6,7 @@
     <nodeTree filename="nodeTree_Gaerreste.i3d"/>
     <pipeCouplings>
         <pipeCoupling id="1" mountNodeName="spsInlet_Gaerreste"
+                      fillType="DIGESTATE"
                       valveType="MANUAL" flowDirection="BOTH" connector="male"/>
     </pipeCouplings>
     <hideNodes>
