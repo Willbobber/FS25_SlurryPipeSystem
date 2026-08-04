@@ -7,7 +7,7 @@
     <pipeCouplings>
         <pipeCoupling id="1" mountNodeName="spsInlet_Guelle"
                       fillType="LIQUIDMANURE"
-                      valveType="MANUAL" flowDirection="BOTH" connector="male"/>
+                      valveType="MANUAL" flowDirection="DISCHARGE" connector="male"/>
     </pipeCouplings>
     <hideNodes>
         <node name="unloadTriggerLiquidManureMarker"/>
