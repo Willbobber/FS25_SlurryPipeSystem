@@ -6,7 +6,8 @@
     <nodeTree filename="nodeTree_Guelle.i3d"/>
     <pipeCouplings>
         <pipeCoupling id="1" mountNodeName="spsInlet_Guelle"
-                      valveType="MANUAL" flowDirection="BOTH" connector="male"/>
+                      fillType="LIQUIDMANURE"
+                      valveType="MANUAL" flowDirection="DISCHARGE" connector="male"/>
     </pipeCouplings>
     <hideNodes>
         <node name="unloadTriggerLiquidManureMarker"/>
