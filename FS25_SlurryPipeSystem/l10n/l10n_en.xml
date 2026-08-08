@@ -72,6 +72,7 @@
 		
         <!-- Slurry thickness / agitation -->
         <text name="warning_spsSlurryThickening"  		text="Slurry thickening: %d%% — agitation advised" />
+        <text name="warning_spsSlurryThickeningWater"  	text="Slurry thickening: %d%% — add water" />
         <text name="warning_spsSlurryTooThick"          text="Slurry too thick — Water required" />
         <text name="sps_settingsAgitation"              text="Slurry Agitation" />
         <text name="sps_settingsAgitationTooltip"       text="Enable slurry thickening and agitation system" />
@@ -95,6 +96,7 @@
 		<text name="sps_infoLiquidTitle"                text="Liquid" />
         <text name="sps_infoDryMatterTitle"             text="Dry Matter" />
         <text name="sps_infoCrustTitle"                 text="Crust" />
+        <text name="sps_infoTankEmpty"               text="Empty" />
 		
 		<!-- Water -->
 		<text name="action_spsDeployWaterPipe"			text="Hold R: Deploy Water Pipe" />

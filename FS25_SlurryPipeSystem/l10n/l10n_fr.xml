@@ -72,7 +72,8 @@
 		
         <!-- Slurry thickness / agitation -->
         <text name="warning_spsSlurryThickening"  		text="Épaississement du lisier : %d%% — agitation conseillée" />
-        <text name="warning_spsSlurryTooThick"          text="Lisier trop épais — eau et agitation nécessaires" />
+        <text name="warning_spsSlurryThickeningWater"  	text="Épaississement du lisier : %d%% — ajouter de l&apos;eau" />
+        <text name="warning_spsSlurryTooThick"          text="Lisier trop épais — eau nécessaire" />
         <text name="sps_settingsAgitation"              text="Agitation du lisier" />
         <text name="sps_settingsAgitationTooltip"       text="Active le système d'épaississement et d'agitation du lisier" />
         <text name="sps_settingsRealism"                text="Réalisme du lisier" />
@@ -95,6 +96,7 @@
 		<text name="sps_infoLiquidTitle"                text="Liquide" />
         <text name="sps_infoDryMatterTitle"             text="Matière sèche" />
         <text name="sps_infoCrustTitle"                 text="Croûte" />
+        <text name="sps_infoTankEmpty"               text="Vide" />
 		
 		<!-- Water -->
 		<text name="action_spsDeployWaterPipe"			text="Maintenir R : Déployer le tuyau d'eau" />

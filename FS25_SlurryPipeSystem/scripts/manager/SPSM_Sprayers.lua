@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.10.3
+-- Version: 1.0.1.6
 
 -- SPSM_Sprayers.lua
 -- FS25_SlurryPipeSystem
@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Sprayers 1.0.0.10.3 loaded")
+print("[SPS BUILD] SPSM_Sprayers 1.0.1.6 loaded")
 
 
 -- Applies saved sprayer animation state to a newly registered vehicle.
@@ -408,6 +408,14 @@ function SlurryPipeManager:registerSprayerVehicle(vehicle)
         pumpControls     = {},
         pipeActivatables = {},
         litersPerSecond  = xmlFile:getFloat(kp .. "flow#litersPerSecond", 200),
+        -- [SPS 1.0.1.4] Optional FlowControl balance overrides. All defaults mirror
+        -- the real Amazone FT-P (rear held at 30%, top-up to 40%, 200 l/min pump).
+        -- Absent block => defaults, so unconfigured combos work out of the box.
+        ftBalance        = {
+            lowPct          = xmlFile:getFloat(kp .. "frontTankBalance#lowPct", 30),
+            highPct         = xmlFile:getFloat(kp .. "frontTankBalance#highPct", 40),
+            litersPerMinute = xmlFile:getFloat(kp .. "frontTankBalance#transferLitersPerMinute", 200),
+        },
         nodeTreeRoot     = nil,
         state = {
             pumpRunning   = false,
@@ -1332,6 +1340,164 @@ function SlurryPipeManager:registerSprayerPlaceable(placeable)
         }
     else
     end
+    -- [SPS 1.0.1.2] Sprayer buying-station placeable (vanilla placeable type
+    -- "buyingStation" — same PlaceableBuyingStation/BuyingStation.lua vanilla
+    -- pair already verified for the slurry side): an infinite PAID source for
+    -- sprayers, mirroring the slurry SPS_SOURCE_TYPE_BUYING_STATION path. No
+    -- Storage object exists; the vanilla station performs the whole purchase
+    -- inside addFillLevelToFillableObject for its own declared types, and
+    -- SPS-extra types purchase through transferSprayerFillFromBuyingStation.
+    -- Sold set is EXPLICIT-ONLY — nothing is auto-added:
+    --   buyingStation#fillTypes           ordered switch cycle, vanilla-declared
+    --                                     types (vanilla pricing)
+    --   buyingStation#fillType            legacy single type (one-entry cycle)
+    --   buyingStation#default             starting selection
+    --   <extraFillType name= priceScale=> single SPS-extra sold type (SPS-side
+    --                                     purchase; priceScale 0 = free)
+    --   <extraFillTypeCategory name= priceScale=>
+    --                                     [SPS 1.0.1.2] whole fillType CATEGORY
+    --                                     appended to the cycle — the script-mod
+    --                                     hook (e.g. Soil & Fertilizer liquids):
+    --                                     unknown categories/types resolve to
+    --                                     nothing and are skipped with a log
+    --                                     line, so one config loads clean with
+    --                                     or without the liquid mod installed.
+    --                                     Types the vanilla station already
+    --                                     declares keep vanilla pricing; an
+    --                                     explicit <extraFillType> scale wins
+    --                                     over its category's scale.
+    -- [SPS 1.0.1.3] Slurry and sprayer buying stations are mutually exclusive
+    -- on one placeable — two gates: the config must not also declare a slurry
+    -- buyingStation block, and the placeable must not already be registered as
+    -- a slurry buy station (registerPlaceable runs first in loadMap AND
+    -- finalizePlacement, so the slurry side always wins a conflict).
+    local bsBlockedBySlurry = false
+    if sourceEntry == nil and xmlFile:hasProperty(kp .. "buyingStation") then
+        if xmlFile:hasProperty((config.xmlKeyPrefix or "") .. "slurryPipeSystem.buyingStation") then
+            bsBlockedBySlurry = true
+        end
+        if not bsBlockedBySlurry and self.getBuyStationEntry ~= nil then
+            local slurryEntry = self:getBuyStationEntry(placeable)
+            if slurryEntry ~= nil then bsBlockedBySlurry = true end
+        end
+        if bsBlockedBySlurry then
+            print("Warning: [SPS] " .. tostring(placeable.configFileName)
+                .. ": slurry and sprayer buying stations cannot share one placeable — <sprayerPipeSystem><buyingStation> ignored")
+        end
+    end
+    if sourceEntry == nil and not bsBlockedBySlurry
+    and placeable.spec_buyingStation ~= nil
+    and placeable.spec_buyingStation.buyingStation ~= nil
+    and xmlFile:hasProperty(kp .. "buyingStation") then
+        local station = placeable.spec_buyingStation.buyingStation
+        local bsFillTypes = {}
+        local bsSeen      = {}
+        local function bsAppend(ftIdx)
+            if ftIdx == nil or bsSeen[ftIdx] == true then return end
+            -- [SPS 1.0.1.3] Sprayers cannot accept water — WATER is refused
+            -- from the sprayer buy-station cycle no matter where it is
+            -- declared (#fillTypes / #fillType / extras / categories).
+            if ftIdx == FillType.WATER then
+                if not bsSeen._waterWarned then
+                    bsSeen._waterWarned = true
+                    print("Warning: [SPS] " .. tostring(placeable.configFileName)
+                        .. ": WATER is not sellable on a sprayer buying station — excluded")
+                end
+                return
+            end
+            bsSeen[ftIdx] = true
+            table.insert(bsFillTypes, ftIdx)
+        end
+        local bsTypesStr = xmlFile:getString(kp .. "buyingStation#fillTypes", nil)
+        if bsTypesStr ~= nil then
+            for ftName in bsTypesStr:gmatch("%S+") do
+                local ftIdx = g_fillTypeManager:getFillTypeIndexByName(ftName)
+                if ftIdx ~= nil then
+                    bsAppend(ftIdx)
+                else
+                    SlurryPipeManager.log("registerSprayerPlaceable: buyingStation#fillTypes unknown fillType '%s' ignored",
+                        tostring(ftName))
+                end
+            end
+        end
+        if #bsFillTypes == 0 then
+            local bsFillTypeName = xmlFile:getString(kp .. "buyingStation#fillType", "LIQUIDFERTILIZER")
+            bsAppend(g_fillTypeManager:getFillTypeIndexByName(bsFillTypeName) or FillType.LIQUIDFERTILIZER)
+        end
+        -- SPS-extra sold types: fillType -> priceScale for types the vanilla
+        -- station does NOT declare (its getEffectiveFillTypePrice would index a
+        -- nil priceScale — verified source, slurry side). Explicit singles first.
+        local bsExtraScales = {}
+        local extraIdx = 0
+        while true do
+            local eKey = string.format(kp .. "buyingStation.extraFillType(%d)", extraIdx)
+            if not xmlFile:hasProperty(eKey) then break end
+            local eName = xmlFile:getString(eKey .. "#name", nil)
+            local eIdx  = eName ~= nil and g_fillTypeManager:getFillTypeIndexByName(eName) or nil
+            if eIdx ~= nil then
+                bsAppend(eIdx)
+                -- [SPS 1.0.1.3] WATER never enters the sold set (see bsAppend).
+                if eIdx ~= FillType.WATER then
+                    bsExtraScales[eIdx] = xmlFile:getFloat(eKey .. "#priceScale", 1.0)
+                end
+            else
+                SlurryPipeManager.log("registerSprayerPlaceable: buyingStation.extraFillType unknown fillType '%s' ignored",
+                    tostring(eName))
+            end
+            extraIdx = extraIdx + 1
+        end
+        -- [SPS 1.0.1.2] Category extras. Register-time resolution keeps the
+        -- cycle static + deterministic on every machine (MP prompt parity).
+        local catIdx = 0
+        while true do
+            local cKey2 = string.format(kp .. "buyingStation.extraFillTypeCategory(%d)", catIdx)
+            if not xmlFile:hasProperty(cKey2) then break end
+            local cName  = xmlFile:getString(cKey2 .. "#name", nil)
+            local cScale = xmlFile:getFloat(cKey2 .. "#priceScale", 1.0)
+            if cName ~= nil then
+                local list = g_fillTypeManager:getFillTypesByCategoryNames(cName,
+                    "Warning: [SPS] buyingStation.extraFillTypeCategory has invalid category '%s'.")
+                if list ~= nil and #list > 0 then
+                    for _, ftIdx in ipairs(list) do
+                        bsAppend(ftIdx)
+                        -- Vanilla-declared types keep vanilla pricing (no extra
+                        -- entry); an explicit extraFillType scale wins.
+                        -- [SPS 1.0.1.3] WATER never enters the sold set.
+                        if ftIdx ~= FillType.WATER
+                        and bsExtraScales[ftIdx] == nil
+                        and not (station.getIsFillTypeSupported ~= nil and station:getIsFillTypeSupported(ftIdx)) then
+                            bsExtraScales[ftIdx] = cScale
+                        end
+                    end
+                else
+                    SlurryPipeManager.log("registerSprayerPlaceable: buyingStation.extraFillTypeCategory '%s' resolved no fillTypes — skipped (liquid mod not installed?)",
+                        tostring(cName))
+                end
+            end
+            catIdx = catIdx + 1
+        end
+        local bsSelected = bsFillTypes[1]
+        local bsDefaultStr = xmlFile:getString(kp .. "buyingStation#default", nil)
+        if bsDefaultStr ~= nil then
+            local bsDefault = g_fillTypeManager:getFillTypeIndexByName(bsDefaultStr)
+            if bsDefault ~= nil then
+                for _, ftIdx in ipairs(bsFillTypes) do
+                    if ftIdx == bsDefault then bsSelected = bsDefault break end
+                end
+            end
+        end
+        sourceEntry = {
+            type       = SPS_SOURCE_TYPE_BUYING_STATION,
+            placeable  = placeable,
+            station    = station,
+            fillType   = bsSelected,
+            fillTypes  = bsFillTypes,
+            extraPriceScales = bsExtraScales,
+            debugLabel = tostring(placeable.configFileName):match("([^/]+)%.xml$") or "sprayerBuyingStation",
+        }
+        SlurryPipeManager.log("registerSprayerPlaceable: buying-station sourceEntry for %s (types=%d)",
+            tostring(placeable.configFileName), #bsFillTypes)
+    end
 
     local linkedNodes = {}
 
@@ -1706,8 +1872,68 @@ function SlurryPipeManager:registerSprayerPlaceable(placeable)
     -- occupied, and active types are capped to whole-tank grants.
     self:_installDynStoreGate(entry)
 
+    -- [SPS 1.0.1.2] Sprayer buying-station type switch: same walk-up
+    -- activatable as the slurry well (SPSBuyStationActivatable), constructed
+    -- with systemId=1 so its toggle request routes to THIS entry's sourceEntry
+    -- even if a placeable ever carries both systems. Only meaningful when more
+    -- than one type is declared — getIsActivatable hides itself otherwise.
+    -- Must run before xmlFile:delete (reads switchNodeName / switchRadius).
+    if sourceEntry ~= nil and sourceEntry.type == SPS_SOURCE_TYPE_BUYING_STATION
+    and SPSBuyStationActivatable ~= nil
+    and g_currentMission ~= nil and g_currentMission.activatableObjectsSystem ~= nil then
+        local switchNode   = findLinkedNode(xmlFile:getString(kp .. "buyingStation#switchNodeName", nil))
+        local switchRadius = xmlFile:getFloat(kp .. "buyingStation#switchRadius", 3.0)
+        local buyAct = SPSBuyStationActivatable.new(entry, switchNode, switchRadius, 1)
+        entry.buyStationActivatable = buyAct
+        g_currentMission.activatableObjectsSystem:addActivatable(buyAct)
+    end
+
     if xmlFileOwned then xmlFile:delete() end
     table.insert(self.registeredSprayerPlaceables, entry)
+end
+
+-- [SPS 1.0.1.2] Returns entry, sourceEntry for a registered SPRAYER
+-- buying-station placeable — sprayer-registry mirror of getBuyStationEntry.
+function SlurryPipeManager:getSprayerBuyStationEntry(placeable)
+    for _, entry in ipairs(self.registeredSprayerPlaceables) do
+        if entry.object == placeable then
+            local se = entry.sourceEntry
+            if se ~= nil and se.type == SPS_SOURCE_TYPE_BUYING_STATION then
+                return entry, se
+            end
+            return nil, nil
+        end
+    end
+    return nil, nil
+end
+
+-- [SPS 1.0.1.3] The liquid a PART-FULL sprayer currently connected to this
+-- buying station holds, or nil (no connection / connected sprayer empty).
+-- While non-nil the station is dedicated to that liquid: the flow tick forces
+-- it and applyBuyStationType refuses a switch away from it (prompt hidden by
+-- SPSBuyStationActivatable). Runs identically on clients — connection state
+-- and fill levels are already synced.
+function SlurryPipeManager:getSprayerBuyStationHeldType(placeable)
+    local entry = self:getSprayerBuyStationEntry(placeable)
+    if entry == nil then return nil end
+    for _, sc in ipairs(entry.couplings or {}) do
+        if sc.isConnected then
+            local veh = sc.connectedTarget
+            if veh ~= nil and veh.getFillUnitFillLevel ~= nil then
+                local vEntry = self:getSprayerVehicleEntry(veh)
+                local fui = 1
+                if vEntry ~= nil and vEntry.couplings ~= nil and #vEntry.couplings > 0 then
+                    fui = vEntry.couplings[1].fillUnitIndex or 1
+                end
+                local lvl = veh:getFillUnitFillLevel(fui) or 0
+                local ft  = veh:getFillUnitFillType(fui)
+                if lvl > 0 and ft ~= nil and ft ~= FillType.UNKNOWN then
+                    return ft
+                end
+            end
+        end
+    end
+    return nil
 end
 
 -- ---------------------------------------------------------------------------
@@ -1979,6 +2205,11 @@ function SlurryPipeManager:unregisterSprayerPlaceable(placeable)
             -- [SPS 1.0.0.10.3] Balance the per-instance Storage gate installed at
             -- registration, so the wrappers do not outlive the entry they close over.
             self:_uninstallDynStoreGate(entry)
+            -- [SPS 1.0.1.2] Sprayer buying-station type-switch activatable cleanup.
+            if entry.buyStationActivatable ~= nil then
+                entry.buyStationActivatable:delete()
+                entry.buyStationActivatable = nil
+            end
             table.remove(self.registeredSprayerPlaceables, i)
             return
         end
@@ -2219,6 +2450,36 @@ function SlurryPipeManager:applySprayerConnect(couplingA, couplingB, ownerA, own
     if ownerAEntry ~= nil then ownerAEntry.state.valveOpen = false end
     local ownerBEntry = self:getSprayerVehicleEntry(ownerB)
     if ownerBEntry ~= nil then ownerBEntry.state.valveOpen = false end
+
+    -- [SPS 1.0.1.3] Sprayer buying station: when a part-full sprayer connects,
+    -- the station's sold-type selection snaps to the sprayer's held liquid
+    -- (server-authoritative; applyBuyStationType broadcasts STATE so every
+    -- prompt updates). If the station does not sell the held type the
+    -- selection stays put and the flow's own sold gate denies with a log.
+    if g_server ~= nil then
+        local vehSide, stationOwner = nil, nil
+        if ownerAEntry ~= nil then vehSide = ownerA; stationOwner = ownerB
+        elseif ownerBEntry ~= nil then vehSide = ownerB; stationOwner = ownerA end
+        if vehSide ~= nil and stationOwner ~= nil and self.getSprayerBuyStationEntry ~= nil then
+            local _, se = self:getSprayerBuyStationEntry(stationOwner)
+            if se ~= nil and vehSide.getFillUnitFillLevel ~= nil then
+                local vEntry = self:getSprayerVehicleEntry(vehSide)
+                local fui = 1
+                if vEntry ~= nil and vEntry.couplings ~= nil and #vEntry.couplings > 0 then
+                    fui = vEntry.couplings[1].fillUnitIndex or 1
+                end
+                local heldLvl = vehSide:getFillUnitFillLevel(fui) or 0
+                local heldFt  = vehSide:getFillUnitFillType(fui)
+                if heldLvl > 0 and heldFt ~= nil and heldFt ~= FillType.UNKNOWN
+                and heldFt ~= se.fillType
+                and self:buyStationSellsFillType(se, heldFt) then
+                    SlurryPipeManager.log("applySprayerConnect: buy station auto-switched to held type %s",
+                        tostring(g_fillTypeManager:getFillTypeNameByIndex(heldFt)))
+                    self:applyBuyStationType(stationOwner, heldFt, true, 1)
+                end
+            end
+        end
+    end
 end
 
 -- [SPS MP] Queue a sprayer connect whose sprayer/IBC is not registered yet. Deduped
@@ -2637,6 +2898,11 @@ function SlurryPipeManager:tickSprayerFlow(session, dt)
 
     -- Build vehicle-side sourceEntry inline
     local vehicleEntry = { type = "FILL_UNIT_ONLY", vehicle = vehicle, fillUnitIndex = session.vehicleFillUnit }
+    -- [SPS 1.0.1.4] Front/rear tank combo (FlowControl): when this vehicle is one
+    -- half of a linked front-tank + rear-sprayer pair, the vehicle side of the
+    -- pipe becomes BOTH fill units — fill both / drain both, regardless of which
+    -- member the pipe is physically connected to.
+    local combo = self._spsSprayerCombos ~= nil and self._spsSprayerCombos[vehicle] or nil
     -- Resolve the external side
     local extEntry = self:_resolveSprayerSource(activeCoupling)
     if extEntry == nil then 
@@ -2656,6 +2922,28 @@ function SlurryPipeManager:tickSprayerFlow(session, dt)
 
     -- Determine what fillType the source actually holds
     local fillType = self:_resolveSourceFillType(srcEntry)
+
+    -- [SPS 1.0.1.4] Combo discharge: the session vehicle's own unit may be empty
+    -- while its partner still holds liquid — resolve the held type across both
+    -- units so a drain-both session doesn't stall on an empty session unit.
+    if combo ~= nil and srcEntry == vehicleEntry
+    and (fillType == nil or fillType == FillType.UNKNOWN) then
+        fillType = self:_comboHeldFillType(combo)
+    end
+
+    -- [SPS 1.0.1.3] Buying-station source: a part-full sprayer keeps its held
+    -- type no matter what the station switch says — mirror of the slurry
+    -- station rule ("a part-full tanker keeps its held type"). Precedence
+    -- stays restrict > held > selection: the coupler-restrict block below
+    -- still overrides this, exactly as it overrides the selection.
+    if srcEntry.type == SPS_SOURCE_TYPE_BUYING_STATION
+    and dstEntry.type == "FILL_UNIT_ONLY" and dstEntry.vehicle ~= nil then
+        local heldLvl = dstEntry.vehicle:getFillUnitFillLevel(dstEntry.fillUnitIndex) or 0
+        local heldFt  = dstEntry.vehicle:getFillUnitFillType(dstEntry.fillUnitIndex)
+        if heldLvl > 0 and heldFt ~= nil and heldFt ~= FillType.UNKNOWN then
+            fillType = heldFt
+        end
+    end
 
     -- [SPS 1.0.0.9.5] Dynamic compartment coupler on the placeable side?
     local dynStoreCoupler, dynEntry = nil, nil
@@ -2752,10 +3040,16 @@ function SlurryPipeManager:tickSprayerFlow(session, dt)
         return 
     end
 
+    -- [SPS 1.0.1.4] Combo fill: the destination passes if EITHER member accepts
+    -- the type (the split helper only routes liquid into accepting units).
+    local comboDestAccepts = false
+    if combo ~= nil and dstEntry == vehicleEntry then
+        comboDestAccepts = self:_comboAcceptsFillType(combo, fillType)
+    end
     -- Destination must accept this fillType (dynamic compartments enforce their
     -- own permit + capacity above/below, and pre-seeded zero-capacity types
     -- would fail the vanilla free-capacity check before the first lock).
-    if dynStoreCoupler == nil and not self:_destAcceptsFillType(dstEntry, fillType) then 
+    if dynStoreCoupler == nil and not comboDestAccepts and not self:_destAcceptsFillType(dstEntry, fillType) then 
         strace("STOP:dest-rejects-fillType",
             string.format("dir=%s fillType=%s dstType=%s", tostring(state.direction), tostring(fillType), tostring(dstEntry.type)))
         return 
@@ -2773,6 +3067,17 @@ function SlurryPipeManager:tickSprayerFlow(session, dt)
         elseif srcEntry.storage ~= nil then
             sourceLevel = srcEntry.storage:getFillLevel(fillType) or 0
         end
+    elseif srcEntry.type == SPS_SOURCE_TYPE_BUYING_STATION then
+        -- [SPS 1.0.1.2] Infinite paid source — the per-tick amount is bounded
+        -- by rate and destination capacity below; the money gate lives in
+        -- transferSprayerFillFromBuyingStation (applied=0 stalls the flow,
+        -- pump stays on, same as a drained store).
+        sourceLevel = math.huge
+    end
+    -- [SPS 1.0.1.4] Combo drain: source level is the SUM of both members' levels
+    -- holding this fillType, so the flow keeps running until both are empty.
+    if combo ~= nil and srcEntry == vehicleEntry then
+        sourceLevel = self:_comboFillLevel(combo, fillType)
     end
     if sourceLevel <= 0 then 
         strace("STOP:source-empty", string.format("dir=%s fillType=%s", tostring(state.direction), tostring(fillType)))
@@ -2793,6 +3098,11 @@ function SlurryPipeManager:tickSprayerFlow(session, dt)
         elseif dstEntry.storage ~= nil then
             freeCapacity = dstEntry.storage:getFreeCapacity(fillType) or 0
         end
+    end
+    -- [SPS 1.0.1.4] Combo fill: free capacity is the SUM across both members that
+    -- accept this fillType — dest-full only when BOTH tanks are full.
+    if combo ~= nil and dstEntry == vehicleEntry then
+        freeCapacity = self:_comboFreeCapacity(combo, fillType)
     end
     if freeCapacity <= 0 then 
         strace("STOP:dest-full", string.format("dir=%s fillType=%s", tostring(state.direction), tostring(fillType)))
@@ -2824,15 +3134,163 @@ function SlurryPipeManager:tickSprayerFlow(session, dt)
         -- standard helpers.
         if state.direction == SPS_SPRAYER_DIRECTION_FILL then
             self:_dynCompartmentWithdraw(dynEntry, dynStoreCoupler, fillType, amount)
-            self:addToSource(dstEntry, amount, fillType, vehicle)
+            -- [SPS 1.0.1.4] Combo: split the vehicle-side deposit across both tanks
+            if combo ~= nil then
+                self:_comboDistributeFill(combo, amount, fillType, vehicle)
+            else
+                self:addToSource(dstEntry, amount, fillType, vehicle)
+            end
         else
-            self:removeFromSource(srcEntry, amount, fillType, vehicle)
+            -- [SPS 1.0.1.4] Combo: draw the vehicle-side withdrawal from both tanks
+            if combo ~= nil then
+                self:_comboDistributeDrain(combo, amount, fillType, vehicle)
+            else
+                self:removeFromSource(srcEntry, amount, fillType, vehicle)
+            end
             self:_dynCompartmentDeposit(dynEntry, dynStoreCoupler, fillType, amount)
         end
     else
-        self:removeFromSource(srcEntry, amount, fillType, vehicle)
-        self:addToSource(dstEntry, amount, fillType, vehicle)
+        if srcEntry.type == SPS_SOURCE_TYPE_BUYING_STATION then
+            -- [SPS 1.0.1.2] Paid fill — vanilla station purchase (or SPS-side
+            -- purchase for extras) replaces removeFromSource+addToSource: the
+            -- station has no level to decrement and the vanilla call performs
+            -- the fill itself. Destination is always the sprayer vehicle here
+            -- (_destAcceptsFillType returns false for a buy-station dest, so
+            -- the Unload direction never reaches this line).
+            self:transferSprayerFillFromBuyingStation(vehicle, session, amount, fillType, srcEntry)
+        else
+            -- [SPS 1.0.1.4] Combo: whichever side of the transfer is the vehicle
+            -- becomes a split across both combo members; the external side is
+            -- untouched. srcEntry/dstEntry compare by table identity against
+            -- vehicleEntry, so only the vehicle side ever reroutes.
+            if combo ~= nil and srcEntry == vehicleEntry then
+                self:_comboDistributeDrain(combo, amount, fillType, vehicle)
+            else
+                self:removeFromSource(srcEntry, amount, fillType, vehicle)
+            end
+            if combo ~= nil and dstEntry == vehicleEntry then
+                self:_comboDistributeFill(combo, amount, fillType, vehicle)
+            else
+                self:addToSource(dstEntry, amount, fillType, vehicle)
+            end
+        end
     end
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.2] Sprayer buying-station fill
+-- ---------------------------------------------------------------------------
+-- Fill a sprayer from a buying-station placeable. Sprayer mirror of the slurry
+-- transferFillFromBuyingStation (SPSM_Flow — vanilla behaviour verified there
+-- against PlaceableBuyingStation.lua / BuyingStation.lua):
+--   * Vanilla-declared types: station:addFillLevelToFillableObject performs
+--     the whole purchase server-side (farm money gate, fill, per-litre charge
+--     at getEffectiveFillTypePrice, delayed money-change HUD).
+--   * SPS-extra types (extraFillType / extraFillTypeCategory): the vanilla
+--     path would index a nil priceScale, so SPS performs the same maths —
+--     money gate (>0), fill, charge at priceScale x pricePerLiter x
+--     EconomyManager.getPriceMultiplier via g_currentMission:addMoney with the
+--     station's own moneyChangeType. priceScale 0 = free.
+--   * NO thickness/crust blends — those are slurry tanker consistency state
+--     and do not exist on sprayer fill units.
+--   * applied <= 0 (farm broke / fill unit refused, e.g. held-type mismatch)
+--     = stalled flow; pump stays on, same as a drained store.
+--   * Server-only by construction: tickSprayerFlow runs behind the g_server
+--     guard in updateSprayers, matching LoadTrigger:update's isServer gate
+--     around the same vanilla call.
+function SlurryPipeManager:transferSprayerFillFromBuyingStation(vehicle, session, delta, fillType, extSource)
+    if delta == nil or delta <= 0 then return end
+    local station = extSource ~= nil and extSource.station or nil
+    if station == nil then return end
+    -- Per-coupler fillType restriction already applied by the tickSprayerFlow
+    -- restrict block; an unresolved type falls back to the station selection.
+    if fillType == nil or fillType == FillType.UNKNOWN then
+        fillType = extSource.fillType
+    end
+    -- The station must actually sell this type: vanilla-provided
+    -- (BuyingStation.providedFillTypes) or SPS-extra (config-declared).
+    local sold, isExtra = self:buyStationSellsFillType(extSource, fillType)
+    if fillType == nil or not sold then
+        if not session._loggedBuyStationTypeBlock then
+            session._loggedBuyStationTypeBlock = true
+            SlurryPipeManager.log("transferSprayerFillFromBuyingStation: station does not provide fillType=%s — fill denied",
+                tostring(g_fillTypeManager:getFillTypeNameByIndex(fillType) or fillType))
+        end
+        return
+    end
+    session._loggedBuyStationTypeBlock = nil
+    -- [SPS 1.0.1.6] Front/rear combo: split the purchase across BOTH members,
+    -- proportional to free capacity — same rule as _comboDistributeFill — so a
+    -- buying-station fill behaves exactly like a pipe fill (both tanks reach
+    -- full together). Each member is purchased into individually: the vanilla
+    -- station path takes any fillable object + fill unit, and the SPS-extra
+    -- path charges each member's own farm. No combo = one member = the exact
+    -- pre-1.0.1.6 behaviour.
+    local members = { { vehicle = vehicle, fui = session.vehicleFillUnit, share = delta } }
+    local combo = self._spsSprayerCombos ~= nil and self._spsSprayerCombos[vehicle] or nil
+    if combo ~= nil then
+        local pv, pFui
+        if combo.rear == vehicle then
+            pv, pFui = combo.front, combo.frontFillUnit
+        else
+            pv, pFui = combo.rear, combo.rearFillUnit
+        end
+        if pv ~= nil and pv.getFillUnitAllowsFillType ~= nil
+        and pv:getFillUnitAllowsFillType(pFui, fillType) then
+            local ownFree = math.max(0, (vehicle:getFillUnitCapacity(session.vehicleFillUnit) or 0)
+                - (vehicle:getFillUnitFillLevel(session.vehicleFillUnit) or 0))
+            local pFree = math.max(0, (pv:getFillUnitCapacity(pFui) or 0)
+                - (pv:getFillUnitFillLevel(pFui) or 0))
+            local totalFree = ownFree + pFree
+            if pFree > 0 and totalFree > 0 then
+                members[1].share = math.min(delta * (ownFree / totalFree), ownFree)
+                table.insert(members, { vehicle = pv, fui = pFui,
+                    share = math.min(delta * (pFree / totalFree), pFree) })
+            end
+        end
+    end
+    local applied = 0
+    for _, mem in ipairs(members) do
+        if mem.share > 0 then
+            local memApplied
+            if isExtra then
+                local farmId = mem.vehicle:getOwnerFarmId()
+                if not (0 < g_currentMission:getMoney(farmId)) then
+                    memApplied = 0
+                else
+                    memApplied = mem.vehicle:addFillUnitFillLevel(farmId, mem.fui,
+                        mem.share, fillType, ToolType.TRIGGER, nil)
+                    if memApplied ~= nil and memApplied > 0 then
+                        local scale        = extSource.extraPriceScales[fillType] or 1.0
+                        local fillTypeDesc = g_fillTypeManager:getFillTypeByIndex(fillType)
+                        local pricePerLiter = scale * (fillTypeDesc ~= nil and fillTypeDesc.pricePerLiter or 0)
+                            * EconomyManager.getPriceMultiplier(fillType)
+                        local price = pricePerLiter * memApplied
+                        if price > 0 and extSource.station ~= nil then
+                            g_currentMission:addMoney(-price, farmId, extSource.station.moneyChangeType, true)
+                        end
+                    end
+                end
+            else
+                memApplied = station:addFillLevelToFillableObject(mem.vehicle, mem.fui,
+                    fillType, mem.share, nil, ToolType.TRIGGER)
+            end
+            applied = applied + (memApplied or 0)
+        end
+    end
+    if applied <= 0 then
+        -- Farm out of money (vanilla gate) or fill unit refused (e.g. sprayer
+        -- already holds a different liquid) — stalled flow.
+        if session._lastBuyStationStall ~= true then
+            session._lastBuyStationStall = true
+            SlurryPipeManager.sprayTrace("transferSprayerFillFromBuyingStation[%s] applied=0 (no money or fill rejected, fillType=%s)",
+                tostring(vehicle.configFileName),
+                tostring(g_fillTypeManager:getFillTypeNameByIndex(fillType) or fillType))
+        end
+        return
+    end
+    session._lastBuyStationStall = nil
+    session.totalTransferred = (session.totalTransferred or 0) + applied
 end
 
 -- ---------------------------------------------------------------------------
@@ -2870,6 +3328,23 @@ function SlurryPipeManager:updateSprayers(dt)
     for _, session in pairs(self.activeSprayerFlows) do
         self:tickSprayerFlow(session, dt)
     end
+
+    -- [SPS 1.0.1.4] Front/rear tank combo: rebuild the pair map ~1/sec (attach/
+    -- detach is slow-changing), run the FlowControl balancer every tick. Both are
+    -- server-authoritative by construction (g_server guard above); fill level
+    -- changes reach clients via the vanilla FillUnit dirty flags — no new events.
+    self._sprayerComboMapTick = (self._sprayerComboMapTick or 0) + 1
+    if self._sprayerComboMapTick >= 60 or self._spsSprayerCombos == nil then
+        self._sprayerComboMapTick = 0
+        self:_updateSprayerCombos()
+        -- [SPS 1.0.1.5] Dynamic-store orphan reconcile, same 1-second cadence:
+        -- external fills through the store's own buy/fill trigger raise the
+        -- vanilla aggregate but not the compartment ledgers, so the info box
+        -- showed stale T-rows (locked tanks at 0 l, litres missing per tank)
+        -- until the next empty-compartment fill session tripped adoption.
+        self:_tickSprayerDynReconcile()
+    end
+    self:_tickSprayerComboBalance(dt)
 
     -- Auto-disconnect when pipe is stretched beyond maxPipeLength — every 10 ticks
     self._sprayerDistCheckTick = (self._sprayerDistCheckTick or 0) + 1
@@ -2925,3 +3400,474 @@ SlurryPipeManager.registerPlaceableDetachHandler("Sprayers", function(mgr, place
         end
     end
 end)
+
+-- ===========================================================================
+-- [SPS 1.0.1.4] FRONT/REAR TANK COMBO ("FlowControl")
+-- ===========================================================================
+-- Generic pairing of ANY front tank with ANY rear sprayer on the same root
+-- vehicle — no per-pair config required. Discriminator (confirmed against
+-- vanilla sources): the rear consumer carries spec_sprayer (Sprayer.lua);
+-- front tanks are plain fillable implements (no spec_sprayer) positioned
+-- forward of the root vehicle origin.
+--
+-- Three behaviours:
+--   1. PIPE FILL  — one connection (to EITHER member) fills BOTH fill units,
+--      split proportional to free capacity, so tanks with different starting
+--      levels reach 100% together (real FT-P: "both tanks are automatically
+--      fully filled during the filling process").
+--   2. PIPE DRAIN — one connection drains BOTH units, split proportional to
+--      current level; source-empty only when both are empty.
+--   3. BALANCER   — fully automatic, no pump, no keybind (the real FT carries
+--      its own transfer pump): when the rear falls to lowPct (default 30%),
+--      liquid is pulled front->rear at transferLitersPerMinute (default 200)
+--      until the rear recovers to highPct (default 40%) or the front is empty.
+--      Net effect matches the real system: the rear is never emptied before
+--      the front; the front drains first (front axle load preserved), then
+--      the rear runs 30% -> 0.
+--
+-- Pairing requires only ONE member to be SPS-registered (the one the pipe
+-- physically connects to). Front candidates that are SPS slurry-registered
+-- (front-mount slurry receivers, SPSM_FrontMount) are excluded so the two
+-- systems never fight over the same tank.
+--
+-- MP: everything below runs inside the g_server guard of updateSprayers.
+-- Combo state is derived (recomputed from attach state), so JIP needs no
+-- state dump; fill levels sync via vanilla FillUnit dirty flags.
+--
+-- Known v1 limitation: a buying-station fill (transferSprayerFillFromBuying-
+-- Station) fills only the session vehicle's own unit — the vanilla station
+-- call performs the fill itself, so it cannot be split. The balancer then
+-- redistributes to the rear as normal.
+-- ===========================================================================
+
+-- Gated trace for this block. Channel: SPSM_Sprayers.FrontTank
+local function ftbTrace(fmt, ...)
+    if SPSDebugConfig == nil or SPSDebugConfig.isOn == nil
+    or not SPSDebugConfig.isOn("SPSM_Sprayers.FrontTank") then return end
+    if select("#", ...) > 0 then
+        print("[SPS FT-BAL] " .. string.format(fmt, ...))
+    else
+        print("[SPS FT-BAL] " .. tostring(fmt))
+    end
+end
+
+-- True when obj sits forward of the root vehicle origin (local +Z in root
+-- space). User-confirmed convention: a front tank is always physically in
+-- front, so the sign test is sufficient.
+function SlurryPipeManager:_comboIsForwardOfRoot(obj, root)
+    if obj == nil or root == nil or obj.rootNode == nil or root.rootNode == nil then return false end
+    local wx, wy, wz = getWorldTranslation(obj.rootNode)
+    local _, _, lz = worldToLocal(root.rootNode, wx, wy, wz)
+    return lz > 0
+end
+
+-- Recursively collect every vehicle attached under 'vehicle' (depth-capped).
+-- Uses vanilla AttacherJoints:getAttachedImplements (AttacherJoints.lua:1039).
+function SlurryPipeManager:_comboCollectAttached(vehicle, out, depth)
+    out   = out or {}
+    depth = depth or 0
+    if depth > 4 or vehicle == nil or vehicle.getAttachedImplements == nil then return out end
+    for _, impl in ipairs(vehicle:getAttachedImplements() or {}) do
+        local obj = impl.object
+        if obj ~= nil then
+            table.insert(out, obj)
+            self:_comboCollectAttached(obj, out, depth + 1)
+        end
+    end
+    return out
+end
+
+-- First fill unit on 'candidate' sharing at least one supported fillType with
+-- refTypes (a supportedFillTypes table, FillUnit.lua:819 format: [ft]=true).
+function SlurryPipeManager:_comboSharedFillUnit(candidate, refTypes)
+    if refTypes == nil or candidate == nil
+    or candidate.spec_fillUnit == nil or candidate.spec_fillUnit.fillUnits == nil then return nil end
+    for fui, fu in ipairs(candidate.spec_fillUnit.fillUnits) do
+        if fu.supportedFillTypes ~= nil then
+            for ft, allowed in pairs(fu.supportedFillTypes) do
+                if allowed == true and refTypes[ft] == true then
+                    return fui
+                end
+            end
+        end
+    end
+    return nil
+end
+
+-- Find a front tank for a registered rear sprayer. Front candidate must have
+-- no spec_sprayer, sit forward of the root origin, NOT be slurry-registered,
+-- and share a supported fillType with the rear's sprayer fill unit.
+function SlurryPipeManager:_comboFindFrontForRear(rear, root)
+    local rearFui = 1
+    if rear.getSprayerFillUnitIndex ~= nil then
+        rearFui = rear:getSprayerFillUnitIndex() or 1
+    end
+    local rearTypes = rear.getFillUnitSupportedFillTypes ~= nil
+        and rear:getFillUnitSupportedFillTypes(rearFui) or nil
+    if rearTypes == nil then return nil end
+    for _, obj in ipairs(self:_comboCollectAttached(root)) do
+        if obj ~= rear
+        and obj.spec_sprayer == nil
+        and obj.spec_fillUnit ~= nil
+        and self:getVehicleEntry(obj) == nil
+        and self:_comboIsForwardOfRoot(obj, root) then
+            local frontFui = self:_comboSharedFillUnit(obj, rearTypes)
+            if frontFui ~= nil then
+                return obj, frontFui, rearFui
+            end
+        end
+    end
+    return nil
+end
+
+-- Find a rear sprayer for a registered front tank. Rear candidate carries
+-- spec_sprayer and shares a supported fillType with the front's tank. The
+-- root vehicle itself is a valid rear (self-propelled sprayer edge case).
+function SlurryPipeManager:_comboFindRearForFront(front, root)
+    local candidates = self:_comboCollectAttached(root)
+    table.insert(candidates, 1, root)
+    for _, obj in ipairs(candidates) do
+        if obj ~= front
+        and obj.spec_sprayer ~= nil
+        and obj.getFillUnitSupportedFillTypes ~= nil then
+            local rearFui = 1
+            if obj.getSprayerFillUnitIndex ~= nil then
+                rearFui = obj:getSprayerFillUnitIndex() or 1
+            end
+            local rearTypes = obj:getFillUnitSupportedFillTypes(rearFui)
+            local frontFui = self:_comboSharedFillUnit(front, rearTypes)
+            if frontFui ~= nil then
+                return obj, frontFui, rearFui
+            end
+        end
+    end
+    return nil
+end
+
+-- Rebuild the combo map from current attach state. Keyed by BOTH members so
+-- tickSprayerFlow resolves the pair no matter which side the pipe is on;
+-- each combo is iterated once via the (key == combo.rear) filter.
+function SlurryPipeManager:_updateSprayerCombos()
+    local combos = {}
+    for _, vEntry in ipairs(self.registeredSprayerVehicles) do
+        local obj = vEntry.object
+        if obj ~= nil and obj.getRootVehicle ~= nil then
+            local root = obj:getRootVehicle()
+            if root ~= nil and root.rootNode ~= nil then
+                local front, rear, frontFui, rearFui
+                if obj.spec_sprayer ~= nil then
+                    if root ~= obj then
+                        rear = obj
+                        front, frontFui, rearFui = self:_comboFindFrontForRear(rear, root)
+                    end
+                elseif obj.spec_fillUnit ~= nil and root ~= obj
+                and self:_comboIsForwardOfRoot(obj, root) then
+                    front = obj
+                    rear, frontFui, rearFui = self:_comboFindRearForFront(front, root)
+                end
+                if front ~= nil and rear ~= nil and combos[rear] == nil then
+                    local rearEntry  = self:getSprayerVehicleEntry(rear)
+                    local frontEntry = self:getSprayerVehicleEntry(front)
+                    local balance = (rearEntry ~= nil and rearEntry.ftBalance)
+                        or (frontEntry ~= nil and frontEntry.ftBalance)
+                        or { lowPct = 30, highPct = 40, litersPerMinute = 200 }
+                    local combo = {
+                        front = front, frontFillUnit = frontFui,
+                        rear  = rear,  rearFillUnit  = rearFui,
+                        balance = balance,
+                    }
+                    combos[rear]  = combo
+                    combos[front] = combo
+                    local prev = self._spsSprayerCombos ~= nil and self._spsSprayerCombos[rear] or nil
+                    if prev == nil or prev.front ~= front then
+                        ftbTrace("combo linked: front=%s (fui=%d) <-> rear=%s (fui=%d)",
+                            tostring(front.configFileName), frontFui,
+                            tostring(rear.configFileName), rearFui)
+                    end
+                end
+            end
+        end
+    end
+    -- Unlink trace + pull-state cleanup for combos that disappeared
+    if self._spsSprayerCombos ~= nil then
+        for k, c in pairs(self._spsSprayerCombos) do
+            if k == c.rear and combos[k] == nil then
+                ftbTrace("combo unlinked: rear=%s", tostring(k.configFileName))
+                if self._spsComboPullState ~= nil then
+                    self._spsComboPullState[k] = nil
+                end
+            end
+        end
+    end
+    self._spsSprayerCombos = combos
+end
+
+-- Held fillType across both members (rear preferred). nil when both empty.
+function SlurryPipeManager:_comboHeldFillType(combo)
+    local members = {
+        { combo.rear,  combo.rearFillUnit  },
+        { combo.front, combo.frontFillUnit },
+    }
+    for _, m in ipairs(members) do
+        local v, fui = m[1], m[2]
+        if v ~= nil and v.getFillUnitFillLevel ~= nil
+        and (v:getFillUnitFillLevel(fui) or 0) > 0 then
+            local ft = v:getFillUnitFillType(fui)
+            if ft ~= nil and ft ~= FillType.UNKNOWN then
+                return ft
+            end
+        end
+    end
+    return nil
+end
+
+-- True when EITHER member accepts the fillType (vanilla getFillUnitAllows-
+-- FillType, FillUnit.lua:835 — held-type + change-threshold aware).
+function SlurryPipeManager:_comboAcceptsFillType(combo, fillType)
+    if fillType == nil then return false end
+    if combo.rear ~= nil and combo.rear.getFillUnitAllowsFillType ~= nil
+    and combo.rear:getFillUnitAllowsFillType(combo.rearFillUnit, fillType) then
+        return true
+    end
+    if combo.front ~= nil and combo.front.getFillUnitAllowsFillType ~= nil
+    and combo.front:getFillUnitAllowsFillType(combo.frontFillUnit, fillType) then
+        return true
+    end
+    return false
+end
+
+-- Combined level of both members holding fillType (nil type = any held).
+function SlurryPipeManager:_comboFillLevel(combo, fillType)
+    local total = 0
+    local members = {
+        { combo.rear,  combo.rearFillUnit  },
+        { combo.front, combo.frontFillUnit },
+    }
+    for _, m in ipairs(members) do
+        local v, fui = m[1], m[2]
+        if v ~= nil and v.getFillUnitFillLevel ~= nil then
+            local lvl = v:getFillUnitFillLevel(fui) or 0
+            if lvl > 0 then
+                if fillType == nil or v:getFillUnitFillType(fui) == fillType then
+                    total = total + lvl
+                end
+            end
+        end
+    end
+    return total
+end
+
+-- Combined free capacity across members that accept fillType.
+function SlurryPipeManager:_comboFreeCapacity(combo, fillType)
+    local total = 0
+    local members = {
+        { combo.rear,  combo.rearFillUnit  },
+        { combo.front, combo.frontFillUnit },
+    }
+    for _, m in ipairs(members) do
+        local v, fui = m[1], m[2]
+        if v ~= nil and v.getFillUnitCapacity ~= nil then
+            if fillType == nil
+            or (v.getFillUnitAllowsFillType ~= nil and v:getFillUnitAllowsFillType(fui, fillType)) then
+                local cap = v:getFillUnitCapacity(fui) or 0
+                local lvl = v:getFillUnitFillLevel(fui) or 0
+                total = total + math.max(0, cap - lvl)
+            end
+        end
+    end
+    return total
+end
+
+-- Split an incoming amount across both members proportional to FREE capacity:
+-- different starting levels reach 100% at the same moment. Only accepting
+-- members receive liquid; per-member share is clamped to that member's free
+-- space so nothing overfills. Uses the standard addToSource helper (bypass
+-- path, dirty flags, MP sync all inherited).
+function SlurryPipeManager:_comboDistributeFill(combo, amount, fillType, farmVehicle)
+    if amount == nil or amount <= 0 then return end
+    local members   = {}
+    local totalFree = 0
+    local defs = {
+        { combo.rear,  combo.rearFillUnit  },
+        { combo.front, combo.frontFillUnit },
+    }
+    for _, m in ipairs(defs) do
+        local v, fui = m[1], m[2]
+        if v ~= nil and v.getFillUnitAllowsFillType ~= nil
+        and v:getFillUnitAllowsFillType(fui, fillType) then
+            local free = math.max(0, (v:getFillUnitCapacity(fui) or 0) - (v:getFillUnitFillLevel(fui) or 0))
+            if free > 0 then
+                table.insert(members, { vehicle = v, fui = fui, free = free })
+                totalFree = totalFree + free
+            end
+        end
+    end
+    if totalFree <= 0 then return end
+    for _, mem in ipairs(members) do
+        local share = math.min(amount * (mem.free / totalFree), mem.free)
+        if share > 0 then
+            self:addToSource(
+                { type = "FILL_UNIT_ONLY", vehicle = mem.vehicle, fillUnitIndex = mem.fui },
+                share, fillType, farmVehicle)
+        end
+    end
+end
+
+-- Split an outgoing amount across both members proportional to current LEVEL
+-- (matching fillType): both drain toward empty together. Uses the standard
+-- removeFromSource helper.
+function SlurryPipeManager:_comboDistributeDrain(combo, amount, fillType, farmVehicle)
+    if amount == nil or amount <= 0 then return end
+    local members  = {}
+    local totalLvl = 0
+    local defs = {
+        { combo.rear,  combo.rearFillUnit  },
+        { combo.front, combo.frontFillUnit },
+    }
+    for _, m in ipairs(defs) do
+        local v, fui = m[1], m[2]
+        if v ~= nil and v.getFillUnitFillLevel ~= nil then
+            local lvl = v:getFillUnitFillLevel(fui) or 0
+            if lvl > 0 and (fillType == nil or v:getFillUnitFillType(fui) == fillType) then
+                table.insert(members, { vehicle = v, fui = fui, lvl = lvl })
+                totalLvl = totalLvl + lvl
+            end
+        end
+    end
+    if totalLvl <= 0 then return end
+    for _, mem in ipairs(members) do
+        local share = math.min(amount * (mem.lvl / totalLvl), mem.lvl)
+        if share > 0 then
+            self:removeFromSource(
+                { type = "FILL_UNIT_ONLY", vehicle = mem.vehicle, fillUnitIndex = mem.fui },
+                share, fillType, farmVehicle)
+        end
+    end
+end
+
+-- FlowControl balancer tick (server). Fully automatic — no SPS pump state, no
+-- keybind (the real front tank carries its own transfer pump). Hysteresis:
+-- pull starts at lowPct, stops at highPct / front empty / type mismatch.
+-- Suspended while a pipe flow session is active on either member so it never
+-- fights a fill-both / drain-both transfer.
+function SlurryPipeManager:_tickSprayerComboBalance(dt)
+    if self._spsSprayerCombos == nil then return end
+    self._spsComboPullState = self._spsComboPullState or {}
+    for key, combo in pairs(self._spsSprayerCombos) do
+        if key == combo.rear
+        and self.activeSprayerFlows[combo.rear] == nil
+        and self.activeSprayerFlows[combo.front] == nil then
+            local rear,  rFui = combo.rear,  combo.rearFillUnit
+            local front, fFui = combo.front, combo.frontFillUnit
+            local rearCap  = rear:getFillUnitCapacity(rFui) or 0
+            local rearLvl  = rear:getFillUnitFillLevel(rFui) or 0
+            local frontLvl = front:getFillUnitFillLevel(fFui) or 0
+            local pct = 0
+            if rearCap > 0 then pct = rearLvl / rearCap * 100 end
+            local b       = combo.balance or {}
+            local lowPct  = b.lowPct or 30
+            local highPct = math.max(b.highPct or 40, lowPct + 1)
+            local pulling = self._spsComboPullState[rear] == true
+
+            if not pulling and pct <= lowPct and frontLvl > 0 then
+                local ft = front:getFillUnitFillType(fFui)
+                if ft ~= nil and ft ~= FillType.UNKNOWN
+                and rear.getFillUnitAllowsFillType ~= nil
+                and rear:getFillUnitAllowsFillType(rFui, ft) then
+                    pulling = true
+                    self._spsComboPullState[rear] = true
+                    rear._spsFtbTypeBlockLogged = nil
+                    ftbTrace("balance START rear=%.1f%% (low=%.0f%%) front=%.0f l type=%s",
+                        pct, lowPct, frontLvl,
+                        tostring(g_fillTypeManager:getFillTypeNameByIndex(ft)))
+                elseif ft ~= nil and ft ~= FillType.UNKNOWN
+                and rear._spsFtbTypeBlockLogged ~= true then
+                    -- One-shot WARNING-class line (unconditional per SPS logging rules)
+                    rear._spsFtbTypeBlockLogged = true
+                    print(string.format(
+                        "[SPS] WARNING: frontTankBalance: rear sprayer '%s' cannot accept front tank fillType %s — transfer blocked",
+                        tostring(rear.configFileName),
+                        tostring(g_fillTypeManager:getFillTypeNameByIndex(ft))))
+                end
+            end
+
+            if pulling then
+                local ft = front:getFillUnitFillType(fFui)
+                local stopReason = nil
+                if frontLvl <= 0 or ft == nil or ft == FillType.UNKNOWN then
+                    stopReason = "front-empty"
+                elseif pct >= highPct then
+                    stopReason = "rear-restored"
+                elseif rear.getFillUnitAllowsFillType == nil
+                or not rear:getFillUnitAllowsFillType(rFui, ft) then
+                    stopReason = "type-mismatch"
+                end
+                if stopReason ~= nil then
+                    self._spsComboPullState[rear] = nil
+                    ftbTrace("balance STOP (%s) rear=%.1f%% front=%.0f l",
+                        stopReason, pct, frontLvl)
+                else
+                    -- l/min -> l/ms; chunk bounded by front level + rear free space
+                    local rate  = (b.litersPerMinute or 200) / 60000
+                    local chunk = math.min(rate * dt, frontLvl, math.max(0, rearCap - rearLvl))
+                    if chunk > 0 then
+                        self:removeFromSource(
+                            { type = "FILL_UNIT_ONLY", vehicle = front, fillUnitIndex = fFui },
+                            chunk, ft, rear)
+                        self:addToSource(
+                            { type = "FILL_UNIT_ONLY", vehicle = rear, fillUnitIndex = rFui },
+                            chunk, ft, rear)
+                        -- 1s heartbeat (keyed on the rear vehicle so it survives map rebuilds)
+                        rear._spsFtbHbMs = rear._spsFtbHbMs or 0
+                        local nowMs = g_time or 0
+                        if nowMs - rear._spsFtbHbMs >= 1000 then
+                            rear._spsFtbHbMs = nowMs
+                            ftbTrace("balance FLOW %.2f l/s rear=%.1f%% (%.0f l) front=%.0f l",
+                                chunk / math.max(dt, 0.0001) * 1000, pct, rearLvl, frontLvl)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.5] Periodic orphan reconcile for dynamic-compartment stores.
+-- ---------------------------------------------------------------------------
+-- _adoptOrphanSprayerLiquid previously ran only at placeable registration and
+-- from the compartment-empty branch of tickSprayerFlow, so liquid bought at
+-- the store's own buy/fill trigger mid-session stayed orphaned in the vanilla
+-- aggregate: Used Capacity was right while the per-tank T-rows were stale
+-- (a just-locked tank stuck at 0 l, top-ups into locked tanks not credited).
+-- This sweep runs on the same 1-second cadence as the combo map rebuild,
+-- behind a cheap divergence check (aggregate sum of non-fixed types vs the
+-- compartment ledger sum) so the full adoption pass only executes when
+-- something is actually orphaned. The adoption itself is unchanged: it is
+-- idempotent, top-up-aware for locked tanks, MP-synced per compartment via
+-- SPSSprayerCompartmentEvent, and recomputes dyn capacities afterwards.
+-- Server-only by construction (called inside the g_server guard of
+-- updateSprayers, matching _adoptOrphanSprayerLiquid's own g_server gate).
+-- ---------------------------------------------------------------------------
+function SlurryPipeManager:_tickSprayerDynReconcile()
+    for _, entry in ipairs(self.registeredSprayerPlaceables) do
+        if entry.dynCouplers ~= nil and #entry.dynCouplers > 0 then
+            local storage = entry.sourceEntry ~= nil and entry.sourceEntry.storage or nil
+            if storage ~= nil and storage.fillLevels ~= nil then
+                local ledger = 0
+                for _, sc in ipairs(entry.dynCouplers) do
+                    ledger = ledger + (sc.dynLevel or 0)
+                end
+                local aggregate = 0
+                for ft, lvl in pairs(storage.fillLevels) do
+                    if entry.spsFixedCaps == nil or entry.spsFixedCaps[ft] == nil then
+                        aggregate = aggregate + (lvl or 0)
+                    end
+                end
+                if aggregate - ledger > 0.001 then
+                    self:_adoptOrphanSprayerLiquid(entry)
+                end
+            end
+        end
+    end
+end

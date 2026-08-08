@@ -68,6 +68,16 @@
             configFolder="FS25_precisionFarming/vehicles/wienhoff/ta25ProfiLine"/>
 		<vehicle path="FS25_precisionFarming/vehicles/wienhoff/ta25ProfiLine/ta25ProfiLineBundle.xml"
             configFolder="FS25_precisionFarming/vehicles/wienhoff/ta25ProfiLine"/>
+		<vehicle path="FS25_vervaetHydroTrikeXL/hydroTrikeXL.xml"
+            configFolder="mods/FS25_vervaetHydroTrikeXL"/>
+		<vehicle path="FS25_claasSaddleTracPack/vehicles/kaweco/semiTrailedTrailer/semiTrailedTrailer.xml"
+            configFolder="mods/FS25_claasSaddleTracPack/vehicles/kaweco/semiTrailedTrailer"/>
+		<vehicle path="FS25_claasSaddleTracPack/vehicles/kaweco/saddleTracTanker/saddleTracTankerBack.xml"
+            configFolder="mods/FS25_claasSaddleTracPack/vehicles/kaweco/saddleTracTanker/saddleTracTankerBack"/>
+		<vehicle path="FS25_claasSaddleTracPack/vehicles/kaweco/saddleTracTanker/saddleTracTankerFront.xml"
+            configFolder="mods/FS25_claasSaddleTracPack/vehicles/kaweco/saddleTracTanker/saddleTracTankerFront"/>
+		<vehicle path="FS25_claasSaddleTracPack/vehicles/kaweco/optiJect8/optiJect8.xml"
+            configFolder="mods/FS25_claasSaddleTracPack/vehicles/kaweco/optiJect8"/>
 			
         <!-- PTOSlurryPump uses embedded <slurryPipeSystem>, no manifest entry needed -->
     </vehicleConfigs>
@@ -94,7 +104,19 @@
             configFolder="FS25_precisionFarming/vehicles/johnDeere/r700i"/>
 		<vehicle path="FS25_precisionFarming/vehicles/johnDeere/r975i/r975i.xml"
             configFolder="FS25_precisionFarming/vehicles/johnDeere/r975i"/>
-			
+		
+		<vehicle path="FS25_fendtFarmConPack/vehicles/rau/spridoport/spridoport.xml"
+			configFolder="mods/FS25_fendtFarmConPack/vehicles/rau/spridoport"/>
+		<vehicle path="FS25_fendtFarmConPack/vehicles/rau/fronttankXylon/fronttankXylon.xml"
+			configFolder="mods/FS25_fendtFarmConPack/vehicles/rau/fronttankXylon"/>
+		<vehicle path="FS25_fendtFarmConPack/vehicles/rau/fronttankGTA/fronttankGTA.xml"
+			configFolder="mods/FS25_fendtFarmConPack/vehicles/rau/fronttankGTA"/>		
+		
+		<vehicle path="FS25_agrioGigant/gigant.xml"
+			configFolder="mods/FS25_agrioGigant"/>
+		<vehicle path="FS25_agrioMamutXL/mamutXL.xml"
+			configFolder="mods/FS25_agrioMamutXL"/>
+		
 	</sprayerVehicleConfigs>
 	
     <placeableConfigs>
@@ -166,6 +188,15 @@
              on disk makes the entry dead. -->
         <placeable path="FS25_BuyableManureAndOther/liquidManureStation.xml"
                    configFolder="mods/FS25_BuyableManureAndOther/liquidManureStation"/>
+
+        <!-- PlanET BGA Modular (Kastor [D-S-Agrarservice]) — liquid manure and
+             digestate stores. Both placeables are productionPoints with their own
+             storage, so the coupling-only sourceEntry is built automatically. The
+             nodeTree container ("productionPoint") exists in each placeable i3d. -->
+        <placeable path="FS25_PlanET_BGA_Modular/xml/PlanET_Guelle.xml"
+                   configFolder="mods/FS25_PlanET_BGA_Modular/xml/PlanET_Guelle"/>
+        <placeable path="FS25_PlanET_BGA_Modular/xml/PlanET_Gaerreste.xml"
+                   configFolder="mods/FS25_PlanET_BGA_Modular/xml/PlanET_Gaerreste"/>
 		
 		<!-- Witcombe Placeable pack -->
 		<placeable path="FS25_witcombe_buildings_pack/cowBarn01.xml"

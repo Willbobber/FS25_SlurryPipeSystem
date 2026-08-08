@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Kaweco Optiject8 -->
+
+<!-- FS25_SlurryPipeSystem — Vehicle fillPoints.xml -->
+<!-- Author: Oscar Mods -->
+<!-- Version: 1.0.0.0 -->
+
+<slurryPipeSystem>
+    <nodeTree filename="nodeTree.i3d"/>
+
+    <!-- Spreader blockage nodes.
+         Order here is the node INDEX used for multiplayer sync, so keep it stable.
+         A node whose name contains "Macerator" is the central distributor (tier 1):
+         blocking it stops the whole bar. All other nodes are independent outlets
+         (tier 2): each blocked outlet only stops its own section.
+         The macerator and the centre outlet share a physical spot, so they are never
+         both flagged.
+
+         blockageAnimation is OPTIONAL per node:
+           - present -> that animation plays on block (forward) and clear (reverse)
+           - absent  -> no animation is played for that node (skipped). -->
+    <!-- [SPS 1.0.0.10.4] Blockage tuning for this bar. All optional - remove any
+         attribute to inherit the global default. Crust is the tanker-carried
+         lumpiness; the macerator absorbs it up to outletCrustMin, past which
+         lumps reach the outlets. dmBonus is the thick-slurry amplifier. -->
+    <blockageNodes baseChance="0.001" maceratorCrustMin="0.25" maceratorChance="0.027"
+                   outletCrustMin="0.60" outletChance="0.030" dmBonus="0.25">
+        <blockageNode mountNodeName="SPS_blockageNodeMacerator" blockageAnimation="blockMacerator"/>
+        
+		<blockageNode mountNodeName="SPS_blockageNodeLeft" workAreaNode="workArea01"/>
+        <blockageNode mountNodeName="SPS_blockageNodeRight" workAreaNode="workArea02"/>
+    </blockageNodes>
+
+</slurryPipeSystem>

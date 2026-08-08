@@ -30,6 +30,13 @@ When SPS sees `vehicle.slurryPipeSystem` in your XML it treats the vehicle as
 self-contained and uses it directly. Nothing is copied, nothing in the SPS folder changes,
 and your vehicle stays a normal standalone mod. This is the only method you need.
 
+**Optional root attribute — `vehicleRole`:** `<slurryPipeSystem vehicleRole="slurry">`
+forces SPS to treat the vehicle as a slurry machine, `vehicleRole="fertiliser"` forces the
+fertiliser-sprayer exemption (no pressure model / slurry HUD). Only needed for edge cases
+where vanilla's sprayer classification gets the machine wrong — e.g. a self-propelled unit
+whose Sprayer spec points at a diesel tank. Omit it everywhere else; SPS decides from its
+own registration.
+
 ---
 
 ## 2. Where the SPS nodes come from
@@ -426,6 +433,103 @@ Per-vehicle opt-in. Only vehicles with `bolt="true"` get a PTO shear bolt (wear,
 freeze and the walk-up repair activatable). Default is false — no bolt, no wear, no
 activatable. The repair activatable hosts on your outside-control node, falling back to a
 pump-control node.
+
+---
+
+## 12A. Front mounts & receiver tankers — `<frontMount>` / `<tractorMountFillArms>`
+
+A **front mount** is a capacity-0 pass-through pump unit carried on the tractor's front
+linkage (e.g. the Claas Saddle Trac pack front fill-arm unit): it has a fill arm and pipe
+couplings but no storage of its own. A **receiver** is a rear tanker that opts in to being
+hose-fed by a front mount. SPS links the two through a Giants connection hose and pumps
+through the front unit into/out of the receiver.
+
+### How the pairing works
+
+SPS injects a plain-type connection hose (default `TOOL_CONNECTOR_TOP_RIGHT`) into each
+vehicle's own hose system at registration time, replicated field-for-field from vanilla, so
+the vehicles connect exactly like factory hoses on **any tractor**. On the Xerion, which
+carries its own specType'd hose circuit for these vehicles, the injected plain hose is
+suppressed automatically — no duplicate hoses. The receiver is resolved from vanilla
+connection-hose state, identically on every peer, so multiplayer needs no extra sync.
+
+Standard receiver mount node name across all tankers: **`slurryPipe`**.
+
+### Runtime behaviour — the pass-through cascade
+
+Every tick the front mount resolves its tank-side outlets in strict priority:
+
+1. its own **connected pipe couplings** with the manual valve open (far side may be a
+   vehicle, a laid/bez pipe run, or a placeable store), then
+2. the **hose-bridged receiver** tanker.
+
+Filling sends liquid to the first target with free capacity; unloading draws from the first
+with content. So a coupler-connected tanker fills first, overflow goes to the rear
+receiver, and the flow switches back automatically as levels change — with the full mirror
+when unloading. Water sources are valid infinite fill sources and refused as unload
+destinations. Thickness/crust blends apply to receiver transfers as on any tanker.
+Front-mount units never show the spreader valve keybind.
+
+### Front mount config (on the front unit)
+
+```xml
+<frontMount enabled="true" hoseTypes="slurryConnector">
+    <hose node="frontHoseNode" type="TOOL_CONNECTOR_TOP_RIGHT" length="2" diameter="0.18"/>
+</frontMount>
+```
+
+| Attribute (`<frontMount>`) | Default | Meaning |
+|----------------------------|---------|---------|
+| `enabled`                  | false   | Turns the front-mount system on for this vehicle. |
+| `hoseSpecTypes`            | —       | Space-separated specType'd hose type names (Xerion-style pairings kept in the vehicle's own XML). |
+| `hoseTypes`                | —       | Space-separated plain hose type names for normal-tractor pairings. At least one of the two attributes is required or the front mount is disabled with a warning. |
+
+### Receiver config (on the rear tanker)
+
+```xml
+<tractorMountFillArms accepted="true">
+    <hose node="slurryPipe" cylinderedConfigIndex="0,1"/>
+    <staticPipe node="samsonFillPipe_PT" cylinderedConfigIndex="0"/>
+    <staticPipe node="samsonFillPipe_Sap2" cylinderedConfigIndex="1"/>
+</tractorMountFillArms>
+```
+
+`accepted="true"` opts the tanker in. Multiple `<hose>` entries may be declared; the
+**first** whose config gate matches (or that has no gate) is injected — one config file can
+serve config-dependent mount points. `<staticPipe>` entries are static pipe meshes whose
+visibility is set once at registration from their config gate (no gate = always shown).
+
+### `<hose>` attributes (both blocks — mirror vanilla `<connectionHoses><hose>`)
+
+| Attribute                 | Default                   | Meaning |
+|---------------------------|---------------------------|---------|
+| `node`                    | —                         | Hose mount node **name** (SPS nodeTree first, then the vehicle's own i3d). Required — hose skipped with a warning if not found. |
+| `type`                    | `TOOL_CONNECTOR_TOP_RIGHT`| Vanilla hose type. |
+| `length`                  | 2                         | Hose length in metres. |
+| `diameter`                | 0.18                      | Hose diameter. |
+| `isTwoPointHose`          | true                      | Vanilla two-point hose flag. |
+| `inputAttacherJointIndex` | 1                         | Attacher joint the hose belongs to (`inputAttacherJointIndices` accepted for a single value). |
+| `straighteningFactor`     | 1                         | Multiplies the hose type's start-straightening — higher keeps the pipe straight along the mount node's −Z for longer before it sags. |
+| `cylinderedConfigIndex`   | —                         | Receiver `<hose>`/`<staticPipe>` only: comma-separated 0-based config indices this entry applies to (`configType` overrides the default `cylindered`), same convention as §13. |
+
+### Optional `<objectChange>` child of `<hose>`
+
+A static mesh switched with the hose's connection state (driven on connect/disconnect
+transitions):
+
+```xml
+<hose node="slurryPipe">
+    <objectChange node="couplerCap" visibilityActive="false" visibilityInactive="true"
+                  initialState="inactive"/>
+</hose>
+```
+
+| Attribute            | Default | Meaning |
+|----------------------|---------|---------|
+| `node`               | —       | Node name to switch. |
+| `visibilityActive`   | true    | Visibility while the hose is connected. |
+| `visibilityInactive` | false   | Visibility while disconnected. |
+| `initialState`       | —       | `inactive` additionally applies the inactive visibility once at injection — for SPS-owned meshes that load visible in the nodeTree. Omit for meshes whose load-time state is owned by the vehicle's own vanilla objectChanges. |
 
 ---
 

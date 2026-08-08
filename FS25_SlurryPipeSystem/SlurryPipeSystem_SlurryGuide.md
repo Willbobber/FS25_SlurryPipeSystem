@@ -40,6 +40,8 @@ Mixing takes time — you can't fix a badly neglected store in a few seconds. Le
 
 **Important limit:** mixing only fixes settling and crust. It **cannot** thin out slurry that is genuinely too concentrated. If your slurry is too thick on its own — too little water in it — no amount of stirring will help. For that, you need water.
 
+**Mix before you pump.** Pumping from a *settled* store draws the liquid preferentially and concentrates what's left behind — the longer a store has sat, the thicker the remainder gets as you empty it. A freshly filled or **fully mixed** store pumps out honestly: dry matter leaves in proportion, and the store drains completely to zero. So a stir before a big pump-out isn't just about crust — it's the difference between emptying the store and slowly cooking down a thick heel you'll need water to shift later. The on-screen warnings name the actual fix for each state: still thickening, thickening (add water), needs mixing, or too thick.
+
 ### Water — fixes thickness
 
 Adding water dilutes the slurry and brings the concentration down, making it pump and spread freely again. Once slurry is well mixed, water — or the separator described below — is the fix for slurry that's still too thick.

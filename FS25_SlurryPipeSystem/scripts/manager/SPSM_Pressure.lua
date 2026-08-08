@@ -10,8 +10,42 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Pressure 1.0.0.9.2 loaded")
+print("[SPS BUILD] SPSM_Pressure 1.0.0.9.5 loaded")
 
+
+-- [SPS 1.0.0.9.5] Fert/herb sprayer exemption, decided by SPS's own registration
+-- path instead of vanilla's classification alone.
+--
+-- Vanilla Sprayer.lua classifies at load: sprayer#fillUnitIndex defaults to 1 and
+-- isFertilizerSprayer = "that fill unit allows none of LIQUIDMANURE / DIGESTATE /
+-- MANURE". On self-propelled types the Sprayer spec comes from the TYPE with no
+-- <sprayer> block in the vehicle XML, so the default index 1 lands on the DIESEL
+-- tank and a genuine slurry vehicle is misclassified as a fertiliser sprayer
+-- (field case: Vervaet Hydro Trike XL, type selfPropelledManureBarrel) — which
+-- silenced the HVP/pressure HUD gauge through the raw isFertilizerSprayer gates.
+--
+-- The SPS config block IS the declaration of what a vehicle is:
+--   * <slurryPipeSystem> (embedded or manifest)  -> slurry vehicle. Never
+--     fert-exempt unless it ALSO has a sprayer-side config (dual-registered
+--     fert/herb sprayers, e.g. ux5201Super) or declares the role explicitly.
+--   * <sprayerPipeSystem> config                 -> sprayer-side vehicle;
+--     vanilla's fert classification is trusted for these.
+-- Optional explicit override for edge cases, on the slurry block root:
+--   <slurryPipeSystem vehicleRole="slurry">      -> never fert-exempt
+--   <slurryPipeSystem vehicleRole="fertiliser">  -> always fert-exempt
+--
+-- Cheap for per-tick use: findSprayerVehicleConfigForVehicle is cached per
+-- configFileName, getVehicleEntry is a short list scan.
+function SlurryPipeManager:isFertExemptVehicle(vehicle)
+    if vehicle == nil or vehicle.spec_sprayer == nil then return false end
+    if vehicle.spec_sprayer.isFertilizerSprayer ~= true then return false end
+    local entry = self:getVehicleEntry(vehicle)
+    if entry ~= nil then
+        if entry.vehicleRole == "slurry" then return false end
+        if entry.vehicleRole == "fertiliser" then return true end
+    end
+    return self:findSprayerVehicleConfigForVehicle(vehicle) ~= nil
+end
 
 -- Single chokepoint for the vacuum/pump split. Returns true only for a tanker that
 -- runs the stored-pressure model (pumpType "vacuum"); false for every pump-gated or
@@ -32,8 +66,8 @@ function SlurryPipeManager:usesPressureModel(vehicleOrEntry)
     local cfg = entry.pressure
     if cfg == nil or cfg.openTop == true then return false end
     if entry.pumpType ~= nil and entry.pumpType ~= "vacuum" then return false end
-    if vehicle ~= nil and vehicle.spec_sprayer ~= nil
-       and vehicle.spec_sprayer.isFertilizerSprayer == true then
+    -- [SPS 1.0.0.9.5] Registration-aware fert exemption (see isFertExemptVehicle).
+    if vehicle ~= nil and self:isFertExemptVehicle(vehicle) then
         return false
     end
     return true
@@ -54,10 +88,29 @@ end
 --   * conduit / openTop / fert-herb / unregistered -> nil (no per-tanker gauge here).
 function SlurryPipeManager:getPressureInfoText(vehicle)
     local entry = self:getVehicleEntry(vehicle)
+    -- [SPS HUD TRACE 1.0.0.9.4] One-shot per vehicle, gated behind the
+    -- SPSM_Pressure debug channel (spsDebug SPSM_Pressure on): prints every
+    -- nil-gate this function can take, so a missing HUD gauge names its exact
+    -- cause in one line. Remove once the Hydro Trike XL gauge issue is resolved.
+    if SPSDebugConfig ~= nil and SPSDebugConfig.isOn("SPSM_Pressure")
+       and vehicle ~= nil and vehicle._spsHudTraceGates ~= true then
+        vehicle._spsHudTraceGates = true
+        local sp = vehicle.spec_sprayer
+        print(string.format(
+            "[SPS HUD TRACE] getPressureInfoText gates: %s entry=%s pressureCfg=%s openTop=%s spec_sprayer=%s isFertilizerSprayer=%s pumpType=%s",
+            tostring(vehicle.configFileName),
+            tostring(entry ~= nil),
+            tostring(entry ~= nil and entry.pressure ~= nil),
+            tostring(entry ~= nil and entry.pressure ~= nil and entry.pressure.openTop),
+            tostring(sp ~= nil),
+            tostring(sp ~= nil and sp.isFertilizerSprayer),
+            tostring(entry ~= nil and entry.pumpType)))
+    end
     if entry == nil then return nil end
     local cfg = entry.pressure
     if cfg == nil or cfg.openTop == true then return nil end
-    if vehicle.spec_sprayer ~= nil and vehicle.spec_sprayer.isFertilizerSprayer == true then
+    -- [SPS 1.0.0.9.5] Registration-aware fert exemption (see isFertExemptVehicle).
+    if self:isFertExemptVehicle(vehicle) then
         return nil
     end
 
@@ -264,8 +317,8 @@ function SlurryPipeManager:updatePressure(dt)
         for _, vEntry in ipairs(self.registeredVehicles) do
             if vEntry.shearBolt == true then
                 local v = vEntry.vehicle
-                local isFert = v ~= nil and v.spec_sprayer ~= nil
-                    and v.spec_sprayer.isFertilizerSprayer == true
+                -- [SPS 1.0.0.9.5] Registration-aware fert exemption (see isFertExemptVehicle).
+                local isFert = self:isFertExemptVehicle(v)
                 -- [SPS AI GATE] no shear wear while AI drives
                 -- [SPS 1.0.0.9.2] shearBoltEnabled: settings-menu master switch
                 -- (server-authoritative, synced via SPSSettingsSyncEvent).
@@ -291,10 +344,11 @@ function SlurryPipeManager:updatePressure(dt)
         end
         -- Pressure is slurry/water only. A vehicle carrying the sprayer spec may
         -- be a slurry spreader (poo — pressure applies) OR a fert/herb sprayer
-        -- (must be shielded). Vanilla Sprayer classifies this at load:
-        -- isFertilizerSprayer = not slurry/digestate and not manure. Shield those.
-        if vehicle ~= nil and vehicle.spec_sprayer ~= nil
-        and vehicle.spec_sprayer.isFertilizerSprayer == true then
+        -- (must be shielded). [SPS 1.0.0.9.5] Shield decision now registration-aware
+        -- (see isFertExemptVehicle) so a slurry-registered vehicle misclassified by
+        -- vanilla (sprayer#fillUnitIndex default landing on a fuel tank) keeps its
+        -- pressure model.
+        if vehicle ~= nil and self:isFertExemptVehicle(vehicle) then
             vehicle = nil
         end
         -- Open-top passive vessels (FRC), HVP and conduit pumps, and fert/herb

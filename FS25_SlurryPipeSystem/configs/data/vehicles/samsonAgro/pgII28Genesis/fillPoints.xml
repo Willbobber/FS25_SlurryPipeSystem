@@ -3,7 +3,7 @@
 
 <!-- FS25_SlurryPipeSystem — Vehicle fillPoints.xml -->
 <!-- Author: Oscar Mods -->
-<!-- Version: 1.0.0.0 -->
+<!-- Version: 1.0.0.3 — straighteningFactor: straight exit section out of the coupler (tune the value; straight direction = slurryPipe local -Z) -->
 
 <slurryPipeSystem>
     <nodeTree filename="nodeTree.i3d"/>
@@ -126,8 +126,24 @@
 		<outsideControl mountNodeName="pumpControl01" pto="true" direction="false"/>
 	</outsideControls>
 	
+	<!-- RECEIVER side of the tractor-mounted front fill arm system.
+	     Config-gated (cylinderedConfigIndex, comma-separated 0-based indices,
+	     same convention as fillArm/pipeCoupling above):
+	       * staticPipe — the fixed pipe mesh for the active config is shown,
+	         the other hidden, once at registration. Config 0 = PT arm pipe,
+	         configs 1,2 = SAP2 turret pipe.
+	       * hose — the injected plain TOOL_CONNECTOR_TOP_RIGHT hose. Every
+	         SPS receiver uses the standard mount node name slurryPipe (under
+	         the coupler), so one ungated entry serves all configs.
+	     objectChange: the coupler shape is hidden until the hose connects
+	     (initialState="inactive" hides it at load; the hose and its mount sit
+	     under the coupler, so they appear together on connect). -->
 	<tractorMountFillArms accepted="true">
-		<tractorMountFillArm />
+		<staticPipe node="samsonFillPipe_PT"   cylinderedConfigIndex="0"/>
+		<staticPipe node="samsonFillPipe_Sap2" cylinderedConfigIndex="1,2"/>
+		<hose node="slurryPipe" type="TOOL_CONNECTOR_TOP_RIGHT" length="2" diameter="0.18" isTwoPointHose="true" inputAttacherJointIndices="1">
+			<objectChange node="coupler" visibilityActive="true" visibilityInactive="false" initialState="inactive"/>
+		</hose>
 	</tractorMountFillArms>
 	
 </slurryPipeSystem>

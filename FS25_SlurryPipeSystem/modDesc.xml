@@ -2,7 +2,7 @@
 <modDesc descVersion="111">
 
     <author>Oscar Mods</author>
-    <version>1.0.1.0</version>
+    <version>1.0.1.2</version>
     <title>
         <en>Slurry Pipe System</en>
         <de>Gülle-Rohrsystem</de>
@@ -182,7 +182,8 @@ Caratteristiche:
 		<sourceFile filename="scripts/manager/SPSM_Spreader.lua"/>
 		<sourceFile filename="scripts/manager/SPSM_Sprayers.lua"/>
 		<sourceFile filename="scripts/manager/SPSM_IBC.lua"/>
-
+		<sourceFile filename="scripts/manager/SPSM_FrontMount.lua"/>
+		
 		<!-- Separator (loads AFTER the manager + domain modules: wraps manager seams) -->
 		<sourceFile filename="scripts/separator/SPSSeparatorEvent.lua"/>
 		<sourceFile filename="scripts/separator/SPSSeparatorActivatable.lua"/>

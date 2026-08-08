@@ -59,9 +59,18 @@ actually thickens, crusts and blocks if you neglect it.
   for progressively thinner slurry.
 - **Water intake** — fill arms can draw water straight from map lakes and ponds wherever the
   map provides SPS water planes.
+- **Front-mount fill arms** — a capacity-0 pass-through pump unit on the tractor's front
+  linkage, hose-linked to a rear receiver tanker on **any** tractor via injected Giants
+  connection hoses (the Xerion keeps its own factory hose circuit). Filling cascades:
+  coupler-connected targets first, overflow to the rear tanker, switching automatically as
+  levels change — full mirror when unloading.
 - **Buying station support** — a compatible buying-station placeable (FS25_BuyableManureAndOther)
   acts as a paid, infinite pipe-only source, with a walk-up switch to choose which sold
-  liquid the coupler dispenses.
+  liquid the coupler dispenses (Shift + activate cycles in reverse). A **sprayer** variant
+  sells liquid fertiliser / herbicide straight into the sprayer pipe system — a part-full
+  sprayer auto-switches the station to its held liquid on connect and locks the switch
+  while connected, and script mods can add whole liquid categories via
+  `<extraFillTypeCategory>`.
 
 **Spreading**
 - **Dribble bars & band spreaders** — per-outlet blockage modelling with a macerator that
@@ -69,6 +78,11 @@ actually thickens, crusts and blocks if you neglect it.
 - **Fertiliser / herbicide sprayers** — load liquid fertiliser or herbicide through the same
   coupler-and-pipe system via a dedicated sprayer integration, operated from a single
   walk-up pump control. No pressure model on sprayers — flow is a flat rate.
+- **Front tank combos ("FlowControl")** — any front tank pairs automatically with any rear
+  sprayer on the same tractor sharing a fill type. One pipe connection to either tank fills
+  or drains **both**, and an automatic balancer (modelled on the real Amazone FT-P) holds the
+  rear at 30% from the front tank while spraying, so the front empties first and front axle
+  load is preserved. No config pairing, no keybind — attach and go.
 
 ---
 

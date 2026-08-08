@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.8
+-- Version: 1.0.1.2
 
 -- SPSCouplerAnimator.lua
 -- Lightweight per-coupling animator. Mirrors the vanilla AnimatedVehicle data
@@ -13,7 +13,7 @@
 -- disconnect) and a valveAnimation id (plays forward on valve open, reverse
 -- on valve close). Both are independent and per-coupling local.
 
-print("[SPS BUILD] SPSCouplerAnimator 1.0.0.9.24 loaded")
+print("[SPS BUILD] SPSCouplerAnimator 1.0.1.2 loaded")
 
 SPSCouplerAnimator = {}
 
@@ -342,6 +342,27 @@ function SPSCouplerAnimator.restoreState(inst, time, direction, playing)
     inst.playing     = playing == true and inst.direction ~= 0
 
     SPSCouplerAnimator._applyAt(inst, inst.currentTime)
+end
+
+
+-- [SPS 1.0.1.2] Snap an instance to its start or end pose without playing.
+-- These are the legacy-savegame fallback used by SlurryPipeManager
+-- :_applyPendingCouplerAnimation when a restored entry carries the old
+-- `legacyConnected` boolean instead of the newer per-object
+-- {time, direction, playing} table. Both call sites were guarded with
+-- `~= nil`, so with the functions absent the branch was silently skipped and
+-- a legacy save's connector kept whatever pose the i3d loaded with.
+-- Implemented on top of restoreState so the pose is applied immediately and
+-- the instance is left stopped (direction 0, playing false), matching what
+-- a completed forward/reverse play leaves behind.
+function SPSCouplerAnimator.setStart(inst)
+    if inst == nil then return end
+    SPSCouplerAnimator.restoreState(inst, 0, 0, false)
+end
+
+function SPSCouplerAnimator.setEnd(inst)
+    if inst == nil then return end
+    SPSCouplerAnimator.restoreState(inst, inst.duration or 0, 0, false)
 end
 
 

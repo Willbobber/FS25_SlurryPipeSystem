@@ -182,6 +182,7 @@ added automatically on the placeable side.
 | `offsetX/Y/Z` (legacy) | 0        | Optional local offset on the legacy `#node` mount. |
 | `valveType`            | `MANUAL` | `MANUAL`, `HYDRAULIC`, or `NONE`. `NONE` = free-flowing port: no valve prompts anywhere on the run, the walk-up prompt is connect/disconnect only. |
 | `flowDirection`        | `BOTH`   | `BOTH`, `FILL`, or `DISCHARGE` (separators additionally use `IN`/`OUT` — see §10). |
+| `fillType`             | —        | Optional per-coupler fill type restriction: only this fill type passes through this coupler, in either direction (e.g. separate `LIQUIDMANURE` and `DIGESTATE` couplers on one shared BGA storage). Unset = no restriction — the transfer picks whichever supported type is actually present, unchanged legacy behaviour. |
 | `connector`            | `female` | `male` / `female` — matched against the tanker end (tankers default `male`). |
 | `connectorAnimation`   | —        | Optional coupler animation id (see §7). |
 | `valveAnimation`       | —        | Optional valve animation id (see §7). |
@@ -265,8 +266,8 @@ same attribute exists on vehicle couplings (see the tanker guide §7).
 ```
 
 `effectNode(0)` is the pipe-effect transform group; `effectNode(1)` names the smoke node
-beneath it. **Both entries are required** — if either is missing the effect block is skipped
-entirely. The pipe mesh must be the **first child** of the effect transform group (it is
+beneath it. The smoke entry is **optional** — with only `effectNode(0)` declared the pipe
+liquid effect still runs, just without the smoke layer. The pipe mesh must be the **first child** of the effect transform group (it is
 resolved by child position, not by name). `inletDistance` (default 1.5) sets the effect
 length.
 
@@ -530,6 +531,46 @@ Remaining rules:
   vehicle's pump control node. The source tank just defines the coupling.
 - If you author the coupler nodes directly in the placeable i3d (no nodeTree), embedded
   sprayer placeables find them by name in the placeable's component tree.
+- **Info box per-tank rows:** stores with per-coupler capacities (`#fillType`+`#capacity`
+  or the dynamic `#fillTypes`/`#fillTypeCategories` declarations) show one row per physical
+  tank in the walk-up info display — `T-1`, `T-2`, … — with each tank's held liquid and
+  litres. Empty tanks read "Empty". Nothing to configure; the rows come from the coupler
+  declarations.
+
+---
+
+## 9B. Buying stations — `<buyingStation>` (paid, infinite pipe sources)
+
+A placeable that already carries the vanilla **buying station** spec
+(`PlaceableBuyingStation`) can act as a paid, infinite SPS pipe source. Two variants exist
+and they are **mutually exclusive on one placeable** (declaring both logs a warning and the
+sprayer block is ignored):
+
+- **Slurry:** `<slurryPipeSystem><buyingStation .../></slurryPipeSystem>` — feeds the
+  slurry pipe/coupler system, one switchable sold type on the coupler.
+- **Sprayer:** `<sprayerPipeSystem><buyingStation .../></sprayerPipeSystem>` — feeds
+  sprayers through the sprayer pipe system. The sold set is **explicit-only** — nothing is
+  auto-added from the station, and **WATER is always refused** from the sprayer cycle.
+
+Both variants use the same attributes:
+
+| Attribute / child                            | Default | Meaning |
+|----------------------------------------------|---------|---------|
+| `fillTypes`                                  | —       | Space-separated **ordered** switch cycle of vanilla-declared sold types (vanilla pricing), e.g. `"LIQUIDMANURE DIGESTATE"`. |
+| `fillType` (legacy)                          | slurry: `LIQUIDMANURE` | Single sold type = one-entry cycle (the switch prompt never shows). |
+| `default`                                    | first in cycle | Starting selection. |
+| `<extraFillType name="…" priceScale="…"/>`   | scale 1.0 | An SPS-extra sold type the vanilla station does **not** declare (e.g. WATER on a slurry well — slurry side only). SPS performs the purchase itself with the same price maths; `priceScale="0"` = free. Appended to the switch cycle after `fillTypes`. |
+| `<extraFillTypeCategory name="…" priceScale="…"/>` | scale 1.0 | **Sprayer side only:** appends a whole fillType *category* to the cycle — the script-mod hook (e.g. Soil & Fertilizer liquids). Unknown categories/types resolve to nothing and are skipped with a log line, so one config loads clean with or without the liquid mod installed. Types the vanilla station already declares keep vanilla pricing; an explicit `<extraFillType>` scale wins over its category's scale. |
+
+### Player interaction
+
+- The walk-up switch cycles the sold liquid; **Shift + activate cycles in reverse** (both
+  variants). The selection is server-authoritative and synced.
+- **Sprayer stations:** a part-full sprayer **auto-switches** the station to its held
+  liquid on connect, and the switch prompt is **locked while a sprayer is connected**
+  (server-validated).
+- No Storage object exists on a buying station — every draw is a purchase at the moment it
+  flows.
 
 ---
 

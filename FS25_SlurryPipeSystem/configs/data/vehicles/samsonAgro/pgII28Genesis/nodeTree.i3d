@@ -6,15 +6,65 @@
   </Asset>
 
   <Files>
+    <File fileId="7" filename="$data/shaders/vehicleShader.xml"/>
     <File fileId="4" filename="$data/shared/default_normal.png"/>
+    <File fileId="6" filename="$data/shared/default_vmask.dds"/>
+    <File fileId="21" filename="$data/shared/detailLibrary/calibrated/calibratedPaint_diffuse.png"/>
+    <File fileId="20" filename="$data/shared/detailLibrary/calibrated/calibratedPaint_normal.png"/>
+    <File fileId="19" filename="$data/shared/detailLibrary/calibrated/calibratedPaint_specular.png"/>
+    <File fileId="17" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="10" filename="$data/shared/detailLibrary/metallic/metalGalvanized_diffuse.png"/>
+    <File fileId="9" filename="$data/shared/detailLibrary/metallic/metalGalvanized_normal.png"/>
+    <File fileId="8" filename="$data/shared/detailLibrary/metallic/metalGalvanized_specular.png"/>
+    <File fileId="18" filename="$data/shared/detailLibrary/metallic/scratched_diffuse.png"/>
+    <File fileId="16" filename="$data/shared/detailLibrary/metallic/scratched_specular.png"/>
+    <File fileId="5" filename="$data/shared/white_diffuse.dds"/>
+    <File fileId="15" filename="../../../../../i3d/connectors/frontArmConnections_Vmask.dds"/>
   </Files>
 
 
   <Materials>
+    <Material name="calibratedPaint_mat_SamsonFillArm" materialId="5" customShaderId="7">
+      <Texture fileId="5"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="15"/>
+      <Custommap name="detailSpecular" fileId="19"/>
+      <Custommap name="detailNormal" fileId="20"/>
+      <Custommap name="detailDiffuse" fileId="21"/>
+      <CustomParameter name="colorScale" value="0 0.307 0.073"/>
+      <CustomParameter name="smoothnessScale" value="0.85"/>
+      <CustomParameter name="clearCoatIntensity" value="0.1"/>
+      <CustomParameter name="clearCoatSmoothness" value="0.2"/>
+    </Material>
     <Material name="default_mat" materialId="6" diffuseColor="0.501961 0.501961 0.501961 1">
       <Normalmap fileId="4"/>
     </Material>
     <Material name="lambert1" materialId="7" diffuseColor="0.8 0.8 0.8 1" specularColor="0.501961 1 0">
+    </Material>
+    <Material name="metalGalvanized_mat" materialId="8" customShaderId="7">
+      <Texture fileId="5"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="15"/>
+      <Custommap name="detailSpecular" fileId="8"/>
+      <Custommap name="detailNormal" fileId="9"/>
+      <Custommap name="detailDiffuse" fileId="10"/>
+    </Material>
+    <Material name="metalGalvanized_mat_coupler" materialId="75" customShaderId="7">
+      <Texture fileId="5"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="6"/>
+      <Custommap name="detailSpecular" fileId="8"/>
+      <Custommap name="detailNormal" fileId="9"/>
+      <Custommap name="detailDiffuse" fileId="10"/>
+    </Material>
+    <Material name="silverScratchedShiny_mat" materialId="9" customShaderId="7">
+      <Texture fileId="5"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="15"/>
+      <Custommap name="detailSpecular" fileId="16"/>
+      <Custommap name="detailNormal" fileId="17"/>
+      <Custommap name="detailDiffuse" fileId="18"/>
+      <CustomParameter name="colorScale" value="0.7379 0.7454 0.7529"/>
     </Material>
   </Materials>
 
@@ -93,8 +143,14 @@
           <TransformGroup name="fullNode" translation="0 3.418 0" nodeId="63"/>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="tractorMountFillArm" visibility="false" nodeId="64">
-        <TransformGroup name="pgII28Genesis_vis" nodeId="65"/>
+      <TransformGroup name="tractorMountFillArm" nodeId="64">
+        <TransformGroup name="pgII28Genesis_vis" nodeId="65">
+          <Shape name="coupler" translation="0.00045125 3.10755 4.40539" shapeId="4" clipDistance="300" nodeId="78" castsShadows="true" receiveShadows="true" materialIds="75">
+            <TransformGroup name="slurryPipe" translation="3.28367e-05 -0.000358105 0.0655367" nodeId="79"/>
+          </Shape>
+          <Shape name="samsonFillPipe_PT" shapeId="5" clipDistance="300" nodeId="69" castsShadows="true" receiveShadows="true" materialIds="8,9,5"/>
+          <Shape name="samsonFillPipe_Sap2" shapeId="6" clipDistance="300" nodeId="70" castsShadows="true" receiveShadows="true" materialIds="8,5"/>
+        </TransformGroup>
       </TransformGroup>
     </TransformGroup>
   </Scene>

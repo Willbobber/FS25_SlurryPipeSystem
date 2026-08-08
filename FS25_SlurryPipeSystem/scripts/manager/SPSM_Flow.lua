@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.10.3
+-- Version: 1.0.1.5
 
 -- SPSM_Flow.lua
 -- FS25_SlurryPipeSystem
@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Flow 1.0.0.10.3 loaded")
+print("[SPS BUILD] SPSM_Flow 1.0.1.8 loaded")
 
 
 function SlurryPipeManager:connectionIsFillArm(vehicle)
@@ -663,6 +663,20 @@ function SlurryPipeManager:_equaliseSideIsNeutral(vehicle)
     -- equalisation must never fight it. Open-top FRC / passive vessels have
     -- no pump and fall through to neutral.
     if self:_isPumpOn(vehicle) then return false end
+
+    -- [SPS FM 1.0.1.7] Front-mount proxy: the pump that acts on this tank may
+    -- live on a front mount whose hose-connected receiver is THIS vehicle. The
+    -- receiver's own state stays neutral (pump/direction belong to the front),
+    -- which previously let equalisation fight the front's pumped push — the
+    -- observed 43–44% level oscillation on FRC <-> semi. A front mount with
+    -- its pump running owns its receiver's level exactly as an onboard pump
+    -- would, so the receiver is non-neutral for equalisation purposes.
+    for _, fmEntry in ipairs(self.registeredVehicles) do
+        if fmEntry.frontMount ~= nil and fmEntry.frontMount.receiver == vehicle then
+            if self:_isPumpOn(fmEntry.vehicle) then return false end
+        end
+    end
+
     return true
 end
 
@@ -1137,13 +1151,25 @@ function SlurryPipeManager:buildFlowSession(vehicle)
             break
         end
     end
-    return {
+    local session = {
         vehicle               = vehicle,
         vehicleFillUnit       = vehicleFillUnit,
         baseLitersPerSecond   = emptyLPS,   -- legacy field = empty rate
         baseFillLitersPerSecond  = fillLPS,
         baseEmptyLitersPerSecond = emptyLPS,
     }
+    -- [SPS FM 1.0.1.7] Front mount: the tank side of the session is the
+    -- hose-connected receiver, never the front's own capacity-0 unit. Seeded
+    -- here and revalidated EVERY tick in tickFlow (the receiver can change or
+    -- vanish mid-session with attach/hose state).
+    local fmEntry = self:getVehicleEntry(vehicle)
+    if fmEntry ~= nil and fmEntry.frontMount ~= nil then
+        local receiver, _, fui = self:getFrontMountReceiver(vehicle)
+        session.isFrontMount = true
+        session.tankVehicle = receiver
+        if fui ~= nil then session.vehicleFillUnit = fui end
+    end
+    return session
 end
 
 -- ---------------------------------------------------------------------------
@@ -1153,14 +1179,21 @@ function SlurryPipeManager:detectArmConnection(vehicle, entry, arm)
     -- If any pipe coupling on this vehicle is connected, the pipe governs.
     -- Arm detection is blocked completely to prevent cab valve from bypassing
     -- the manual valve on the pipe connection.
-    for _, c in ipairs(entry.couplingEntries) do
-        if c.isConnected then
-            if arm.isConnected then
-                arm.isConnected    = false
-                arm.connectedSource   = nil
-                arm.connectedBootPort = nil
+    -- [SPS 1.0.1.8] FRONT-MOUNT EXCEPTION: a front mount is a pass-through
+    -- pump whose arm and coupler are BOTH live by design (the coupler-first
+    -- cascade in tickFrontMountArmCascade). No valve bypass is created: the
+    -- cab hydraulic valve still gates the arm path, and the coupling's own
+    -- manual valve still gates the coupler path independently.
+    if entry.frontMount == nil then
+        for _, c in ipairs(entry.couplingEntries) do
+            if c.isConnected then
+                if arm.isConnected then
+                    arm.isConnected    = false
+                    arm.connectedSource   = nil
+                    arm.connectedBootPort = nil
+                end
+                return
             end
-            return
         end
     end
 
@@ -1400,48 +1433,23 @@ function SlurryPipeManager:detectArmConnection(vehicle, entry, arm)
     if armEffects ~= nil then
         local valveOpen   = state ~= nil and state.valveOpen or false
         local fillLevel   = vehicle.getFillUnitFillLevel ~= nil and vehicle:getFillUnitFillLevel(arm.fillUnitIndex) or 0
-        -- [SPS 1.0.0.10.3] The stream now asks resolveCouplingFlow the same question
-        -- tickFlow asks, instead of re-deriving its own answer from the pressure
-        -- scalar alone.
-        --
-        -- The bug this fixes: getDirectionalPressureFlowScalar returns TWO values,
-        -- (scalar, usesPressure), and for an endpoint that is NOT on the pressure
-        -- model it returns a hardcoded 1.0, false (SPSM_Pressure: "if not
-        -- self:usesPressureModel(entry) then return 1.0, false end"). The old line
-        -- captured only the scalar and discarded the usesPressure flag, so on an
-        -- exempt endpoint "pScalar > 0" was permanently true and the stream played on
-        -- valve-open alone — with the pump OFF and nothing actually moving. Real flow
-        -- was correct throughout: resolveCouplingFlow gates that same case on
-        -- pumpRunning and returns nil, 0.0. Only the visual disagreed.
-        --
-        -- Routing through resolveCouplingFlow also brings the stream three behaviours
-        -- it never had: the exempt pump gate above, gravity backflow (which resolves
-        -- to DISCHARGE even while the selector reads FILL, so the content test now
-        -- follows the RESOLVED direction rather than the selected one), and the
-        -- sealed-vacuum and partner-pressurising suppressions.
-        --
-        -- Pressure-model behaviour is unchanged: a stored vacuum still drives the
-        -- suction stream after the PTO stops, because it is still genuinely drawing.
-        local pumpRunning
-        if self:isVehicleSelfPowered(vehicle) then
-            pumpRunning = state ~= nil and state.pumpRunning == true
-        else
-            pumpRunning = vehicle.getIsTurnedOn ~= nil and vehicle:getIsTurnedOn() or false
-        end
-        local flowDir, pScalar = nil, 0
-        if state ~= nil then
-            flowDir, pScalar = self:resolveCouplingFlow(vehicle, state, pumpRunning, fillLevel > 0)
-        end
-        pScalar = pScalar or 0
-        local isDischarge = flowDir == SPS_DIRECTION_DISCHARGE
+        -- The stream follows actual flow, which is pressure-driven (not the PTO),
+        -- and shows in BOTH directions: a discharge stream out, or a suction
+        -- stream while filling. For an exempt endpoint the scalar is 1.0 so it
+        -- behaves as a simple on/off with the valve.
+        -- [SPS 1.0.0.9.20] Direction-aware: no stream during the hold window
+        -- (stored pressure opposing the selected direction) — visuals now match
+        -- the gated flow instead of showing a discharge driven by a vacuum.
+        local pScalar     = self:getDirectionalPressureFlowScalar(vehicle,
+            state ~= nil and state.direction or nil)
+        local isDischarge = state ~= nil and state.direction == SPS_DIRECTION_DISCHARGE or false
         local hasFlowContent
         if isDischarge then
             hasFlowContent = fillLevel > 0      -- discharging: slurry must be in the tank
         else
             hasFlowContent = foundSource ~= nil -- filling: a source must be present to draw from
         end
-        local shouldPlay  = arm.isConnected and valveOpen and flowDir ~= nil
-            and pScalar > 0 and hasFlowContent
+        local shouldPlay  = arm.isConnected and valveOpen and pScalar > 0 and hasFlowContent
         if shouldPlay then
             if not arm.effectPlaying then
                 local effectFillType = vehicle:getFillUnitFillType(arm.fillUnitIndex)
@@ -1489,6 +1497,47 @@ function SlurryPipeManager:tickFlow(session, dt)
     local vehicle = session.vehicle
     local state   = self:getVehicleState(vehicle)
     if state == nil then return end
+
+    -- -----------------------------------------------------------------------
+    -- [SPS FM 1.0.1.7] Front-mount tank side. Revalidated EVERY tick: the
+    -- receiver is derived from live hose state and can vanish mid-session
+    -- (detach) — flow must stop instantly while the pump keeps running.
+    -- tankVehicle is the vehicle whose fill unit the session reads/writes;
+    -- for everything except a front mount it is the session vehicle itself.
+    -- fmBail: channel-gated, change-deduped bail tracing for front-mount
+    -- sessions ONLY — closes the "silent early return" observability hole.
+    -- -----------------------------------------------------------------------
+    local function fmBail(tag)
+        if session.isFrontMount == true
+           and SPSDebugConfig ~= nil and SPSDebugConfig.isOn("SPSM_FrontMount")
+           and session._fmBail ~= tag then
+            session._fmBail = tag
+            print(string.format("[SPS FM] tickFlow bail: %s reason=%s",
+                tostring(vehicle.configFileName), tostring(tag)))
+        end
+    end
+    if session.isFrontMount == true then
+        -- [SPS 1.0.1.8] Tank side is now a PRIORITY LIST (coupler targets
+        -- first, receiver second), resolved fresh every tick by
+        -- getFrontMountTankTargets. The receiver, when present, still seeds
+        -- tankVehicle for the legacy paths (coupler->receiver mode, HUD);
+        -- but a missing receiver no longer bails the session as long as an
+        -- open, connected coupler target exists (pure pass-through: tractor
+        -- with front mount only, bez pipe to a free-standing tanker/store).
+        session.fmTargets = self:getFrontMountTankTargets(vehicle)
+        local receiver, fmReason, fui = self:getFrontMountReceiver(vehicle)
+        if receiver ~= nil and fui ~= nil then
+            session.tankVehicle     = receiver
+            session.vehicleFillUnit = fui
+        else
+            session.tankVehicle = nil
+        end
+        if session.fmTargets == nil or #session.fmTargets == 0 then
+            fmBail("no_targets:" .. tostring(fmReason))
+            return
+        end
+    end
+    local tankVehicle = session.tankVehicle or vehicle
 
     local pumpRunning
     if self:isVehicleSelfPowered(vehicle) then
@@ -1590,6 +1639,11 @@ function SlurryPipeManager:tickFlow(session, dt)
             and (session.baseEmptyLitersPerSecond or session.baseLitersPerSecond)
             or  (session.baseFillLitersPerSecond  or session.baseLitersPerSecond)
         local amount = math.min(rateBase * dt * 0.001, sourceLevel, freeCapacity)
+        -- [SPS 1.0.1.5] Nothing to move (source empty or destination full) must
+        -- return BEFORE the thickness gate below: the tooThick blinking warning
+        -- sat after this min() but before any amount check, so a drained source
+        -- could blink "add water" forever with zero litres in play.
+        if amount <= 0 then return end
         -- Apply thickness slowdown based on what the SOURCE carries. A placeable
         -- store uses its apparent (DM) thickness; a tanker source uses the thickness
         -- it is carrying (state.thickness). Either way thick slurry slows the transfer
@@ -1625,10 +1679,14 @@ function SlurryPipeManager:tickFlow(session, dt)
     local hasCouplingFlow = self:hasActiveCouplingConnection(vehicle)
 
     if not isArmActive and not hasCouplingFlow then
+        fmBail("no_arm_no_coupling")
         return
     end
+    session._fmBail = nil
 
-    local fillType = vehicle:getFillUnitFillType(session.vehicleFillUnit)
+    -- [SPS FM 1.0.1.7] Fill type / content are TANK-side facts: read from
+    -- tankVehicle (the receiver for a front mount, the vehicle itself otherwise).
+    local fillType = tankVehicle:getFillUnitFillType(session.vehicleFillUnit)
     if fillType == nil or fillType == FillType.UNKNOWN then
         -- [SPS] Tank is empty (UNKNOWN fill type). Do NOT assume LIQUIDMANURE — that
         -- silently blocks loading DIGESTATE (or any other type) into an empty tanker,
@@ -1658,8 +1716,8 @@ function SlurryPipeManager:tickFlow(session, dt)
         end
     end
 
-    local hasContent = (vehicle.getFillUnitFillLevel ~= nil
-        and (vehicle:getFillUnitFillLevel(session.vehicleFillUnit) or 0) > 0)
+    local hasContent = (tankVehicle.getFillUnitFillLevel ~= nil
+        and (tankVehicle:getFillUnitFillLevel(session.vehicleFillUnit) or 0) > 0)
 
     if isArmActive then
         -- Fill arm requires the cab hydraulic valve open. The effective flow is then
@@ -1667,6 +1725,16 @@ function SlurryPipeManager:tickFlow(session, dt)
         -- at/above minThreshold drives flow in its built direction, and a spent tank
         -- backflows out by gravity.
         if not state.valveOpen then
+            fmBail("valve_closed")
+            return
+        end
+        -- [SPS 1.0.1.8] Front mount: the whole arm session runs through the
+        -- coupler-first cascade (SPSM_FrontMount.tickFrontMountArmCascade),
+        -- which resolves its own flow direction, targets, rates, thickness
+        -- and transfers. The legacy single-tank path below stays untouched
+        -- for every other vehicle.
+        if session.isFrontMount == true and session.fmTargets ~= nil then
+            self:tickFrontMountArmCascade(session, state, pumpRunning, dt, fillType)
             return
         end
         local flowDir, scalar = self:resolveCouplingFlow(vehicle, state, pumpRunning, hasContent)
@@ -1675,7 +1743,11 @@ function SlurryPipeManager:tickFlow(session, dt)
             SlurryPipeManager.log("tickFlow[arm]: %s flowDir=%s scalar=%.2f pump=%s",
                 tostring(vehicle.configFileName), tostring(flowDir), scalar or 0, tostring(pumpRunning))
         end
-        if flowDir == nil or scalar <= 0 then return end
+        if flowDir == nil or scalar <= 0 then
+            fmBail("no_flow_dir")
+            return
+        end
+        session._fmBail = nil
         local rateBase = (flowDir == SPS_DIRECTION_FILL)
             and (session.baseFillLitersPerSecond or session.baseLitersPerSecond)
             or  (session.baseEmptyLitersPerSecond or session.baseLitersPerSecond)
@@ -1693,16 +1765,18 @@ function SlurryPipeManager:tickFlow(session, dt)
                 end
                 rate = rate * mult
             end
-            local oldLevel = vehicle:getFillUnitFillLevel(session.vehicleFillUnit) or 0
+            -- [SPS FM 1.0.1.7] Tank-side level reads and consistency blends on
+            -- tankVehicle: the receiver's tank is what fills for a front mount.
+            local oldLevel = tankVehicle:getFillUnitFillLevel(session.vehicleFillUnit) or 0
             self:transferFill(vehicle, session, rate, fillType)
             -- Inherit the source's thickness into the tank for whatever was added.
-            local added = (vehicle:getFillUnitFillLevel(session.vehicleFillUnit) or 0) - oldLevel
+            local added = (tankVehicle:getFillUnitFillLevel(session.vehicleFillUnit) or 0) - oldLevel
             if added > 0 then
-                self:applyFillThicknessBlend(vehicle, oldLevel, added, self:getSourceThickness(extSrc))
-                self:applyFillCrustBlend(vehicle, oldLevel, added, self:getSourceCrust(extSrc))
+                self:applyFillThicknessBlend(tankVehicle, oldLevel, added, self:getSourceThickness(extSrc))
+                self:applyFillCrustBlend(tankVehicle, oldLevel, added, self:getSourceCrust(extSrc))
             end
         else
-            rate = rate * self:getTankerThicknessMultiplier(vehicle)   -- carried thickness slows the push-out
+            rate = rate * self:getTankerThicknessMultiplier(tankVehicle)   -- carried thickness slows the push-out
             self:transferDischarge(vehicle, session, rate, fillType)
         end
     else
@@ -1768,15 +1842,17 @@ function SlurryPipeManager:tickFlow(session, dt)
                 end
                 rate = rate * mult
             end
-            local oldLevel = vehicle:getFillUnitFillLevel(session.vehicleFillUnit) or 0
+            -- [SPS FM 1.0.1.7] Tank-side level reads and consistency blends on
+            -- tankVehicle: the receiver's tank is what fills for a front mount.
+            local oldLevel = tankVehicle:getFillUnitFillLevel(session.vehicleFillUnit) or 0
             self:transferFill(vehicle, session, rate, fillType)
-            local added = (vehicle:getFillUnitFillLevel(session.vehicleFillUnit) or 0) - oldLevel
+            local added = (tankVehicle:getFillUnitFillLevel(session.vehicleFillUnit) or 0) - oldLevel
             if added > 0 then
-                self:applyFillThicknessBlend(vehicle, oldLevel, added, self:getSourceThickness(extSrc))
-                self:applyFillCrustBlend(vehicle, oldLevel, added, self:getSourceCrust(extSrc))
+                self:applyFillThicknessBlend(tankVehicle, oldLevel, added, self:getSourceThickness(extSrc))
+                self:applyFillCrustBlend(tankVehicle, oldLevel, added, self:getSourceCrust(extSrc))
             end
         else
-            rate = rate * self:getTankerThicknessMultiplier(vehicle)   -- carried thickness slows the push-out
+            rate = rate * self:getTankerThicknessMultiplier(tankVehicle)   -- carried thickness slows the push-out
             self:transferDischarge(vehicle, session, rate, fillType)
         end
     end
@@ -1872,20 +1948,6 @@ function SlurryPipeManager:_resolveSourceFillType(srcEntry)
         if declared ~= nil then
             local declaredLvl = srcEntry.storage:getFillLevel(declared) or 0
             if declaredLvl > 0 then return declared end
-        end
-        -- [SPS 1.0.0.10.3] A store declared via <slurryStore> is a discrete lagoon
-        -- with its own plane and its own body of liquid, but every store on one
-        -- placeable shares ONE Storage object. The unrestricted walk below is
-        -- therefore a cross-lagoon leak on a multi-store placeable: dipping an arm
-        -- into an EMPTY digestate lagoon would find LIQUIDMANURE in the shared
-        -- Storage and draw the neighbouring lagoon's slurry through a plane that
-        -- never moves. When the store declares a pool, the walk is confined to it.
-        if srcEntry.poolFillTypes ~= nil then
-            for ft, _ in pairs(srcEntry.poolFillTypes) do
-                local lvl = srcEntry.storage:getFillLevel(ft) or 0
-                if lvl > 0 and self:_isPumpableSourceFillType(ft) then return ft end
-            end
-            return nil
         end
         for ft, _ in pairs(srcEntry.storage.fillTypes) do
             local lvl = srcEntry.storage:getFillLevel(ft) or 0
@@ -1986,7 +2048,11 @@ function SlurryPipeManager:transferFill(vehicle, session, delta, fillType)
 
     delta = math.min(delta, sourceLevel)
 
-    local applied = vehicle:addFillUnitFillLevel(vehicle:getOwnerFarmId(), session.vehicleFillUnit, delta, fillType, ToolType.TRIGGER, nil)
+    -- [SPS FM 1.0.1.7] The add lands on the session's tank vehicle: the
+    -- hose-connected receiver for a front mount, the session vehicle otherwise.
+    -- The external (arm/pipe) side above stays resolved against `vehicle`.
+    local tank = session.tankVehicle or vehicle
+    local applied = tank:addFillUnitFillLevel(tank:getOwnerFarmId(), session.vehicleFillUnit, delta, fillType, ToolType.TRIGGER, nil)
     if applied <= 0 then return end
     self:removeFromSource(extSource, applied, fillType, vehicle)
 end
@@ -2032,7 +2098,11 @@ function SlurryPipeManager:transferDischarge(vehicle, session, delta, fillType)
 
     delta = math.min(delta, freeCapacity)
 
-    local applied = vehicle:addFillUnitFillLevel(vehicle:getOwnerFarmId(), session.vehicleFillUnit, -delta, fillType, ToolType.TRIGGER, nil)
+    -- [SPS FM 1.0.1.7] The draw comes from the session's tank vehicle: the
+    -- hose-connected receiver for a front mount, the session vehicle otherwise.
+    -- The external (arm/pipe) side above stays resolved against `vehicle`.
+    local tank = session.tankVehicle or vehicle
+    local applied = tank:addFillUnitFillLevel(tank:getOwnerFarmId(), session.vehicleFillUnit, -delta, fillType, ToolType.TRIGGER, nil)
     if applied >= 0 then return end
     self:addToSource(extDest, math.abs(applied), fillType, vehicle)
 end
@@ -2082,7 +2152,11 @@ function SlurryPipeManager:transferFillFromBuyingStation(vehicle, session, delta
         return
     end
     session._loggedBuyStationTypeBlock = nil
-    local oldLevel = vehicle:getFillUnitFillLevel(session.vehicleFillUnit) or 0
+    -- [SPS FM 1.0.1.7] Purchases land on the session's tank vehicle: the
+    -- hose-connected receiver for a front mount, the session vehicle otherwise.
+    -- The receiver's farm pays, matching whose tank fills.
+    local tank = session.tankVehicle or vehicle
+    local oldLevel = tank:getFillUnitFillLevel(session.vehicleFillUnit) or 0
     local applied
     if isExtra then
         -- [SPS 1.0.0.9.28] SPS-side purchase for a type the vanilla station does
@@ -2093,11 +2167,11 @@ function SlurryPipeManager:transferFillFromBuyingStation(vehicle, session, delta
         -- priceScale x fillType.pricePerLiter x EconomyManager.getPriceMultiplier
         -- via g_currentMission:addMoney with the station's own moneyChangeType.
         -- priceScale 0 in the config = free (no addMoney call).
-        local farmId = vehicle:getOwnerFarmId()
+        local farmId = tank:getOwnerFarmId()
         if not (0 < g_currentMission:getMoney(farmId)) then
             applied = 0
         else
-            applied = vehicle:addFillUnitFillLevel(farmId, session.vehicleFillUnit,
+            applied = tank:addFillUnitFillLevel(farmId, session.vehicleFillUnit,
                 delta, fillType, ToolType.TRIGGER, nil)
             if applied ~= nil and applied > 0 then
                 local scale        = extSource.extraPriceScales[fillType] or 1.0
@@ -2111,7 +2185,7 @@ function SlurryPipeManager:transferFillFromBuyingStation(vehicle, session, delta
             end
         end
     else
-        applied = station:addFillLevelToFillableObject(vehicle, session.vehicleFillUnit,
+        applied = station:addFillLevelToFillableObject(tank, session.vehicleFillUnit,
             fillType, delta, nil, ToolType.TRIGGER)
     end
     if applied == nil or applied <= 0 then
@@ -2131,17 +2205,17 @@ function SlurryPipeManager:transferFillFromBuyingStation(vehicle, session, delta
     -- ("water adds volume but no dry matter").
     if fillType == FillType.WATER then
         if self.applyFillThicknessBlend ~= nil then
-            self:applyFillThicknessBlend(vehicle, oldLevel, applied, 0)
+            self:applyFillThicknessBlend(tank, oldLevel, applied, 0)
         end
         if self.applyFillCrustBlend ~= nil then
-            self:applyFillCrustBlend(vehicle, oldLevel, applied, 0)
+            self:applyFillCrustBlend(tank, oldLevel, applied, 0)
         end
     else
         if extSource.thickness ~= nil and self.applyFillThicknessBlend ~= nil then
-            self:applyFillThicknessBlend(vehicle, oldLevel, applied, extSource.thickness)
+            self:applyFillThicknessBlend(tank, oldLevel, applied, extSource.thickness)
         end
         if extSource.crust ~= nil and self.applyFillCrustBlend ~= nil then
-            self:applyFillCrustBlend(vehicle, oldLevel, applied, extSource.crust)
+            self:applyFillCrustBlend(tank, oldLevel, applied, extSource.crust)
         end
     end
     session.totalTransferred = (session.totalTransferred or 0) + applied
@@ -2151,6 +2225,40 @@ end
 -- Source resolution
 -- ---------------------------------------------------------------------------
 function SlurryPipeManager:resolveVehicleSource(vehicle)
+    -- -----------------------------------------------------------------------
+    -- [SPS FM 1.0.1.6] Front-mount pass-through substitution. A front mount
+    -- (entry.frontMount ~= nil) never has a tank of its own — its capacity-0
+    -- fill unit exists only to satisfy vanilla. Its tank-side endpoint is
+    -- ALWAYS the hose-connected receiver resolved by SPSM_FrontMount
+    -- (updateFrontMounts refreshes the cache every tick on all peers).
+    --
+    -- Every flow path — arm sessions, coupling sessions, equalise, chain
+    -- resolution via resolveSourceForCouplingPartner — funnels through this
+    -- function per evaluation, so this one substitution routes them all and a
+    -- receiver detached mid-flow returns nil on the next evaluation: flow
+    -- stops, pump keeps running (universal rule).
+    --
+    -- No receiver -> nil: pump on + valve open moves nothing because the
+    -- liquid has nowhere to go. (Mode C, arm<->coupler bridging with no
+    -- receiver, is a later phase and does not pass through here.)
+    --
+    -- A receiver that is itself a front mount is a config error, not a
+    -- supported topology — refuse it rather than recurse.
+    -- -----------------------------------------------------------------------
+    do
+        local fmEntry = self:getVehicleEntry(vehicle)
+        if fmEntry ~= nil and fmEntry.frontMount ~= nil then
+            local receiver = fmEntry.frontMount.receiver
+            if receiver ~= nil and receiver ~= vehicle then
+                local rEntry = self:getVehicleEntry(receiver)
+                if rEntry ~= nil and rEntry.frontMount == nil then
+                    return self:resolveVehicleSource(receiver)
+                end
+            end
+            return nil
+        end
+    end
+
     for _, entry in ipairs(self.registeredVehicles) do
         if entry.vehicle == vehicle then
             if entry.sourceEntry == nil then
@@ -2475,10 +2583,54 @@ function SlurryPipeManager:removeFromSource(sourceEntry, amount, fillType, farmV
                 local solids = sourceEntry.solids or 0
                 local liquid = math.max(0, total - solids)
                 local dm     = total > 0 and (solids / total) or 0
-                local liquidOut = math.min(removed * (1 - dm) * SlurryPipeManager.DM_REMOVAL_LIQUID_BIAS,
-                                           liquid, removed)
-                local solidsOut = math.min(removed - liquidOut, solids)
+                -- [SPS 1.0.0.10.4] Preferential-liquid draw re-derived onto the SOLIDS share.
+                --
+                -- Previous form:
+                --   liquidOut = min(removed * (1 - dm) * DM_REMOVAL_LIQUID_BIAS, liquid, removed)
+                --   solidsOut = min(removed - liquidOut, solids)
+                --
+                -- dm here is a TRUE dry-matter fraction, not the 0..1 gauge: DM_FRESH 0.06
+                -- to DM_JAMMED 0.15. So (1 - dm) * 1.6 was never below 1.36, the first term
+                -- always exceeded `removed`, liquidOut always clamped to `removed`, and
+                -- solidsOut was therefore ZERO on every single draw. The solids pool became
+                -- a one-way ratchet: pumping out removed volume but no dry matter, so the
+                -- instant the total fell back to its pre-dilution level the DM fraction
+                -- returned to exactly where it started. Net effect for the player: adding
+                -- water only ever bought back the litres of water added, no matter how much
+                -- was added or how long the store was agitated.
+                --
+                -- The bias now scales the solids share DOWN instead of scaling the liquid
+                -- share UP: solids leave at dm/bias per litre, i.e. still less than their
+                -- plain proportional share (so the store concentrates as it empties, which
+                -- is the intended behaviour), but never zero, so dilution genuinely wins
+                -- back slurry. bias = 1 remains exactly neutral.
+                -- [SPS 1.0.1.4] Bias scaled by SETTLE. The liquid-first draw models a
+                -- pump pulling runny liquid from beneath SETTLED sludge — but a fresh
+                -- or freshly-agitated store (settle 0) is a homogeneous mixture with
+                -- nothing settled to pull from under, and the unconditional 1.6 bias
+                -- made even a brand-new 500,000 L store ratchet itself to a 90% jam
+                -- with ~51,000 L still in it, unreachable by any finite water dosing.
+                --
+                -- Effective bias = 1 + (DM_REMOVAL_LIQUID_BIAS - 1) * settle:
+                --   settle 0.0 (fresh / fully mixed)  -> bias 1.0: solids leave at their
+                --       plain share, DM is CONSTANT while pumping, store drains to zero.
+                --   settle 1.0 (fully crusted)        -> full 1.6 bias: concentrates as
+                --       it empties, jams, needs water and/or mixing — unchanged.
+                --   in between                        -> proportional.
+                -- Agitating before pumping therefore has a real second job: it turns a
+                -- concentrating draw into an honest one. Water remains the only remedy
+                -- once DM itself is past the jam line.
+                local settle    = math.max(0.0, math.min(1.0, sourceEntry.settle or 0))
+                local biasMax   = math.max(1.0, SlurryPipeManager.DM_REMOVAL_LIQUID_BIAS or 1.0)
+                local bias      = 1.0 + (biasMax - 1.0) * settle
+                local solidsOut = math.min(removed * (dm / bias), solids)
+                local liquidOut = math.min(removed - solidsOut, liquid)
+                -- Liquid exhausted: the balance of this draw has to come out as solids.
+                solidsOut       = math.min(removed - liquidOut, solids)
                 sourceEntry.solids = math.max(0, solids - solidsOut)
+                -- Solids can never exceed what is left in the pile. On the last litres this
+                -- forces the residue solid, which is what jams a store at the very bottom.
+                sourceEntry.solids = math.min(sourceEntry.solids, math.max(0, total - removed))
             end
             storage:setFillLevel(math.max(0, oldLevel - removed), fillType)
             if sourceEntry.thickeningEnabled then

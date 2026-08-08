@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.10.3
+-- Version: 1.0.0.10.4
 
 -- SPSDebugConfig.lua
 -- FS25_SlurryPipeSystem
@@ -51,6 +51,7 @@ SPSDebugConfig.channels = {
     ["SPSM_Stores"]                    = false, -- [SPS STORES] slurryStore parse / plane drive / MP trace
     ["SPSM_Spreader"]                  = false, -- RESERVED
     ["SPSM_Sprayers"]                  = false, -- RESERVED
+    ["SPSM_Sprayers.FrontTank"]        = false, -- [SPS FT-BAL] front/rear tank combo link + FlowControl balancer trace
     ["SPSM_IBC"]                       = false, -- RESERVED
 
     -- ----------------------------------------------------------- overrides
@@ -88,6 +89,9 @@ SPSDebugConfig.channels = {
     ["SPSFixedAgitatorEvent"]          = false, -- RESERVED (not yet wired)
     ["SlurryAgitator"]                 = false, -- RESERVED (not yet wired)
     ["SlurryAgitatorEvent"]            = false, -- RESERVED (not yet wired)
+
+    -- ------------------------------------------------------------ front mount
+    ["SPSM_FrontMount"]                = false, -- [SPS FM] front-mount receiver resolution trace
 
     -- ------------------------------------------------------------ separator
     ["SPSSeparator"]                   = false, -- [SPS SEPARATOR] core trace
@@ -248,4 +252,4 @@ if addConsoleCommand ~= nil then
         "consoleDebug", SPSDebugConfig)
 end
 
-print("[SPS BUILD] SPSDebugConfig 1.0.0.10.3 loaded")
+print("[SPS BUILD] SPSDebugConfig 1.0.0.10.4 loaded")

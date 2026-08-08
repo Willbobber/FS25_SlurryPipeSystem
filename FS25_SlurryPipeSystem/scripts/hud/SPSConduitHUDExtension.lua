@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.8
+-- Version: 1.0.1.4
 
 -- SPSConduitHUDExtension.lua
 -- FS25_SlurryPipeSystem
@@ -169,10 +169,23 @@ function SPSConduitHUDExtension:draw(inputHelpDisplay, posX, posY)
             local extSrc = g_slurryPipeManager:resolveExternalSource(self.vehicle)
             if extSrc ~= nil then
                 local warn = g_slurryPipeManager:getThicknessWarning(extSrc)
+                -- [SPS 1.0.1.4] The percentage previously read extSrc.thickness — a
+                -- legacy single-gauge field the two-pool model never writes, so the
+                -- warning always rendered "0%". getApparentThickness is the live
+                -- gauge every other consumer reads.
+                local pct = math.floor(g_slurryPipeManager:getApparentThickness(extSrc) * 100)
                 if warn == "tooThick" then
                     table.insert(rows, g_i18n:getText("warning_spsSlurryTooThick"))
+                elseif warn == "needsMix" then
+                    -- [SPS 1.0.1.4] State existed since the two-pool model but was
+                    -- never shown here: a settled-jammed store rendered no warning
+                    -- row at all while the pump sat at zero flow.
+                    table.insert(rows, g_i18n:getText("warning_spsSlurryNeedsMix"))
+                elseif warn == "thickeningWater" then
+                    -- [SPS 1.0.1.4] 80% band caused by dry matter: mixing cannot
+                    -- help, water is the remedy.
+                    table.insert(rows, string.format(g_i18n:getText("warning_spsSlurryThickeningWater"), pct))
                 elseif warn == "thickening" then
-                    local pct = math.floor((extSrc.thickness or 0) * 100)
                     table.insert(rows, string.format(g_i18n:getText("warning_spsSlurryThickening"), pct))
                 end
             end

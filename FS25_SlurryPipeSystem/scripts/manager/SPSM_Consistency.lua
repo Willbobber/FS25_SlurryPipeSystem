@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.10.3
+-- Version: 1.0.1.5
 
 -- SPSM_Consistency.lua
 -- FS25_SlurryPipeSystem
@@ -10,7 +10,19 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Consistency 1.0.0.10.3 loaded")
+print("[SPS BUILD] SPSM_Consistency 1.0.1.5 loaded")
+
+-- [SPS 1.0.1.5] Litres below which a store counts as EMPTY for the thickness
+-- model. dm = solids/total mathematically diverges as total -> 0 whenever the
+-- draw bias exceeds 1 (solids shrink slower than volume by construction), so on
+-- the last litres the solids clamp can pin solids == total, DM reads 100% and a
+-- visually empty store demands water. Inside this dead-band the pile is treated
+-- as clean: gauge 0, pools zeroed, full flow — the store drains to true zero.
+-- Defined here (this module loads after the core manager) so only two files
+-- change; guarded so a future manager-side definition wins.
+if SlurryPipeManager.STORE_EMPTY_EPS == nil then
+    SlurryPipeManager.STORE_EMPTY_EPS = 25.0
+end
 
 
 -- [SPS MP] Apply a replicated store crust/thickness state on a client. Sets the two
@@ -22,60 +34,39 @@ print("[SPS BUILD] SPSM_Consistency 1.0.0.10.3 loaded")
 -- burst arrives before the placeable finishes SPS-registration), the value is queued
 -- and retried by _tryResolveMPPending as placeables register — without this the join
 -- dump was dropped and the store only corrected on the next live change.
--- [SPS 1.0.0.10.3] storeIndex is the 1-based store the value belongs to, matching
--- getStoreSources order — SPSStoreCrustEvent has carried it since 1.0.0.9.31 but the
--- parameter was missing here, so the argument was silently dropped and every incoming
--- crust value landed on the primary store. A single-store placeable always sends 1,
--- which resolves to pEntry.sourceEntry exactly as before.
-function SlurryPipeManager:applyStoreCrustState(placeable, solids, settle, fromDrain, storeIndex)
-    storeIndex = storeIndex or 1
+function SlurryPipeManager:applyStoreCrustState(placeable, solids, settle, fromDrain)
     for _, pEntry in ipairs(self.registeredPlaceables) do
-        if pEntry.placeable == placeable then
-            -- getStoreSourceByIndex warns and falls back to the primary when the two
-            -- machines disagree about store count, so the crust still lands somewhere
-            -- sensible rather than being dropped.
-            local se = nil
-            if self.getStoreSourceByIndex ~= nil then
-                se = self:getStoreSourceByIndex(pEntry, storeIndex)
-            else
-                se = pEntry.sourceEntry
+        if pEntry.placeable == placeable and pEntry.sourceEntry ~= nil then
+            local se = pEntry.sourceEntry
+            se.solids = solids
+            se.settle = settle
+            if se.crustPlaneNode ~= nil and se.crustPlaneNode ~= 0 then
+                setTranslation(se.crustPlaneNode, 0, settle * (se.crustMaxRise or 0), 0)
             end
-            if se ~= nil then
-                se.solids = solids
-                se.settle = settle
-                if se.crustPlaneNode ~= nil and se.crustPlaneNode ~= 0 then
-                    setTranslation(se.crustPlaneNode, 0, settle * (se.crustMaxRise or 0), 0)
-                end
-                if SPSCrustVegetation ~= nil then
-                    SPSCrustVegetation.updateVisibility(pEntry, se)
-                end
-                return true
+            if SPSCrustVegetation ~= nil then
+                SPSCrustVegetation.updateVisibility(pEntry)
             end
+            return true
         end
     end
     if not fromDrain then
-        self:_queuePendingStoreCrust(placeable, solids, settle, storeIndex)
+        self:_queuePendingStoreCrust(placeable, solids, settle)
     end
     return false
 end
 
 -- [SPS MP] Queue a store crust value whose placeable is not registered yet. Only the
 -- latest value per placeable is kept (crust is absolute state, not a delta).
--- [SPS 1.0.0.10.3] Keyed on placeable AND storeIndex. Keying on the placeable alone
--- meant a multi-store placeable's lagoons overwrote each other in the join burst and
--- only one survived to be applied; the index is also what _tryResolveMPPending needs
--- to hand back to applyStoreCrustState.
-function SlurryPipeManager:_queuePendingStoreCrust(placeable, solids, settle, storeIndex)
+function SlurryPipeManager:_queuePendingStoreCrust(placeable, solids, settle)
     if self._pendingMPStoreCrust == nil then self._pendingMPStoreCrust = {} end
-    storeIndex = storeIndex or 1
     for _, e in ipairs(self._pendingMPStoreCrust) do
-        if e.placeable == placeable and (e.storeIndex or 1) == storeIndex then
+        if e.placeable == placeable then
             e.solids = solids
             e.settle = settle
             return
         end
     end
-    table.insert(self._pendingMPStoreCrust, { placeable = placeable, solids = solids, settle = settle, storeIndex = storeIndex })
+    table.insert(self._pendingMPStoreCrust, { placeable = placeable, solids = solids, settle = settle })
     SlurryPipeManager.logMP(string.format("[SPS MP] queued pending store crust (pending=%d)", #self._pendingMPStoreCrust))
 end
 
@@ -107,56 +98,13 @@ end
 -- Total slurry held by a store, summed across every fill type it tracks. Slurry and
 -- digestate share one fillPlane and are treated as a single pile, so the dry-matter
 -- maths must see the combined level rather than a single fillType's level.
--- [SPS 1.0.0.10.3] Pool-scoped total. This is the litre count the whole two-pool
--- dry-matter model is built on (solids seeding, reconcile deltas, crust growth gate,
--- separator maths), so it must count ONLY the body of liquid this store represents.
---
--- It previously summed every entry in the Storage. That is the third head of the
--- UKStyle cow shed straw bug already fixed at the draw layer
--- (_resolveSourceFillType, 1.0.0.9.19) and the deposit layer
--- (resolveStoreDepositFillType, 1.0.0.9.1/.2): a husbandry Storage is one
--- multi-type object holding STRAW and drinking WATER alongside LIQUIDMANURE, and a
--- production point Storage holds SILAGE and MANURE alongside LIQUIDMANURE and
--- DIGESTATE. Summing all of it meant straw bales and silage were booked as slurry —
--- seeding solids from silage tonnage, charging a silage delivery as fresh slurry
--- inflow through _reconcileStorePools, and holding the crust growth gate
--- (total > 0) true over an empty lagoon.
---
--- Selection order, mirroring the two fixes above:
---   1. se.poolFillTypes  - a <slurryStore #poolFillTypes> declaration is explicit
---                          and authoritative. On a multi-store placeable every
---                          store shares ONE Storage object, so this is also the
---                          only thing that gives two lagoons different totals
---                          instead of both reading the same aggregate.
---   2. slurry liquids    - no declaration: sum LIQUIDMANURE + DIGESTATE only, via
---                          the existing _isPumpableSourceFillType gate with WATER
---                          excluded — the same "ft ~= FillType.WATER and
---                          _isPumpableSourceFillType(ft)" pair used by
---                          resolveStoreDepositFillType. Water pumped into a slurry
---                          store is CONVERTED to the held or declared type on
---                          deposit and never persists as WATER, so a WATER level in
---                          one of these Storages is never part of the slurry body —
---                          on a husbandry it is the drinking trough. This keeps
---                          baseTank's slurry+digestate combined body intact (they
---                          are one pit, one plane, one crust) while excluding straw,
---                          silage, solid manure and trough water.
---   3. se.fillType       - no levels table at all: fall back to the declared type.
 function SlurryPipeManager:_getStoreTotalFill(se)
     if se == nil or se.storage == nil then return 0 end
     local levels = se.storage.getFillLevels ~= nil and se.storage:getFillLevels() or se.storage.fillLevels
     if levels ~= nil then
         local total = 0
-        local pool  = se.poolFillTypes
-        for ft, lvl in pairs(levels) do
-            local counts
-            if pool ~= nil then
-                counts = pool[ft] == true
-            else
-                counts = ft ~= FillType.WATER and self:_isPumpableSourceFillType(ft)
-            end
-            if counts then
-                total = total + (lvl or 0)
-            end
+        for _, lvl in pairs(levels) do
+            total = total + (lvl or 0)
         end
         return total
     end
@@ -189,6 +137,34 @@ function SlurryPipeManager:_reconcileStorePools(se)
     if not se.thickeningEnabled then return end
     self:_ensureStorePools(se)
     local total = self:_getStoreTotalFill(se)
+    -- [SPS 1.0.0.10.4] One-shot repair of a pre-fix dry-matter pool. Set by the
+    -- savegame restore in registerPlaceable when the save's #poolModelVersion is
+    -- behind the current model. Runs HERE rather than at restore because this loop
+    -- is server-gated and ticks well after the mission has finished loading, so the
+    -- storage fill level behind _getStoreTotalFill is guaranteed live — no dependence
+    -- on placeable registration order.
+    --
+    -- The old draw removed volume but never any solids, so the saved figure is the
+    -- accumulated dry matter of every litre the store has ever held and has no upper
+    -- bound. There is no history to reconstruct it from, so it is clamped to the
+    -- highest value the model itself can legitimately reach: total * DM_JAMMED, i.e.
+    -- a full-but-honest 100% on the gauge. Nothing is gifted (a genuinely neglected
+    -- lagoon still reads jammed and still needs water) and no slurry volume is
+    -- touched — but water now buys back a permanent reduction instead of evaporating
+    -- the moment the level drops back.
+    --
+    -- Fires once per store per savegame: the flag is cleared unconditionally, and the
+    -- next save writes the current #poolModelVersion so it never fires again.
+    if se._spsSolidsMigrate then
+        se._spsSolidsMigrate = nil
+        local cap = total * SlurryPipeManager.DM_JAMMED
+        local had = se.solids or 0
+        if had > cap then
+            se.solids = cap
+            print(string.format("[SPS] repaired store dry-matter pool: solids %.0f -> %.0f L (total %.0f L, DM %.3f -> %.3f)",
+                had, cap, total, total > 0 and (had / total) or 0, SlurryPipeManager.DM_JAMMED))
+        end
+    end
     local last  = se._lastTotal or total
     if total > last + 0.001 then
         se.solids = (se.solids or 0) + (total - last) * SlurryPipeManager.DM_FRESH
@@ -200,6 +176,14 @@ function SlurryPipeManager:_reconcileStorePools(se)
     se._lastTotal = total
     -- An empty store holds no slurry, so it holds no crust.
     if total <= 0 and (se.settle or 0) > 0 then se.settle = 0 end
+    -- [SPS 1.0.1.5] Same rule for the near-empty dead-band: residual litres below
+    -- STORE_EMPTY_EPS cannot carry a meaningful dry-matter or crust state, and
+    -- leaving the pinned solids in place is what showed "add water" on an empty
+    -- store. Zeroed here (server tick) so every consumer sees a clean store.
+    if total < (SlurryPipeManager.STORE_EMPTY_EPS or 0) then
+        se.solids = 0
+        if (se.settle or 0) > 0 then se.settle = 0 end
+    end
 end
 
 -- A flow warning should only blink when the player is actually working this rig:
@@ -236,6 +220,11 @@ function SlurryPipeManager:getStoreDM(se)
     self:_ensureStorePools(se)
     local total = self:_getStoreTotalFill(se)
     if total <= 0 then return 0 end
+    -- [SPS 1.0.1.5] Near-empty dead-band: reconcile zeroes the pools below this
+    -- on the server tick, but this getter can be read before that happens (and
+    -- on a client between crust syncs). Same rule applied here so no consumer
+    -- ever sees the divergent last-litres DM.
+    if total < (SlurryPipeManager.STORE_EMPTY_EPS or 0) then return 0 end
     return math.max(0.0, math.min(1.0, (se.solids or 0) / total))
 end
 
@@ -246,6 +235,10 @@ function SlurryPipeManager:getApparentThickness(se)
     if se == nil or se.type ~= SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then return 0 end
     if not se.thickeningEnabled then return 0 end
     self:_ensureStorePools(se)
+    -- [SPS 1.0.1.5] Dead-band twin of the getStoreDM guard: a near-empty store
+    -- reads gauge 0 outright, so neither residual solids nor a stale settle can
+    -- surface a warning or throttle flow on the last litres.
+    if self:_getStoreTotalFill(se) < (SlurryPipeManager.STORE_EMPTY_EPS or 0) then return 0 end
     local dmGauge = self:dmToGauge(self:getStoreDM(se))
     return math.max(0.0, math.min(1.0, dmGauge + (se.settle or 0)))
 end
@@ -426,7 +419,7 @@ function SlurryPipeManager:applyFillThicknessBlend(vehicle, oldLevel, addedVol, 
 end
 
 -- Returns a warning level string for the given sourceEntry thickness.
--- "none", "thickening", "tooThick"
+-- "none", "thickening", "thickeningWater", "needsMix", "tooThick"
 function SlurryPipeManager:getThicknessWarning(sourceEntry)
     if not self:isFeatureEnabled() then return "none" end
     if sourceEntry == nil then return "none" end
@@ -438,7 +431,19 @@ function SlurryPipeManager:getThicknessWarning(sourceEntry)
     if dmGauge >= 0.9 then return "tooThick" end
     -- Jammed by settling but dry matter is fine -> agitation will free it.
     if apparent >= 0.9 then return "needsMix" end
-    if apparent >= 0.8 then return "thickening" end
+    if apparent >= 0.8 then
+        -- [SPS 1.0.1.4] The 80% band now names the remedy that actually works.
+        -- apparent = gauge(DM) + settle, so the cause splits cleanly:
+        --   dmGauge >= 0.8 -> the dry matter ALONE puts the store in the warning
+        --       band. Mixing removes only settle and can never bring the gauge
+        --       below dmGauge, so "agitation advised" was a dead end here (field
+        --       report: a fresh, unsettled store concentrated by pumping showed
+        --       this text and mixing did nothing). Water is the remedy.
+        --   dmGauge < 0.8  -> settling is what pushed it over; mixing genuinely
+        --       clears it. The original advice stands.
+        if dmGauge >= 0.8 then return "thickeningWater" end
+        return "thickening"
+    end
     return "none"
 end
 

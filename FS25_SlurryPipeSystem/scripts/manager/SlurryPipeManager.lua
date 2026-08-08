@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.10.4
+-- Version: 1.0.1.11
 
 -- SlurryPipeManager.lua
 -- FS25_SlurryPipeSystem
@@ -84,7 +84,7 @@ end
 -- print(), so each call keeps its own "[SPS ...]" prefix. Flip to true to trace.
 -- ---------------------------------------------------------------------------
 SlurryPipeManager.MP_DEBUG = false
-print("[SPS BUILD] SlurryPipeManager 1.0.0.10.4 loaded")
+print("[SPS BUILD] SlurryPipeManager 1.0.1.11 loaded")
 -- findOverlappingCoupler: from couplingId
 -- _applyPendingCouplerAnimation: couplingId
 
@@ -107,26 +107,9 @@ SlurryPipeManager.DEFAULT_FALL_TIME_EMPTY   = 30    -- sec max->0 while venting,
 SlurryPipeManager.DEFAULT_PURGE_TIME        = 10    -- sec to vent from max to 0 on direction flip
 SlurryPipeManager.DEFAULT_GRAVITY_FLOW_SCALAR = 0.5 -- backflow/gravity rate as a fraction of base flow when pressure is spent
 SlurryPipeManager.DEFAULT_LENGTH_FALLOFF_FLOOR = 0.5 -- min flow fraction at full strap-pipe stretch (1.0 = no falloff)
--- [SPS BLOCKAGE v1.0.0.10.4] Banded blockage model. Blockages are caused by LUMPS,
--- i.e. the crust the tanker is carrying; dry matter's job is slowing the pump, not
--- clogging the bar, so it is only a mild amplifier here. A macerator is a lump
--- smasher with a finite capacity: below BLOCKAGE_OUTLET_CRUST_MIN it takes the
--- punishment and the outlets stay clear (only the base foreign-object chance
--- applies); above it, lumps get past and the outlets start to clog too. A bar with
--- NO macerator node has no such protection and its outlets are exposed from
--- BLOCKAGE_OUTLET_CRUST_MIN_RAW upward -- which is the whole reason to fit one.
---
--- Every value below is a DEFAULT. Each may be overridden per vehicle on the
--- <blockageNodes> container in that vehicle's fillPoints.xml, so a fine-orifice
--- trailing shoe can be authored more fragile than a splash plate.
-SlurryPipeManager.BLOCKAGE_MACERATOR_CRUST_MIN = 0.25 -- carried crust below which the macerator copes and nothing lump-driven happens
-SlurryPipeManager.BLOCKAGE_OUTLET_CRUST_MIN    = 0.60 -- the macerator's capacity ceiling: past this, lumps reach the outlets
-SlurryPipeManager.BLOCKAGE_OUTLET_CRUST_MIN_RAW = 0.25 -- outlet threshold when NO macerator is fitted (unprotected bar)
--- Retained under its original name because SPSSpreaderHUD reads it for the risk
--- band; it now means "the crust at which lumps first become a factor at all".
-SlurryPipeManager.BLOCKAGE_CRUST_MIN        = 0.25  -- tanker-carried crust below which only the base (foreign-object) chance applies
-SlurryPipeManager.BLOCKAGE_BASE_CHANCE      = 0.001 -- per-BAR random clog chance even on clean slurry (wood/debris/foreign object)
-SlurryPipeManager.BLOCKAGE_DM_BONUS         = 0.25  -- extra blockage multiplier at the jam point (thick + crusted is worst); 0 = DM has no effect
+SlurryPipeManager.BLOCKAGE_CRUST_MIN        = 0.3   -- tanker-carried crust below which only the base (foreign-object) chance applies
+SlurryPipeManager.BLOCKAGE_BASE_CHANCE      = 0.0015-- per-outlet random clog chance even on clean slurry (wood/debris/foreign object)
+SlurryPipeManager.BLOCKAGE_DM_BONUS         = 0.5   -- extra blockage multiplier at the jam point (thick + crusted is worst); 0 = DM has no effect
 -- [SPS CRUST v1.0.0.10.2] Crust timing. Both values are ABSOLUTE in-game hours and
 -- are deliberately independent of the player's daysPerPeriod setting: crust forms on
 -- a physical timescale, not a seasonal one, so these numbers mean the same thing on
@@ -153,15 +136,21 @@ SlurryPipeManager.AGITATION_RATE_MULT       = 1.0   -- DEPRECATED (folded into C
 SlurryPipeManager.DM_FRESH                  = 0.06  -- dry-matter fraction shown as 0% on the gauge
 SlurryPipeManager.DM_JAMMED                 = 0.15  -- dry-matter fraction shown as 100% (un-pumpable even fully mixed)
 SlurryPipeManager.DM_REMOVAL_LIQUID_BIAS    = 1.6   -- liquid leaves at this multiple of its share (>1 = liquid pulled first)
+-- [SPS 1.0.0.10.4] Version stamp for the saved two-pool state. Bumped whenever a
+-- defect could have left a persisted `solids` value that the current model would
+-- never produce, so the loader knows to repair it exactly once.
+--   1 = pre-fix. removeFromSource's preferential-liquid draw evaluated
+--       (1 - dm) * DM_REMOVAL_LIQUID_BIAS, which for real dry-matter fractions
+--       (0.06..0.15) is always >= 1.36 — liquidOut always clamped to the whole
+--       draw and NO solids were ever removed by pumping. Every litre ever pumped
+--       out of a store left its dry matter behind, so `solids` in these saves is
+--       inflated without bound and can sit far above total * DM_JAMMED.
+--   2 = solids leave at dm / DM_REMOVAL_LIQUID_BIAS per litre (still under their
+--       plain share, so stores still concentrate, but never zero).
+SlurryPipeManager.POOL_MODEL_VERSION        = 2
 SlurryPipeManager.WARNING_RANGE             = 15    -- metres: blinking flow warnings only show when in-cab or this close on foot
--- [SPS BLOCKAGE v1.0.0.10.4] Ramp slopes, added on top of BLOCKAGE_BASE_CHANCE and
--- scaled by how far carried crust has climbed past that row's threshold. Sized
--- against a ~5 minute tankful, i.e. 50 rolls at BLOCKAGE_ROLL_INTERVAL: fully mixed
--- slurry gives roughly a 5% chance of any stoppage per load, a month-unstirred store
--- around 70% on both rows. OUTLET_CHANCE was previously 0.0, which meant crust had
--- no effect whatsoever on the outlets and only the macerator ever responded to it.
-SlurryPipeManager.BLOCKAGE_OUTLET_CHANCE    = 0.030
-SlurryPipeManager.BLOCKAGE_MACERATOR_CHANCE = 0.027
+SlurryPipeManager.BLOCKAGE_OUTLET_CHANCE    = 0.0
+SlurryPipeManager.BLOCKAGE_MACERATOR_CHANCE = 0.005
 SlurryPipeManager.BLOCKAGE_ROLL_INTERVAL    = 6000
 SlurryPipeManager.BLOCKAGE_CLEAR_RADIUS     = 0.75
 
@@ -651,76 +640,6 @@ function SlurryPipeManager.clampCrustMult(v)
            math.min(SlurryPipeManager.CRUST_MULT_MAX, v))
 end
 
--- ---------------------------------------------------------------------------
--- [SPS 1.0.0.10.3] <effects> parameter reader
---
--- Until now the ONLY things read from an <effects> block were the two node
--- names; every timing and shaping value was hardcoded identically for every
--- vehicle and placeable in the mod, so the attributes already authored in the
--- shipped configs (startDelay, maxBending, extraDistance, ...) did nothing.
--- They are now read here.
---
--- Shape is unchanged and index-ordered, exactly as the configs already author it:
---   <effects>
---       <effectNode effectNode="effect"          .../>   <!-- 0 = stream -->
---       <effectNode effectNode="pipeEffectSmoke" .../>   <!-- 1 = smoke  -->
---   </effects>
---
--- TIMES ARE IN SECONDS, matching every other time attribute in SPS (<pressure>
--- minBuildTime, <spreaderAnimation> stopDelay) and matching the values already
--- authored in the shipped configs -- startDelay="0.1" on a smoke node is the
--- 100 ms the code used to hardcode. Converted to engine milliseconds here.
---
--- Every default reproduces the previous hardcoded value exactly, so a config
--- that declares nothing behaves byte-for-byte as it did in V1.0.0.10.
---
--- effectClass, materialType and positionUpdateNodes remain unread: the effect
--- objects are built directly rather than through the effect manager's schema,
--- so the class and the smoke node are structural, not selectable.
--- ---------------------------------------------------------------------------
-function SlurryPipeManager.readEffectParams(xmlFile, effectsKey)
-    local function secs(key, defaultSeconds)
-        local v = xmlFile:getFloat(key, nil)
-        if type(v) ~= "number" or v < 0 then v = defaultSeconds end
-        return v * 1000
-    end
-    local sKey = effectsKey .. ".effectNode(0)"   -- stream
-    local mKey = effectsKey .. ".effectNode(1)"   -- smoke
-
-    local ep = {}
-    ep.stream = {
-        maxBending    = xmlFile:getFloat(sKey .. "#maxBending",    0.8),
-        extraDistance = xmlFile:getFloat(sKey .. "#extraDistance", 0.1),
-        fadeInTime    = secs(sKey .. "#fadeInTime",    1.0),
-        fadeOutTime   = secs(sKey .. "#fadeOutTime",   1.0),
-        planeFadeTime = secs(sKey .. "#planeFadeTime", 1.0),
-        startDelay    = secs(sKey .. "#startDelay",    0.0),
-        stopDelay     = secs(sKey .. "#stopDelay",     0.0),
-    }
-    ep.smoke = {
-        fadeInTime    = secs(mKey .. "#fadeInTime",    1.0),
-        fadeOutTime   = secs(mKey .. "#fadeOutTime",   1.0),
-        planeFadeTime = secs(mKey .. "#planeFadeTime", 1.0),
-        startDelay    = secs(mKey .. "#startDelay",    0.1),
-        stopDelay     = secs(mKey .. "#stopDelay",     0.1),
-        alignToWorldY = xmlFile:getBool(mKey .. "#alignToWorldY", true),
-    }
-    return ep
-end
-
--- Fallback set used when a build site has no <effects> block to read from
--- (the legacy single effect resolved by node name). Identical to the values
--- hardcoded before 1.0.0.10.3.
-function SlurryPipeManager.defaultEffectParams()
-    return {
-        stream = { maxBending = 0.8, extraDistance = 0.1, fadeInTime = 1000,
-                   fadeOutTime = 1000, planeFadeTime = 1000,
-                   startDelay = 0, stopDelay = 0 },
-        smoke  = { fadeInTime = 1000, fadeOutTime = 1000, planeFadeTime = 1000,
-                   startDelay = 100, stopDelay = 100, alignToWorldY = true },
-    }
-end
-
 function SlurryPipeManager:findVehicleConfigForVehicle(vehicle)
     SlurryPipeManager.log("findVehicleConfigForVehicle: %s", tostring(vehicle and vehicle.configFileName))
     if vehicle.configFileName == nil then return nil end
@@ -842,6 +761,72 @@ function SlurryPipeManager:findPlaceableConfigForPlaceable(placeable)
 end
 
 -- ---------------------------------------------------------------------------
+-- readEffectParams  [SPS 1.0.0.10.5]
+-- Reads the per-config <effects> timing/shaping attributes that were previously
+-- hardcoded in the effect builders. Time attributes are authored in SECONDS
+-- (matching every other time attribute in SPS and the shipped configs, e.g.
+-- startDelay="0.1" on a smoke node = the 100 ms the code used to hardcode);
+-- converted to engine milliseconds here.
+--
+-- Every default reproduces the previous hardcoded value exactly, so a config
+-- that declares nothing behaves byte-for-byte as before.
+--
+-- effectClass, materialType and positionUpdateNodes remain unread: the effect
+-- objects are built directly rather than through the effect manager's schema,
+-- so the class and the smoke node are structural, not selectable.
+--
+-- Smoke is optional — the smoke sub-table is always returned (defaults apply)
+-- but is only consumed when a smoke node actually resolved.
+-- ---------------------------------------------------------------------------
+function SlurryPipeManager.readEffectParams(xmlFile, effectsKey)
+    local function secs(key, defaultSeconds)
+        local v = xmlFile:getFloat(key, nil)
+        if type(v) ~= "number" or v < 0 then v = defaultSeconds end
+        return v * 1000
+    end
+    local sKey = effectsKey .. ".effectNode(0)"   -- stream (PipeEffect)
+    local mKey = effectsKey .. ".effectNode(1)"   -- smoke  (ShaderPlaneEffect)
+
+    local ep = {}
+    ep.stream = {
+        maxBending    = xmlFile:getFloat(sKey .. "#maxBending",    0.8),
+        extraDistance = xmlFile:getFloat(sKey .. "#extraDistance", 0.1),
+        fadeInTime    = secs(sKey .. "#fadeInTime",    1.0),
+        fadeOutTime   = secs(sKey .. "#fadeOutTime",   1.0),
+        planeFadeTime = secs(sKey .. "#planeFadeTime", 1.0),
+        startDelay    = secs(sKey .. "#startDelay",    0.0),
+        stopDelay     = secs(sKey .. "#stopDelay",     0.0),
+    }
+    ep.smoke = {
+        fadeInTime    = secs(mKey .. "#fadeInTime",    1.0),
+        fadeOutTime   = secs(mKey .. "#fadeOutTime",   1.0),
+        planeFadeTime = secs(mKey .. "#planeFadeTime", 1.0),
+        startDelay    = secs(mKey .. "#startDelay",    0.1),
+        stopDelay     = secs(mKey .. "#stopDelay",     0.1),
+        alignToWorldY = xmlFile:getBool(mKey .. "#alignToWorldY", true),
+    }
+    return ep
+end
+
+-- Fallback set used when a build site has no <effects> block to read from
+-- (the legacy single effect resolved by node name, or a nodeTree config).
+-- Values are the previous hardcoded values, already in milliseconds.
+function SlurryPipeManager.defaultEffectParams()
+    return {
+        stream = {
+            maxBending = 0.8, extraDistance = 0.1,
+            fadeInTime = 1000, fadeOutTime = 1000, planeFadeTime = 1000,
+            startDelay = 0, stopDelay = 0,
+        },
+        smoke = {
+            fadeInTime = 1000, fadeOutTime = 1000, planeFadeTime = 1000,
+            startDelay = 100, stopDelay = 100,
+            alignToWorldY = true,
+        },
+    }
+end
+
+-- ---------------------------------------------------------------------------
 -- registerVehicle
 -- ---------------------------------------------------------------------------
 function SlurryPipeManager:registerVehicle(vehicle)
@@ -918,10 +903,25 @@ function SlurryPipeManager:registerVehicle(vehicle)
         conduit               = xmlFile:getBool(kp .. "slurryPipeSystem.pump#conduit", false),
         pumpType              = nil,   -- resolved just below from pump#pumpType
         agitatorOnly          = xmlFile:getBool(kp .. "slurryPipeSystem#agitatorOnly", false),
+        -- [SPS 1.0.1.4] Optional explicit vehicle-role declaration on the slurry
+        -- block root: <slurryPipeSystem vehicleRole="slurry"> forces the vehicle to
+        -- never be fert-exempt; vehicleRole="fertiliser" forces the exemption.
+        -- Absent (default) -> the registration path decides (see
+        -- SlurryPipeManager:isFertExemptVehicle in SPSM_Pressure.lua).
+        vehicleRole           = xmlFile:getString(kp .. "slurryPipeSystem#vehicleRole", nil),
         -- Per-vehicle shear-bolt opt-in. Only vehicles whose fillPoints carry
         -- <shearBolt bolt="true"/> get a PTO shear bolt (wear, snap, freeze, and the
         -- walk-up repair activatable). Default false: no bolt, no wear, no activatable.
         shearBolt             = xmlFile:getBool(kp .. "slurryPipeSystem.shearBolt#bolt", false),
+        -- [SPS 1.0.1.5] Front-mount pass-through declaration. When enabled, this
+        -- vehicle's SPS endpoints never use its own (capacity-0) fill unit — the
+        -- tank side of every session is the "receiver": the vehicle its Giants
+        -- connection hoses are attached to. hoseSpecTypes lists the hose
+        -- specType values that constitute the slurry circuit (space-separated,
+        -- config-driven so no pack names live in Lua). Resolution + runtime
+        -- state live in SPSM_FrontMount.lua; frontMount stays nil when the
+        -- block is absent or disabled so non-front-mount vehicles pay nothing.
+        frontMount            = nil,   -- resolved just below from frontMount#enabled
         nodeTreeRoot          = nil,
         sourceEntry           = nil,
         xmlFileOwned          = xmlFileOwned,
@@ -971,6 +971,45 @@ function SlurryPipeManager:registerVehicle(vehicle)
     entry.conduit = (resolvedPumpType == "conduit")
     if resolvedPumpType == "openTop" and entry.pressure ~= nil then
         entry.pressure.openTop = true
+    end
+
+    -- ---------------------------------------------------------------------
+    -- [SPS 1.0.1.8] Resolve the front-mount pass-through declaration.
+    -- <frontMount enabled="true" hoseSpecTypes="a b" hoseTypes="c d"/>
+    --   * hoseSpecTypes — specType values of the slurry circuit on tractors
+    --     whose pairing uses specTypes (xerion: saddleTracSlurryTanker/...Semi).
+    --     Matched ONLY against a hose's specType.
+    --   * hoseTypes — plain hose type values for NORMAL tractors' side
+    --     carriers (e.g. TOOL_CONNECTOR_TOP_RIGHT). Matched ONLY against
+    --     hoses that have NO specType, mirroring vanilla: plain hoses plug
+    --     plain carrier targets, specType'd hoses need specType'd targets.
+    -- Enabled with both lists empty is a config error: no hose could ever
+    -- qualify, so warn and treat as disabled.
+    -- ---------------------------------------------------------------------
+    if xmlFile:getBool(kp .. "slurryPipeSystem.frontMount#enabled", false) == true then
+        local function parseSet(raw)
+            local set, n = {}, 0
+            for token in string.gmatch(raw or "", "%S+") do
+                set[token] = true
+                n = n + 1
+            end
+            return set, n
+        end
+        local specTypeSet, nSpec = parseSet(xmlFile:getString(kp .. "slurryPipeSystem.frontMount#hoseSpecTypes", ""))
+        local typeSet,     nType = parseSet(xmlFile:getString(kp .. "slurryPipeSystem.frontMount#hoseTypes", ""))
+        if nSpec + nType == 0 then
+            print(string.format(
+                "[SPS] WARNING: frontMount enabled with no hoseSpecTypes and no hoseTypes in '%s' — front mount disabled",
+                tostring(config.xmlFilePath)))
+        else
+            entry.frontMount = {
+                hoseSpecTypes         = specTypeSet,
+                hoseTypes             = typeSet,
+                receiver              = nil,   -- cached by updateFrontMounts
+                receiverReason        = nil,
+                receiverFillUnitIndex = nil,
+            }
+        end
     end
 
     -- ---------------------------------------------------------------------
@@ -1143,6 +1182,148 @@ function SlurryPipeManager:registerVehicle(vehicle)
         return false
     end
 
+    -- -----------------------------------------------------------------------
+    -- [SPS 1.0.1.11] Injected Giants connection hoses (front-mount pass-through
+    -- on NORMAL tractors). The config declares the hose; SPSM_FrontMount.lua
+    -- builds the live hose entry inside the vehicle's own spec_connectionHoses
+    -- with the exact field set vanilla ConnectionHoses:loadHoseNode produces,
+    -- so all downstream vanilla code (connect, tool-connection bridging,
+    -- per-frame hose updates, detach cleanup) treats it as a native hose.
+    -- Config sites:
+    --   * <frontMount><hose .../></frontMount>
+    --     - the front mount's PLAIN-type hose for normal tractors. The Xerion
+    --       pairing keeps using the vanilla specType hoses in the vehicle's
+    --       own XML; on the Xerion the injected plain hose is suppressed by
+    --       SPSM_FrontMount's specType-circuit check, so no duplicate hose
+    --       can appear (the xerion4000 front joint also carries a plain
+    --       carrier target).
+    --   * <tractorMountFillArms accepted="true"> on the RECEIVER tanker:
+    --       <hose .../>       - the tanker's plain-type hose. Multiple <hose>
+    --         entries may be declared with an optional #cylinderedConfigIndex
+    --         gate (comma-separated 0-based indices, #configType override,
+    --         same convention as fillArm/pipeCoupling); the FIRST entry whose
+    --         gate matches the active config (or that has no gate) is
+    --         injected. Lets one config file serve config-dependent hose
+    --         mount points (Samson topPipe01/topPipe02).
+    --       <staticPipe .../> - a static pipe mesh shown ONLY when its
+    --         #cylinderedConfigIndex gate matches the active config; hidden
+    --         otherwise (Samson samsonFillPipe_PT vs samsonFillPipe_Sap2).
+    --         No gate = always shown. Resolved and set once at registration:
+    --         vehicle configurations are fixed per instance.
+    -- Hose attributes mirror vanilla <connectionHoses><hose> where meaningful:
+    --   node (NAME, resolved via findLinkedNode: SPS nodeTree first, then the
+    --   vehicle's own i3d), type, length, diameter, isTwoPointHose,
+    --   inputAttacherJointIndex (single index; the plural spelling
+    --   inputAttacherJointIndices is accepted for a single value).
+    -- Optional <objectChange node=".." visibilityActive=".." visibilityInactive=".."
+    --   initialState="inactive"/> child: a static mesh switched with the
+    --   hose's connection state, driven on transitions by SPSM_FrontMount's
+    --   tick. initialState="inactive" additionally applies the inactive
+    --   visibility ONCE at injection, for SPS-owned meshes that load visible
+    --   in the nodeTree (Profi2/Samson coupler: hidden until first connect).
+    --   Omit it for meshes whose load-time state is owned by the vehicle's
+    --   own vanilla objectChanges (front mount hydraulicHoses).
+    -- -----------------------------------------------------------------------
+    if self.spsInjectConfiguredHoses ~= nil then
+        local function parseInjectedHoseDef(hoseKey, context)
+            if not xmlFile:hasProperty(hoseKey) then return nil end
+            local nodeName = xmlFile:getString(hoseKey .. "#node", nil)
+            local node     = findLinkedNode(nodeName)
+            if node == nil then
+                print(string.format(
+                    "[SPS] WARNING: injected hose node '%s' not found on '%s' (%s) - hose skipped",
+                    tostring(nodeName), tostring(vehicle.configFileName), tostring(context)))
+                return nil
+            end
+            local jointIdx = xmlFile:getInt(hoseKey .. "#inputAttacherJointIndex", nil)
+            if jointIdx == nil then
+                jointIdx = xmlFile:getInt(hoseKey .. "#inputAttacherJointIndices", 1)
+            end
+            local def = {
+                node                    = node,
+                nodeName                = nodeName,
+                type                    = xmlFile:getString(hoseKey .. "#type", "TOOL_CONNECTOR_TOP_RIGHT"),
+                length                  = xmlFile:getFloat(hoseKey .. "#length", 2),
+                diameter                = xmlFile:getFloat(hoseKey .. "#diameter", 0.18),
+                isTwoPointHose          = xmlFile:getBool(hoseKey .. "#isTwoPointHose", true),
+                inputAttacherJointIndex = jointIdx or 1,
+                -- [SPS 1.0.1.11] straighteningFactor: vanilla hose attribute
+                -- (ConnectionHoses.lua:804/883). Multiplies the hose type's
+                -- base start-straightening; the curve's first control point is
+                -- (0,0,-startStraightening) in the hose node's local space, so
+                -- a higher factor keeps the pipe straight along the mount
+                -- node's -Z for a longer stretch out of the coupler before it
+                -- sags. Default 1 = vanilla behaviour.
+                straighteningFactor     = xmlFile:getFloat(hoseKey .. "#straighteningFactor", 1),
+            }
+            local ocKey = hoseKey .. ".objectChange(0)"
+            if xmlFile:hasProperty(ocKey) then
+                local ocName = xmlFile:getString(ocKey .. "#node", nil)
+                local ocNode = findLinkedNode(ocName)
+                if ocNode ~= nil then
+                    def.objectChange = {
+                        node                 = ocNode,
+                        visibilityActive     = xmlFile:getBool(ocKey .. "#visibilityActive", true),
+                        visibilityInactive   = xmlFile:getBool(ocKey .. "#visibilityInactive", false),
+                        applyInitialInactive = (xmlFile:getString(ocKey .. "#initialState", nil) == "inactive"),
+                    }
+                else
+                    print(string.format(
+                        "[SPS] WARNING: injected hose objectChange node '%s' not found on '%s' (%s) - objectChange skipped",
+                        tostring(ocName), tostring(vehicle.configFileName), tostring(context)))
+                end
+            end
+            return def
+        end
+
+        -- passesConfigGate: shared gate for <hose> and <staticPipe>. No
+        -- #cylinderedConfigIndex attribute = always passes.
+        local function passesConfigGate(key)
+            local cfgStr = xmlFile:getString(key .. "#cylinderedConfigIndex", nil)
+            if cfgStr == nil then return true end
+            local cfgType = xmlFile:getString(key .. "#configType", "cylindered")
+            return configIndexMatches(cfgStr, getActiveConfigIndex(cfgType))
+        end
+
+        if entry.frontMount ~= nil then
+            entry.frontMount.hoseDef = parseInjectedHoseDef(
+                kp .. "slurryPipeSystem.frontMount.hose(0)", "frontMount")
+        end
+        if xmlFile:getBool(kp .. "slurryPipeSystem.tractorMountFillArms#accepted", false) == true then
+            -- Receiver hose: first config-gate match wins.
+            local hi = 0
+            while true do
+                local hoseKey = string.format(kp .. "slurryPipeSystem.tractorMountFillArms.hose(%d)", hi)
+                if not xmlFile:hasProperty(hoseKey) then break end
+                if passesConfigGate(hoseKey) then
+                    entry.receiverHoseDef = parseInjectedHoseDef(hoseKey, "tractorMountFillArms")
+                    break
+                end
+                hi = hi + 1
+            end
+            -- Static pipes: visibility set once from the config gate.
+            local pi = 0
+            while true do
+                local spKey = string.format(kp .. "slurryPipeSystem.tractorMountFillArms.staticPipe(%d)", pi)
+                if not xmlFile:hasProperty(spKey) then break end
+                local spName = xmlFile:getString(spKey .. "#node", nil)
+                local spNode = findLinkedNode(spName)
+                if spNode ~= nil then
+                    setVisibility(spNode, passesConfigGate(spKey))
+                else
+                    print(string.format(
+                        "[SPS] WARNING: staticPipe node '%s' not found on '%s' (tractorMountFillArms) - skipped",
+                        tostring(spName), tostring(vehicle.configFileName)))
+                end
+                pi = pi + 1
+            end
+        end
+        if (entry.frontMount ~= nil and entry.frontMount.hoseDef ~= nil)
+           or entry.receiverHoseDef ~= nil then
+            self:spsInjectConfiguredHoses(vehicle, entry)
+        end
+    end
+
     local armIndex = 0
     while true do
         local armKey = string.format(kp .. "slurryPipeSystem.fillArms.fillArm(%d)", armIndex)
@@ -1197,21 +1378,49 @@ function SlurryPipeManager:registerVehicle(vehicle)
         }
 
         if tipType == SPS_TIP_TYPE_RUBBER_BOOT then
-            armEntry.tipNode = findLinkedNode(xmlFile:getString(armKey .. "#tipNodeName"))
+            local tipName = xmlFile:getString(armKey .. "#tipNodeName")
+            armEntry.tipNode = findLinkedNode(tipName)
             if armEntry.tipNode == nil then
+                print(string.format(
+                    "[SPS] WARNING: fillArm id=%s (RUBBER_BOOT) skipped — tipNodeName '%s' not found in nodeTree for %s",
+                    tostring(armEntry.id), tostring(tipName), tostring(vehicle.configFileName)))
                 armIndex = armIndex + 1
                 continue
             end
         elseif tipType == SPS_TIP_TYPE_OPEN_PIT then
             armEntry.centreNode = findLinkedNode(xmlFile:getString(armKey .. "#centreNodeName"))
             if armEntry.centreNode == nil then
+                print(string.format(
+                    "[SPS] WARNING: fillArm id=%s (OPEN_PIT) skipped — centreNodeName not found in nodeTree for %s",
+                    tostring(armEntry.id), tostring(vehicle.configFileName)))
                 armIndex = armIndex + 1
                 continue
             end
         elseif tipType == SPS_TIP_TYPE_RUBBER_BOOT_PIT then
-            armEntry.tipNode    = findLinkedNode(xmlFile:getString(armKey .. "#tipNodeName"))
+            local tipName = xmlFile:getString(armKey .. "#tipNodeName")
+            armEntry.tipNode    = findLinkedNode(tipName)
             armEntry.centreNode = findLinkedNode(xmlFile:getString(armKey .. "#centreNodeName"))
+            -- [SPS 1.0.1.6] A declared tip node that fails to resolve silently
+            -- kills BOOT detection while pit detection carries on via the centre
+            -- node — the arm looks alive but can never connect to a rubber boot.
+            -- Field case: Saddle Trac front mount. Warn loudly, always.
+            if tipName ~= nil and armEntry.tipNode == nil then
+                print(string.format(
+                    "[SPS] WARNING: fillArm id=%s (RUBBER_BOOT_PIT) tipNodeName '%s' not found in nodeTree for %s — boot detection DISABLED for this arm",
+                    tostring(armEntry.id), tostring(tipName), tostring(vehicle.configFileName)))
+            elseif tipName == nil then
+                -- [SPS 1.0.1.7] Absent attribute is as fatal for boots as an
+                -- unresolved one, and was silent. Field case: tip node named in
+                -- centreNodeName by mistake — arm looked alive (pit detection
+                -- fine) but could never connect to a rubber boot.
+                print(string.format(
+                    "[SPS] WARNING: fillArm id=%s (RUBBER_BOOT_PIT) has no tipNodeName attribute in %s — boot detection DISABLED for this arm",
+                    tostring(armEntry.id), tostring(vehicle.configFileName)))
+            end
             if armEntry.tipNode == nil and armEntry.centreNode == nil then
+                print(string.format(
+                    "[SPS] WARNING: fillArm id=%s (RUBBER_BOOT_PIT) skipped — neither tipNodeName nor centreNodeName resolved for %s",
+                    tostring(armEntry.id), tostring(vehicle.configFileName)))
                 armIndex = armIndex + 1
                 continue
             end
@@ -1223,18 +1432,20 @@ function SlurryPipeManager:registerVehicle(vehicle)
         -- names are read here; the actual PipeEffect/ShaderPlaneEffect is built later
         -- once the effect classes and materials are available. Additive: arms with no
         -- <effects> block simply have no per-arm stream.
+        -- [SPS 1.0.0.10.5] Smoke is OPTIONAL: only the stream effect node is
+        -- required. effectNode(1) (smoke) may be absent from the <effects> block
+        -- or unresolvable; the stream still builds without it. Timing/shaping
+        -- attributes are read from the block per arm (readEffectParams) rather
+        -- than hardcoded — defaults reproduce the previous hardcoded values.
         local armEffectKey = armKey .. ".effects"
         if xmlFile:hasProperty(armEffectKey) then
             local eName = xmlFile:getString(armEffectKey .. ".effectNode(0)#effectNode")
             local sName = xmlFile:getString(armEffectKey .. ".effectNode(1)#effectNode")
             local eNode = findLinkedNode(eName)
             local sNode = findLinkedNode(sName)
-            if eNode ~= nil and sNode ~= nil then
-                armEntry.effectNode = eNode
-                armEntry.smokeNode  = sNode
-                -- [SPS 1.0.0.10.3] Per-arm effect timing/shaping, read from this
-                -- arm's own <effects> block. Held on the arm entry so two arms on
-                -- one tanker can differ, and consumed by buildSpsPipeEffectSet.
+            if eNode ~= nil then
+                armEntry.effectNode   = eNode
+                armEntry.smokeNode    = sNode  -- may be nil (smoke optional)
                 armEntry.effectParams = SlurryPipeManager.readEffectParams(xmlFile, armEffectKey)
             end
         end
@@ -1335,13 +1546,15 @@ function SlurryPipeManager:registerVehicle(vehicle)
     -- the legacy single effect (entry.effectNode/smokeNode) and once per arm that
     -- declares its own embedded <effects> nodes, so a tanker can show more than one
     -- stream (one per arm variant).
-    -- [SPS 1.0.0.10.3] effectParams supplies every timing/shaping value that used
-    -- to be hardcoded here. nil is accepted and falls back to the old constants,
-    -- so an arm with no <effects> attributes is unchanged.
+    -- [SPS 1.0.0.10.5] smokeNode is OPTIONAL (may be nil): the stream builds on
+    -- its own; the ShaderPlaneEffect smoke layer is only added when a smoke node
+    -- resolved. Vanilla PipeEffect:update nil-guards positionUpdateNodes, so nil
+    -- is safe there. effectParams carries the per-config <effects> XML attributes
+    -- (nil -> defaults identical to the previous hardcoded values).
     local function buildSpsPipeEffectSet(effectNode, smokeNode, effectParams)
         if not vehicle.isClient then return nil end
         local ep = effectParams or SlurryPipeManager.defaultEffectParams()
-        if effectNode ~= nil and smokeNode ~= nil then
+        if effectNode ~= nil then
             -- Register classes if needed
             if g_effectManager:getEffectClass("PipeEffect") == nil and PipeEffect ~= nil then
                 g_effectManager:registerEffectClass("PipeEffect", PipeEffect)
@@ -1366,7 +1579,8 @@ function SlurryPipeManager:registerVehicle(vehicle)
             pe.controlPoint  = { 10, 0.25, 0, 0 }
             pe.shapeScaleSpread   = { 0.6, 1, 1, 0 }
             pe.uvScaleSpeedFreqAmp = nil
-            pe.positionUpdateNodes = { smokeNode }
+            -- nil when no smoke node: PipeEffect:update nil-guards this field
+            pe.positionUpdateNodes = smokeNode ~= nil and { smokeNode } or nil
             pe.materialType  = "spsSlurryPipe"
             pe.materialTypeId = 1
             pe.dynamicFillType = false
@@ -1399,40 +1613,43 @@ function SlurryPipeManager:registerVehicle(vehicle)
                 pe.hasValidMaterial = true
                 pe.useBaseMaterial  = true
             end
-            -- ShaderPlaneEffect on the smoke node
-            local se = ShaderPlaneEffect.new()
-            se.parent        = vehicle
-            se.baseDirectory = vehicle.baseDirectory
-            se.rootNodes     = smokeNode
-            se.node          = smokeNode
-            se.materialType  = "unloadingSmoke"
-            se.materialTypeId = 1
-            se.dynamicFillType = false
-            se.hasValidMaterial = false
-            se.lastFillTypeIndex = nil
-            se.fadeInTime    = ep.smoke.fadeInTime
-            se.fadeOutTime   = ep.smoke.fadeOutTime
-            se.startDelay    = ep.smoke.startDelay
-            se.stopDelay     = ep.smoke.stopDelay
-            se.currentDelay  = ep.smoke.startDelay
-            se.state         = ShaderPlaneEffect.STATE_OFF
-            se.planeFadeTime = ep.smoke.planeFadeTime
-            se.fadeCur = { -1, 1 }
-            se.fadeDir = { 1, 1 }
-            se.fadeX   = { -1, 1 }
-            se.fadeY   = { -1, 1 }
-            se.alignToWorldY  = ep.smoke.alignToWorldY
-            se.alignXAxisToWorldY = false
-            se.alwaysVisibile = false
-            se.showOnFirstUse = false
-            se.prio      = 0
-            se.deleteListeners  = {}
-            se.startRestriction = {}
-            se.allowUpdate   = true
-            se.lastUpdateTime = 0
-            setVisibility(smokeNode, false)
-            g_effectManager:setUpdateDistance({ se }, math.huge)
-            table.insert(effects, se)
+            -- ShaderPlaneEffect on the smoke node — OPTIONAL layer, only built
+            -- when a smoke node resolved. The stream works alone without it.
+            if smokeNode ~= nil then
+                local se = ShaderPlaneEffect.new()
+                se.parent        = vehicle
+                se.baseDirectory = vehicle.baseDirectory
+                se.rootNodes     = smokeNode
+                se.node          = smokeNode
+                se.materialType  = "unloadingSmoke"
+                se.materialTypeId = 1
+                se.dynamicFillType = false
+                se.hasValidMaterial = false
+                se.lastFillTypeIndex = nil
+                se.fadeInTime    = ep.smoke.fadeInTime
+                se.fadeOutTime   = ep.smoke.fadeOutTime
+                se.startDelay    = ep.smoke.startDelay
+                se.stopDelay     = ep.smoke.stopDelay
+                se.currentDelay  = ep.smoke.startDelay
+                se.state         = ShaderPlaneEffect.STATE_OFF
+                se.planeFadeTime = ep.smoke.planeFadeTime
+                se.fadeCur = { -1, 1 }
+                se.fadeDir = { 1, 1 }
+                se.fadeX   = { -1, 1 }
+                se.fadeY   = { -1, 1 }
+                se.alignToWorldY  = ep.smoke.alignToWorldY
+                se.alignXAxisToWorldY = false
+                se.alwaysVisibile = false
+                se.showOnFirstUse = false
+                se.prio      = 0
+                se.deleteListeners  = {}
+                se.startRestriction = {}
+                se.allowUpdate   = true
+                se.lastUpdateTime = 0
+                setVisibility(smokeNode, false)
+                g_effectManager:setUpdateDistance({ se }, math.huge)
+                table.insert(effects, se)
+            end
             return effects
         end
         return nil
@@ -1468,26 +1685,19 @@ function SlurryPipeManager:registerVehicle(vehicle)
     end
 
     -- Legacy single effect (separate nodeTree.i3d, or embedded effect/pipeEffectSmoke
-    -- resolved by name above). Unchanged behaviour.
-    if entry.effectNode ~= nil and entry.smokeNode ~= nil and #entry.armEntries > 0 then
-        -- [SPS 1.0.0.10.3] The legacy single effect resolves its nodes by name
-        -- ("effect" / "pipeEffectSmoke") rather than from an <effects> block, so
-        -- there was nowhere to author its timing. An OPTIONAL top-level
-        -- <slurryPipeSystem><effects> block is now honoured for exactly that;
-        -- absent, the previous hardcoded values are used unchanged.
-        local legacyKey = kp .. "slurryPipeSystem.effects"
-        local legacyParams = xmlFile:hasProperty(legacyKey)
-            and SlurryPipeManager.readEffectParams(xmlFile, legacyKey)
-            or  SlurryPipeManager.defaultEffectParams()
-        entry.pipeEffects = buildSpsPipeEffectSet(entry.effectNode, entry.smokeNode, legacyParams)
+    -- resolved by name above). [SPS 1.0.0.10.5] Smoke optional: only the effect
+    -- node gates the build; smokeNode may be nil. No <effects> block exists for
+    -- this path, so defaults (previous hardcoded values) apply.
+    if entry.effectNode ~= nil and #entry.armEntries > 0 then
+        entry.pipeEffects = buildSpsPipeEffectSet(entry.effectNode, entry.smokeNode, nil)
     end
 
-    -- Per-arm effects (embedded i3d): each arm that resolved its own effect/smoke
-    -- nodes gets an independent stream, so multiple arms on one tanker can each emit.
+    -- Per-arm effects (embedded i3d): each arm that resolved its own effect node
+    -- gets an independent stream, so multiple arms on one tanker can each emit.
+    -- [SPS 1.0.0.10.5] Smoke optional; per-arm <effects> params passed through.
     for _, armE in ipairs(entry.armEntries) do
-        if armE.effectNode ~= nil and armE.smokeNode ~= nil then
-            armE.pipeEffects = buildSpsPipeEffectSet(armE.effectNode, armE.smokeNode,
-                armE.effectParams)
+        if armE.effectNode ~= nil then
+            armE.pipeEffects = buildSpsPipeEffectSet(armE.effectNode, armE.smokeNode, armE.effectParams)
         end
     end
 
@@ -1595,31 +1805,6 @@ function SlurryPipeManager:registerVehicle(vehicle)
     -- read here and played on block/clear if present, skipped if absent. A node named
     -- *Macerator is the central distributor: blocking it stops the whole bar. The
     -- macerator and centre node share a spot, so they are never both flagged.
-
-    -- [SPS BLOCKAGE v1.0.0.10.4] Optional per-vehicle blockage tuning, authored as
-    -- attributes on the <blockageNodes> CONTAINER (not on individual nodes, since
-    -- these describe the bar as a whole). Every attribute is optional; anything
-    -- absent falls back to the global default, so existing configs load unchanged
-    -- and this whole block is inert unless a modder opts in. Values are clamped so a
-    -- typo cannot produce a bar that clogs every roll or never clogs at all.
-    local btKey = kp .. "slurryPipeSystem.blockageNodes"
-    if xmlFile:hasProperty(btKey) then
-        local function readTune(attr, default, lo, hi)
-            local v = xmlFile:getFloat(btKey .. "#" .. attr)
-            if v == nil then return default end
-            return math.max(lo, math.min(hi, v))
-        end
-        entry.blockageTuning = {
-            baseChance        = readTune("baseChance",        nil, 0.0, 1.0),
-            maceratorCrustMin = readTune("maceratorCrustMin", nil, 0.0, 1.0),
-            maceratorChance   = readTune("maceratorChance",   nil, 0.0, 1.0),
-            outletCrustMin    = readTune("outletCrustMin",    nil, 0.0, 1.0),
-            outletCrustMinRaw = readTune("outletCrustMinRaw", nil, 0.0, 1.0),
-            outletChance      = readTune("outletChance",      nil, 0.0, 1.0),
-            dmBonus           = readTune("dmBonus",           nil, 0.0, 10.0),
-        }
-    end
-
     local blockageIndex = 0
     while true do
         local bKey = string.format(kp .. "slurryPipeSystem.blockageNodes.blockageNode(%d)", blockageIndex)
@@ -2533,24 +2718,6 @@ function SlurryPipeManager:registerPlaceable(placeable)
         storeSources = self:parseSlurryStores(placeable, xmlFile, kp, findLinkedNode)
     end
 
-    -- [SPS 1.0.0.10.3] <fillPlane> and <slurryStores> are alternatives, not
-    -- companions. Declaring both was previously unguarded: the legacy crust block
-    -- further down would re-parent the placeable-level crust mesh onto the singular
-    -- fill plane while initStoreCrust re-parented store 1's crust mesh onto the
-    -- store plane, leaving one mesh bound to a node the other owner also moves.
-    -- <slurryStores> wins (it is the more specific declaration) and the singular
-    -- block is ignored from here on, announced unconditionally so the config author
-    -- sees it in a player log with no debug channels enabled.
-    local legacyPlaneIgnored = false
-    if storeSources ~= nil and #storeSources > 0 and fillPlaneNode ~= nil and fillPlaneNode ~= 0 then
-        legacyPlaneIgnored = true
-        print("[SPS WARNING] " .. tostring(placeable.configFileName)
-            .. ": both <fillPlane> and <slurryStores> are declared. These are"
-            .. " alternatives — <slurryStores> is being used and the singular"
-            .. " <fillPlane> block (including its crust nodes) is ignored."
-            .. " Remove <fillPlane> from this config.")
-    end
-
     local sourceEntry = nil
     if storeSources ~= nil and #storeSources > 0 then
         sourceEntry = storeSources[1]
@@ -2906,20 +3073,23 @@ function SlurryPipeManager:registerPlaceable(placeable)
                 end
             end
 
-            -- Build inlet pipe effects for this coupling if declared
+            -- Build inlet pipe effects for this coupling if declared.
+            -- [SPS 1.0.0.10.5] Smoke is OPTIONAL: only effectNode(0) is required;
+            -- effectNode(1) (smoke) may be absent or unresolvable and the stream
+            -- still builds. Timing/shaping attributes read from the <effects>
+            -- block (defaults = previous hardcoded values).
             local effectNodeName = xmlFile:getString(cKey .. ".effects.effectNode(0)#effectNode")
             local smokeNodeName  = xmlFile:getString(cKey .. ".effects.effectNode(1)#effectNode")
             sc.inletDistance     = xmlFile:getFloat(cKey .. ".effects#inletDistance", 1.5)
-            -- [SPS 1.0.0.10.3] Same per-config effect timing the vehicle side now
-            -- reads, so a placeable inlet stream can be tuned independently too.
-            local ep = xmlFile:hasProperty(cKey .. ".effects")
-                and SlurryPipeManager.readEffectParams(xmlFile, cKey .. ".effects")
-                or  SlurryPipeManager.defaultEffectParams()
-            if g_client ~= nil and effectNodeName ~= nil and smokeNodeName ~= nil then
+            if g_client ~= nil and effectNodeName ~= nil then
                 local effectNode = findLinkedNode(effectNodeName)
                 if effectNode ~= nil then
-                    local smokeNode = findChildByName(effectNode, smokeNodeName)
-                    if smokeNode ~= nil then
+                    local smokeNode = nil
+                    if smokeNodeName ~= nil then
+                        smokeNode = findChildByName(effectNode, smokeNodeName)
+                    end
+                    local ep = SlurryPipeManager.readEffectParams(xmlFile, cKey .. ".effects")
+                    do
                         if g_effectManager:getEffectClass("PipeEffect") == nil and PipeEffect ~= nil then
                             g_effectManager:registerEffectClass("PipeEffect", PipeEffect)
                         end
@@ -2941,7 +3111,8 @@ function SlurryPipeManager:registerPlaceable(placeable)
                         pe.controlPoint       = { 10, 0.25, 0, 0 }
                         pe.shapeScaleSpread   = { 0.6, 1, 1, 0 }
                         pe.uvScaleSpeedFreqAmp = nil
-                        pe.positionUpdateNodes = { smokeNode }
+                        -- nil when no smoke node: PipeEffect:update nil-guards this field
+                        pe.positionUpdateNodes = smokeNode ~= nil and { smokeNode } or nil
                         pe.materialType       = "spsSlurryPipe"
                         pe.materialTypeId     = 1
                         pe.dynamicFillType    = false
@@ -2973,43 +3144,45 @@ function SlurryPipeManager:registerPlaceable(placeable)
                             pe.useBaseMaterial  = true
                         end
                         table.insert(effects, pe)
-                        local se = ShaderPlaneEffect.new()
-                        se.parent             = placeable
-                        se.baseDirectory      = placeable.baseDirectory or ""
-                        se.rootNodes          = smokeNode
-                        se.node               = smokeNode
-                        se.materialType       = "unloadingSmoke"
-                        se.materialTypeId     = 1
-                        se.dynamicFillType    = false
-                        se.hasValidMaterial   = false
-                        se.lastFillTypeIndex  = nil
-                        se.fadeInTime         = ep.smoke.fadeInTime
-                        se.fadeOutTime        = ep.smoke.fadeOutTime
-                        se.startDelay         = ep.smoke.startDelay
-                        se.stopDelay          = ep.smoke.stopDelay
-                        se.currentDelay       = ep.smoke.startDelay
-                        se.state              = ShaderPlaneEffect.STATE_OFF
-                        se.planeFadeTime      = ep.smoke.planeFadeTime
-                        se.fadeCur            = { -1, 1 }
-                        se.fadeDir            = { 1, 1 }
-                        se.fadeX              = { -1, 1 }
-                        se.fadeY              = { -1, 1 }
-                        se.alignToWorldY      = ep.smoke.alignToWorldY
-                        se.alignXAxisToWorldY = false
-                        se.alwaysVisibile     = false
-                        se.showOnFirstUse     = false
-                        se.prio               = 0
-                        se.deleteListeners    = {}
-                        se.startRestriction   = {}
-                        se.allowUpdate        = true
-                        se.lastUpdateTime     = 0
-                        setVisibility(smokeNode, false)
-                        g_effectManager:setUpdateDistance({ se }, math.huge)
-                        table.insert(effects, se)
+                        -- Smoke layer — OPTIONAL, only built when a smoke node
+                        -- resolved. The stream works alone without it.
+                        if smokeNode ~= nil then
+                            local se = ShaderPlaneEffect.new()
+                            se.parent             = placeable
+                            se.baseDirectory      = placeable.baseDirectory or ""
+                            se.rootNodes          = smokeNode
+                            se.node               = smokeNode
+                            se.materialType       = "unloadingSmoke"
+                            se.materialTypeId     = 1
+                            se.dynamicFillType    = false
+                            se.hasValidMaterial   = false
+                            se.lastFillTypeIndex  = nil
+                            se.fadeInTime         = ep.smoke.fadeInTime
+                            se.fadeOutTime        = ep.smoke.fadeOutTime
+                            se.startDelay         = ep.smoke.startDelay
+                            se.stopDelay          = ep.smoke.stopDelay
+                            se.currentDelay       = ep.smoke.startDelay
+                            se.state              = ShaderPlaneEffect.STATE_OFF
+                            se.planeFadeTime      = ep.smoke.planeFadeTime
+                            se.fadeCur            = { -1, 1 }
+                            se.fadeDir            = { 1, 1 }
+                            se.fadeX              = { -1, 1 }
+                            se.fadeY              = { -1, 1 }
+                            se.alignToWorldY      = ep.smoke.alignToWorldY
+                            se.alignXAxisToWorldY = false
+                            se.alwaysVisibile     = false
+                            se.showOnFirstUse     = false
+                            se.prio               = 0
+                            se.deleteListeners    = {}
+                            se.startRestriction   = {}
+                            se.allowUpdate        = true
+                            se.lastUpdateTime     = 0
+                            setVisibility(smokeNode, false)
+                            g_effectManager:setUpdateDistance({ se }, math.huge)
+                            table.insert(effects, se)
+                        end
                         sc.pipeEffects = effects
-                    else
                     end
-                else
                 end
             end
 
@@ -3118,6 +3291,19 @@ function SlurryPipeManager:registerPlaceable(placeable)
                         if pt.hasPools then
                             se.solids = pt.solids
                             se.settle = pt.settle
+                            -- [SPS 1.0.0.10.4] A pool saved by a pre-fix build carries
+                            -- every litre of dry matter the store has EVER held, because
+                            -- pumping removed volume but no solids. Flag it for a one-shot
+                            -- repair on the first server update (where the storage fill
+                            -- level is guaranteed live); the value is not touched here so
+                            -- registration order can never matter. Legacy #thickness saves
+                            -- below never had a solids pool at all and lazy-init at
+                            -- DM_FRESH, so they need no repair.
+                            local loadedVer = self._loadedPoolModelVersion
+                                or SlurryPipeManager.POOL_MODEL_VERSION
+                            if loadedVer < SlurryPipeManager.POOL_MODEL_VERSION then
+                                se._spsSolidsMigrate = true
+                            end
                         else
                             -- Old #thickness gauge: treat it as settling (mixable) and let
                             -- solids lazy-init at fresh DM.
@@ -3150,9 +3336,7 @@ function SlurryPipeManager:registerPlaceable(placeable)
     -- the placeable's own tree (findLinkedNode already falls back to that) and re-parent
     -- it onto fillPlaneNode here, replicating exactly what the linker does. On baseTank it
     -- is already parented there, so the re-parent is guarded and skipped. Additive.
-    -- [SPS 1.0.0.10.3] Skipped entirely when <slurryStores> is present: those stores
-    -- bind their own crust plane and foliage anchor per store in initStoreCrust.
-    if pEntry.crustConfig ~= nil and sourceEntry ~= nil and not legacyPlaneIgnored
+    if pEntry.crustConfig ~= nil and sourceEntry ~= nil
     and fillPlaneNode ~= nil and fillPlaneNode ~= 0 then
         local cc = pEntry.crustConfig
         if cc.planeNode ~= nil and cc.planeNode ~= "" then
@@ -3536,6 +3720,11 @@ function SlurryPipeManager:saveCouplingConnections(savePath)
     xmlFile:setBool("slurryPipeSystem#featureThicknessFlow", self.featureToggles.thicknessFlow ~= false)
     xmlFile:setBool("slurryPipeSystem#featureBlockages",     self.featureToggles.blockages     ~= false)
     xmlFile:setBool("slurryPipeSystem#featureLengthFalloff", self.featureToggles.lengthFalloff ~= false)
+    -- [SPS 1.0.0.10.4] Stamp the two-pool model version this save was written by, so
+    -- a later load can tell a pre-fix `solids` value (inflated, because pumping never
+    -- removed dry matter) from a legitimate one. Absent on every existing save, which
+    -- the loader reads back as version 1 and repairs once.
+    xmlFile:setInt("slurryPipeSystem#poolModelVersion", SlurryPipeManager.POOL_MODEL_VERSION)
 
     local hs = self.hudSettings or {}
     xmlFile:setBool ("slurryPipeSystem#hudEnabled", hs.enabled ~= false)
@@ -3800,6 +3989,15 @@ function SlurryPipeManager:loadCouplingConnections(savePath)
     self.featureToggles.thicknessFlow = xmlFile:getBool("slurryPipeSystem#featureThicknessFlow", true)
     self.featureToggles.blockages     = xmlFile:getBool("slurryPipeSystem#featureBlockages",     true)
     self.featureToggles.lengthFalloff = xmlFile:getBool("slurryPipeSystem#featureLengthFalloff", true)
+    -- [SPS 1.0.0.10.4] Two-pool model version of THIS savegame. Missing on every save
+    -- written before the fix, so the default of 1 is what flags them for repair. Left
+    -- nil when no save file is read at all (brand-new game), which the restore path
+    -- treats as "already current" so nothing is touched.
+    self._loadedPoolModelVersion = xmlFile:getInt("slurryPipeSystem#poolModelVersion", 1)
+    if self._loadedPoolModelVersion < SlurryPipeManager.POOL_MODEL_VERSION then
+        print(string.format("[SPS] savegame two-pool model v%d < v%d — store dry-matter pools will be repaired on first update",
+            self._loadedPoolModelVersion, SlurryPipeManager.POOL_MODEL_VERSION))
+    end
 
     self.hudSettings = self.hudSettings or {}
     local hs = self.hudSettings
@@ -4531,6 +4729,20 @@ function SlurryPipeManager:sendFullStateToConnection(connection)
                 end
             end
         end
+        -- [SPS 1.0.1.2] Sprayer buying stations (systemId=1) — same contract:
+        -- a late joiner's switch prompt shows the live selection, not the
+        -- config default.
+        for _, sEntry in ipairs(self.registeredSprayerPlaceables or {}) do
+            local se = sEntry.sourceEntry
+            if se ~= nil and se.type == SPS_SOURCE_TYPE_BUYING_STATION
+            and se.fillTypes ~= nil and #se.fillTypes > 1 then
+                local name = g_fillTypeManager:getFillTypeNameByIndex(se.fillType)
+                if name ~= nil then
+                    connection:sendEvent(SPSBuyStationEvent.new(
+                        SPSBuyStationEvent.STATE, sEntry.object, name, 1))
+                end
+            end
+        end
     end
 
     -- 13) [SPS 1.0.0.9.30] Gameplay settings (realism / sub-features / shear
@@ -4743,23 +4955,46 @@ function SlurryPipeManager:getBuyStationEntry(placeable)
     return nil, nil
 end
 
+-- [SPS 1.0.1.2] Buying-station entry lookup per system: systemId 0 = slurry
+-- (registeredPlaceables), 1 = sprayer (registeredSprayerPlaceables, entry
+-- built in SPSM_Sprayers.registerSprayerPlaceable). nil defaults to slurry so
+-- every existing caller is unchanged.
+function SlurryPipeManager:_getBuyStationEntryForSystem(placeable, systemId)
+    if systemId == 1 then
+        if self.getSprayerBuyStationEntry ~= nil then
+            return self:getSprayerBuyStationEntry(placeable)
+        end
+        return nil, nil
+    end
+    return self:getBuyStationEntry(placeable)
+end
+
 -- Walk-up request: cycle to the next sold type in the config-declared order.
 -- On the server this applies immediately (and broadcasts STATE); on a client
 -- it sends SPSBuyStationEvent.REQ_SETTYPE and waits for the STATE broadcast.
-function SlurryPipeManager:requestBuyStationTypeToggle(placeable)
-    local _, se = self:getBuyStationEntry(placeable)
+-- [SPS 1.0.1.2] systemId selects the slurry (0/nil) or sprayer (1) station on
+-- this placeable; backwards=true cycles the config-declared order in reverse
+-- (Shift held at the switch node — SPSBuyStationActivatable).
+function SlurryPipeManager:requestBuyStationTypeToggle(placeable, systemId, backwards)
+    local _, se = self:_getBuyStationEntryForSystem(placeable, systemId)
     if se == nil or se.fillTypes == nil or #se.fillTypes < 2 then return end
     local curIdx = 1
     for i, ft in ipairs(se.fillTypes) do
         if ft == se.fillType then curIdx = i break end
     end
-    local nextFt = se.fillTypes[(curIdx % #se.fillTypes) + 1]
+    local n = #se.fillTypes
+    local nextFt
+    if backwards == true then
+        nextFt = se.fillTypes[((curIdx - 2) % n) + 1]
+    else
+        nextFt = se.fillTypes[(curIdx % n) + 1]
+    end
     if g_server ~= nil then
-        self:applyBuyStationType(placeable, nextFt, true)
+        self:applyBuyStationType(placeable, nextFt, true, systemId)
     elseif SPSBuyStationEvent ~= nil then
         local name = g_fillTypeManager:getFillTypeNameByIndex(nextFt)
         if name ~= nil then
-            SPSBuyStationEvent.sendTypeRequest(placeable, name)
+            SPSBuyStationEvent.sendTypeRequest(placeable, name, systemId)
         end
     end
 end
@@ -4788,8 +5023,8 @@ end
 -- broadcast=true only on the server after a local apply
 -- (SPSBuyStationEvent.sendState); clients applying a STATE broadcast pass
 -- false.
-function SlurryPipeManager:applyBuyStationType(placeable, fillTypeIndex, broadcast)
-    local _, se = self:getBuyStationEntry(placeable)
+function SlurryPipeManager:applyBuyStationType(placeable, fillTypeIndex, broadcast, systemId)
+    local _, se = self:_getBuyStationEntryForSystem(placeable, systemId)
     if se == nil or fillTypeIndex == nil then return end
     local inCycle = false
     for _, ft in ipairs(se.fillTypes or {}) do
@@ -4801,12 +5036,26 @@ function SlurryPipeManager:applyBuyStationType(placeable, fillTypeIndex, broadca
             tostring(g_fillTypeManager:getFillTypeNameByIndex(fillTypeIndex)))
         return
     end
+    -- [SPS 1.0.1.3] Sprayer station held-type lock: while a PART-FULL sprayer
+    -- is connected, the station is dedicated to its held liquid — a switch to
+    -- anything else is refused (server-validated, so stale/forged client
+    -- events cannot bypass it). The connect-time auto-switch passes because
+    -- it requests exactly the held type.
+    if systemId == 1 and self.getSprayerBuyStationHeldType ~= nil then
+        local held = self:getSprayerBuyStationHeldType(placeable)
+        if held ~= nil and held ~= fillTypeIndex then
+            SlurryPipeManager.log("applyBuyStationType: connected sprayer holds %s — switch to %s refused",
+                tostring(g_fillTypeManager:getFillTypeNameByIndex(held)),
+                tostring(g_fillTypeManager:getFillTypeNameByIndex(fillTypeIndex)))
+            return
+        end
+    end
     se.fillType = fillTypeIndex
-    SlurryPipeManager.log("applyBuyStationType: %s -> %s",
-        tostring(placeable.configFileName),
+    SlurryPipeManager.log("applyBuyStationType: %s [system=%s] -> %s",
+        tostring(placeable.configFileName), tostring(systemId or 0),
         tostring(g_fillTypeManager:getFillTypeNameByIndex(fillTypeIndex)))
     if broadcast == true and g_server ~= nil and SPSBuyStationEvent ~= nil then
-        SPSBuyStationEvent.sendState(placeable, fillTypeIndex)
+        SPSBuyStationEvent.sendState(placeable, fillTypeIndex, systemId)
     end
 end
 
@@ -4960,6 +5209,13 @@ function SlurryPipeManager:update(dt)
     end
     self:updateBlockages(dt)
 
+    -- [SPS 1.0.1.5] Front-mount receiver refresh: derived from Giants connection
+    -- hose state on ALL peers (deterministic from synced attach state), so this
+    -- deliberately runs client-side too — no server gate, no sync events.
+    if self.updateFrontMounts ~= nil then
+        self:updateFrontMounts(dt)
+    end
+
     -- Reconcile each store's dry-matter pool against its actual total every tick. Slurry
     -- added or removed outside the SPS pipe system (vanilla loading station, AI, map
     -- presets, console) carries no dry matter on its own, so a rise is treated as fresh
@@ -5001,37 +5257,6 @@ function SlurryPipeManager:update(dt)
     -- vanilla syncs those levels itself, so both sides derive the same height.
     if SlurryPipeManager.updateStorePlanes ~= nil then
         self:updateStorePlanes()
-    end
-
-    -- [SPS 1.0.0.10.3] Refresh crust foliage when the SLURRY SURFACE moves.
-    --
-    -- Every existing updateVisibility call site is driven by a CRUST change
-    -- (applyStoreCrustState, applyAgitation, and the growth loop below, which is
-    -- gated on settle actually changing). Nothing was driven by the fill level, so
-    -- plants never followed a filling or emptying pit -- they were left at the
-    -- height the surface happened to be at when the placeable registered, and a pit
-    -- that then filled simply buried them.
-    --
-    -- Runs on server AND client, and outside the realism gate: this is the visual
-    -- position of a vanilla storage level, and updateVisibility hides everything
-    -- itself when the master toggle is off. One getWorldTranslation per store per
-    -- tick, and the refresh only fires when the height actually stepped, so a store
-    -- sitting full for a season costs the read and nothing else.
-    if SPSCrustVegetation ~= nil and SPSCrustVegetation.updateVisibility ~= nil then
-        for _, pEntry in ipairs(self.registeredPlaceables) do
-            for _, se in ipairs(self:getStoreSources(pEntry)) do
-                if se.crustInstances ~= nil
-                and se.fillPlaneNode ~= nil and se.fillPlaneNode ~= 0
-                and entityExists(se.fillPlaneNode) then
-                    local _, planeY, _ = getWorldTranslation(se.fillPlaneNode)
-                    if se._foliageLastPlaneY == nil
-                    or math.abs(planeY - se._foliageLastPlaneY) > 0.005 then
-                        se._foliageLastPlaneY = planeY
-                        SPSCrustVegetation.updateVisibility(pEntry, se)
-                    end
-                end
-            end
-        end
     end
 
     -- [SPS CRUST v1.0.0.10.2] Crust growth: an unmixed store crusts continuously.

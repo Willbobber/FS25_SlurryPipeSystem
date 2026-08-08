@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.8
+-- Version: 1.0.0.9.5
 
 -- SPSSpreaderHUD.lua
 -- FS25_SlurryPipeSystem
@@ -101,12 +101,13 @@ function SPSSpreaderHUD:_getActiveSpreader()
         local v = entry.vehicle
         if v ~= nil then
             -- [SPS] Fert/herb sprayers share the "sprayer" vehicle type with the slurry
-            -- dribble bars but must NEVER show the slurry spreader HUD. Vanilla Sprayer
-            -- classifies this at load: isFertilizerSprayer = not slurry/digestate/manure.
-            -- This is the same discriminator the manager uses everywhere else to shield
-            -- fert/herb from the slurry pressure/spread logic. Excluding it here keeps the
-            -- panel to actual slurry spreaders only.
-            local isFertHerb = v.spec_sprayer ~= nil and v.spec_sprayer.isFertilizerSprayer == true
+            -- dribble bars but must NEVER show the slurry spreader HUD. [SPS 1.0.0.9.5]
+            -- Discriminator is now the manager's registration-aware helper (see
+            -- SlurryPipeManager:isFertExemptVehicle) — same rule as the pressure/gauge
+            -- gates, so a slurry-registered vehicle misclassified by vanilla still
+            -- shows the panel while genuine fert/herb sprayers stay excluded.
+            local isFertHerb = g_slurryPipeManager.isFertExemptVehicle ~= nil
+                and g_slurryPipeManager:isFertExemptVehicle(v)
             local hasBlock = entry.blockageEntries ~= nil and #entry.blockageEntries > 0
             if not isFertHerb and (hasBlock or self:_hasSprayerWorkArea(v)) then
                 local root = (v.getRootVehicle ~= nil) and v:getRootVehicle() or v

@@ -74,6 +74,7 @@
 		
         <!-- Slurry thickness / agitation -->
         <text name="warning_spsSlurryThickening"  		text="Mest wordt dikker: %d%% — mengen aanbevolen" />
+        <text name="warning_spsSlurryThickeningWater"  	text="Mest wordt dikker: %d%% — water toevoegen" />
         <text name="warning_spsSlurryTooThick"          text="Mest te dik — water vereist" />
         <text name="sps_settingsAgitation"              text="Mest mengen" />
         <text name="sps_settingsAgitationTooltip"       text="Schakel mestverdikking en mengsysteem in" />
@@ -97,6 +98,7 @@
 		<text name="sps_infoLiquidTitle"                text="Vloeistof" />
         <text name="sps_infoDryMatterTitle"             text="Droge stof" />
         <text name="sps_infoCrustTitle"                 text="Korst" />
+        <text name="sps_infoTankEmpty"               text="Leeg" />
 		
 		<!-- Water -->
 		<text name="action_spsDeployWaterPipe"			text="R ingedrukt houden: Waterslang plaatsen" />

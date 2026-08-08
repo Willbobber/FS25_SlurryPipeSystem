@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
+  </Asset>
+
+  <Files>
+  </Files>
+
+
+  <Materials>
+  </Materials>
+
+
+  <Shapes>
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="SPS_optiJect8" nodeId="269">
+      <TransformGroup name="blockageNodes" nodeId="270">
+        <TransformGroup name="optiJect8_vis" nodeId="271">
+          <TransformGroup name="SPS_blockageNodeMacerator" translation="0 1 -2" nodeId="272"/>
+        </TransformGroup>
+        <TransformGroup name="leftArm" translation="0.825 0.555681 0.504786" rotation="-0 90 0" nodeId="273">
+          <TransformGroup name="SPS_blockageNodeLeft" translation="1.2 0.05 1.2" nodeId="274"/>
+        </TransformGroup>
+        <TransformGroup name="rightArm" translation="-0.825 0.555681 0.504786" rotation="-0 -90 0" nodeId="275">
+          <TransformGroup name="SPS_blockageNodeRight" translation="-1.2 0.05 1.2" nodeId="276"/>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="workAreas" nodeId="277">
+        <TransformGroup name="workArea01" nodeId="278">
+          <TransformGroup name="workAreaStart" translation="4 0 0" nodeId="322"/>
+          <TransformGroup name="workAreaWidth" nodeId="323"/>
+          <TransformGroup name="workAreaHeight" translation="4 0 -0.203269" nodeId="324"/>
+        </TransformGroup>
+        <TransformGroup name="workArea02" nodeId="325">
+          <TransformGroup name="workAreaStart" nodeId="326"/>
+          <TransformGroup name="workAreaWidth" translation="-4 0 0" nodeId="327"/>
+          <TransformGroup name="workAreaHeight" translation="0 0 -0.203269" nodeId="328"/>
+        </TransformGroup>
+      </TransformGroup>
+    </TransformGroup>
+  </Scene>
+
+</i3D>

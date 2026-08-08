@@ -72,7 +72,8 @@
 		
         <!-- Slurry thickness / agitation -->
         <text name="warning_spsSlurryThickening"  		text="Liquame in addensamento: %d%% — agitazione consigliata" />
-        <text name="warning_spsSlurryTooThick"          text="Liquame troppo denso — acqua e agitazione necessarie" />
+        <text name="warning_spsSlurryThickeningWater"  	text="Liquame in addensamento: %d%% — aggiungere acqua" />
+        <text name="warning_spsSlurryTooThick"          text="Liquame troppo denso — acqua necessaria" />
         <text name="sps_settingsAgitation"              text="Agitazione liquame" />
         <text name="sps_settingsAgitationTooltip"       text="Abilita sistema di addensamento e agitazione del liquame" />
         <text name="sps_settingsRealism"                text="Realismo liquame" />
@@ -95,6 +96,7 @@
 		<text name="sps_infoLiquidTitle"                text="Liquido" />
         <text name="sps_infoDryMatterTitle"             text="Sostanza secca" />
         <text name="sps_infoCrustTitle"                 text="Crosta" />
+        <text name="sps_infoTankEmpty"               text="Vuoto" />
 		
 		<!-- Water -->
 		<text name="action_spsDeployWaterPipe"			text="Tieni premuto R: Stendi tubo dell'acqua" />

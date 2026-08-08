@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Kaweco Saddle Trac Tanker Back -->
+
+<!-- FS25_SlurryPipeSystem — Vehicle fillPoints.xml -->
+<!-- Author: Oscar Mods -->
+<!-- Version: 1.0.0.0 -->
+
+<slurryPipeSystem>
+
+    <nodeTree filename="nodeTree.i3d"/>
+
+    <flow fillLitersPerSecond="650" emptyLitersPerSecond="650"/>
+	
+	<pump pumpType="HVP"/>
+	
+	<surfaceRef emptyNode="emptyNode" fullNode="fullNode"/>
+	
+</slurryPipeSystem>

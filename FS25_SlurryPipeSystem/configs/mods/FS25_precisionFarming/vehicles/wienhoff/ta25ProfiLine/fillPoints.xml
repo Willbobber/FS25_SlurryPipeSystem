@@ -59,7 +59,9 @@
 		<outsideControl mountNodeName="pumpControl01" pto="true" direction="false"/>
 	</outsideControls>
 	
-	<tractorMountFillArms>
-		<tractorMountFillArm />
-	</tractorMountFillArms>
+	<tractorMountFillArms accepted="true">
+        <hose inputAttacherJointIndices="1" type="TOOL_CONNECTOR_TOP_RIGHT" node="slurryPipe" length="2" diameter="0.18" isTwoPointHose="true">
+            <objectChange node="coupler" visibilityActive="true" visibilityInactive="false" initialState="inactive"/>
+        </hose>
+    </tractorMountFillArms>
 </slurryPipeSystem>

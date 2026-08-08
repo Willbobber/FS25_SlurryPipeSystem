@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
+  </Asset>
+
+  <Files>
+  </Files>
+
+
+  <Materials>
+  </Materials>
+
+
+  <Shapes>
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="SPS_tankerBack" nodeId="6">
+      <TransformGroup name="slurryHeight" nodeId="7">
+        <TransformGroup name="tankerBack_vis" nodeId="8">
+          <TransformGroup name="emptyNode" translation="0 2.051 0" nodeId="9"/>
+          <TransformGroup name="fullNode" translation="0 4.046 0" nodeId="10"/>
+        </TransformGroup>
+      </TransformGroup>
+    </TransformGroup>
+  </Scene>
+
+</i3D>

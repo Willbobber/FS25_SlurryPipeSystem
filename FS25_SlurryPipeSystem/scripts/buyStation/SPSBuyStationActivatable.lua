@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem
 -- Author: Oscar Mods
--- Version: 1.0.0.9.27
+-- Version: 1.0.1.3
 --
 -- SPSBuyStationActivatable.lua
 -- ---------------------------------------------------------------------------
@@ -19,9 +19,24 @@
 -- SlurryPipeManager:requestBuyStationTypeToggle (server applies directly;
 -- a client sends SPSBuyStationEvent.REQ_SETTYPE and the prompt text updates
 -- when the STATE broadcast lands).
+--
+-- [SPS 1.0.1.2] Shared between BOTH station kinds via systemId (0 = slurry
+-- entry from registeredPlaceables, 1 = sprayer entry from
+-- registeredSprayerPlaceables — constructed in registerSprayerPlaceable). The
+-- entry tables differ only in placeable field naming (pEntry.placeable vs
+-- entry.object) and coupler list naming (storeCouplings vs couplings); both
+-- are handled below so one class serves both.
+--
+-- [SPS 1.0.1.2] Reverse cycling: holding SHIFT while activating steps the
+-- config-declared order BACKWARDS (overshoot recovery on long cycles). Uses
+-- the engine-level Input.isKeyPressed built-in (engine API, not a vanilla
+-- script) behind nil-guards — if the engine ever drops it, behaviour
+-- degrades to forward-only instead of erroring. The prompt text flips live
+-- to "switch to <previous>" while Shift is held (getIsActivatable/update
+-- rebuild the text every frame).
 -- ---------------------------------------------------------------------------
 
-print("[SPS BUILD] SPSBuyStationActivatable 1.0.0.9.27 loaded")
+print("[SPS BUILD] SPSBuyStationActivatable 1.0.1.3 loaded")
 
 SPSBuyStationActivatable = {}
 SPSBuyStationActivatable.__index = SPSBuyStationActivatable
@@ -42,13 +57,25 @@ local function log(fmt, ...)
     end
 end
 
-function SPSBuyStationActivatable.new(pEntry, switchNode, radius)
+function SPSBuyStationActivatable.new(pEntry, switchNode, radius, systemId)
     local self        = setmetatable({}, SPSBuyStationActivatable)
     self.pEntry       = pEntry
     self.switchNode   = switchNode
     self.radius       = radius or 3.0
+    -- [SPS 1.0.1.2] 0 = slurry station, 1 = sprayer station; nil (legacy
+    -- slurry construction site in registerPlaceable) = 0.
+    self.systemId     = systemId or 0
     self.activateText = ""
     return self
+end
+
+-- [SPS 1.0.1.2] True while either Shift key is held. Engine built-in behind
+-- nil-guards; any missing symbol = false (forward-only cycling).
+local function isShiftDown()
+    if Input == nil or Input.isKeyPressed == nil then return false end
+    if Input.KEY_lshift ~= nil and Input.isKeyPressed(Input.KEY_lshift) then return true end
+    if Input.KEY_rshift ~= nil and Input.isKeyPressed(Input.KEY_rshift) then return true end
+    return false
 end
 
 function SPSBuyStationActivatable:delete()
@@ -60,10 +87,18 @@ end
 local function getAnchorNode(self)
     local node = self.switchNode
     if node ~= nil and node ~= 0 and entityExists(node) then return node end
-    -- Fallback: first store coupler mount.
+    -- Fallback: first store coupler mount. [SPS 1.0.1.2] Sprayer entries hold
+    -- their couplers in .couplings (registerSprayerPlaceable) — same shape.
     local pEntry = self.pEntry
     if pEntry ~= nil and pEntry.storeCouplings ~= nil then
         local sc = pEntry.storeCouplings[1]
+        if sc ~= nil and sc.mountNode ~= nil and sc.mountNode ~= 0
+        and entityExists(sc.mountNode) then
+            return sc.mountNode
+        end
+    end
+    if pEntry ~= nil and pEntry.couplings ~= nil then
+        local sc = pEntry.couplings[1]
         if sc ~= nil and sc.mountNode ~= nil and sc.mountNode ~= 0
         and entityExists(sc.mountNode) then
             return sc.mountNode
@@ -85,6 +120,19 @@ function SPSBuyStationActivatable:getIsActivatable()
     local se = getSourceEntry(self)
     -- Nothing to switch with a single sold type.
     if se == nil or se.fillTypes == nil or #se.fillTypes < 2 then return false end
+    -- [SPS 1.0.1.3] Sprayer station held-type lock: a PART-FULL connected
+    -- sprayer dedicates the station to its held liquid — hide the switch
+    -- prompt entirely (the server refuses the switch anyway; hiding keeps the
+    -- prompt honest). Connection state + fill levels are client-synced, so
+    -- this reads correctly on every machine.
+    if self.systemId == 1 then
+        local mgr = g_slurryPipeManager
+        local pEntry = self.pEntry
+        local placeable = pEntry ~= nil and (pEntry.placeable or pEntry.object) or nil
+        if mgr ~= nil and mgr.getSprayerBuyStationHeldType ~= nil and placeable ~= nil then
+            if mgr:getSprayerBuyStationHeldType(placeable) ~= nil then return false end
+        end
+    end
     local node = getAnchorNode(self)
     if node == nil then return false end
     local px, py, pz = getWorldTranslation(g_localPlayer.rootNode)
@@ -118,21 +166,36 @@ end
 
 function SPSBuyStationActivatable:run()
     local pEntry = self.pEntry
-    if pEntry == nil or pEntry.placeable == nil then return end
+    if pEntry == nil then return end
+    -- [SPS 1.0.1.2] Slurry entries key the placeable as .placeable, sprayer
+    -- entries as .object.
+    local placeable = pEntry.placeable or pEntry.object
+    if placeable == nil then return end
     local mgr = g_slurryPipeManager
     if mgr == nil or mgr.requestBuyStationTypeToggle == nil then return end
-    log("run: toggle requested for %s", tostring(pEntry.placeable.configFileName))
-    mgr:requestBuyStationTypeToggle(pEntry.placeable)
+    local backwards = isShiftDown()
+    log("run: toggle requested for %s (system=%s backwards=%s)",
+        tostring(placeable.configFileName), tostring(self.systemId), tostring(backwards))
+    mgr:requestBuyStationTypeToggle(placeable, self.systemId, backwards)
 end
 
 -- "Buying: <current> - switch to <next>"
+-- [SPS 1.0.1.2] While Shift is held the target shown (and stepped to on
+-- activate) is the PREVIOUS type in the cycle — same l10n key, second
+-- argument swapped, so no new translations are needed.
 function SPSBuyStationActivatable:_buildText(se)
     local cur     = se.fillType
     local curIdx  = 1
     for i, ft in ipairs(se.fillTypes) do
         if ft == cur then curIdx = i break end
     end
-    local nextFt    = se.fillTypes[(curIdx % #se.fillTypes) + 1]
+    local n = #se.fillTypes
+    local nextFt
+    if isShiftDown() then
+        nextFt = se.fillTypes[((curIdx - 2) % n) + 1]
+    else
+        nextFt = se.fillTypes[(curIdx % n) + 1]
+    end
     local curTitle  = g_fillTypeManager:getFillTypeTitleByIndex(cur)    or "?"
     local nextTitle = g_fillTypeManager:getFillTypeTitleByIndex(nextFt) or "?"
     return string.format(g_i18n:getText("action_spsBuyStationSwitch"), curTitle, nextTitle)

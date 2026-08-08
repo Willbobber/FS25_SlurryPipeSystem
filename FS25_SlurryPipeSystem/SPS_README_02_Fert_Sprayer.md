@@ -32,6 +32,10 @@ Read this first — the sprayer model is deliberately simpler than the slurry on
   placeable/source side has no activatable of its own — everything is driven from the
   sprayer vehicle's pump control node.
 - **Direction can only change while the valve is closed** (Load ↔ Unload).
+- **Front tanks pair automatically.** A front tank on the same tractor as a rear sprayer
+  forms a "FlowControl" combo — one connection fills/drains both tanks, and an automatic
+  balancer keeps the rear topped up from the front while spraying. See §12. Nothing to
+  declare — it just works when both are attached.
 
 ---
 
@@ -297,3 +301,72 @@ Node requirements for this example:
 5. Optionally add connector/valve/load animations and an engine sound.
 6. Load the game and confirm `[SPS SPR] registerSprayerVehicle: registered …`. If a coupler
    or control is missing, the log names exactly which node was not found.
+
+---
+
+## 12. Front / rear tank combos ("FlowControl")
+
+If your sprayer is used with a front tank — or your mod *is* a front tank — SPS links the
+two automatically, modelled on the real Amazone FT-P + UF FlowControl system. There is no
+per-pair configuration and no keybind.
+
+### Pairing rules (all automatic, checked about once a second)
+
+A combo forms when, on the **same root vehicle** (tractor):
+
+- one implement is a **sprayer** (carries the vanilla sprayer specialization) — the *rear*, and
+- another implement is a plain **fillable tank** with *no* sprayer specialization, positioned
+  **forward of the tractor's origin** — the *front*, and
+- the two share at least one supported fill type on the relevant fill units
+  (the rear's sprayer fill unit vs. any of the front's fill units).
+
+Only the vehicle the pipe physically connects to needs an SPS `<sprayerPipeSystem>` block —
+the partner can be a completely vanilla implement. Front tanks that are registered in the
+SPS **slurry** front-mount system are excluded, so the two systems never fight over one tank.
+The combo dissolves the moment either implement is detached.
+
+### What a combo changes
+
+- **Fill both.** One pipe connection to *either* member fills **both** tanks, split
+  proportional to free capacity — tanks with different starting levels reach full at the
+  same moment.
+- **Drain both.** Unloading through the pipe draws from **both**, split proportional to
+  level; the session only reads "empty" when both are.
+- **Automatic balancer.** While attached (no pump, no keybind — the real front tank has its
+  own transfer pump): when the rear falls to **30%**, liquid is pulled front→rear at
+  **200 l/min** until the rear recovers to **40%** or the front is empty. Net effect matches
+  the real system — the rear is never emptied before the front; the front drains first
+  (front axle load preserved), then the rear runs 30% → 0. The balancer pauses while a pipe
+  transfer is active on either member, and stops with a one-shot warning if the rear cannot
+  accept the front's fill type.
+
+### Optional tuning — `<frontTankBalance>`
+
+Inside `<sprayerPipeSystem>`; every attribute is optional and the values below are the
+built-in defaults. When both members are SPS-registered, the **rear** sprayer's values win.
+
+```xml
+<frontTankBalance lowPct="30" highPct="40" transferLitersPerMinute="200"/>
+```
+
+| Attribute                 | Default | Meaning |
+|---------------------------|---------|---------|
+| `lowPct`                  | 30      | Rear level (%) at which the front→rear pull starts. |
+| `highPct`                 | 40      | Rear level (%) at which the pull stops. |
+| `transferLitersPerMinute` | 200     | Balancer transfer rate. |
+
+### Multiplayer & troubleshooting
+
+Everything runs server-side; fill levels reach clients through the normal vanilla sync, and
+join-in-progress needs nothing special. For a live trace, enable the debug channel:
+
+```
+spsDebug SPSM_Sprayers.FrontTank on
+```
+
+`[SPS FT-BAL]` lines then report combo link/unlink, balance START/STOP with the reason
+(`rear-restored`, `front-empty`, `type-mismatch`) and a once-per-second FLOW heartbeat.
+
+Buying-station fills are combo-aware too: the purchase is split across both tanks
+proportional to free capacity, same as a pipe fill, with each tank's litres charged to its
+owning farm.

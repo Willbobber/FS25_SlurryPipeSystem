@@ -1,6 +1,6 @@
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
--- Version: 1.0.0.8
+-- Version: 1.0.0.9.32 (HUD trace diagnostic, channel-gated)
 
 -- ManureBarrelOverride.lua
 -- FS25_SlurryPipeSystem
@@ -917,6 +917,16 @@ function SlurryPipeSystemOverride.getFillLevelInformation(self, superFunc, displ
     end
 
     local pressureText = g_slurryPipeManager:getPressureInfoText(self)
+    -- [SPS HUD TRACE 1.0.0.9.32] One-shot per vehicle, gated behind the
+    -- ManureBarrelOverride debug channel (spsDebug ManureBarrelOverride on):
+    -- proves this override is invoked for a registered vehicle and shows what
+    -- the manager returned. Remove once the Hydro Trike XL gauge issue is resolved.
+    if SPSDebugConfig ~= nil and SPSDebugConfig.isOn("ManureBarrelOverride")
+       and self._spsHudTraceFillBar ~= true then
+        self._spsHudTraceFillBar = true
+        print(string.format("[SPS HUD TRACE] getFillLevelInformation CALLED: %s pressureText=%s",
+            tostring(self.configFileName), tostring(pressureText)))
+    end
     if pressureText == nil then
         return superFunc(self, display)
     end
@@ -1004,6 +1014,16 @@ function SlurryPipeSystemOverride.showInfo(self, superFunc, box)
     -- Single source of truth: same text the in-cab fill bar shows. nil for
     -- open-top / conduit / fertiliser tankers (no gauge) -> nothing added.
     local valueText = g_slurryPipeManager:getPressureInfoText(self)
+    -- [SPS HUD TRACE 1.0.0.9.32] One-shot per vehicle, gated behind the
+    -- ManureBarrelOverride debug channel (spsDebug ManureBarrelOverride on):
+    -- proves this override is invoked for a registered vehicle and shows what
+    -- the manager returned. Remove once the Hydro Trike XL gauge issue is resolved.
+    if SPSDebugConfig ~= nil and SPSDebugConfig.isOn("ManureBarrelOverride")
+       and self._spsHudTraceInfoBox ~= true then
+        self._spsHudTraceInfoBox = true
+        print(string.format("[SPS HUD TRACE] showInfo CALLED: %s valueText=%s",
+            tostring(self.configFileName), tostring(valueText)))
+    end
     if valueText == nil or valueText == "" then
         return
     end

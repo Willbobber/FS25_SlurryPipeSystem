@@ -72,7 +72,8 @@
 		
         <!-- Slurry thickness / agitation -->
         <text name="warning_spsSlurryThickening"  		text="Gülle dickt ein: %d%% — Aufrühren empfohlen" />
-        <text name="warning_spsSlurryTooThick"          text="Gülle zu dick — Wasser und Aufrühren erforderlich" />
+        <text name="warning_spsSlurryThickeningWater"  	text="Gülle dickt ein: %d%% — Wasser zugeben" />
+        <text name="warning_spsSlurryTooThick"          text="Gülle zu dick — Wasser erforderlich" />
         <text name="sps_settingsAgitation"              text="Gülle-Aufrührung" />
         <text name="sps_settingsAgitationTooltip"       text="Aktiviert das System für Eindickung und Aufrührung der Gülle" />
         <text name="sps_settingsRealism"                text="Gülle-Realismus" />
@@ -95,6 +96,7 @@
 		<text name="sps_infoLiquidTitle"                text="Flüssig" />
         <text name="sps_infoDryMatterTitle"             text="Trockenmasse" />
         <text name="sps_infoCrustTitle"                 text="Kruste" />
+        <text name="sps_infoTankEmpty"               text="Leer" />
 		
 		<!-- Water -->
 		<text name="action_spsDeployWaterPipe"			text="R halten: Wasserrohr ausbringen" />

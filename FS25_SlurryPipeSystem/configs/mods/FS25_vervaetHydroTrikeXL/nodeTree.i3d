@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
+  </Asset>
+
+  <Files>
+    <File fileId="2" filename="$data/shared/default_normal.png"/>
+  </Files>
+
+
+  <Materials>
+    <Material name="default_mat" materialId="5" diffuseColor="0.501961 0.501961 0.501961 1">
+      <Normalmap fileId="2"/>
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="nodeTree.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="SPS_hydroTrikeXL_vis" nodeId="9">
+      <TransformGroup name="fillArmNodes" nodeId="10">
+        <TransformGroup name="manureArmPart" translation="-0.985522 3.95235 1.01102" rotation="0 -0 1.84032" nodeId="11">
+          <TransformGroup name="SPS_fillArmCentre01" translation="-0.5104 -3.47941 0.194743" nodeId="12"/>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="pipeCouplers" nodeId="13">
+        <TransformGroup name="hydroTrikeXL_vis1" nodeId="14">
+          <TransformGroup name="SPS_pipeCoupler01" translation="0.774891 0.833982 3.00204" rotation="175.692 -48.3677 -180" nodeId="15">
+            <TransformGroup name="SPS_pipeCoupler01Arcs" translation="-1.05783e-07 0 0" rotation="136.577 -0 -180" nodeId="16">
+              <TransformGroup name="SPS_pipeCoupler01Arc01" translation="1.5 0 2.5" nodeId="17"/>
+              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="-1.5 0 2.5" nodeId="18"/>
+            </TransformGroup>
+            <TransformGroup name="inNode" nodeId="19"/>
+            <TransformGroup name="outNode" rotation="0 180 0" nodeId="20"/>
+          </TransformGroup>
+          <TransformGroup name="SPS_pipeCoupler02" translation="-0.780193 0.834289 3.01304" rotation="178.01 48.0589 180" nodeId="21">
+            <TransformGroup name="SPS_pipeCoupler02Arcs" translation="-7.26186e-08 0 0" rotation="164.091 0 -180" nodeId="22">
+              <TransformGroup name="SPS_pipeCoupler02Arc01" translation="1.5 1.67697e-06 2.5" rotation="8.54233e-13 0 -1.16786e-05" nodeId="23"/>
+              <TransformGroup name="SPS_pipeCoupler02Arc02" translation="-1.5 2.5034e-06 2.5" nodeId="24"/>
+            </TransformGroup>
+            <TransformGroup name="inNode" nodeId="25"/>
+            <TransformGroup name="outNode" rotation="0 180 1.25833e-05" nodeId="26"/>
+          </TransformGroup>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="pipeEffects" nodeId="27">
+        <TransformGroup name="manureArmPart" translation="-0.985522 3.95235 1.01102" rotation="0 -0 1.84032" nodeId="28">
+          <TransformGroup name="effect" translation="-0.5104 -3.47941 0.188115" nodeId="29">
+            <Shape name="pipeEffect" translation="-0.000407 -3.08981e-10 0.00353433" rotation="-90 0 180" shapeId="1" clipDistance="100" nodeId="30" castsShadows="true" receiveShadows="true" materialIds="5"/>
+            <Shape name="pipeEffectSmoke" translation="1.13457e-07 -3.25029 0" rotation="0 0 2e-06" shapeId="2" visibility="false" clipDistance="100" nodeId="31" castsShadows="true" receiveShadows="true" materialIds="5"/>
+          </TransformGroup>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="slurryHeight" nodeId="32">
+        <TransformGroup name="hydroTrikeXL_vis1" nodeId="33">
+          <TransformGroup name="emptyNode" translation="0 1.35057 0" nodeId="34"/>
+          <TransformGroup name="fullNode" translation="0 3.916 0" nodeId="35"/>
+        </TransformGroup>
+      </TransformGroup>
+    </TransformGroup>
+  </Scene>
+
+</i3D>

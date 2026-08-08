@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FS25_PlanET_BGA_Modular - PlanET_Guelle.xml -->
+<!-- Slurry Pipe System - bundled placeable config (config injection) -->
+
+<slurryPipeSystem>
+    <nodeTree filename="nodeTree_Guelle.i3d"/>
+    <pipeCouplings>
+        <pipeCoupling id="1" mountNodeName="spsInlet_Guelle"
+                      fillType="LIQUIDMANURE"
+                      valveType="MANUAL" flowDirection="DISCHARGE" connector="male"/>
+    </pipeCouplings>
+    <hideNodes>
+        <node name="unloadTriggerLiquidManureMarker"/>
+    </hideNodes>
+</slurryPipeSystem>

@@ -6,13 +6,40 @@
   </Asset>
 
   <Files>
+    <File fileId="5" filename="$data/shaders/vehicleShader.xml"/>
     <File fileId="2" filename="$data/shared/default_normal.png"/>
+    <File fileId="13" filename="$data/shared/default_vmask.dds"/>
+    <File fileId="7" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="16" filename="$data/shared/detailLibrary/metallic/metalGalvanized_diffuse.png"/>
+    <File fileId="15" filename="$data/shared/detailLibrary/metallic/metalGalvanized_normal.png"/>
+    <File fileId="14" filename="$data/shared/detailLibrary/metallic/metalGalvanized_specular.png"/>
+    <File fileId="8" filename="$data/shared/detailLibrary/metallic/scratched_diffuse.png"/>
+    <File fileId="6" filename="$data/shared/detailLibrary/metallic/scratched_specular.png"/>
+    <File fileId="3" filename="$data/shared/white_diffuse.png"/>
+    <File fileId="4" filename="../../../../../../i3d/connectors/frontArmConnections_Vmask.dds"/>
   </Files>
 
 
   <Materials>
     <Material name="default_mat" materialId="5" diffuseColor="0.501961 0.501961 0.501961 1">
       <Normalmap fileId="2"/>
+    </Material>
+    <Material name="metalGalvanized_mat_coupler" materialId="51" customShaderId="5">
+      <Texture fileId="3"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="13"/>
+      <Custommap name="detailSpecular" fileId="14"/>
+      <Custommap name="detailNormal" fileId="15"/>
+      <Custommap name="detailDiffuse" fileId="16"/>
+    </Material>
+    <Material name="silverScratchedShiny_mat" materialId="7" customShaderId="5">
+      <Texture fileId="3"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="6"/>
+      <Custommap name="detailNormal" fileId="7"/>
+      <Custommap name="detailDiffuse" fileId="8"/>
+      <CustomParameter name="colorScale" value="0.7379 0.7454 0.7529"/>
     </Material>
   </Materials>
 
@@ -69,7 +96,13 @@
         </TransformGroup>
       </TransformGroup>
       <TransformGroup name="tractorMountFillArm" nodeId="44">
-        <TransformGroup name="ta25ProfiLine_vis" translation="0 0 3.281" nodeId="45"/>
+        <TransformGroup name="ta25ProfiLine_vis" translation="0 0 3.281" nodeId="45">
+          <Shape name="weinhoffFillPipe" translation="0 0 -3.281" shapeId="3" clipDistance="300" nodeId="46" castsShadows="true" receiveShadows="true" materialIds="7">
+            <Shape name="coupler" translation="0.00045125 3.14535 4.62708" shapeId="4" clipDistance="300" nodeId="54" castsShadows="true" receiveShadows="true" materialIds="51">
+              <TransformGroup name="slurryPipe" translation="3.28367e-05 -0.000358105 0.0655367" nodeId="55"/>
+            </Shape>
+          </Shape>
+        </TransformGroup>
       </TransformGroup>
     </TransformGroup>
   </Scene>
