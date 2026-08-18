@@ -108,6 +108,19 @@ SlurryPipeManager.DEFAULT_PURGE_TIME        = 10    -- sec to vent from max to 0
 SlurryPipeManager.DEFAULT_GRAVITY_FLOW_SCALAR = 0.5 -- backflow/gravity rate as a fraction of base flow when pressure is spent
 SlurryPipeManager.DEFAULT_LENGTH_FALLOFF_FLOOR = 0.5 -- min flow fraction at full strap-pipe stretch (1.0 = no falloff)
 SlurryPipeManager.BLOCKAGE_CRUST_MIN        = 0.3   -- tanker-carried crust below which only the base (foreign-object) chance applies
+-- [SPS 1.0.1.4] Per-row crust thresholds. The blockage model in SPSM_Spreader
+-- splits BLOCKAGE_CRUST_MIN into three (macerator / protected outlets /
+-- unprotected outlets), and every shipped config sets them per vehicle via
+-- <blockageNodes> attributes — but the GLOBAL fallbacks these `or` chains
+-- resolve to were never defined. Any config that omits an attribute therefore
+-- resolved nil and crashed crustRamp with "attempt to compare number <= nil",
+-- repeating every BLOCKAGE_ROLL_INTERVAL while spreading (issue #26, Farmtech
+-- Supercis 800: no macerator, so it rightly omits maceratorCrustMin).
+-- Values match the convention every shipped config already uses (0.25 / 0.60)
+-- and the HUD's risk bands (medium at 0.3, high at 0.6).
+SlurryPipeManager.BLOCKAGE_MACERATOR_CRUST_MIN  = 0.25 -- macerator takes the punishment first, so it is exposed earliest
+SlurryPipeManager.BLOCKAGE_OUTLET_CRUST_MIN     = 0.60 -- outlets BEHIND a macerator: protected until lumps start getting past it
+SlurryPipeManager.BLOCKAGE_OUTLET_CRUST_MIN_RAW = 0.30 -- outlets with NO macerator fitted: unprotected, clog far earlier
 SlurryPipeManager.BLOCKAGE_BASE_CHANCE      = 0.0015-- per-outlet random clog chance even on clean slurry (wood/debris/foreign object)
 SlurryPipeManager.BLOCKAGE_DM_BONUS         = 0.5   -- extra blockage multiplier at the jam point (thick + crusted is worst); 0 = DM has no effect
 -- [SPS CRUST v1.0.0.10.2] Crust timing. Both values are ABSOLUTE in-game hours and
@@ -703,6 +716,18 @@ end
 -- ---------------------------------------------------------------------------
 SlurryPipeManager._findVehicleConfigUncached = SlurryPipeManager.findVehicleConfigForVehicle
 function SlurryPipeManager:findVehicleConfigForVehicle(vehicle)
+    -- [SPS 1.0.1.4] Mission/contract vehicles are never SPS-captured — same
+    -- guard as findSprayerVehicleConfigForVehicle, for the same reason: SPS
+    -- blocks every vanilla fill path on a captured vehicle, and a leased
+    -- contract tanker that cannot be filled cannot complete its contract.
+    -- Instance check, deliberately ABOVE the configFileName cache: a leased and
+    -- an owned copy of the same tanker share a configFileName but must answer
+    -- differently. Store tagging passes a bare shim table with no
+    -- propertyState, so it is unaffected.
+    if vehicle ~= nil and VehiclePropertyState ~= nil
+       and vehicle.propertyState == VehiclePropertyState.MISSION then
+        return nil
+    end
     if vehicle == nil or vehicle.configFileName == nil then
         return SlurryPipeManager._findVehicleConfigUncached(self, vehicle)
     end
@@ -1076,6 +1101,31 @@ function SlurryPipeManager:registerVehicle(vehicle)
                         local container  = getChildAt(group, containerIdx)
                         local targetName = getName(container)
                         local liveParent = findByName(vehicle.rootNode, targetName)
+                        -- [SPS 1.0.1.4] Whitespace-tolerant retry. GIANTS Editor
+                        -- saves node names with invisible trailing spaces; the
+                        -- Abbey 3000's live "slurryPipeSystem " node failed this
+                        -- exact match and every SPS node (couplers, blockage,
+                        -- controls, surface refs) was silently left unlinked.
+                        -- Exact match first, trimmed second, loud warning naming
+                        -- the offending node so the author can fix the i3d.
+                        if liveParent == nil and targetName ~= nil then
+                            local want = targetName:match("^%s*(.-)%s*$")
+                            local function findTrimmed(root)
+                                local nm = getName(root)
+                                if nm ~= nil and nm:match("^%s*(.-)%s*$") == want then return root end
+                                for i = 0, getNumOfChildren(root) - 1 do
+                                    local f = findTrimmed(getChildAt(root, i))
+                                    if f ~= nil then return f end
+                                end
+                                return nil
+                            end
+                            liveParent = findTrimmed(vehicle.rootNode)
+                            if liveParent ~= nil then
+                                print(string.format(
+                                    "[SPS] WARNING: nodeTree container '%s' on %s only matched vehicle node '%s' after trimming whitespace — fix the node name in the i3d",
+                                    tostring(targetName), tostring(vehicle.configFileName), tostring(getName(liveParent))))
+                            end
+                        end
                         if liveParent ~= nil then
                             local children = {}
                             for childIdx = 0, getNumOfChildren(container) - 1 do
@@ -1114,7 +1164,37 @@ function SlurryPipeManager:registerVehicle(vehicle)
             end
             return nil
         end
-        return searchTree(vehicle.rootNode, name)
+        local found = searchTree(vehicle.rootNode, name)
+        if found ~= nil then return found end
+        -- [SPS 1.0.1.4] Whitespace-tolerant last resort. GIANTS Editor happily
+        -- saves node names with trailing spaces ("slurryPipeSystem "), which are
+        -- invisible in the editor and fail every exact comparison above — the
+        -- Abbey 3000 shipped exactly this and lost ALL of its couplers silently.
+        -- Only reached when the exact search failed, so clean configs never pay
+        -- for it; when it rescues a node it says so loudly, naming the offender,
+        -- so the author can fix the i3d.
+        local want = name:match("^%s*(.-)%s*$")
+        local function searchTrimmed(root)
+            if root == nil or root == 0 or not entityExists(root) then return nil end
+            local nm = getName(root)
+            if nm ~= nil and nm:match("^%s*(.-)%s*$") == want then return root end
+            for i = 0, getNumOfChildren(root) - 1 do
+                local f = searchTrimmed(getChildAt(root, i))
+                if f ~= nil then return f end
+            end
+            return nil
+        end
+        for _, n in ipairs(entry.linkedNodes) do
+            local nm = getName(n)
+            if nm ~= nil and nm:match("^%s*(.-)%s*$") == want then found = n break end
+        end
+        if found == nil then found = searchTrimmed(vehicle.rootNode) end
+        if found ~= nil then
+            print(string.format(
+                "[SPS] WARNING: node '%s' on %s only matched after trimming whitespace (actual name '%s') — fix the node name in the i3d",
+                tostring(name), tostring(vehicle.configFileName), tostring(getName(found))))
+        end
+        return found
     end
 
     -- Surface height reference (opaque tanks have no fill volume to read a head
@@ -1797,6 +1877,13 @@ function SlurryPipeManager:registerVehicle(vehicle)
             end
             table.insert(entry.couplingEntries, couplingEntry)
         else
+            -- [SPS 1.0.1.4] This was silent, and a coupler that fails to resolve
+            -- is always a config/i3d authoring bug (config-gated entries were
+            -- already skipped above). Say which one and on what vehicle.
+            print(string.format(
+                "[SPS] WARNING: pipeCoupling id=%s mountNodeName '%s' not found on %s — coupling skipped",
+                tostring(couplingId), tostring(xmlFile:getString(cKey .. "#mountNodeName")),
+                tostring(vehicle.configFileName)))
         end
         couplingIndex = couplingIndex + 1
     end
@@ -1805,6 +1892,28 @@ function SlurryPipeManager:registerVehicle(vehicle)
     -- read here and played on block/clear if present, skipped if absent. A node named
     -- *Macerator is the central distributor: blocking it stops the whole bar. The
     -- macerator and centre node share a spot, so they are never both flagged.
+    -- [SPS 1.0.1.4] Per-vehicle blockage tuning, read from the <blockageNodes>
+    -- CONTAINER's attributes. updateBlockages has always consumed
+    -- entry.blockageTuning, and every shipped config authors these attributes,
+    -- but nothing ever populated the table — so every vehicle silently fell
+    -- back to the globals and each machine's hand-tuned clog behaviour was
+    -- discarded (found while fixing issue #26). Absent attribute -> nil -> the
+    -- global default, exactly as the consumer's `or` chains expect.
+    do
+        local tKey = kp .. "slurryPipeSystem.blockageNodes"
+        if xmlFile:hasProperty(tKey) then
+            entry.blockageTuning = {
+                baseChance        = xmlFile:getFloat(tKey .. "#baseChance",        nil),
+                maceratorCrustMin = xmlFile:getFloat(tKey .. "#maceratorCrustMin", nil),
+                maceratorChance   = xmlFile:getFloat(tKey .. "#maceratorChance",   nil),
+                outletCrustMin    = xmlFile:getFloat(tKey .. "#outletCrustMin",    nil),
+                outletCrustMinRaw = xmlFile:getFloat(tKey .. "#outletCrustMinRaw", nil),
+                outletChance      = xmlFile:getFloat(tKey .. "#outletChance",      nil),
+                dmBonus           = xmlFile:getFloat(tKey .. "#dmBonus",           nil),
+            }
+        end
+    end
+
     local blockageIndex = 0
     while true do
         local bKey = string.format(kp .. "slurryPipeSystem.blockageNodes.blockageNode(%d)", blockageIndex)
@@ -1839,6 +1948,11 @@ function SlurryPipeManager:registerVehicle(vehicle)
                 workAreaNodeName  = xmlFile:getString(bKey .. "#workAreaNode"),
             })
         else
+            -- [SPS 1.0.1.4] Was silent; an unresolved blockage node is always an
+            -- authoring bug once the config gate above has passed.
+            print(string.format(
+                "[SPS] WARNING: blockageNode mountNodeName '%s' not found on %s — blockage node skipped",
+                tostring(nodeName), tostring(vehicle.configFileName)))
         end
         blockageIndex = blockageIndex + 1
     end
@@ -2047,7 +2161,12 @@ function SlurryPipeManager:registerVehicle(vehicle)
             table.insert(entry.outsideControlEntries, { id = ocId, node = ocNode, radius = ocRadius, pto = ocPto, direction = ocDirection, vehicle = vehicle })
             --print("[SPS] outsideControl id=" .. tostring(ocId) .. " registered (pto=" .. tostring(ocPto) .. " direction=" .. tostring(ocDirection) .. ")")
         else
-            --print("[SPS] outsideControl id=" .. tostring(ocId) .. " node not found, skipping")
+            -- [SPS 1.0.1.4] Was a commented-out print; an unresolved outside
+            -- control is always an authoring bug.
+            print(string.format(
+                "[SPS] WARNING: outsideControl id=%s mountNodeName '%s' not found on %s — control skipped",
+                tostring(ocId), tostring(xmlFile:getString(ocKey .. "#mountNodeName")),
+                tostring(vehicle.configFileName)))
         end
         ocIndex = ocIndex + 1
     end
@@ -2592,7 +2711,39 @@ function SlurryPipeManager:registerPlaceable(placeable)
                 end
             end
         end
-        return nil
+        -- [SPS 1.0.1.4] Whitespace-tolerant last resort, mirroring the vehicle
+        -- resolver: GIANTS Editor saves invisible trailing spaces in node names
+        -- and every exact comparison above then fails. Only reached on a full
+        -- miss; rescues the node and warns loudly so the author fixes the i3d.
+        local want = name:match("^%s*(.-)%s*$")
+        local function eq(nm) return nm ~= nil and nm:match("^%s*(.-)%s*$") == want end
+        local found = nil
+        for _, n in ipairs(linkedNodes) do
+            if eq(getName(n)) then found = n break end
+        end
+        if found == nil and placeable.components ~= nil then
+            local function searchTrimmed(node)
+                if node == nil or node == 0 then return nil end
+                if eq(getName(node)) then return node end
+                for i = 0, getNumOfChildren(node) - 1 do
+                    local f = searchTrimmed(getChildAt(node, i))
+                    if f ~= nil then return f end
+                end
+                return nil
+            end
+            for _, comp in ipairs(placeable.components) do
+                if comp ~= nil and comp.node ~= nil and comp.node ~= 0 then
+                    found = searchTrimmed(comp.node)
+                    if found ~= nil then break end
+                end
+            end
+        end
+        if found ~= nil then
+            print(string.format(
+                "[SPS] WARNING: node '%s' on %s only matched after trimming whitespace (actual name '%s') — fix the node name in the i3d",
+                tostring(name), tostring(placeable.configFileName), tostring(getName(found))))
+        end
+        return found
     end
 
     -- Recursive search through a node tree collecting ALL nodes matching name
@@ -5626,8 +5777,49 @@ function SlurryPipeManager:update(dt)
         end
     end
 
-    if g_server == nil then return end
- 
+    -- [SPS 1.0.1.4] Arm detection + stream effects on CLIENTS.
+    --
+    -- detectArmConnection does two jobs: it resolves arm.isConnected/foundSource
+    -- from node geometry, AND it starts/stops the suction & discharge effects.
+    -- Its only call site used to sit below the server gate, so on a dedicated
+    -- server NOBODY ran it where a player could see: the headless server
+    -- computed it, and connected clients never did. A filling tanker therefore
+    -- looked completely inert to every player — no suction stream, no smoke —
+    -- while litres moved silently. A listen server hid the bug because the host
+    -- is also the server, which is why it "works in single-player".
+    --
+    -- Safe to run client-side: it is read-only geometry over vanilla-synced
+    -- transforms, and every other input is already synced — valveOpen via
+    -- SlurryFlowStateEvent, pressure via SPSPressureStateEvent, fill levels by
+    -- vanilla. Its two callbacks are inert on a client: onArmConnected is an
+    -- empty function and onArmDisconnected only clears self.activeFlows, which
+    -- clients never populate. resolveVehicleSource is likewise pure bookkeeping
+    -- over SPS-local tables (it builds a descriptor from spec_fillVolume /
+    -- spec_fillUnit) and is needed here so an arm drawing from another VEHICLE
+    -- finds its source — placeable sources are already registered on all peers
+    -- via Placeable.finalizePlacement.
+    --
+    -- Server ordering is deliberately untouched: the server still runs its own
+    -- identical pass further down. This branch is client-only.
+    if g_server == nil then
+        for _, vEntry in ipairs(self.registeredVehicles) do
+            if vEntry.sourceEntry == nil and vEntry.vehicle.spec_fillUnit ~= nil then
+                self:resolveVehicleSource(vEntry.vehicle)
+            end
+        end
+
+        self.armDetectTick = (self.armDetectTick or 0) + 1
+        if self.armDetectTick >= 3 then
+            self.armDetectTick = 0
+            for _, entry in ipairs(self.registeredVehicles) do
+                for _, arm in ipairs(entry.armEntries) do
+                    self:detectArmConnection(entry.vehicle, entry, arm)
+                end
+            end
+        end
+        return
+    end
+
     -- Drive placeable inlet effects per-coupling — only fires for couplings that have effects declared
     for _, pEntry in ipairs(self.registeredPlaceables) do
         if pEntry.storeCouplings ~= nil then

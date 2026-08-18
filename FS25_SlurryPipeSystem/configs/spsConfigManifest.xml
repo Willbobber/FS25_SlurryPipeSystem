@@ -65,9 +65,9 @@
 		<vehicle path="FS25_Kotte_TSA/tsa.xml"
             configFolder="mods/FS25_Kotte_TSA"/>
 		<vehicle path="FS25_precisionFarming/vehicles/wienhoff/ta25ProfiLine/ta25ProfiLine.xml"
-            configFolder="FS25_precisionFarming/vehicles/wienhoff/ta25ProfiLine"/>
+            configFolder="mods/FS25_precisionFarming/vehicles/wienhoff/ta25ProfiLine"/>
 		<vehicle path="FS25_precisionFarming/vehicles/wienhoff/ta25ProfiLine/ta25ProfiLineBundle.xml"
-            configFolder="FS25_precisionFarming/vehicles/wienhoff/ta25ProfiLine"/>
+            configFolder="mods/FS25_precisionFarming/vehicles/wienhoff/ta25ProfiLine"/>
 		<vehicle path="FS25_vervaetHydroTrikeXL/hydroTrikeXL.xml"
             configFolder="mods/FS25_vervaetHydroTrikeXL"/>
 		<vehicle path="FS25_claasSaddleTracPack/vehicles/kaweco/semiTrailedTrailer/semiTrailedTrailer.xml"
@@ -101,9 +101,9 @@
             configFolder="mods/FS25_hardiNavigator4000"/>
 			
 		<vehicle path="FS25_precisionFarming/vehicles/johnDeere/r700i/r700i.xml"
-            configFolder="FS25_precisionFarming/vehicles/johnDeere/r700i"/>
+            configFolder="mods/FS25_precisionFarming/vehicles/johnDeere/r700i"/>
 		<vehicle path="FS25_precisionFarming/vehicles/johnDeere/r975i/r975i.xml"
-            configFolder="FS25_precisionFarming/vehicles/johnDeere/r975i"/>
+            configFolder="mods/FS25_precisionFarming/vehicles/johnDeere/r975i"/>
 		
 		<vehicle path="FS25_fendtFarmConPack/vehicles/rau/spridoport/spridoport.xml"
 			configFolder="mods/FS25_fendtFarmConPack/vehicles/rau/spridoport"/>

@@ -371,11 +371,6 @@ function SlurryPipeManager:tickFrontMountArmCascade(session, state, pumpRunning,
     end
 end
 
-function SlurryPipeManager:isFrontMountVehicle(vehicle)
-    local entry = self:getVehicleEntry(vehicle)
-    return entry ~= nil and entry.frontMount ~= nil
-end
-
 -- ---------------------------------------------------------------------------
 -- findReceiverFillUnit: first fill unit on `vehicle` with capacity > 0 that
 -- accepts any pumpable liquid. Returns fillUnitIndex or nil.
@@ -740,7 +735,9 @@ function SlurryPipeManager:spsInjectConfiguredHoses(vehicle, entry)
         local hoseEntry, reason = self:spsBuildInjectedHose(vehicle, entry.frontMount.hoseDef, false)
         if hoseEntry ~= nil then
             entry.frontMount.injectedHose     = hoseEntry
-            entry.frontMount.hosePendingOn    = nil   -- tractor we last issued a connect (or suppression) for
+            entry.frontMount.hosePendingOn    = nil   -- tractor we last issued a connect for
+            entry.frontMount.hoseSuppressedOn = nil   -- tractor whose specType circuit owns this joint
+            entry.frontMount.hoseRetryTimer   = nil   -- ms since a dead connect attempt (see self-heal)
             entry.frontMount.hoseObjectChange = spsMakeObjectChangeState(entry.frontMount.hoseDef, hoseEntry)
             print(string.format("[SPS] frontMount hose injected on '%s' (node='%s' type=%s)",
                 tostring(vehicle.configFileName), tostring(entry.frontMount.hoseDef.nodeName),
@@ -782,14 +779,49 @@ function SlurryPipeManager:spsInjectConfiguredHoses(vehicle, entry)
 end
 
 -- ---------------------------------------------------------------------------
--- spsUpdateManagedFrontHose: per-tick management of the front mount's injected
--- plain hose. Issues at most ONE connect request per attach (hosePendingOn
--- latch); everything after that is vanilla's (bridging, detach cleanup,
--- delayed re-mount when the tanker cycles). Deterministic on every peer: it
--- reads only vanilla-synced attach state and local hose state, so server and
--- clients converge without SPS events — same principle as receiver resolution.
+-- spsFrontHoseIsParked: true when `hose` is sitting in one of the tractor's
+-- tool connections as a delayedMounting — vanilla's "waiting for the other
+-- side" state (ConnectionHoses:addHoseToDelayedMountings). Vanilla owns the
+-- hose from here: it bridges automatically the moment the receiver appears,
+-- so SPS must not re-issue a connect while this holds.
 -- ---------------------------------------------------------------------------
-local function spsUpdateManagedFrontHose(self, entry)
+local function spsFrontHoseIsParked(av, hose)
+    local spec = av.spec_connectionHoses
+    if spec == nil or spec.toolConnectorHoses == nil then return false end
+    for _, toolConnector in pairs(spec.toolConnectorHoses) do
+        local dm = toolConnector.delayedMounting
+        if dm ~= nil and dm.sourceHose == hose then return true end
+    end
+    return false
+end
+
+-- ---------------------------------------------------------------------------
+-- spsUpdateManagedFrontHose: per-tick management of the front mount's injected
+-- plain hose. Issues ONE connect request per attach, then hands off to vanilla
+-- (bridging, detach cleanup, delayed re-mount when the tanker cycles).
+-- Deterministic on every peer: it reads only vanilla-synced attach state and
+-- local hose state, so server and clients converge without SPS events — same
+-- principle as receiver resolution.
+--
+-- [SPS 1.0.1.4] Self-healing connect latch. The front-mount hose is
+-- deliberately NOT in hoseNodesByInputAttacher (see header block), so vanilla
+-- onPostAttach never re-connects it — this function is its ONLY connect path.
+-- The old latch released solely on observing av == nil, so any event that
+-- dropped the hose without a tick seeing the arm detached left it dead until
+-- the player manually re-attached. A dedicated-server log showed exactly that:
+-- a panel vehicle move ("Moved 3 vehicles to coordinates ...") disconnected the
+-- circuit within 10 ms, and every pump attempt for the next several minutes
+-- logged "no_targets:no_connected_circuit". The receiver hose recovered by
+-- itself (it IS vanilla-auto-connected); the front hose could not.
+-- Now the latch is released whenever the hose is neither connected nor parked
+-- as a vanilla delayedMounting — i.e. the attempt genuinely died — throttled so
+-- a tractor with no matching target costs one retry per second, not one per
+-- tick. Xerion suppression keeps its own permanent latch: it is a static
+-- property of the tractor's targets and must never be retried.
+-- ---------------------------------------------------------------------------
+local FRONT_HOSE_RETRY_INTERVAL_MS = 1000
+
+local function spsUpdateManagedFrontHose(self, entry, dt)
     local fm = entry.frontMount
     if fm == nil or fm.injectedHose == nil then return end
     local vehicle = entry.vehicle
@@ -798,14 +830,38 @@ local function spsUpdateManagedFrontHose(self, entry)
     local av = vehicle:getAttacherVehicle()
     if av == nil then
         -- Detached: vanilla already disconnected/cleaned the hose
-        -- (onPreDetach). Release the latch so the next attach re-evaluates.
-        fm.hosePendingOn = nil
+        -- (onPreDetach). Release the latches so the next attach re-evaluates.
+        fm.hosePendingOn    = nil
+        fm.hoseSuppressedOn = nil
+        fm.hoseRetryTimer   = nil
         return
     end
 
     local hose = fm.injectedHose
-    if hose.connectedObject ~= nil then return end   -- live and bridged
-    if fm.hosePendingOn == av then return end        -- already requested (or suppressed) for this tractor
+    if hose.connectedObject ~= nil then              -- live and bridged
+        fm.hoseRetryTimer = nil
+        return
+    end
+    if fm.hoseSuppressedOn == av then return end     -- specType circuit owns this joint
+
+    if fm.hosePendingOn == av then
+        -- A connect was already issued for this tractor. Vanilla still owns the
+        -- hose while it is parked awaiting the other side — leave it alone.
+        if spsFrontHoseIsParked(av, hose) then
+            fm.hoseRetryTimer = nil
+            return
+        end
+        -- Neither connected nor parked: the attempt is dead. Re-arm on a
+        -- throttle so a transient failure heals without per-tick churn.
+        fm.hoseRetryTimer = (fm.hoseRetryTimer or 0) + (dt or 0)
+        if fm.hoseRetryTimer < FRONT_HOSE_RETRY_INTERVAL_MS then return end
+        fm.hoseRetryTimer = 0
+        fm.hosePendingOn  = nil
+        if SPSDebugConfig ~= nil and SPSDebugConfig.isOn("SPSM_FrontMount") then
+            print(string.format("[SPS FM] plain hose dropped on '%s' (tractor '%s') — re-arming connect",
+                tostring(vehicle.configFileName), tostring(av.configFileName)))
+        end
+    end
 
     if av.spec_connectionHoses == nil or av.iterateConnectionTargets == nil
        or av.getAttacherJointIndexFromObject == nil then
@@ -820,7 +876,7 @@ local function spsUpdateManagedFrontHose(self, entry)
     -- carrier connector (rightPipe_frontConnector also serves joint 2 on the
     -- xerion4000).
     if spsTractorOffersSpecTypeCircuit(av, jointIdx, hose.type, fm.hoseSpecTypes) then
-        fm.hosePendingOn = av   -- latch: static targets, no point re-checking per tick
+        fm.hoseSuppressedOn = av   -- latch: static targets, no point re-checking per tick
         if SPSDebugConfig ~= nil and SPSDebugConfig.isOn("SPSM_FrontMount") then
             print(string.format("[SPS FM] plain hose suppressed on '%s': tractor '%s' offers specType circuit at joint %d",
                 tostring(vehicle.configFileName), tostring(av.configFileName), jointIdx))
@@ -886,7 +942,7 @@ function SlurryPipeManager:updateFrontMounts(dt)
         -- [SPS 1.0.0.3] Injected-hose management (independent of frontMount
         -- resolution so receiver-only tankers are covered too).
         if entry.vehicle ~= nil then
-            spsUpdateManagedFrontHose(self, entry)
+            spsUpdateManagedFrontHose(self, entry, dt)
             if entry.frontMount ~= nil then
                 spsUpdateInjectedHoseObjectChange(entry.frontMount.hoseObjectChange)
             end

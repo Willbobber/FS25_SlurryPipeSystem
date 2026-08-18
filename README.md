@@ -108,6 +108,34 @@ mod work normally. Self-contained, with no conflicts against other mods of the s
 
 See the setup guides listed in the documentation map below.
 
+### Video guides
+
+Watch the whole process end to end before (or instead of) reading:
+
+- **Setting up a vacuum tanker** — fill arm, couplers, pressure model, nodeTree:
+  https://www.youtube.com/watch?v=1JKplzkCDS4
+- **Setting up a placeable store** — fill plane, couplers, surface detection:
+  https://www.youtube.com/watch?v=C4EO5RhY6Fk
+
+### Custom vehicle types
+
+Your vehicle does **not** have to use a vanilla type name. A custom type declared in your
+modDesc works as long as it descends from one of the vanilla tanker or sprayer types:
+
+```xml
+<vehicleTypes>
+    <type name="myTanker" parent="manureBarrel" className="Vehicle"
+          filename="$dataS/scripts/vehicles/Vehicle.lua">
+        <specialization name="waterTrailer"/>
+    </type>
+</vehicleTypes>
+```
+
+SPS walks the parent chain, so any descendant of `manureBarrel`, `manureTrailer`,
+`selfPropelledManureBarrel`, `sprayer` or `selfPropelledSprayer` — at any depth — receives
+the full SPS behaviour. (Added in 1.0.1.4; earlier versions required the exact vanilla
+type names.)
+
 ### Bundled / manifest (SPS-internal — not for third-party modders)
 
 How SPS ships support for its own stock fleet: files inside the SPS folder plus a
@@ -121,14 +149,12 @@ and is **not** a supported way to add your own content — use the embedded path
 ```
 FS25_SlurryPipeSystem/
 ├── modDesc.xml
-├── README.md                                  ← this file
-├── docs/
-│   ├── Add_Slurry_Tanker_or_Spreader.md        ← tanker / dribble-bar setup (embedded)
-│   ├── Add_Fertiliser_Sprayer.md               ← sprayer setup (embedded)
-│   ├── Add_Placeable_Store_or_Tank.md          ← store / pit / source-tank setup (embedded)
-│   ├── Add_Map_Water.md                        ← map water sources (embedded, map i3d)
-│   ├── VehicleConfigSetup_ReadMe.xml           ← full vehicle schema reference
-│   └── PlaceableConfigSetup_ReadMe.xml         ← full placeable schema reference
+├── SPS_README_01_Tanker_and_Spreader.md        ← tanker / dribble-bar setup (embedded)
+├── SPS_README_02_Fert_Sprayer.md               ← sprayer setup (embedded)
+├── SPS_README_03_Placeables.md                 ← store / pit / source-tank setup (embedded)
+├── SPS_README_04_Map_Water.md                  ← map water sources (embedded, map i3d)
+├── SlurryPipeSystem_SlurryGuide.md             ← player guide: thickness, crust, mixing, blockages
+├── RELEASE_NOTES_V1.0.1.4.md                   ← changes in this release
 │
 ├── configs/
 │   ├── spsConfigManifest.xml                   ← bundled (SPS-internal) fleet list
@@ -157,7 +183,8 @@ FS25_SlurryPipeSystem/
     ├── manager/
     │   ├── SlurryPipeManager.lua               ← singleton manager (core)
     │   └── SPSM_Chains / SPSM_Couplers / SPSM_Flow / SPSM_Pressure /
-    │       SPSM_Consistency / SPSM_Spreader / SPSM_Sprayers / SPSM_IBC .lua
+    │       SPSM_Consistency / SPSM_Stores / SPSM_Spreader / SPSM_Sprayers /
+    │       SPSM_FrontMount / SPSM_IBC .lua
     │                                           ← domain modules of the manager
     ├── events/
     │   └── SPSEvents.lua                       ← network events
@@ -194,20 +221,17 @@ FS25_SlurryPipeSystem/
         └── SPSSlurryTankExtensions.lua / SPSChainBondPersistence.lua
 ```
 
-> Note: the doc filenames above are placeholders — rename them to whatever you commit. The
-> four `Add_*` guides correspond to the embedded setup walkthroughs.
-
 ---
 
 ## Documentation map
 
-If you want to... | Read this
+If you want to... | Read / watch this
 ---|---
-Add SPS to a slurry tanker or dribble bar | **Add_Slurry_Tanker_or_Spreader.md**
-Add SPS to a fertiliser / herbicide sprayer | **Add_Fertiliser_Sprayer.md**
-Add SPS to a store, pit or liquid source tank | **Add_Placeable_Store_or_Tank.md**
-Add water sources to a map | **Add_Map_Water.md**
-Look up an attribute on `<pipeCoupling>` etc. | **VehicleConfigSetup_ReadMe.xml** / **PlaceableConfigSetup_ReadMe.xml**
+Add SPS to a slurry tanker or dribble bar | **SPS_README_01_Tanker_and_Spreader.md** · [video: vac tanker setup](https://www.youtube.com/watch?v=1JKplzkCDS4)
+Add SPS to a fertiliser / herbicide sprayer | **SPS_README_02_Fert_Sprayer.md**
+Add SPS to a store, pit or liquid source tank | **SPS_README_03_Placeables.md** · [video: placeable setup](https://www.youtube.com/watch?v=C4EO5RhY6Fk)
+Add water sources to a map | **SPS_README_04_Map_Water.md**
+Understand thickness, crust, mixing and blockages in play | **SlurryPipeSystem_SlurryGuide.md**
 
 ---
 
@@ -260,6 +284,12 @@ like the liquidmanure equivalent.
 - **Buyable Manure And Other (BartsoNv3, FS25_BuyableManureAndOther)** — the liquid manure
   buying station registers as a paid, infinite SPS pipe source, with a walk-up switch
   between its sold liquids. Purchases charge through the station's own pricing.
+- **Base-game silo extensions** — the vanilla Liquid Manure Tank Extensions (small and
+  large) link to their base tank normally; SPS's anti-pooling filter recognises them as
+  capacity extensions. Standalone tanks still keep separate fill levels.
+- **Missions & contracts** — mission/contract vehicles are never captured by SPS, so
+  leased contract sprayers and tankers fill through vanilla triggers and contracts
+  complete normally, on dedicated servers included.
 - **Real autosave** — SPS save data is preserved across autosaves.
 - **Multiplayer** — server-authoritative state; valve toggles, connections, pressure, pump
   and shear-bolt state all sync via dedicated events.

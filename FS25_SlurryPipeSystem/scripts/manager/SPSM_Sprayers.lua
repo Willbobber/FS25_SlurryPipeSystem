@@ -275,6 +275,20 @@ end
 -- ---------------------------------------------------------------------------
 SlurryPipeManager._findSprayerVehicleConfigUncached = SlurryPipeManager.findSprayerVehicleConfigForVehicle
 function SlurryPipeManager:findSprayerVehicleConfigForVehicle(vehicle)
+    -- [SPS 1.0.1.4] Mission/contract vehicles are never SPS-captured. Contract
+    -- completion is computed from the server's density maps and the mission
+    -- sprayer must be fillable through vanilla triggers (missions never
+    -- pre-fill), so a captured lease sprayer could brick spraying contracts —
+    -- reported as "herbicide contracts don't work on dedicated servers".
+    -- Instance check, deliberately ABOVE the configFileName cache: a leased
+    -- and an owned copy of the same sprayer share a configFileName but must
+    -- answer differently. propertyState is set before onFinishedLoading and
+    -- streamed to clients (Vehicle.lua:585/1238), so every capture gate that
+    -- funnels through this finder sees the same answer on every peer.
+    if vehicle ~= nil and VehiclePropertyState ~= nil
+       and vehicle.propertyState == VehiclePropertyState.MISSION then
+        return nil
+    end
     if vehicle == nil or vehicle.configFileName == nil then
         return SlurryPipeManager._findSprayerVehicleConfigUncached(self, vehicle)
     end
@@ -357,6 +371,56 @@ function SlurryPipeManager:findSprayerSourceVehicleConfigForVehicle(vehicle)
         end
     end
     return nil
+end
+
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.4] Cached, mission-guarded front for
+-- findSprayerSourceVehicleConfigForVehicle — the third capture path, which was
+-- left behind when the slurry and active-sprayer finders were fixed.
+--
+-- Same two reasons as its siblings:
+--   * Mission/contract vehicles are never SPS-captured. SPS blocks the vanilla
+--     fill paths on a captured vehicle, so a leased contract front tank / IBC
+--     that cannot be filled through a normal trigger can brick the contract —
+--     the "herbicide contracts don't work on dedicated servers" report. The
+--     instance check sits deliberately ABOVE the configFileName cache: a leased
+--     and an owned copy of the same tank share a configFileName but must answer
+--     differently. Store tagging passes a bare shim table with no propertyState,
+--     so it is unaffected.
+--   * The finder is a pure function of vehicle.configFileName, yet it loaded and
+--     parsed the vehicle's XML from disk via XMLFile.loadIfExists on every call.
+--     `false` marks a cached negative. Never invalidated: the config set is
+--     static after load.
+-- Purely additive — the original above is untouched and still does the real work
+-- on first sight of each configFileName.
+-- ---------------------------------------------------------------------------
+SlurryPipeManager._findSprayerSourceVehicleConfigUncached = SlurryPipeManager.findSprayerSourceVehicleConfigForVehicle
+function SlurryPipeManager:findSprayerSourceVehicleConfigForVehicle(vehicle)
+    if vehicle ~= nil and VehiclePropertyState ~= nil
+       and vehicle.propertyState == VehiclePropertyState.MISSION then
+        return nil
+    end
+    if vehicle == nil or vehicle.configFileName == nil then
+        return SlurryPipeManager._findSprayerSourceVehicleConfigUncached(self, vehicle)
+    end
+    local cache = self._sprayerSourceVehicleCfgCache
+    if cache == nil then
+        cache = {}
+        self._sprayerSourceVehicleCfgCache = cache
+    end
+    local hit = cache[vehicle.configFileName]
+    if hit ~= nil then
+        if hit == false then return nil end
+        return hit
+    end
+    local config = SlurryPipeManager._findSprayerSourceVehicleConfigUncached(self, vehicle)
+    if config == nil then
+        cache[vehicle.configFileName] = false
+    else
+        cache[vehicle.configFileName] = config
+    end
+    return config
 end
 
 -- ---------------------------------------------------------------------------

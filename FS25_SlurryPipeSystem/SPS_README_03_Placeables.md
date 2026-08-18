@@ -4,6 +4,9 @@ This guide is for placeable / map modders who want their own slurry store, open 
 lagoon, or liquid-fertiliser source tank to work with SPS — so SPS tankers and sprayers can
 load from and discharge into them.
 
+> 🎥 **Video walkthrough — setting up a placeable:**
+> https://www.youtube.com/watch?v=C4EO5RhY6Fk
+
 **You never edit the SPS mod.** Everything is done inside *your own* placeable's XML and i3d.
 Editing files inside the SPS mod folder will break multiplayer and is not supported.
 

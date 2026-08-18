@@ -199,7 +199,14 @@ function SlurryPipeManager:updateBlockages(dt)
 
                     local crust = self:getTankerCrust(controller)
                     -- 0 at the threshold, 1 at fully crusted.
+                    -- [SPS 1.0.1.4] nil minCrust is treated as "no crust-driven
+                    -- risk" (base chance only) rather than crashing. This runs
+                    -- inside update(), so a nil here spammed the log every roll
+                    -- interval (issue #26). The global fallbacks in
+                    -- SlurryPipeManager now cover every attribute, so this is
+                    -- belt-and-braces for third-party configs only.
                     local function crustRamp(minCrust)
+                        if minCrust == nil then return 0.0 end
                         if crust <= minCrust then return 0.0 end
                         local span = 1.0 - minCrust
                         if span <= 0 then return 1.0 end
@@ -211,7 +218,14 @@ function SlurryPipeManager:updateBlockages(dt)
                     dmFac         = math.min(1.0, math.max(0.0, dmFac))
                     local dmMult  = 1.0 + dmBonus * dmFac
 
-                    local maceratorChance = (baseChance + macSlope * crustRamp(macCrustMin)) * dmMult
+                    -- [SPS 1.0.1.4] Only meaningful when a macerator is fitted;
+                    -- the roll below is already gated on hasMacerator, so a bar
+                    -- without one no longer evaluates a threshold it has no
+                    -- reason to define (issue #26).
+                    local maceratorChance = 0.0
+                    if hasMacerator then
+                        maceratorChance = (baseChance + macSlope * crustRamp(macCrustMin)) * dmMult
+                    end
                     local outletChance    = (baseChance + outSlope * crustRamp(outCrustMin)) * dmMult
 
                     -- A blocked macerator already stops the whole bar, so nothing is

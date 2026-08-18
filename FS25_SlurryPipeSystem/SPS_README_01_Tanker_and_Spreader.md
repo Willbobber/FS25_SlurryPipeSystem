@@ -3,12 +3,19 @@
 This guide is for vehicle modders who want their own tanker, nurse tank, pump station
 or dribble bar to work with FS25_SlurryPipeSystem.
 
+> 🎥 **Video walkthrough — setting up a vacuum tanker:**
+> https://www.youtube.com/watch?v=1JKplzkCDS4
+
 **You never edit the SPS mod.** Everything is done inside *your own* vehicle's XML and i3d.
 Editing files inside the SPS mod folder will break multiplayer and is not supported — do
 not do it. SPS reads your vehicle and configures itself automatically.
 
-All element/attribute names below are exactly what the SPS parser reads. If you misspell
-one it is silently ignored and the matching part of your vehicle simply will not register.
+All element/attribute names below are exactly what the SPS parser reads. Since 1.0.1.4 a
+`pipeCoupling`, `blockageNode` or `outsideControl` whose mount node cannot be found prints
+an `[SPS] WARNING` naming the entry in the log — check there first when something does not
+appear. Node names are also matched whitespace-tolerantly: an invisible trailing space in
+an i3d node name (GIANTS Editor saves these happily) is rescued with a warning telling you
+which node to fix. Misspelt element or attribute names are still silently ignored.
 
 ---
 
@@ -29,6 +36,20 @@ the root `<vehicle>` element:
 When SPS sees `vehicle.slurryPipeSystem` in your XML it treats the vehicle as
 self-contained and uses it directly. Nothing is copied, nothing in the SPS folder changes,
 and your vehicle stays a normal standalone mod. This is the only method you need.
+
+**Custom vehicle types work too (1.0.1.4+).** Your vehicle does not have to be typed
+`manureBarrel` directly — a custom type declared in your own modDesc is fully supported as
+long as it descends from one of the vanilla tanker types (`manureBarrel`, `manureTrailer`,
+`selfPropelledManureBarrel`), at any parent depth:
+
+```xml
+<vehicleTypes>
+    <type name="myTanker" parent="manureBarrel" className="Vehicle"
+          filename="$dataS/scripts/vehicles/Vehicle.lua">
+        <specialization name="waterTrailer"/>
+    </type>
+</vehicleTypes>
+```
 
 **Optional root attribute — `vehicleRole`:** `<slurryPipeSystem vehicleRole="slurry">`
 forces SPS to treat the vehicle as a slurry machine, `vehicleRole="fertiliser"` forces the

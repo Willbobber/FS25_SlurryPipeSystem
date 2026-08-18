@@ -324,6 +324,47 @@ end
 -- registerOverrides
 -- Called from loadMap() after TypeManager:finalizeTypes() has completed.
 -- ---------------------------------------------------------------------------
+
+-- [SPS 1.0.1.4] Ancestry-aware type match.
+--
+-- The blocks below used to compare the type's BASE NAME by exact equality, so a
+-- modder's derived type — declared in their modDesc as e.g.
+--     <type name="abbey3000" parent="manureBarrel" className="Vehicle"
+--           filename="$dataS/scripts/vehicles/Vehicle.lua"> ... </type>
+-- — silently missed every tanker/sprayer override: the vehicle still registered
+-- with SPS (capture is configFileName/embedded-XML based, type-agnostic), but
+-- vanilla discharge, load-trigger and turn-on behaviour was never gated, which
+-- breaks it in play.
+--
+-- TypeManager:addType stores the full PARENT TYPE ENTRY on every type
+-- (`["parent"] = parent`, TypeManager.lua:60, source-verified), and this runs
+-- after finalizeTypes when all mod types are loaded, so the chain is complete
+-- here. Walking it makes any descendant of a matched base type match too.
+-- Mod types are namespaced "FS25_ModName.typeName"; the base-name strip below
+-- handles that at every level of the chain. Depth-capped defensively — vanilla
+-- chains are short and a cycle would otherwise hang the loop.
+--
+-- NOTE the NEGATIVE checks further down ("attached implement, NOT a tanker")
+-- must use this same predicate: with exact-name matching there, a derived
+-- tanker would receive BOTH the tanker override and the attached-implement
+-- override on the same function, and the two would chain unpredictably.
+local function spsTypeIsa(typeEntry, wantedBaseNames)
+    local entry, depth = typeEntry, 0
+    while entry ~= nil and depth < 16 do
+        local name = entry.name
+        if name ~= nil then
+            local base = name:match("%.?([^%.]+)$") or name
+            if wantedBaseNames[base] then return true end
+        end
+        entry = entry.parent
+        depth = depth + 1
+    end
+    return false
+end
+
+local SPS_TANKER_TYPES  = { manureBarrel = true, manureTrailer = true, selfPropelledManureBarrel = true }
+local SPS_SPRAYER_TYPES = { sprayer = true, selfPropelledSprayer = true }
+
 local function registerOverrides()
     if g_vehicleTypeManager == nil then
         print("[SPS INIT] ERROR: g_vehicleTypeManager nil in registerOverrides")
@@ -334,8 +375,8 @@ local function registerOverrides()
     local count = 0
 
     for typeName, typeEntry in pairs(types) do
-        local baseName = typeName:match("%.?([^%.]+)$") or typeName
-        if baseName == "manureBarrel" or baseName == "manureTrailer" or baseName == "selfPropelledManureBarrel" then
+        local isTankerType = spsTypeIsa(typeEntry, SPS_TANKER_TYPES)
+        if isTankerType then
             SpecializationUtil.registerOverwrittenFunction(
                 typeEntry,
                 "getAllowLoadTriggerActivation",
@@ -379,7 +420,7 @@ local function registerOverrides()
         -- Sprayer types (sprayer / selfPropelledSprayer) — block vanilla
         -- R and I in the cab. Mirrors the manureBarrel block above.
         -- -------------------------------------------------------------------
-        if baseName == "sprayer" or baseName == "selfPropelledSprayer" then
+        if spsTypeIsa(typeEntry, SPS_SPRAYER_TYPES) then
             SpecializationUtil.registerOverwrittenFunction(
                 typeEntry,
                 "getCanToggleDischargeToGround",
@@ -442,7 +483,7 @@ local function registerOverrides()
                 )
             end
             -- For non-tanker types with dischargeable: gate discharge on SPS spreaderValveOpen
-            if hasDischargeable and baseName ~= "manureBarrel" and baseName ~= "manureTrailer" and baseName ~= "selfPropelledManureBarrel" then
+            if hasDischargeable and not isTankerType then
                 SpecializationUtil.registerOverwrittenFunction(
                     typeEntry,
                     "getIsDischargeNodeActive",
@@ -454,7 +495,7 @@ local function registerOverrides()
             for _, spec in ipairs(typeEntry.specializations) do
                 if spec.className == "WorkArea" then hasWorkArea = true end
             end
-            if hasWorkArea and baseName ~= "manureBarrel" and baseName ~= "manureTrailer" and baseName ~= "selfPropelledManureBarrel" then
+            if hasWorkArea and not isTankerType then
                 SpecializationUtil.registerOverwrittenFunction(
                     typeEntry,
                     "getIsWorkAreaActive",

@@ -1440,16 +1440,31 @@ function SlurryPipeManager:detectArmConnection(vehicle, entry, arm)
         -- [SPS 1.0.0.9.20] Direction-aware: no stream during the hold window
         -- (stored pressure opposing the selected direction) — visuals now match
         -- the gated flow instead of showing a discharge driven by a vacuum.
-        local pScalar     = self:getDirectionalPressureFlowScalar(vehicle,
-            state ~= nil and state.direction or nil)
-        local isDischarge = state ~= nil and state.direction == SPS_DIRECTION_DISCHARGE or false
+        -- [SPS 1.0.1.4] Ask the SAME resolver the flow uses instead of forming a
+        -- second opinion. getDirectionalPressureFlowScalar returns 0.0 whenever
+        -- |pressure| < minThreshold (SPSM_Pressure), which is EXACTLY the regime
+        -- resolveCouplingFlow drains in: pump off + pressure spent + content left
+        -- flows out at gravityFlowScalar. Gating the visual on the pressure scalar
+        -- alone therefore killed the stream for the whole of a gravity unload into
+        -- a pit — slurry moved, nothing rendered. tickFlow drives this arm from
+        -- resolveCouplingFlow, so the effect now asks that question and no other.
+        local flowDir, flowScalar = nil, 0
+        if state ~= nil then
+            flowDir, flowScalar = self:resolveCouplingFlow(
+                vehicle, state, self:_isPumpOn(vehicle), fillLevel > 0)
+        end
+        -- Direction from the RESOLVED flow, not the cab selector: a gravity drain
+        -- is DISCHARGE even while the selector still reads FILL, and the content
+        -- test has to follow the direction the slurry actually travels.
+        local isDischarge = flowDir == SPS_DIRECTION_DISCHARGE
         local hasFlowContent
         if isDischarge then
             hasFlowContent = fillLevel > 0      -- discharging: slurry must be in the tank
         else
             hasFlowContent = foundSource ~= nil -- filling: a source must be present to draw from
         end
-        local shouldPlay  = arm.isConnected and valveOpen and pScalar > 0 and hasFlowContent
+        local shouldPlay  = arm.isConnected and valveOpen
+            and flowDir ~= nil and flowScalar > 0 and hasFlowContent
         if shouldPlay then
             if not arm.effectPlaying then
                 local effectFillType = vehicle:getFillUnitFillType(arm.fillUnitIndex)
@@ -1473,8 +1488,14 @@ function SlurryPipeManager:detectArmConnection(vehicle, entry, arm)
             end
             -- Update stream distance: nozzle to slurry surface
             if arm.centreNode ~= nil and foundSource ~= nil then
-                local _, nozzleY, _ = getWorldTranslation(arm.centreNode)
-                local surfY = SlurryNodeUtil.getSurfaceWorldY(foundSource, centreX, centreZ)
+                -- [SPS 1.0.1.4] centreX/centreZ used to be read here, but both are
+                -- locals of the open-pit blocks further up and are long out of scope
+                -- by this point — they resolved to nil GLOBALS. getSurfaceWorldY's
+                -- nil-coordinate guard then returned -math.huge every frame, so the
+                -- setDistance/setVisibility below never ran and the stream length was
+                -- never updated. Take the XZ from the node this line already reads.
+                local nozzleX, nozzleY, nozzleZ = getWorldTranslation(arm.centreNode)
+                local surfY = SlurryNodeUtil.getSurfaceWorldY(foundSource, nozzleX, nozzleZ)
                 if surfY ~= -math.huge then
                     local dist = math.abs(nozzleY - surfY)
                     local pipeEffect = armEffects[1]

@@ -28,10 +28,24 @@
 -- or DIGESTATE; everything else passes straight to vanilla):
 --   1. Storage -> a station on its OWN placeable          -> ALLOW (direct
 --      vanilla link, spec_silo.storages / spec_husbandry.storage checked).
+--  1b. Storage owned by a pure siloExtension placeable    -> ALLOW.
+--      [SPS 1.0.1.4, issue #29] The base-game liquid manure tank extensions
+--      (data/placeables/brandless/liquidManureTanks/extensionSmall|extensionLarge)
+--      are <placeable type="siloExtension"> carrying a LIQUIDMANURE storage, and
+--      the base tank they extend is a spec_silo with supportsExtension="true" on
+--      both stations. They therefore hit rule 2 head-on and were silently never
+--      linked — "no silo extension (small and big) from base game are recognized,
+--      disabling the mod fixes it". A siloExtension placeable is pure capacity: it
+--      owns NO stations (extensionSmall.xml deletes both station nodes), so it can
+--      never be the standalone tank rule 2 exists to stop. The provenance tag is
+--      stamped on the storage by the PlaceableSiloExtension wrap at the bottom of
+--      this file.
 --   2. Slurry storage -> foreign station on a spec_silo
 --      placeable (tank/silo)                              -> BLOCK. Kills
 --      tank<->tank pooling so every SPS store keeps its own fill level
---      (separator-safe).
+--      (separator-safe). NOTE baseTank.xml's own storage also carries
+--      isExtension="true", which is exactly the standalone-tank pooling this
+--      blocks — hence rule 1b keys off the OWNING PLACEABLE TYPE, not that flag.
 --   3. Slurry storage -> foreign station on a
 --      spec_husbandry placeable                           -> ALLOW only if
 --      that husbandry's OWN storage has no capacity for the shared slurry
@@ -156,6 +170,16 @@ local function shouldBlockLink(storage, station, stationKind)
         return false -- rule 1: own direct link -> vanilla
     end
 
+    -- Rule 1b: the incoming storage belongs to a pure siloExtension placeable —
+    -- vanilla capacity extension, not a standalone tank being pooled. Must sit
+    -- ABOVE rule 2, because the station it is extending is by definition foreign
+    -- and on a spec_silo placeable. (issue #29)
+    if storage._spsIsSiloExtension == true then
+        log("ALLOW siloExtension link -> %s station (%s)",
+            stationKind, tostring(owner.configFileName))
+        return false
+    end
+
     if owner.spec_silo ~= nil then
         -- rule 2: foreign slurry storage into a tank/silo station
         log("BLOCK slurry link -> foreign silo %s station (%s)",
@@ -207,4 +231,39 @@ function StorageSystem:addStorageToLoadingStation(storage, loadingStation)
         return false
     end
     return origAddStorageToLoadingStation(self, storage, loadingStation)
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.4] siloExtension provenance tag — feeds rule 1b (issue #29).
+--
+-- shouldBlockLink only ever sees (storage, station); it cannot otherwise tell a
+-- vanilla capacity extension from a standalone tank being pooled, because both
+-- present a slurry storage against a foreign spec_silo station.
+--
+-- PlaceableSiloExtension:onFinalizePlacement is the ONE place an extension's
+-- storage is offered to another placeable's stations, and it does so at the end
+-- of its own body (addStorageToUnloadingStations / addStorageToLoadingStations).
+-- Stamping the storage before delegating therefore guarantees the tag is present
+-- by the time our StorageSystem wraps run — no load-order assumption needed.
+--
+-- Overriding the spec function after registration is safe: SpecializationUtil
+-- .raiseEvent resolves `spec[eventName]` at CALL time (SpecializationUtil.lua:26),
+-- it does not cache the function reference at registration.
+--
+-- The tag lives on the storage for its lifetime, so later re-links (onBuy, farm
+-- transfer, setOwnerFarmId) see it too. Storages are rebuilt on load and this
+-- runs again, so nothing needs to persist to the savegame.
+-- ---------------------------------------------------------------------------
+if PlaceableSiloExtension ~= nil and PlaceableSiloExtension.onFinalizePlacement ~= nil then
+    local origSiloExtensionFinalize = PlaceableSiloExtension.onFinalizePlacement
+    function PlaceableSiloExtension:onFinalizePlacement(...)
+        local spec = self.spec_siloExtension
+        if spec ~= nil and spec.storage ~= nil then
+            spec.storage._spsIsSiloExtension = true
+        end
+        return origSiloExtensionFinalize(self, ...)
+    end
+else
+    print("[SPS TANK EXT] WARNING: PlaceableSiloExtension.onFinalizePlacement not found — "
+        .. "silo extensions carrying slurry may not link (issue #29 guard inactive)")
 end
