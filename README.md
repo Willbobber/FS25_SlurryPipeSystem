@@ -136,6 +136,12 @@ SPS walks the parent chain, so any descendant of `manureBarrel`, `manureTrailer`
 the full SPS behaviour. (Added in 1.0.1.4; earlier versions required the exact vanilla
 type names.)
 
+Even a type that descends from **none** of these still works (1.0.1.5+): a vehicle
+carrying an embedded `<slurryPipeSystem>` block receives the tanker behaviour per-vehicle
+when it registers, whatever its type — the block in your XML is the authority. Descending from
+the matching vanilla family is still recommended (it is what the type means in vanilla,
+and other slurry-aware mods may key on it too).
+
 ### Bundled / manifest (SPS-internal — not for third-party modders)
 
 How SPS ships support for its own stock fleet: files inside the SPS folder plus a
@@ -154,7 +160,8 @@ FS25_SlurryPipeSystem/
 ├── SPS_README_03_Placeables.md                 ← store / pit / source-tank setup (embedded)
 ├── SPS_README_04_Map_Water.md                  ← map water sources (embedded, map i3d)
 ├── SlurryPipeSystem_SlurryGuide.md             ← player guide: thickness, crust, mixing, blockages
-├── RELEASE_NOTES_V1.0.1.4.md                   ← changes in this release
+├── RELEASE_NOTES_V1.0.1.5.md                   ← changes in this release
+├── RELEASE_NOTES_V1.0.1.4.md                   ← previous release
 │
 ├── configs/
 │   ├── spsConfigManifest.xml                   ← bundled (SPS-internal) fleet list

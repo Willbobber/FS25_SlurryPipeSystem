@@ -374,9 +374,19 @@ local function registerOverrides()
     local types = g_vehicleTypeManager:getTypes()
     local count = 0
 
+    -- [SPS 1.0.1.5] Record which types received the TANKER override set, so
+    -- registerVehicle can tell "this slurry-registered vehicle's type was never
+    -- covered" and install the same overrides on the vehicle INSTANCE instead
+    -- (SlurryPipeManager:applyInstanceTankerOverrides). That is the safety net
+    -- for custom types that neither carry a vanilla tanker name nor descend
+    -- from one (e.g. the LSFM tank pack: parent="sprayer"/"tractor" with an
+    -- embedded <slurryPipeSystem> block).
+    SlurryPipeSystemOverride.typeLevelTankerOverrides = {}
+
     for typeName, typeEntry in pairs(types) do
         local isTankerType = spsTypeIsa(typeEntry, SPS_TANKER_TYPES)
         if isTankerType then
+            SlurryPipeSystemOverride.typeLevelTankerOverrides[typeEntry.name or typeName] = true
             SpecializationUtil.registerOverwrittenFunction(
                 typeEntry,
                 "getAllowLoadTriggerActivation",
@@ -420,7 +430,14 @@ local function registerOverrides()
         -- Sprayer types (sprayer / selfPropelledSprayer) — block vanilla
         -- R and I in the cab. Mirrors the manureBarrel block above.
         -- -------------------------------------------------------------------
-        if spsTypeIsa(typeEntry, SPS_SPRAYER_TYPES) then
+        -- NOT `spsTypeIsa(SPRAYER)` alone: vanilla manureBarrel/selfPropelledManureBarrel
+        -- themselves DESCEND from the sprayer types (manureBarrel = sprayer +
+        -- manureBarrel spec + fillTriggerVehicle, vehicleTypes.xml), so every tanker
+        -- type also walks to "sprayer" and would collect this block's overrides a
+        -- second time on top of the tanker set. The tanker set already contains all
+        -- three functions below, so excluding tanker types loses nothing and keeps
+        -- the slurry and fert/herb families cleanly apart.
+        if not isTankerType and spsTypeIsa(typeEntry, SPS_SPRAYER_TYPES) then
             SpecializationUtil.registerOverwrittenFunction(
                 typeEntry,
                 "getCanToggleDischargeToGround",

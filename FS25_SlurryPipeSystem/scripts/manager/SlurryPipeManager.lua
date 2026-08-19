@@ -2440,10 +2440,94 @@ function SlurryPipeManager:registerVehicle(vehicle)
         entry.pressure = nil
     end
 
+    -- [SPS 1.0.1.5] Custom-type safety net: a vehicle that registers as a slurry
+    -- machine but whose TYPE never received the tanker override set (neither a
+    -- vanilla tanker name nor a descendant of one) gets the same overrides
+    -- installed on the INSTANCE here. Registration is the authority on what the
+    -- vehicle is; the type families in registerOverrides are just the fast path.
+    self:applyInstanceTankerOverrides(vehicle, entry)
+
     table.insert(self.registeredVehicles, entry)
     if entry.xmlFileOwned then xmlFile:delete() end
     SlurryDebug.log("SlurryPipeManager:registerVehicle - registered " .. tostring(vehicle.configFileName))
     self:tryResolvePendingConnections()
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.5] Instance-level tanker overrides — the custom-type safety net.
+--
+-- Case that forced this (LSFM Universal Tank Pack): a modder declares their own
+-- vehicle types with vanilla-idiomatic but non-tanker parents
+-- (parent="sprayer" / "tractor" / "baseFillable") and ships embedded
+-- <slurryPipeSystem> blocks. The vehicles register fine — registration is
+-- type-agnostic — but registerOverrides keys the tanker override set off the
+-- vanilla tanker type FAMILY, so those types never receive it and the vehicle
+-- behaves half-integrated (fill triggers blocked, discharge/turn-on ungated).
+--
+-- Fix: when a vehicle completes SLURRY registration and its type is not in
+-- SlurryPipeSystemOverride.typeLevelTankerOverrides (recorded by
+-- registerOverrides), wrap the same override functions directly on the vehicle
+-- instance. Instance entries shadow type functions, and the wrapper reproduces
+-- the (self, superFunc, ...) convention with the instance's current function as
+-- superFunc — so anything the type DID install (e.g. the attached-implement
+-- discharge gate, which self-guards on the attacher being registered) keeps
+-- working underneath.
+--
+-- Deliberate boundaries, in order:
+--   * Once per vehicle instance (re-registration on config change is a no-op;
+--     a gsVehicleReload builds a new instance and re-applies).
+--   * Never on a spreader implement (blockage-only dribble bar): its
+--     controlling tanker drives it via the attached gates — wrapping the Self
+--     variants on it would fight that model.
+--   * Never on a vehicle that ALSO has a sprayer-side config (dual-registered
+--     fert/herb machines, e.g. ux5201Super): those shipped and were tuned
+--     WITHOUT the tanker set on their sprayer types; keep them byte-identical.
+--     This is also what keeps the slurry and fert families unblurred — only a
+--     pure slurry registration can ever gain tanker behaviour here.
+--   * Only functions the instance actually has (a type without turnOnVehicle
+--     has no setIsTurnedOn to wrap, etc.).
+--
+-- Runs wherever registerVehicle runs — server and every client — from the same
+-- synced configs, so all peers converge without events. One always-on log line
+-- per type per session: this is the first thing support needs to see.
+-- ---------------------------------------------------------------------------
+SlurryPipeManager._instanceOverrideAnnounced = {}
+function SlurryPipeManager:applyInstanceTankerOverrides(vehicle, entry)
+    if vehicle == nil or vehicle._spsInstanceOverridesApplied then return end
+    if entry ~= nil and entry.isSpreaderImplement then return end
+    if SlurryPipeSystemOverride == nil then return end
+    local covered = SlurryPipeSystemOverride.typeLevelTankerOverrides
+    if covered ~= nil and vehicle.typeName ~= nil and covered[vehicle.typeName] then return end
+    if self:findSprayerVehicleConfigForVehicle(vehicle) ~= nil then return end
+
+    local map = {
+        getAllowLoadTriggerActivation = SlurryPipeSystemOverride.getAllowLoadTriggerActivation,
+        getIsDischargeNodeActive      = SlurryPipeSystemOverride.getIsDischargeNodeActive,
+        getCanToggleDischargeToGround = SlurryPipeSystemOverride.getCanToggleDischargeToGround,
+        getCanToggleDischargeToObject = SlurryPipeSystemOverride.getCanToggleDischargeToObject,
+        getDrawFirstFillText          = SlurryPipeSystemOverride.getDrawFirstFillText,
+        setIsTurnedOn                 = SlurryPipeSystemOverride.setIsTurnedOn,
+        getIsWorkAreaActive           = SlurryPipeSystemOverride.getIsWorkAreaActiveSelf,
+    }
+    local n = 0
+    for fnName, override in pairs(map) do
+        local orig = vehicle[fnName]
+        if orig ~= nil and override ~= nil then
+            vehicle[fnName] = function(v, ...)
+                return override(v, orig, ...)
+            end
+            n = n + 1
+        end
+    end
+    vehicle._spsInstanceOverridesApplied = true
+
+    local tn = tostring(vehicle.typeName)
+    if n > 0 and not SlurryPipeManager._instanceOverrideAnnounced[tn] then
+        SlurryPipeManager._instanceOverrideAnnounced[tn] = true
+        print(string.format(
+            "[SPS] custom vehicle type '%s' is not in the tanker type family — %d tanker override(s) applied per-vehicle at registration (%s)",
+            tn, n, tostring(vehicle.configFileName)))
+    end
 end
 
 -- ---------------------------------------------------------------------------

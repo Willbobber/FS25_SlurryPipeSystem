@@ -38,9 +38,13 @@ self-contained and uses it directly. Nothing is copied, nothing in the SPS folde
 and your vehicle stays a normal standalone mod. This is the only method you need.
 
 **Custom vehicle types work too (1.0.1.4+).** Your vehicle does not have to be typed
-`manureBarrel` directly — a custom type declared in your own modDesc is fully supported as
-long as it descends from one of the vanilla tanker types (`manureBarrel`, `manureTrailer`,
-`selfPropelledManureBarrel`), at any parent depth:
+`manureBarrel` directly — any custom type declared in your own modDesc works. If it
+descends from one of the vanilla tanker types (`manureBarrel`, `manureTrailer`,
+`selfPropelledManureBarrel`), at any parent depth, SPS covers it at the type level;
+any other type (say `parent="sprayer"` or `parent="tractor"`) is covered per-vehicle
+the moment it registers through its embedded block (1.0.1.5+) — the log names the type
+when that happens. Descending from the matching vanilla family is still the recommended,
+vanilla-idiomatic choice:
 
 ```xml
 <vehicleTypes>

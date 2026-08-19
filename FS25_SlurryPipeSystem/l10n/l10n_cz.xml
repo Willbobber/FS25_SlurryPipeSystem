@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<l10n>
+    <texts>
+		<!-- Inputs -->
+		<text name="input_SPS_TOGGLE_PUMP"      		text="SPS čerpadlo zap/vyp" />
+		<text name="input_SPS_TOGGLE_AGITATOR"			text="Připojit/odpojit míchadlo" />
+		<text name="input_SPS_ENGAGE_AGITATOR"			text="Vývodový hřídel míchadla zap/vyp" />
+		<text name="input_SPS_TOGGLE_FLOW"      		text="SPS průtok otevřít/zavřít" />
+		<text name="input_SPS_TOGGLE_DIRECTION" 		text="SPS směr průtoku" />
+        <text name="input_SPS_TOGGLE_SPREADER"          text="SPS ventil rozmetadla" />
+        
+		<!-- Settings menu -->
+		<text name="sps_settingsHeader"            		text="HADICOVÝ SYSTÉM NA KEJDU (SPS)" />
+		<text name="sps_settingsSlurryPipe"        		text="Hadice na kejdu" />
+		<text name="sps_settingsSlurryPipeTooltip" 		text="Vyberte barvu hadice" />
+		
+		<!-- Pump on/off (TurnOnVehicle override) -->
+        <text name="action_slurryPumpOn"  				text="Vývodový hřídel: Čerpadlo je VYPNUTO" />
+        <text name="action_slurryPumpOff" 				text="Vývodový hřídel: Čerpadlo je ZAPNUTO" />
+		<text name="action_spsHVPOn"  					text="Vývodový hřídel: HVP je VYPNUTO" />
+		<text name="action_spsHVPOff" 					text="Vývodový hřídel: HVP je ZAPNUTO" />
+
+        <!-- Valve open/close -->
+        <text name="action_slurryFlowOpen"  			text="Plnicí rameno: Ventil je ZAVŘENÝ" />
+        <text name="action_slurryFlowClose" 			text="Plnicí rameno: Ventil je OTEVŘENÝ" />
+		<text name="action_spsConduitFlowOpen"   		text="Čerpadlo na kejdu: Ventil je ZAVŘENÝ" />
+		<text name="action_spsConduitFlowClose"  		text="Čerpadlo na kejdu: Ventil je OTEVŘENÝ" />
+
+        <!-- Pump direction (shows current, press to switch) -->
+        <text name="action_slurryDirectionFill"      	text="Čerpadlo: Tlak (Výtlak)" />
+        <text name="action_slurryDirectionDischarge"  	text="Čerpadlo: Podtlak (Sání)" />
+		<text name="action_spsHVPDirFill"      			text="Čerpadlo nastaveno na vyprazdňování" />
+		<text name="action_spsHVPDirDischarge" 			text="Čerpadlo nastaveno na plnění" />
+
+		<!-- Spreader valve -->
+        <text name="action_spsSpreaderOpen"             text="Rozmetadlo: Ventil je ZAVŘENÝ" />
+        <text name="action_spsSpreaderClose"            text="Rozmetadlo: Ventil je OTEVŘENÝ" />
+
+        <!-- Pipe actions -->
+		<text name="action_spsConnectPipe" 				text="Připojit hadici"/>
+		<text name="action_spsDisconnectOrOpenValve" 	text="Odpojit [R] | Otevřít ventil [podržet R]"/>
+		<text name="action_spsCloseValve" 				text="Zavřít ventil [podržet R]"/>
+		<text name="warning_slurryCloseValveFirst" 		text="Před odpojením nejprve zavřete ventil"/>
+		<text name="action_spsLayFirstPipe"         	text="Položit první hadici" />
+		<text name="action_spsLayPipe"              	text="Položit hadici | Umístit dokovací stanici [podržet R]" />
+		<text name="action_spsRemovePipe"           	text="Odstranit hadici" />
+		<text name="action_spsRemoveDockingStation" 	text="Odstranit dokovací stanici" />
+		<text name="action_spsDisconnectPipe" 			text="Odpojit hadici" />
+		<text name="action_spsFinalisePipe"  			text="Dokončit pokládání hadice [R] | Zrušit [podržet R]" />
+		<text name="action_spsDeployCoupling" 			text="Umístit hadicovou spojku [podržet R]"/>
+		<text name="action_spsRemoveCoupling" 			text="Odstranit hadicovou spojku [podržet R]"/>
+		<text name="action_spsRearValveOpen"			text="Otevřít ventil" />
+		<text name="action_spsRearValveClose"			text="Zavřít ventil" />
+		
+        <!-- Warnings -->
+        <text name="warning_slurryNoConnection"    		text="Není aktivní žádné připojení na kejdu" />
+        <text name="warning_slurryCloseFlowFirst"  		text="Před změnou směru čerpadla zavřete ventil" />
+        <text name="warning_slurryNoPipeTarget"    		text="V dosahu není žádný bod pro připojení hadice" />
+		<text name="warning_slurryEngineOff" 			text="Nejprve nastartujte motor"/>
+		<text name="warning_spsConnectHydraulics"		text="Nejprve připojte hydraulické hadice" />
+		<text name="warning_spsSetToPressure"			text="Nejprve nastavte čerpadlo na Výtlak (Tlak)" />
+		<text name="warning_spsSlurryNeedsMix"   		text="Kejda se usadila — doporučuje se promíchání" />
+		
+        <!-- PTO Slurry Pump vehicle -->
+        <text name="function_slurryPump"                text="Čerpadlo na kejdu" />
+        <text name="typeDesc_manurePump"                text="Čerpadlo na kejdu poháněné vývodovým hřídelem" />
+
+        <!-- Conduit pump HUD and direction -->
+        <text name="hud_spsConduitPumped"               text="Přečerpáno: %d L" />
+        <text name="action_spsConduitDirAtoB"           text="Průtok: Port 1 → Port 2" />
+        <text name="action_spsConduitDirBtoA"           text="Průtok: Port 2 → Port 1" />
+		
+        <!-- Slurry thickness / agitation -->
+		<text name="warning_spsSlurryThickening"  		text="Houstnutí kejdy: %d%% — doporučuje se míchání" />
+        <text name="warning_spsSlurryThickeningWater"  	text="Houstnutí kejdy: %d%% — přidejte vodu" />
+        <text name="warning_spsSlurryTooThick"          text="Kejda je příliš hustá — přidejte vodu" />
+        <text name="sps_settingsAgitation"              text="Míchání kejdy" />
+        <text name="sps_settingsAgitationTooltip"       text="Povolí systém houstnutí a míchání kejdy" />
+        <text name="sps_settingsRealism"                text="Realistické chování kejdy" />
+        <text name="sps_settingsRealismTooltip"         text="Hlavní vypínač pro hustotu kejdy, krustu, ucpávání a pokles průtoku podle délky potrubí" />
+        <text name="sps_settingsStoreThickening"        text="Houstnutí v jímkách" />
+        <text name="sps_settingsStoreThickeningTooltip" text="Kejda v jímkách a skladech postupem času houstne (v realistickém režimu je tato volba vždy aktivní)" />
+        <text name="sps_settingsCrust"                  text="Vegetace na krustě" />
+        <text name="sps_settingsCrustTooltip"           text="Na povrchu husté kejdy se vizuálně tvoří krusta (v realistickém režimu je tato volba vždy aktivní)" />
+        <text name="sps_settingsThicknessFlow"          text="Hustota ovlivňuje průtok" />
+        <text name="sps_settingsThicknessFlowTooltip"   text="Hustá kejda zpomaluje plnění, vyprazdňování a aplikaci/rozmetání" />
+        <text name="sps_settingsBlockages"              text="Ucpávání rozmetadla" />
+        <text name="sps_settingsBlockagesTooltip" 		text="Hustá kejda může ucpat rozmetadlo/aplikátor; pro vyčištění k němu musíte dojít" />
+        <text name="sps_settingsLengthFalloff"          text="Pokles průtoku délkou hadice" />
+        <text name="sps_settingsLengthFalloffTooltip"   text="Rychlost průtoku klesá s celkovou délkou připojených hadic" />
+        <text name="warning_spsBlockage"                text="Rozmetadlo je ucpané — pro pokračování odstraňte ucpání" />
+        <text name="action_spsAgitatorOn"               text="Míchadlo: VYPNUTO — vývodový hřídel běží" />
+        <text name="action_spsAgitatorOff"              text="Míchadlo: ZAPNUTO — vývodový hřídel běží" />
+        <text name="warning_spsAgitatorNotSubmerged"    text="Míchadlo není ponořené" />
+        <text name="sps_infoThicknessTitle"             text="Hustota kejdy" />
+		<text name="sps_infoLiquidTitle"                text="Tekutina" />
+        <text name="sps_infoDryMatterTitle"             text="Sušina" />
+        <text name="sps_infoCrustTitle"                 text="Krusta" />
+        <text name="sps_infoTankEmpty"					text="Prázdná" />
+		
+		<!-- Water -->
+		<text name="action_spsDeployWaterPipe"			text="Podržet R: Umístit vodní hadici" />
+		<text name="action_spsFinalizeWaterPipe"		text="Podržet R: Dokončit pokládání vodní hadice" />
+		<text name="action_spsCancelWaterPipe"			text="Podržet R: Zrušit umístění" />
+		<text name="action_spsRemoveWaterPipe"			text="Podržet R: Odstranit vodní hadici" />
+		<text name="info_spsPipeWalkToWater"			text="Pro umístění hadice jděte směrem k vodě" />
+		<text name="info_spsPipeDeployed"				text="Vodní hadice byla rozvinuta" />
+		<text name="info_spsPipeCancelled"				text="Umístění hadice bylo zrušeno" />
+		<text name="info_spsPipeRemoved"				text="Vodní hadice byla odstraněna" />
+		<text name="warning_spsPipeTooShort"			text="Hadice je příliš krátká (minimálně 2 m)" />
+		<text name="warning_spsPipeTooLong"				text="Hadice je příliš dlouhá (maximálně 20 m)" />
+		
+		<!-- Sprayer -->
+		<text name="input_SPS_TOGGLE_ANIMATION_SPRAYER"	text="Otevřít kryt | Zavřít kryt" />
+		<text name="input_SPS_TOGGLE_PUMP_SPRAYER"		text="Spustit průtok | Zastavit průtok" />
+		<text name="input_SPS_TOGGLE_DIRECTION_SPRAYER"	text="Plnit | Vyprazdňovat" />
+		<text name="action_sprayerCoverClosed"			text="Kryt: ZAVŘENÝ" />
+		<text name="action_sprayerCoverOpen"			text="Kryt: OTEVŘENÝ" />
+		<text name="action_sprayerFlowOff"				text="Průtok: ZASTAVEN" />
+		<text name="action_sprayerFlowOn"				text="Průtok: BĚŽÍ" />
+		<text name="action_sprayerDirLoad"				text="Směr: PLNIT" />
+		<text name="action_sprayerDirUnload"			text="Směr: VYPRÁZDNIT" />
+		<text name="sps_warningCloseCoverBeforeTurnOn" 	text="Před zapnutím nejprve zavřete kryt"/>
+		
+		<!-- SPS spreader HUD -->
+		<text name="sps_hudTitle"            			text="Rozmetadlo" />
+		<text name="sps_hudSlurry"           			text="Kejda" />
+		<text name="sps_hudCrust"            			text="Krusta" />
+		<text name="sps_hudThickness"        			text="Hustota" />
+		<text name="sps_hudRisk"             			text="Riziko ucpání" />
+		<text name="sps_hudRiskLow"          			text="Nízké" />
+		<text name="sps_hudRiskMed"          			text="Střední" />
+		<text name="sps_hudRiskHigh"         			text="Vysoké" />
+		<text name="sps_hudVacuum"           			text="Podtlak (Sání)" />
+		<text name="sps_hudHVP"              			text="HVP" />
+		<text name="sps_hudPump"             			text="Čerpadlo" />
+		<text name="sps_hudEditHint"         			text="Tažením přesuňte  -  Kolečkem myši změňte velikost  -  Kliknutím prostředním tlačítkem uzamkněte" />
+		<text name="action_spsHudEdit"       			text="Přesunout HUD rozmetadla" />
+		<!-- SPS spreader HUD settings -->
+		<text name="sps_hudSettingsHeader"   			text="HUD rozmetadla" />
+		<text name="sps_hudSetEnabled"       			text="Zobrazení hadicového aplikátoru" />
+		<text name="sps_hudSetEnabledTooltip"			text="Zobrazí HUD rozmetadla (ikonu aplikátoru, informace o kejdě a stav jednotlivých sekcí) v horní části obrazovky." />
+		<text name="sps_hudSetImage"         			text="Obrázek aplikátoru" />
+		<text name="sps_hudSetImageTooltip"  			text="Zobrazí obrázek hadicového aplikátoru na HUD rozmetadla." />
+		<text name="sps_hudSetFill"          			text="Zobrazit úroveň kejdy" />
+		<text name="sps_hudSetCrust"         			text="Zobrazit krustu" />
+		<text name="sps_hudSetThick"         			text="Zobrazit hustotu" />
+		<text name="sps_hudSetRisk"          			text="Zobrazit riziko ucpání" />
+		<text name="sps_hudSetPump"          			text="Zobrazit čerpadlo / tlak" />
+		<text name="sps_hudSetFieldTooltip"  			text="Zobrazí nebo skryje tento řádek na HUD rozmetadla." />
+		<text name="sps_hudSetScale"         			text="Měřítko HUD" />
+		<text name="sps_hudSetScaleTooltip"  			text="Velikost HUD rozmetadla. Lze také změnit kolečkem myši během přesouvání HUD." />
+		<text name="sps_hudPressure" 					text="Tlak"/>
+		<text name="input_SPS_HUD_EDIT"          		text="Upravit HUD rozmetadla" />
+		<!-- SPS blockage clearing -->
+		<text name="sps_blockageMacerator"   			text="Macerátor" />
+		<text name="action_spsClearBlockage" 			text="Podržet pro vyčištění: %s" />
+		<text name="action_spsClearBlockageWait" 		text="Zastavte rameno pro vyčištění: %s" />
+		<text name="warning_spsClearBlocked" 			text="Před čištěním zastavte rozmetání a nechte klesnout tlak." />
+		<text name="warning_spsBlockageMacerator" 		text="Macerátor je ucpaný — rozmetadlo se zastavilo. Pro pokračování jej vyčistěte." />
+		<text name="warning_spsBlockageSection"   		text="Sekce je ucpaná: %s. Vyčistěte ji pro obnovení daného pruhu." />
+		
+		<!-- Shear bolt -->
+		<text name="input_SPS_REPAIR_SHEARBOLT" 		text="Vyměnit střižný šroub [podržet R]"/>
+		<text name="action_spsRepairShearBolt" 			text="Vyměnit střižný šroub [podržet R]"/>
+		<text name="action_spsRepairShearBoltWait" 		text="Vyměnit střižný šroub (vypněte vývodový hřídel &amp; motor)"/>
+		<text name="warning_spsShearBoltSnapped" 		text="Střižný šroub vývodového hřídele praskl — čerpadlo bylo odpojeno a šroub je nutné vyměnit"/>
+		<text name="warning_spsShearRepairBlocked" 		text="Pro výměnu střižného šroubu nejprve vypněte vývodový hřídel a zastavte motor"/>
+		<text name="sps_settingsShearBolt" 				text="Střižný šroub vývodového hřídele"/>
+		<text name="sps_settingsShearBoltTooltip" 		text="Zapne funkci střižného šroubu vývodového hřídele."/>
+	
+		<!-- Agitator -->
+		<text name="action_spsAgitatorConnect" 			text="Připojit vývodový hřídel"/>
+		<text name="action_spsAgitatorDisconnect" 		text="Odpojit vývodový hřídel"/>
+		<text name="action_spsAgitatorPtoOn"  			text="Zapnout vývodový hřídel"/>
+		<text name="action_spsAgitatorPtoOff" 			text="Vypnout vývodový hřídel"/>
+		
+		<!-- IBCs -->
+		<text name="sps_settingsIbcPersist" 			text="Ponechat IBC kontejner i po vyprázdnění"/>
+		<text name="sps_settingsIbcPersistTooltip" 		text="Ano: Prázdné IBC kontejnery zůstanou na mapě (můžete je vrátit do obchodu nebo znovu naplnit). Ne: Po vyprázdnění zmizí (výchozí)."/>
+		<text name="action_spsAddIbc" 					text="Podržet: Přidat IBC kontejner" />
+
+		<!-- Separator -->
+		<text name="input_SPS_TOGGLE_SEPARATOR"			text="Separátor zap/vyp" />
+		<text name="input_SPS_SEPARATOR_TIGHTNESS"		text="Přítlak šneku separátoru" />
+		<text name="action_spsSeparatorOn"				text="Separátor: SPUSTIT" />
+		<text name="action_spsSeparatorOff"				text="Separátor: ZASTAVIT" />
+		<text name="action_spsSeparatorTightness"		text="Přítlak šneku: %d%%" />
+		<text name="warning_spsSepNoPipes"				text="Separátor: Připojte přívodní i odvodní potrubí" />
+		<text name="warning_spsSepNoInPipe"				text="Separátor: Připojte přívodní potrubí (zdroj kejdy)" />
+		<text name="warning_spsSepNoOutPipe"			text="Separátor: Připojte odvodní potrubí (vratné potrubí kejdy)" />
+		<text name="warning_spsSepSourceEmpty"			text="Separátor: Zdroj kejdy je prázdný" />
+		<text name="warning_spsSepSourceThick"			text="Separátor: Zdrojová kejda je příliš hustá - přidejte vodu" />
+		<text name="warning_spsSepOutputFull"			text="Separátor: Zásobník na tuhý separát je plný" />
+		<text name="warning_spsSepReturnFull"			text="Separátor: Cílové místo pro vrácenou kejdu je plné" />
+		<text name="info_spsSeparatorRunning"			text="Provozní náklady separátoru kejdy" />
+		<text name="warning_spsSepNoDm"					text="Separátor: V kejdě nezůstala žádná sušina — zařízení čeká na přítok čerstvé kejdy" />
+
+		<!-- Buying station -->
+		<text name="action_spsBuyStationSwitch"			text="Nákup: %s - přepnout na %s" />
+	</texts>
+</l10n>
