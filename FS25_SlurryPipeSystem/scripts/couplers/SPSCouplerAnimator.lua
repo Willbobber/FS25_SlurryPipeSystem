@@ -271,14 +271,57 @@ end
 -- ---------------------------------------------------------------------------
 
 -- direction: 1 = forward (start->end), -1 = reverse (end->start)
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.6] Vanilla-animation adapter.
+--
+-- A modder can author the clamp/valve animation ONCE in their vehicle's own
+-- <animations> block and reference it by NAME from the coupling
+-- (#connectorAnimationName / #valveAnimationName) instead of duplicating the
+-- parts in <couplerAnimations>. bindVanilla returns an instance the whole
+-- existing API (play/update/getSaveState/restoreState/setStart/setEnd) accepts,
+-- delegating to AnimatedVehicle — so every call site in chains, couplers,
+-- sprayers and the savegame restore works with either kind unchanged.
+-- Vehicle couplings only: placeables have no AnimatedVehicle.
+-- Normalised time (duration = 1); playAnimation is called with noEventSend=true
+-- because every SPS trigger already runs on all peers via SPS's own events.
+-- ---------------------------------------------------------------------------
+function SPSCouplerAnimator.bindVanilla(vehicle, animName)
+    if vehicle == nil or animName == nil or animName == "" then return nil end
+    if vehicle.getAnimationExists == nil or not vehicle:getAnimationExists(animName) then
+        print(string.format(
+            "[SPS] WARNING: coupling animation '%s' not found in the animations of %s",
+            tostring(animName), tostring(vehicle.configFileName)))
+        return nil
+    end
+    return {
+        isVanilla   = true,
+        vehicle     = vehicle,
+        animName    = animName,
+        animId      = 0,      -- save slot is an int; vanilla instances save 0
+        duration    = 1,      -- normalised time
+        currentTime = 0,
+        direction   = 0,
+        playing     = false,
+    }
+end
+
 function SPSCouplerAnimator.play(inst, direction)
     if inst == nil then return end
     inst.direction = direction
+    if inst.isVanilla then
+        -- Engine-managed: AnimatedVehicle progresses it, update() stays a no-op.
+        inst.playing = false
+        if inst.vehicle.playAnimation ~= nil then
+            inst.vehicle:playAnimation(inst.animName, direction, nil, true)
+        end
+        return
+    end
     inst.playing   = true
 end
 
 
 function SPSCouplerAnimator._applyAt(inst, t)
+    if inst.isVanilla then return end
     for _, part in ipairs(inst.parts) do
         local localT
         if t <= part.startTime then
@@ -315,6 +358,19 @@ end
 -- from vehicle/placeable AnimatedObject systems.
 function SPSCouplerAnimator.getSaveState(inst)
     if inst == nil then return nil end
+    if inst.isVanilla then
+        local t = 0
+        if inst.vehicle ~= nil and inst.vehicle.getAnimationTime ~= nil then
+            t = inst.vehicle:getAnimationTime(inst.animName) or 0
+        end
+        return {
+            animId    = 0,
+            time      = t,
+            direction = inst.direction or 0,
+            playing   = false,
+            duration  = 1,
+        }
+    end
 
     return {
         animId    = inst.animId,
@@ -330,6 +386,22 @@ end
 -- appear in the saved position without waiting for another event.
 function SPSCouplerAnimator.restoreState(inst, time, direction, playing)
     if inst == nil then return end
+    if inst.isVanilla then
+        local t = time or 0
+        if t == math.huge then t = 1 end
+        t = math.clamp(t, 0, 1)
+        inst.currentTime = t
+        inst.direction   = direction or 0
+        if inst.vehicle ~= nil and inst.vehicle.setAnimationTime ~= nil then
+            inst.vehicle:setAnimationTime(inst.animName, t, true)
+        end
+        -- A save taken mid-swing resumes the swing from the saved time.
+        if playing == true and inst.direction ~= 0
+        and inst.vehicle ~= nil and inst.vehicle.playAnimation ~= nil then
+            inst.vehicle:playAnimation(inst.animName, inst.direction, t, true)
+        end
+        return
+    end
 
     local duration = inst.duration or 0
     local t = time or 0

@@ -35,47 +35,7 @@
          downwards, so a second store can duplicate the whole nodeTree group and
          rename only the group node.
          =================================================================== -->
-    <slurryStores>
-
-        <!-- poolFillTypes: the set of fill types treated as ONE body of liquid,
-             both for the plane height and for the dry-matter / crust model.
-             This matters more on a BGA than anywhere else. A production point
-             keeps everything in a SINGLE Storage object - here that is SILAGE,
-             MANURE, LIQUIDMANURE and DIGESTATE together. Naming LIQUIDMANURE
-             explicitly is what stops 102,000 l of silage and 460,000 l of
-             digestate being counted as slurry in this lagoon.
-             Omitting it defaults to just #fillType, which is the same result
-             here - it is written out so the intent is obvious to anyone reading
-             this file, and so a second store added later cannot silently
-             inherit the wrong body.
-             To pool two types into one pit (slurry + digestate, one plane, one
-             crust) write: poolFillTypes="LIQUIDMANURE DIGESTATE" -->
-        <slurryStore
-            id="1"
-            node="slurryStore01"
-            fillType="LIQUIDMANURE"
-            poolFillTypes="LIQUIDMANURE"
-            fillPlaneNode="slurryPit_fillPlane01"
-            minY="0.0"
-            maxY="1.9"
-            shape="round"
-            centreNodeName="slurryPlaneCentre01"
-            edgeNodeName="slurryPlaneEdge01"
-            hideWhenEmpty="true"
-            agitator="true">
-
-            <!-- Per-store crust nodes. The plant list and density are declared
-                 once at placeable level in <crust> below; only the nodes that
-                 the crust rides on are per store. -->
-            <crust
-                planeNode="crust_fillPlane01"
-                foliageNode="crustFoliage01"
-                maxRise="0.16"/>
-
-        </slurryStore>
-
-    </slurryStores>
-
+    
     <pipeCouplings>
 
         <!-- #storeId binds this coupler to slurryStore01: a draw or deposit
@@ -112,20 +72,5 @@
         />
 
     </pipeCouplings>
-
-    <!-- Placeable-level crust: density and plant list, shared by every store on
-         this placeable. Without this block no vegetation is created at all —
-         the per-store <crust> element only supplies node names. -->
-    <crust density="3.0" edgeMargin="0.1">
-        <plant stage="1" i3d="i3d/foliage/grass01.i3d"  weight="6"/>
-        <plant stage="2" i3d="i3d/foliage/grass02.i3d"  weight="5"/>
-        <plant stage="3" i3d="i3d/foliage/grass03.i3d"  weight="5"/>
-        <plant stage="2" i3d="i3d/foliage/barley01.i3d" weight="4"/>
-        <plant stage="3" i3d="i3d/foliage/barley02.i3d" weight="4"/>
-        <plant stage="3" i3d="i3d/foliage/barley03.i3d" weight="3"/>
-        <plant stage="3" i3d="i3d/foliage/barley04.i3d" weight="3"/>
-        <plant stage="3" i3d="i3d/foliage/mushroom.i3d" weight="3"/>
-        <plant stage="3" i3d="i3d/foliage/nettle.i3d"   weight="3"/>
-    </crust>
 
 </slurryPipeSystem>

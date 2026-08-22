@@ -118,6 +118,12 @@ Legacy fallbacks still work: `conduit="true"` maps to `pumpType="conduit"`, and
 
 - `selfPowered="true"` — vehicle has its own engine (loads the `<sounds><engineLoop>` sample).
 - `conduit="true"` — legacy form of `pumpType="conduit"`.
+- `directionAnimation="myLeverAnim"` (1.0.1.6+, optional) — name of an animation from
+  your own `<animations>` that shows the vacuum/pressure changeover lever. Convention:
+  animation **time 0 = FILL (vacuum)**, **time 1 = DISCHARGE (pressure)**. SPS plays it
+  on every direction toggle and snaps it to the right pose on load — savegame restores
+  included, synced in multiplayer automatically. A missing animation name warns once in
+  the log.
 
 Only `pumpType="vacuum"` vehicles use the pressure model. A fertiliser/herbicide sprayer is
 also automatically excluded from the pressure model even if tagged vacuum.
@@ -248,6 +254,48 @@ Pipe visuals from a coupling rest on hard surfaces automatically — laid chains
 connection pipes settle onto concrete pads, floors, bridge decks and roads as well as the
 terrain. No configuration is needed.
 
+### Coupler animations from your own `<animations>` (1.0.1.6+)
+
+You do **not** have to duplicate clamp/valve animations into `<couplerAnimations>`.
+Reference a vanilla animation from your own `<animations>` block by NAME:
+
+```xml
+<pipeCoupling id="1" mountNodeName="SPS_pipeCoupler01"
+              connectorAnimationName="lockCoupling1"
+              valveAnimationName="flowCoupling1" ... />
+```
+
+Convention (same as the id-based system): animation **start = disconnected /
+valve closed**, **end = connected / valve open**. SPS plays it on connect and
+disconnect (connector) and on valve open/close (valve), restores the pose from
+savegames, and stays MP-synced automatically. The name must exist in your
+`<animations>` — a missing name warns in the log. When both `...AnimationName`
+and the id form are declared, the name wins. Vehicle couplings only — placeable
+couplers keep using the id-based library.
+
+### Coupler mount node structure — the arc group
+
+Under each coupler's mount node SPS expects:
+
+```
+SPS_pipeCoupler01                ← your mountNodeName
+├── SPS_pipeCoupler01Arcs        ← arc group: name MUST end in "Arcs"
+│   ├── ...Arc01                 ← two corner nodes forming the connect
+│   └── ...Arc02                    detection triangle with the mount node
+├── inNode                       ← pipe entry point
+└── outNode                      ← pipe exit point
+```
+
+The **arc triangle is what makes "connect" appear** — walking a laid pipe's free
+end (or another coupler) into the overlap of two arc triangles is the connect
+condition. Pipe *laying* works without arcs, so a coupler with a missing or
+buried arc group looks half-alive: it lays pipe but never offers connect.
+
+Since 1.0.1.6 the arc group is found **by name** (any direct child ending in
+`Arcs`), so you can freely add animation visuals or other transforms under the
+mount node in any order. On 1.0.1.5 and earlier the arc group had to be the
+mount node's FIRST child — keep it first if you target older SPS versions.
+
 ### Gravity head equalisation — `headHeightNodeName` (optional)
 
 By default a coupling takes no part in gravity equalisation and behaves exactly as before.
@@ -294,6 +342,18 @@ wide bar) — they are treated as one logical macerator and block together.
 
 Each outlet gets a walk-up, hold-to-clear blockage activatable that only appears while that
 node is blocked and only clears once the bar is stopped.
+
+### Blockage clearing and `blockageAnimation` (changed in 1.0.1.6)
+
+A blockage shows nothing visually when it happens. The `blockageAnimation`
+belongs to the **clearing**: holding the clear key at the blocked node plays the
+animation forward (mechanism opens), runs the clearing time, then plays it back
+to the start (mechanism closes) — only then is the blockage cleared. Releasing
+early aborts and winds the animation back. Author the animation accordingly:
+**time 0 = normal spreading pose, time 1 = opened for cleaning.** Without an
+animation, clearing is the plain timed hold as before. Clearing requires the
+pump OFF, the spreader valve CLOSED, and (vacuum tankers) the line vented to
+~0 bar. All of it is synced in multiplayer — other players see the attempt.
 
 ### How a blockage is decided
 
@@ -348,6 +408,29 @@ month. A wide-bore splash plate with no macerator should be authored well above 
 unprotected default — the shipped Farmtech Supercis 800 and Joskin Cobra configs use
 `outletCrustMinRaw="0.85"`, `outletChance="0.010"`, `baseChance="0.0005"` as a reference.
 
+### Rear-valve animation — `<spreaderValveAnimation>` (1.0.1.6+)
+
+```xml
+<spreaderValveAnimation name="openValve"/>
+```
+
+An animation from your own `<animations>` block, driven by the **SPS spreader
+valve**: plays forward when the valve is opened, reverse when it closes.
+Convention: animation **time 0 = closed**, **time 1 = open**. Starts closed
+(the spreader valve always starts closed after loading), synced in multiplayer
+and to late joiners automatically. A missing animation name warns once in the
+log. Sounds authored in the animation play with it.
+
+You may **keep** a `movingTool` axis that drives the same animation (so the
+same XML gives manual valve control to players WITHOUT SPS): when SPS registers
+the vehicle it disarms that movingTool automatically (vanilla `isActive` switch,
+logged once) — with SPS the valve is SPS-driven, without SPS the axis works.
+The same applies to a movingTool driving the `directionAnimation` lever, and to
+a **`<foldable>`** setup driving an SPS-owned animation (a pre-SPS "pump mode on
+the fold key" mechanic): with SPS registered, the fold key refuses with the
+warning *"The pump changeover is controlled by the Slurry Pipe System"* instead
+of desyncing the lever; without SPS it folds as authored.
+
 ### Optional spreader animation
 
 For a spreading component driven by SPS discharge state (not by vanilla turnOn):
@@ -399,6 +482,26 @@ A single walk-up node that exposes PTO and/or direction controls outside the cab
 | `radius`        | 1.5     | Activation radius in metres. |
 | `pto`           | false   | Expose the PTO (pump on/off) prompt here. PTO prompt is gated by tractor capability. |
 | `direction`     | false   | Relocate the cab fill/empty (direction) control to this node. |
+
+### Manual vs hydraulic changeover as a store option (1.0.1.6+)
+
+A tanker sold with both a manual and a hydraulic changeover configuration can
+put the direction control outside OR in the cab depending on what the player
+bought:
+
+```xml
+<outsideControl mountNodeName="SPS_pumpControl01" pto="true" direction="true"
+                cabDirectionConfigIndex="1" cabDirectionConfigType="design7"/>
+```
+
+`cabDirectionConfigIndex` lists the **0-based** active-configuration indices
+(comma-separated, same convention as the fillArm/pipeCoupling gates) of
+`cabDirectionConfigType` (default `design`) for which the direction control
+moves **into the cab**. With a matching config the walk-up node keeps its PTO
+control but no longer offers direction, and the in-cab direction key appears —
+gated on connected hydraulics, as on any cab-controlled tanker. With any other
+config the control behaves exactly as authored (direction at the node).
+The log prints one line when the cab variant is active.
 
 ## 11. Pump controls — `<pumpControls>` (TSA-style all-in-one rear node)
 

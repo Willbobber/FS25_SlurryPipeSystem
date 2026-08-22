@@ -148,6 +148,9 @@
 		<text name="sps_hudSetRisk"          			text="Show blockage risk" />
 		<text name="sps_hudSetPump"          			text="Show pump / pressure" />
 		<text name="sps_hudSetFieldTooltip"  			text="Show or hide this row on the spreader HUD." />
+		<text name="warning_spsFoldIsSpsControlled" 	text="The pump changeover is controlled by the Slurry Pipe System" />
+		<text name="sps_hudSetHideHelp"      			text="Hide with help menu (F1)" />
+		<text name="sps_hudSetHideHelpTooltip" 		text="Yes: the SPS HUD hides together with the help menu when F1 is pressed. No: it stays on screen." />
 		<text name="sps_hudSetScale"         			text="HUD scale" />
 		<text name="sps_hudSetScaleTooltip"  			text="Size of the spreader HUD. Can also be changed with the scroll wheel while moving the HUD." />
 		<text name="sps_hudPressure" 					text="Pressure"/>

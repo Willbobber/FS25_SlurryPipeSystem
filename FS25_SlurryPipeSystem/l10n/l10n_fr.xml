@@ -148,6 +148,9 @@
 		<text name="sps_hudSetRisk"          			text="Afficher le risque de bouchon" />
 		<text name="sps_hudSetPump"          			text="Afficher pompe / pression" />
 		<text name="sps_hudSetFieldTooltip"  			text="Afficher ou masquer cette ligne sur le HUD de l'épandeur." />
+		<text name="warning_spsFoldIsSpsControlled" 	text="L'inversion de la pompe est contrôlée par le Système de Tuyau à Lisier" />
+		<text name="sps_hudSetHideHelp"      			text="Masquer avec le menu d'aide (F1)" />
+		<text name="sps_hudSetHideHelpTooltip" 		text="Oui : le HUD SPS se masque avec le menu d'aide quand F1 est pressé. Non : il reste affiché." />
 		<text name="sps_hudSetScale"         			text="Échelle du HUD" />
 		<text name="sps_hudSetScaleTooltip"  			text="Taille du HUD de l'épandeur. Modifiable aussi avec la molette pendant le déplacement du HUD." />
 		<text name="sps_hudPressure" 					text="Pressure"/>

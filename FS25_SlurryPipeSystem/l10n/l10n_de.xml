@@ -148,6 +148,9 @@
 		<text name="sps_hudSetRisk"          			text="Verstopfungsrisiko anzeigen" />
 		<text name="sps_hudSetPump"          			text="Pumpe / Druck anzeigen" />
 		<text name="sps_hudSetFieldTooltip"  			text="Diese Zeile auf dem Streuer-HUD ein- oder ausblenden." />
+		<text name="warning_spsFoldIsSpsControlled" 	text="Die Pumpenumschaltung wird vom Gülle-Rohrsystem gesteuert" />
+		<text name="sps_hudSetHideHelp"      			text="Mit Hilfemenü ausblenden (F1)" />
+		<text name="sps_hudSetHideHelpTooltip" 		text="Ja: Das SPS-HUD wird zusammen mit dem Hilfemenü ausgeblendet, wenn F1 gedrückt wird. Nein: Es bleibt sichtbar." />
 		<text name="sps_hudSetScale"         			text="HUD-Größe" />
 		<text name="sps_hudSetScaleTooltip"  			text="Größe des Streuer-HUDs. Kann auch mit dem Mausrad beim Verschieben des HUDs geändert werden." />
 		<text name="sps_hudPressure" 					text="Pressure"/>

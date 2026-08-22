@@ -148,6 +148,9 @@
 		<text name="sps_hudSetRisk"          			text="Mostra rischio intasamento" />
 		<text name="sps_hudSetPump"          			text="Mostra pompa / pressione" />
 		<text name="sps_hudSetFieldTooltip"  			text="Mostra o nasconde questa riga sull'HUD dello spandiletame." />
+		<text name="warning_spsFoldIsSpsControlled" 	text="Il cambio direzione della pompa è controllato dal Sistema Tubi Liquame" />
+		<text name="sps_hudSetHideHelp"      			text="Nascondi con il menu aiuto (F1)" />
+		<text name="sps_hudSetHideHelpTooltip" 		text="Sì: l'HUD SPS si nasconde insieme al menu di aiuto premendo F1. No: resta visibile." />
 		<text name="sps_hudSetScale"         			text="Scala HUD" />
 		<text name="sps_hudSetScaleTooltip"  			text="Dimensione dell'HUD dello spandiletame. Modificabile anche con la rotellina mentre si sposta l'HUD." />
 		<text name="sps_hudPressure" 					text="Pressure"/>

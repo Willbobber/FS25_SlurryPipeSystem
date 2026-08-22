@@ -240,3 +240,47 @@ end
 function SlurryNodeUtil.deleteInjectedNode(nodeId)
     if nodeId ~= nil and nodeId ~= 0 then delete(nodeId) end
 end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.6] Name search across ALL of a vehicle's components.
+--
+-- Vehicle.rootNode is ONLY component 1 (`self.rootNode = getChildAt(self.i3dNode,
+-- 0)`, Vehicle.lua:619); components 2..N are its SIBLINGS, never its children.
+-- Every SPS vehicle-side lookup used to recurse from rootNode alone, so any SPS
+-- node authored on a later component was invisible — field case: the Abbey 3000
+-- carries its couplers on component 2 (the sprung tank body, so the nodes ride
+-- the suspension) and lost all of them. The placeable resolver has always
+-- iterated placeable.components; this brings the vehicle side level.
+--
+-- trimWhitespace=true compares names with leading/trailing whitespace stripped
+-- (both sides) — the caller decides when to escalate to the tolerant pass and
+-- owns the warning it prints.
+-- ---------------------------------------------------------------------------
+function SlurryNodeUtil.findVehicleNodeByName(vehicle, name, trimWhitespace)
+    if vehicle == nil or name == nil or name == "" then return nil end
+    local want = name
+    if trimWhitespace then want = name:match("^%s*(.-)%s*$") end
+    local function matches(node)
+        local nm = getName(node)
+        if nm == nil then return false end
+        if trimWhitespace then nm = nm:match("^%s*(.-)%s*$") end
+        return nm == want
+    end
+    local function searchTree(root)
+        if root == nil or root == 0 or not entityExists(root) then return nil end
+        if matches(root) then return root end
+        for i = 0, getNumOfChildren(root) - 1 do
+            local found = searchTree(getChildAt(root, i))
+            if found ~= nil then return found end
+        end
+        return nil
+    end
+    if vehicle.components ~= nil and #vehicle.components > 0 then
+        for _, comp in ipairs(vehicle.components) do
+            local found = searchTree(comp.node)
+            if found ~= nil then return found end
+        end
+        return nil
+    end
+    return searchTree(vehicle.rootNode)
+end

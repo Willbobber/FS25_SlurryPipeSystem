@@ -120,7 +120,7 @@ function SPSSpreaderHUD:_getActiveSpreader()
     return nil
 end
 
-function SPSSpreaderHUD:_buildRows(controller)
+function SPSSpreaderHUD:_buildRows(controller, blockEntry)
     local M = g_slurryPipeManager
     local rows = {}
     local fv = self.fieldVisible
@@ -142,9 +142,34 @@ function SPSSpreaderHUD:_buildRows(controller)
         rows[#rows+1] = { l = g_i18n:getText("sps_hudThickness"), v = string.format("%d%%", MathUtil.round(th * 100)) }
     end
     if fv.risk then
+        -- [SPS 1.0.1.6] Risk from the vehicle's EFFECTIVE thresholds, not the
+        -- global defaults. Field case (Abbey): its splash plate is tuned
+        -- outletCrustMinRaw="0.85", so at 77% crust the actual model rolls
+        -- base chance only -- yet the HUD showed HIGH from the hardcoded 0.6.
+        -- Resolution mirrors SPSM_Spreader exactly: per-vehicle blockageTuning
+        -- first, globals second; a macerator bar's risk starts at whichever of
+        -- its two thresholds comes first.
+        local tune   = (blockEntry ~= nil and blockEntry.blockageTuning) or {}
+        local hasMac = false
+        for _, b in ipairs((blockEntry ~= nil and blockEntry.blockageEntries) or {}) do
+            if b.isMacerator then hasMac = true break end
+        end
+        local outMin
+        if hasMac then
+            outMin = tune.outletCrustMin    or M.BLOCKAGE_OUTLET_CRUST_MIN     or 0.60
+        else
+            outMin = tune.outletCrustMinRaw or M.BLOCKAGE_OUTLET_CRUST_MIN_RAW or 0.30
+        end
+        local effMin = outMin
+        if hasMac then
+            local macMin = tune.maceratorCrustMin or M.BLOCKAGE_MACERATOR_CRUST_MIN or 0.25
+            if macMin < effMin then effMin = macMin end
+        end
         local key = "sps_hudRiskLow"
-        if crust >= 0.6 then key = "sps_hudRiskHigh"
-        elseif crust >= (M.BLOCKAGE_CRUST_MIN or 0.3) then key = "sps_hudRiskMed" end
+        if crust >= effMin then
+            local ramp = (crust - effMin) / math.max(1 - effMin, 0.001)
+            key = (ramp >= 0.5) and "sps_hudRiskHigh" or "sps_hudRiskMed"
+        end
         rows[#rows+1] = { l = g_i18n:getText("sps_hudRisk"), v = g_i18n:getText(key) }
     end
     if fv.pump then
@@ -181,13 +206,22 @@ function SPSSpreaderHUD:draw()
         self.fieldVisible.pump  = hs.pump  ~= false
     end
     if not self.visible then return end
+    -- [SPS 1.0.1.6] Optional: follow the help menu. F1 flips GameSettings
+    -- SHOW_HELP_MENU (PlayerInputComponent.lua:392, source-verified); when the
+    -- player enabled "hide with help menu" and the help menu is hidden, the
+    -- SPS HUD hides with it. Ships off — default behaviour unchanged.
+    if hs ~= nil and hs.hideWithHelp == true
+    and g_gameSettings ~= nil and GameSettings ~= nil and GameSettings.SETTING ~= nil
+    and g_gameSettings:getValue(GameSettings.SETTING.SHOW_HELP_MENU) == false then
+        return
+    end
     if g_slurryPipeManager == nil then return end
     local entry = self:_getActiveSpreader()
     if entry == nil then return end
     local vehicle    = entry.vehicle
     local controller = g_slurryPipeManager:getBlockageController(vehicle) or vehicle
 
-    local rows = self:_buildRows(controller)
+    local rows = self:_buildRows(controller, entry)
 
     -- count outlet sections (exclude the macerator) for the cell strip
     local nCells = 0

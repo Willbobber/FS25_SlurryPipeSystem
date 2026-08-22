@@ -150,6 +150,9 @@
 		<text name="sps_hudSetRisk"          			text="Toon verstoppingsrisico" />
 		<text name="sps_hudSetPump"          			text="Toon pomp / druk" />
 		<text name="sps_hudSetFieldTooltip"  			text="Toon of verberg deze rij op de verdeler-HUD." />
+		<text name="warning_spsFoldIsSpsControlled" 	text="De pompomschakeling wordt geregeld door het Slurry Pipe System" />
+		<text name="sps_hudSetHideHelp"      			text="Verbergen met hulpmenu (F1)" />
+		<text name="sps_hudSetHideHelpTooltip" 		text="Ja: de SPS-hud verdwijnt samen met het hulpmenu wanneer F1 wordt ingedrukt. Nee: hij blijft in beeld." />
 		<text name="sps_hudSetScale"         			text="HUD-schaal" />
 		<text name="sps_hudSetScaleTooltip"  			text="Grootte van de verdeler-HUD. Kan ook worden aangepast met het scrollwiel tijdens het verplaatsen van de HUD." />
 		<text name="sps_hudPressure" 					text="Pressure"/>

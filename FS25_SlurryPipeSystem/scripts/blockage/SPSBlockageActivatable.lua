@@ -73,10 +73,68 @@ function SPSBlockageActivatable:activate()
 end
 
 function SPSBlockageActivatable:deactivate()
+    if self._isHolding and not self._fired then self:_abortClearing() end
     self._isHolding = false
     self._holdTime  = 0
     self._fired     = false
     self._warned    = false
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.6] Clearing phase machine (William's confirmed spec).
+-- A blockage shows NOTHING when it happens. Holding R runs, strictly in order:
+--   Phase "fwd"  — blockageAnimation plays FORWARD (mechanism opens)
+--   Phase "work" — the clearing time (HOLD_THRESHOLD, unchanged fallback X)
+--   Phase "rev"  — animation plays back to the start (mechanism closes)
+-- and only THEN is the blockage cleared. Total hold = animLen + X + animLen.
+-- Releasing R (or the gate failing: pump on / spreader valve open / pressure
+-- not vented) at ANY point aborts: the animation winds back to the start,
+-- the blockage stays, and the next attempt starts from scratch.
+-- No animation authored (the fallback) -> "fwd"/"rev" are zero-length and the
+-- behaviour is exactly the old plain X-second hold.
+-- MP: the local player drives the phases; every play/wind-back is replicated
+-- via SPSBlockageClearAnimEvent so all peers watch the attempt.
+-- ---------------------------------------------------------------------------
+function SPSBlockageActivatable:_clearAnimName()
+    local b = self.blockageEntry
+    local v = self.vehicle
+    if b == nil or v == nil then return nil end
+    local name = b.blockageAnimation
+    if name == nil or name == "" then return nil end
+    if v.getAnimationExists == nil or not v:getAnimationExists(name) then return nil end
+    return name
+end
+
+function SPSBlockageActivatable:_animPlay(forward)
+    if g_slurryPipeManager == nil then return end
+    g_slurryPipeManager:playBlockageClearAnimation(self.vehicle, self.blockageEntry, forward)
+    if SPSBlockageClearAnimEvent ~= nil then
+        local idx = g_slurryPipeManager:getBlockageNodeIndex(self.vehicle, self.blockageEntry)
+        if idx ~= nil then
+            SPSBlockageClearAnimEvent.sendEvent(self.vehicle, idx, forward)
+        end
+    end
+end
+
+function SPSBlockageActivatable:_animTime()
+    local name = self:_clearAnimName()
+    if name == nil then return nil end
+    if self.vehicle.getAnimationTime == nil then return nil end
+    return self.vehicle:getAnimationTime(name) or 0
+end
+
+-- Abort from any phase: wind the mechanism back and reset all progress.
+function SPSBlockageActivatable:_abortClearing()
+    if self._phase == "fwd" or self._phase == "work" then
+        -- Mechanism is (partly) open: wind it back. From "rev" it is already
+        -- closing, so just let it finish.
+        if self:_clearAnimName() ~= nil then
+            self:_animPlay(false)
+        end
+    end
+    self._phase    = nil
+    self._workTime = 0
+    self._holdTime = 0
 end
 
 function SPSBlockageActivatable:update(dt)
@@ -87,16 +145,50 @@ function SPSBlockageActivatable:update(dt)
 
     if self._isHolding and not self._fired then
         if self:_canClear() then
-            self._holdTime = self._holdTime + dt * 0.001
-            if self._holdTime >= SPSBlockageActivatable.HOLD_THRESHOLD then
-                self._fired = true
-                if g_slurryPipeManager ~= nil then
-                    g_slurryPipeManager:onClearBlockage(self.vehicle, self.blockageEntry)
+            local hasAnim = self:_clearAnimName() ~= nil
+            if self._phase == nil then
+                -- Sequence start.
+                self._workTime = 0
+                if hasAnim then
+                    self._phase = "fwd"
+                    self:_animPlay(true)
+                else
+                    self._phase = "work"
+                end
+            elseif self._phase == "fwd" then
+                local t = self:_animTime()
+                if t == nil or t >= 0.999 then
+                    self._phase    = "work"
+                    self._workTime = 0
+                end
+            elseif self._phase == "work" then
+                self._workTime = self._workTime + dt * 0.001
+                if self._workTime >= SPSBlockageActivatable.HOLD_THRESHOLD then
+                    if hasAnim then
+                        self._phase = "rev"
+                        self:_animPlay(false)
+                    else
+                        self._fired = true
+                        self._phase = nil
+                        if g_slurryPipeManager ~= nil then
+                            g_slurryPipeManager:onClearBlockage(self.vehicle, self.blockageEntry)
+                        end
+                    end
+                end
+            elseif self._phase == "rev" then
+                local t = self:_animTime()
+                if t == nil or t <= 0.001 then
+                    self._fired = true
+                    self._phase = nil
+                    if g_slurryPipeManager ~= nil then
+                        g_slurryPipeManager:onClearBlockage(self.vehicle, self.blockageEntry)
+                    end
                 end
             end
         else
-            -- Can't clear a live/pressurised bar — hold makes no progress; nudge once.
-            self._holdTime = 0
+            -- Can't clear a live bar (pump on / spreader valve open / pressure
+            -- not vented) — abort any progress; nudge once.
+            self:_abortClearing()
             if not self._warned then
                 self._warned = true
                 if g_currentMission ~= nil then
@@ -159,7 +251,14 @@ function SPSBlockageActivatable:_onActivateInput(actionName, inputValue, callbac
         self._holdTime  = 0
         self._fired     = false
         self._warned    = false
+        self._phase     = nil
+        self._workTime  = 0
     else
+        -- [SPS 1.0.1.6] Released mid-sequence: abort — wind the mechanism back,
+        -- keep the blockage, next attempt starts from scratch.
+        if self._isHolding and not self._fired then
+            self:_abortClearing()
+        end
         self._isHolding = false
         self._holdTime  = 0
         self._fired     = false

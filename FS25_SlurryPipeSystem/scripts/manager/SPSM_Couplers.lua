@@ -297,7 +297,21 @@ function SlurryPipeManager:_getCouplingArcNodes(coupling)
     local baseNode = coupling.arcNode or coupling.mountNode
     if baseNode == nil or baseNode == 0 or not entityExists(baseNode) then return nil, nil, nil end
     if getNumOfChildren(baseNode) == 0 then return nil, nil, nil end
-    local arcsNode = getChildAt(baseNode, 0)
+    -- [SPS 1.0.1.6] Prefer a DIRECT child whose name ends in "Arcs" over the
+    -- positional child(0). The child(0) contract silently breaks the moment a
+    -- modder nests anything else under the mount node first — field case: the
+    -- Abbey 3000 added its coupler animation visuals (clamp/handle transforms)
+    -- as the first children, pushing SPS_pipeCoupler01Arcs to the END of the
+    -- list; connect-by-overlap died while pipe laying kept working. Name-first
+    -- is order-proof; child(0) remains the fallback so every existing config
+    -- (arcs at index 0, named "*Arcs" or not) resolves exactly as before.
+    local arcsNode = nil
+    for i = 0, getNumOfChildren(baseNode) - 1 do
+        local ch = getChildAt(baseNode, i)
+        local nm = ch ~= nil and ch ~= 0 and getName(ch) or nil
+        if nm ~= nil and nm:sub(-4) == "Arcs" then arcsNode = ch break end
+    end
+    if arcsNode == nil then arcsNode = getChildAt(baseNode, 0) end
     if arcsNode == nil or arcsNode == 0 or not entityExists(arcsNode) then return nil, nil, nil end
     if getNumOfChildren(arcsNode) < 2 then return nil, nil, nil end
     local arc1 = getChildAt(arcsNode, 0)

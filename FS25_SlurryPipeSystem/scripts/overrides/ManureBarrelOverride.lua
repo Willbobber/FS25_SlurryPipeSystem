@@ -775,6 +775,15 @@ local function resolveSpreadController(self)
         if controller == nil or not g_slurryPipeManager:isRegistered(controller) then return false end
         local state = g_slurryPipeManager:getVehicleState(controller)
         if state == nil or state.spreaderValveOpen ~= true then return false end
+        -- [SPS 1.0.1.6] An empty tank spreads nothing: an open spreader valve
+        -- must not keep the working-speed cap (or the thickness scaling) on a
+        -- tanker driving home empty. Everything downstream of this resolver
+        -- (speed cap, raw-limit scaling, spray usage) is inert without content
+        -- anyway, so releasing here is safe and consistent.
+        if SlurryPipeSystemOverride.getSPSFillLevel ~= nil
+        and (SlurryPipeSystemOverride.getSPSFillLevel(controller) or 0) <= 0 then
+            return false
+        end
         return g_slurryPipeManager:isSpreaderDischargeActive(controller)
     end
 
@@ -891,7 +900,14 @@ function SlurryPipeSystemOverride.getSprayerUsage(self, superFunc, fillType, dt)
     if base == nil then
         return base
     end
-    return base * mult
+    -- [SPS 1.0.1.6] Gravity dribble: with the valve open and no charge built,
+    -- the spread runs at the vehicle's gravityFlowScalar of the metered rate
+    -- (rises to full rate as pressure builds past the threshold).
+    local pScalar = 1.0
+    if g_slurryPipeManager.getSpreaderPressureScalar ~= nil then
+        pScalar = g_slurryPipeManager:getSpreaderPressureScalar(controller) or 1.0
+    end
+    return base * mult * pScalar
 end
 
 -- ---------------------------------------------------------------------------

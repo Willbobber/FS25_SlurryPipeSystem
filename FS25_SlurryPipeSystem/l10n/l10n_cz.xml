@@ -148,6 +148,9 @@
 		<text name="sps_hudSetRisk"          			text="Zobrazit riziko ucpání" />
 		<text name="sps_hudSetPump"          			text="Zobrazit čerpadlo / tlak" />
 		<text name="sps_hudSetFieldTooltip"  			text="Zobrazí nebo skryje tento řádek na HUD rozmetadla." />
+		<text name="warning_spsFoldIsSpsControlled" 	text="Přepínání čerpadla je řízeno systémem Slurry Pipe System" />
+		<text name="sps_hudSetHideHelp"      			text="Skrýt s nabídkou nápovědy (F1)" />
+		<text name="sps_hudSetHideHelpTooltip" 		text="Ano: SPS HUD se skryje spolu s nabídkou nápovědy po stisknutí F1. Ne: zůstane na obrazovce." />
 		<text name="sps_hudSetScale"         			text="Měřítko HUD" />
 		<text name="sps_hudSetScaleTooltip"  			text="Velikost HUD rozmetadla. Lze také změnit kolečkem myši během přesouvání HUD." />
 		<text name="sps_hudPressure" 					text="Tlak"/>

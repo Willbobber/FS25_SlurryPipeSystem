@@ -12,6 +12,17 @@ print("[SPS BUILD] SPSCrustVegetation 1.0.0.10.3 loaded")
 
 SPSCrustVegetation = {}
 
+-- [SPS 1.0.1.6] Channel-gated trace (registry channel "SPSCrustVegetation",
+-- wired at last). These were raw print()s firing for every SPS store at map
+-- load — 12 lines on one Witcombe load — against the ship-every-channel-false
+-- discipline. Failure-grade lines (load/clone failures) stay always-on.
+local function cvLog(msg)
+    if SPSDebugConfig ~= nil and SPSDebugConfig.isOn ~= nil
+    and SPSDebugConfig.isOn("SPSCrustVegetation") then
+        print(msg)
+    end
+end
+
 SPSCrustVegetation.THRESH = { [1] = 0.4, [2] = 0.6, [3] = 0.8 }
 
 -- ---------------------------------------------------------------------------
@@ -64,7 +75,7 @@ function SPSCrustVegetation.readConfig(xmlFile, keyPrefix)
         end
         maxRise = parsed or 0.1
     end
-    print("[SPS Crust] readConfig file='" .. tostring(xmlFile.filename)
+    cvLog("[SPS Crust] readConfig file='" .. tostring(xmlFile.filename)
         .. "' hasMaxRise=" .. tostring(hasMaxRise)
         .. " rawMaxRise='" .. tostring(rawMaxRise) .. "'"
         .. " -> maxRise=" .. tostring(maxRise)
@@ -88,7 +99,7 @@ end
 function SPSCrustVegetation.initForPlaceable(pEntry, modDirectory, sourceEntry)
     local cfg         = pEntry.crustConfig
     sourceEntry       = sourceEntry or pEntry.sourceEntry
-    print("[SPS CrustVeg] initForPlaceable: " .. tostring(pEntry.placeable ~= nil and pEntry.placeable.configFileName or "nil")
+    cvLog("[SPS CrustVeg] initForPlaceable: " .. tostring(pEntry.placeable ~= nil and pEntry.placeable.configFileName or "nil")
         .. " cfg=" .. tostring(cfg ~= nil)
         .. " sourceEntry=" .. tostring(sourceEntry ~= nil)
         .. " fillPlaneNode=" .. tostring(sourceEntry ~= nil and sourceEntry.fillPlaneNode ~= nil or false)
@@ -107,7 +118,7 @@ function SPSCrustVegetation.initForPlaceable(pEntry, modDirectory, sourceEntry)
     -- slurry-plane bounds; only the attach parent differs.
     local attachNode = (sourceEntry.crustFoliageNode ~= nil and sourceEntry.crustFoliageNode ~= 0)
         and sourceEntry.crustFoliageNode or fillPlaneNode
-    print("[SPS CrustVeg] foliage attach node = "
+    cvLog("[SPS CrustVeg] foliage attach node = "
         .. tostring(attachNode == sourceEntry.crustFoliageNode and "crustFoliage" or "slurryPlane")
         .. " (" .. tostring(attachNode) .. ")")
 
@@ -132,7 +143,7 @@ function SPSCrustVegetation.initForPlaceable(pEntry, modDirectory, sourceEntry)
             n = getParent(n)
         end
     end
-    print("[SPS CrustVeg] foliage inherits crust rise = "
+    cvLog("[SPS CrustVeg] foliage inherits crust rise = "
         .. tostring(sourceEntry.crustFoliageInheritsRise))
 
     local area
@@ -395,7 +406,7 @@ function SPSCrustVegetation.deleteForPlaceable(pEntry)
             se.crustInstances = nil
         end
     end
-    print("[SPS CrustVeg] deleteForPlaceable: deleted=" .. tostring(deleted)
+    cvLog("[SPS CrustVeg] deleteForPlaceable: deleted=" .. tostring(deleted)
         .. " skipped(stale)=" .. tostring(skipped)
         .. " on " .. tostring(pEntry.placeable ~= nil and pEntry.placeable.configFileName or "nil"))
     pEntry.crustInstances = nil

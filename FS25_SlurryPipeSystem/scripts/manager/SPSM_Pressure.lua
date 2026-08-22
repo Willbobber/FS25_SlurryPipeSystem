@@ -406,9 +406,34 @@ function SlurryPipeManager:updatePressure(dt)
                 -- Shear bolt intact: PTO drives the pump, build/hold pressure.
                 -- If the bolt has snapped the pump is disconnected, so we fall
                 -- through to DRAIN (valve open) / HOLD even with the PTO on.
-                local target = (state.direction == SPS_DIRECTION_DISCHARGE) and maxP or -maxP
-                p = self:_movePressureToward(p, target, buildRate * dtSec)
-            elseif valveOpen then
+                -- [SPS 1.0.1.6] Open-spreader-valve rules (William, field test):
+                -- the pump only builds when it has slurry to work against.
+                --   * VACUUM (-) never builds with the rear valve open -- an
+                --     open port just sucks air; the valve must be closed to
+                --     fill (no pumping-in and spreading at the same time).
+                --   * PRESSURE (+) builds only while slurry is aboard -- the
+                --     charge pushes on the slurry; an empty open tank cycles
+                --     air and builds nothing.
+                --   * When the pump cannot build, the stored charge drains
+                --     instead (working rate with content, fast rate empty).
+                local canBuild = true
+                if state.spreaderValveOpen == true then
+                    if state.direction ~= SPS_DIRECTION_DISCHARGE then
+                        canBuild = false
+                    elseif not hasContent then
+                        canBuild = false
+                    end
+                end
+                if canBuild then
+                    local target = (state.direction == SPS_DIRECTION_DISCHARGE) and maxP or -maxP
+                    p = self:_movePressureToward(p, target, buildRate * dtSec)
+                else
+                    local rate = hasContent and fallWorking or fallEmpty
+                    p = self:_movePressureToward(p, 0, rate * dtSec)
+                end
+            elseif valveOpen or state.spreaderValveOpen == true then
+                -- Pump off with either valve open: stored charge vents toward 0
+                -- (working rate while content still moves, fast rate otherwise).
                 local rate = hasContent and fallWorking or fallEmpty
                 p = self:_movePressureToward(p, 0, rate * dtSec)
             end

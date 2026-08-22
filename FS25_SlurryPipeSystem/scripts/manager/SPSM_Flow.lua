@@ -300,11 +300,52 @@ function SlurryPipeManager:applyDirectionAndPurge(vehicle, newDir)
     SlurryPipeManager.log("applyDirectionAndPurge: %s newDir=%s", tostring(vehicle and vehicle.configFileName), tostring(newDir))
     local state = self:getVehicleState(vehicle)
     if state == nil then return end
+    local changed = state.direction ~= newDir
     state.direction = newDir
     if g_server ~= nil then
         local targetSign = (newDir == SPS_DIRECTION_DISCHARGE) and 1 or -1
         local p = state.pressure or 0
         state.purging = (p * targetSign < 0)
+    end
+    -- [SPS 1.0.1.6] Changeover lever. This function is the single funnel every
+    -- direction change goes through — local toggle on the host, the MP event on
+    -- server and every client, JIP full-state application — so playing the
+    -- animation here is inherently SP/MP/dedi-consistent with no extra events.
+    -- Only on a real change: redundant re-applications must not re-swing it.
+    if changed then
+        self:updateDirectionAnimation(vehicle, false)
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.6] Changeover-lever animation (<pump directionAnimation="...">).
+-- Convention: animation time 0 = FILL (vacuum), 1 = DISCHARGE (pressure).
+-- instant=true snaps the pose (registration / savegame restore); false plays
+-- the swing (player toggled the lever). Client-side only — a dedicated server
+-- has no visuals; each client runs this from the same direction event.
+-- ---------------------------------------------------------------------------
+function SlurryPipeManager:updateDirectionAnimation(vehicle, instant)
+    if vehicle == nil or not vehicle.isClient then return end
+    local entry = self:getVehicleEntry(vehicle)
+    if entry == nil or entry.directionAnimationName == nil then return end
+    local animName = entry.directionAnimationName
+    if vehicle.getAnimationExists == nil or not vehicle:getAnimationExists(animName) then
+        if not entry._dirAnimWarned then
+            entry._dirAnimWarned = true
+            print(string.format(
+                "[SPS] WARNING: pump directionAnimation '%s' not found in the animations of %s",
+                tostring(animName), tostring(vehicle.configFileName)))
+        end
+        return
+    end
+    local state = self:getVehicleState(vehicle)
+    local toPressure = state ~= nil and state.direction == SPS_DIRECTION_DISCHARGE
+    if instant then
+        if vehicle.setAnimationTime ~= nil then
+            vehicle:setAnimationTime(animName, toPressure and 1 or 0, true)
+        end
+    elseif vehicle.playAnimation ~= nil then
+        vehicle:playAnimation(animName, toPressure and 1 or -1, nil, true)
     end
 end
 

@@ -164,6 +164,11 @@ function SPSSettingsMenuExtension:onFrameOpen()
         g_i18n:getText("sps_hudSetPump"), g_i18n:getText("sps_hudSetFieldTooltip"),
         self.generalSettingsLayout)
 
+    self.sps_hudHideHelpElement = SPSSettingsMenuExtension:_addMultiTextOption(
+        self, "onSPSHudHideHelpChanged", onOff,
+        g_i18n:getText("sps_hudSetHideHelp"), g_i18n:getText("sps_hudSetHideHelpTooltip"),
+        self.generalSettingsLayout)
+
     self.sps_hudScaleTexts  = { "50%", "75%", "100%", "125%", "150%" }
     self.sps_hudScaleValues = { 0.5, 0.75, 1.0, 1.25, 1.5 }
     self.sps_hudScaleElement = SPSSettingsMenuExtension:_addMultiTextOption(
@@ -239,6 +244,10 @@ function SPSSettingsMenuExtension:_updateState(page)
     if page.sps_hudThickElement ~= nil then page.sps_hudThickElement:setState((hs.thick ~= false) and 2 or 1, false); page.sps_hudThickElement:setDisabled(not hudOn) end
     if page.sps_hudRiskElement  ~= nil then page.sps_hudRiskElement:setState((hs.risk ~= false) and 2 or 1, false);  page.sps_hudRiskElement:setDisabled(not hudOn) end
     if page.sps_hudPumpElement  ~= nil then page.sps_hudPumpElement:setState((hs.pump ~= false) and 2 or 1, false);  page.sps_hudPumpElement:setDisabled(not hudOn) end
+    if page.sps_hudHideHelpElement ~= nil then
+        page.sps_hudHideHelpElement:setState((hs.hideWithHelp == true) and 2 or 1, false)
+        page.sps_hudHideHelpElement:setDisabled(not hudOn)
+    end
     if page.sps_hudScaleElement ~= nil then
         local vals = page.sps_hudScaleValues or { 0.5, 0.75, 1.0, 1.25, 1.5 }
         local cur, idx, best = hs.scale or 1.0, 3, 999
@@ -337,6 +346,11 @@ end
 function SPSSettingsMenuExtension:onSPSHudPumpChanged(state)
     if g_slurryPipeManager == nil then return end
     g_slurryPipeManager.hudSettings.pump = (state == 2)
+    spsSaveUser()
+end
+function SPSSettingsMenuExtension:onSPSHudHideHelpChanged(state)
+    if g_slurryPipeManager == nil then return end
+    g_slurryPipeManager.hudSettings.hideWithHelp = (state == 2)
     spsSaveUser()
 end
 function SPSSettingsMenuExtension:onSPSHudScaleChanged(state)

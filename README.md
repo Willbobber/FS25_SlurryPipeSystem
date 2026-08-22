@@ -43,6 +43,15 @@ actually thickens, crusts and blocks if you neglect it.
   on/off.
 - **PTO shear bolt (opt-in)** — wears and snaps under load while turning with the PTO
   engaged; walk-up hold-to-repair.
+- **Manual or hydraulic changeover** — the vacuum/pressure direction is set at a walk-up
+  node on the tanker, from the cab, or either one depending on the store configuration
+  the player bought (`cabDirectionConfigIndex`). An optional changeover-lever animation
+  (`directionAnimation`) shows the handle move, synced in multiplayer.
+- **Valve & coupler animations from the vehicle's own `<animations>`** — rear spreader
+  valves (`spreaderValveAnimation`) open and close with the SPS spreader valve, and
+  coupler clamp/valve animations can be referenced by name
+  (`connectorAnimationName` / `valveAnimationName`) instead of re-authored — poses
+  restore from savegames and sync to every player automatically.
 
 **Slurry that behaves like slurry**
 - **Thickness / dry matter** — slurry thickens as dry matter concentrates; thickness affects
@@ -74,7 +83,8 @@ actually thickens, crusts and blocks if you neglect it.
 
 **Spreading**
 - **Dribble bars & band spreaders** — per-outlet blockage modelling with a macerator that
-  shields the outlets up to its capacity, per-vehicle tuning, and a spreader HUD.
+  shields the outlets up to its capacity, per-vehicle tuning, and a spreader HUD (which
+  can optionally hide together with the help menu on F1 — settings page, per player).
 - **Fertiliser / herbicide sprayers** — load liquid fertiliser or herbicide through the same
   coupler-and-pipe system via a dedicated sprayer integration, operated from a single
   walk-up pump control. No pressure model on sprayers — flow is a flat rate.
@@ -160,8 +170,8 @@ FS25_SlurryPipeSystem/
 ├── SPS_README_03_Placeables.md                 ← store / pit / source-tank setup (embedded)
 ├── SPS_README_04_Map_Water.md                  ← map water sources (embedded, map i3d)
 ├── SlurryPipeSystem_SlurryGuide.md             ← player guide: thickness, crust, mixing, blockages
-├── RELEASE_NOTES_V1.0.1.5.md                   ← changes in this release
-├── RELEASE_NOTES_V1.0.1.4.md                   ← previous release
+├── RELEASE_NOTES_V1.0.1.6.md                   ← changes in this release
+├── RELEASE_NOTES_V*.md                         ← previous releases
 │
 ├── configs/
 │   ├── spsConfigManifest.xml                   ← bundled (SPS-internal) fleet list

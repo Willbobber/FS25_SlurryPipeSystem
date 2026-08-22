@@ -513,7 +513,9 @@ function SlurryPipeManager:registerSprayerVehicle(vehicle)
                     for containerIdx = 0, getNumOfChildren(group) - 1 do
                         local container  = getChildAt(group, containerIdx)
                         local targetName = getName(container)
-                        local liveParent = findByName(vehicle.rootNode, targetName)
+                        -- [SPS 1.0.1.6] All-components search — rootNode is only
+                        -- component 1 (see SlurryNodeUtil.findVehicleNodeByName).
+                        local liveParent = SlurryNodeUtil.findVehicleNodeByName(vehicle, targetName, false)
                         if liveParent ~= nil then
                             local children = {}
                             for childIdx = 0, getNumOfChildren(container) - 1 do
@@ -540,16 +542,18 @@ function SlurryPipeManager:registerSprayerVehicle(vehicle)
         for _, n in ipairs(entry.linkedNodes) do
             if getName(n) == name then return n end
         end
-        local function searchTree(root, targetName)
-            if root == nil or root == 0 or not entityExists(root) then return nil end
-            if getName(root) == targetName then return root end
-            for i = 0, getNumOfChildren(root) - 1 do
-                local found = searchTree(getChildAt(root, i), targetName)
-                if found ~= nil then return found end
-            end
-            return nil
+        -- [SPS 1.0.1.6] All-components search — rootNode is only component 1
+        -- (see SlurryNodeUtil.findVehicleNodeByName). Whitespace-tolerant retry
+        -- with a warning, mirroring the slurry-side resolver.
+        local found = SlurryNodeUtil.findVehicleNodeByName(vehicle, name, false)
+        if found ~= nil then return found end
+        found = SlurryNodeUtil.findVehicleNodeByName(vehicle, name, true)
+        if found ~= nil then
+            print(string.format(
+                "[SPS] WARNING: node '%s' on %s only matched after trimming whitespace (actual name '%s') — fix the node name in the i3d",
+                tostring(name), tostring(vehicle.configFileName), tostring(getName(found))))
         end
-        return searchTree(vehicle.rootNode, name)
+        return found
     end
 
     -- Inject SPS nodeTree nodes into vehicle.i3dMappings so loadSampleFromXML

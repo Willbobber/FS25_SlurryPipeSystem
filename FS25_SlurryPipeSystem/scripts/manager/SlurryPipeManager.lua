@@ -264,6 +264,10 @@ function SlurryPipeManager.new()
         enabled = true, image = true,
         fill = true, crust = true, thick = true, risk = true, pump = true,
         scale = 1.0, posX = nil, posY = nil,
+        -- [SPS 1.0.1.6] true = the HUD hides together with the help menu (F1
+        -- flips GameSettings SHOW_HELP_MENU, PlayerInputComponent.lua:392).
+        -- Ships false so existing behaviour is unchanged.
+        hideWithHelp = false,
     }
     self._lastMonotonicDay          = nil  -- tracked to detect day transitions
     -- Sprayer system tables (herbicide / fertiliser, bez pipe only)
@@ -508,6 +512,7 @@ function SlurryPipeManager:saveUserSettings()
     xmlFile:setBool ("spsUserSettings#hudRisk",    hs.risk    ~= false)
     xmlFile:setBool ("spsUserSettings#hudPump",    hs.pump    ~= false)
     xmlFile:setFloat("spsUserSettings#hudScale",   hs.scale or 1.0)
+    xmlFile:setBool ("spsUserSettings#hudHideWithHelp", hs.hideWithHelp == true)
     if hs.posX ~= nil then xmlFile:setFloat("spsUserSettings#hudPosX", hs.posX) end
     if hs.posY ~= nil then xmlFile:setFloat("spsUserSettings#hudPosY", hs.posY) end
     xmlFile:save()
@@ -529,6 +534,7 @@ function SlurryPipeManager:loadUserSettings()
     hs.risk    = xmlFile:getBool("spsUserSettings#hudRisk",    hs.risk    ~= false)
     hs.pump    = xmlFile:getBool("spsUserSettings#hudPump",    hs.pump    ~= false)
     hs.scale   = xmlFile:getFloat("spsUserSettings#hudScale",  hs.scale or 1.0)
+    hs.hideWithHelp = xmlFile:getBool("spsUserSettings#hudHideWithHelp", hs.hideWithHelp == true)
     if xmlFile:hasProperty("spsUserSettings#hudPosX") then hs.posX = xmlFile:getFloat("spsUserSettings#hudPosX", 0.5) end
     if xmlFile:hasProperty("spsUserSettings#hudPosY") then hs.posY = xmlFile:getFloat("spsUserSettings#hudPosY", 0.985) end
     local colorIndex = xmlFile:getInt("spsUserSettings#colorIndex")
@@ -926,6 +932,12 @@ function SlurryPipeManager:registerVehicle(vehicle)
         },
         selfPowered           = xmlFile:getBool(kp .. "slurryPipeSystem.pump#selfPowered", false),
         conduit               = xmlFile:getBool(kp .. "slurryPipeSystem.pump#conduit", false),
+        -- [SPS 1.0.1.6] Optional changeover-lever animation, named in the
+        -- vehicle XML's own <animations>. Convention: animation time 0 = FILL
+        -- (lever on vacuum), time 1 = DISCHARGE (lever on pressure). Played on
+        -- every direction toggle and snapped to the right pose on register /
+        -- savegame restore (see updateDirectionAnimation, SPSM_Flow).
+        directionAnimationName = xmlFile:getString(kp .. "slurryPipeSystem.pump#directionAnimation"),
         pumpType              = nil,   -- resolved just below from pump#pumpType
         agitatorOnly          = xmlFile:getBool(kp .. "slurryPipeSystem#agitatorOnly", false),
         -- [SPS 1.0.1.4] Optional explicit vehicle-role declaration on the slurry
@@ -1100,26 +1112,20 @@ function SlurryPipeManager:registerVehicle(vehicle)
                     for containerIdx = 0, getNumOfChildren(group) - 1 do
                         local container  = getChildAt(group, containerIdx)
                         local targetName = getName(container)
-                        local liveParent = findByName(vehicle.rootNode, targetName)
+                        -- [SPS 1.0.1.6] All-components search (Abbey 3000: the
+                        -- container target lives on component 2, the sprung tank
+                        -- body — rootNode is only component 1, see
+                        -- SlurryNodeUtil.findVehicleNodeByName).
+                        local liveParent = SlurryNodeUtil.findVehicleNodeByName(vehicle, targetName, false)
                         -- [SPS 1.0.1.4] Whitespace-tolerant retry. GIANTS Editor
                         -- saves node names with invisible trailing spaces; the
-                        -- Abbey 3000's live "slurryPipeSystem " node failed this
+                        -- Abbey 3000's live "slurryPipeSystem " node failed the
                         -- exact match and every SPS node (couplers, blockage,
                         -- controls, surface refs) was silently left unlinked.
                         -- Exact match first, trimmed second, loud warning naming
                         -- the offending node so the author can fix the i3d.
                         if liveParent == nil and targetName ~= nil then
-                            local want = targetName:match("^%s*(.-)%s*$")
-                            local function findTrimmed(root)
-                                local nm = getName(root)
-                                if nm ~= nil and nm:match("^%s*(.-)%s*$") == want then return root end
-                                for i = 0, getNumOfChildren(root) - 1 do
-                                    local f = findTrimmed(getChildAt(root, i))
-                                    if f ~= nil then return f end
-                                end
-                                return nil
-                            end
-                            liveParent = findTrimmed(vehicle.rootNode)
+                            liveParent = SlurryNodeUtil.findVehicleNodeByName(vehicle, targetName, true)
                             if liveParent ~= nil then
                                 print(string.format(
                                     "[SPS] WARNING: nodeTree container '%s' on %s only matched vehicle node '%s' after trimming whitespace — fix the node name in the i3d",
@@ -1143,8 +1149,17 @@ function SlurryPipeManager:registerVehicle(vehicle)
                     end
                 end
             end
+            -- [SPS 1.0.1.6] One always-on line so a support log shows at a glance
+            -- that the nodeTree authoring path ran and how much of it linked.
+            -- Both authoring styles are supported and compose: nodeTree-linked
+            -- nodes are resolved first, the vehicle's own i3d second.
+            print(string.format("[SPS] nodeTree '%s': %d node(s) linked onto %s",
+                tostring(nodeTreePath), #entry.linkedNodes, tostring(vehicle.configFileName)))
         else
-            SlurryDebug.log("SlurryPipeManager: failed to load nodeTree: " .. tostring(fullPath))
+            -- [SPS 1.0.1.6] Was SlurryDebug-gated; a declared-but-unloadable
+            -- nodeTree is always an authoring/packaging bug worth one loud line.
+            print(string.format("[SPS] WARNING: nodeTree '%s' declared but could not be loaded (%s) on %s",
+                tostring(nodeTreePath), tostring(fullPath), tostring(vehicle.configFileName)))
         end
     end
 
@@ -1154,17 +1169,11 @@ function SlurryPipeManager:registerVehicle(vehicle)
         for _, n in ipairs(entry.linkedNodes) do
             if getName(n) == name then return n end
         end
-        -- Fallback: search the vehicle's own node tree for nodes already authored in the i3d
-        local function searchTree(root, targetName)
-            if root == nil or root == 0 or not entityExists(root) then return nil end
-            if getName(root) == targetName then return root end
-            for i = 0, getNumOfChildren(root) - 1 do
-                local found = searchTree(getChildAt(root, i), targetName)
-                if found ~= nil then return found end
-            end
-            return nil
-        end
-        local found = searchTree(vehicle.rootNode, name)
+        -- Fallback: nodes authored in the vehicle's own i3d. [SPS 1.0.1.6] Searches
+        -- ALL components — rootNode is only component 1, and e.g. the Abbey 3000
+        -- authors its SPS nodes on component 2, the sprung tank body (see
+        -- SlurryNodeUtil.findVehicleNodeByName).
+        local found = SlurryNodeUtil.findVehicleNodeByName(vehicle, name, false)
         if found ~= nil then return found end
         -- [SPS 1.0.1.4] Whitespace-tolerant last resort. GIANTS Editor happily
         -- saves node names with trailing spaces ("slurryPipeSystem "), which are
@@ -1174,21 +1183,11 @@ function SlurryPipeManager:registerVehicle(vehicle)
         -- for it; when it rescues a node it says so loudly, naming the offender,
         -- so the author can fix the i3d.
         local want = name:match("^%s*(.-)%s*$")
-        local function searchTrimmed(root)
-            if root == nil or root == 0 or not entityExists(root) then return nil end
-            local nm = getName(root)
-            if nm ~= nil and nm:match("^%s*(.-)%s*$") == want then return root end
-            for i = 0, getNumOfChildren(root) - 1 do
-                local f = searchTrimmed(getChildAt(root, i))
-                if f ~= nil then return f end
-            end
-            return nil
-        end
         for _, n in ipairs(entry.linkedNodes) do
             local nm = getName(n)
             if nm ~= nil and nm:match("^%s*(.-)%s*$") == want then found = n break end
         end
-        if found == nil then found = searchTrimmed(vehicle.rootNode) end
+        if found == nil then found = SlurryNodeUtil.findVehicleNodeByName(vehicle, name, true) end
         if found ~= nil then
             print(string.format(
                 "[SPS] WARNING: node '%s' on %s only matched after trimming whitespace (actual name '%s') — fix the node name in the i3d",
@@ -1577,7 +1576,16 @@ function SlurryPipeManager:registerVehicle(vehicle)
                     search(getChildAt(root, i))
                 end
             end
-            search(vehicle.rootNode)
+            -- [SPS 1.0.1.6] All components, not just rootNode (= component 1):
+            -- a live arm authored on a later component was invisible here.
+            if vehicle.components ~= nil and #vehicle.components > 0 then
+                for _, comp in ipairs(vehicle.components) do
+                    search(comp.node)
+                    if live ~= nil then break end
+                end
+            else
+                search(vehicle.rootNode)
+            end
             if live ~= nil then
                 -- Pose-INDEPENDENT re-seat. The authoring container is a static copy of
                 -- the arm in its REST pose, so the node's LOCAL transform relative to that
@@ -1842,6 +1850,11 @@ function SlurryPipeManager:registerVehicle(vehicle)
                 connectorType       = xmlFile:getString(cKey .. "#connector", "male"),
                 connectorAnimationId = xmlFile:getInt(cKey .. "#connectorAnimation"),
                 valveAnimationId     = xmlFile:getInt(cKey .. "#valveAnimation"),
+                -- [SPS 1.0.1.6] Name-based alternative: reference an animation
+                -- from the vehicle's OWN <animations> block instead of an SPS
+                -- couplerAnimations id. Name wins when both are declared.
+                connectorAnimationName = xmlFile:getString(cKey .. "#connectorAnimationName"),
+                valveAnimationName     = xmlFile:getString(cKey .. "#valveAnimationName"),
                 isConnected         = false,
                 connectedTarget     = nil,
                 sourceEntry         = nil,
@@ -1863,12 +1876,19 @@ function SlurryPipeManager:registerVehicle(vehicle)
             }
             -- Bind coupler animations if either id is declared on this coupling.
             if SPSCouplerAnimator ~= nil
-            and (couplingEntry.connectorAnimationId ~= nil or couplingEntry.valveAnimationId ~= nil) then
+            and (couplingEntry.connectorAnimationId ~= nil or couplingEntry.valveAnimationId ~= nil
+                 or couplingEntry.connectorAnimationName ~= nil or couplingEntry.valveAnimationName ~= nil) then
                 SPSCouplerAnimator.ensureLoaded(self.modDirectory)
-                if couplingEntry.connectorAnimationId ~= nil then
+                -- [SPS 1.0.1.6] Name-based (vanilla <animations>) wins over the
+                -- SPS part-library id when both are declared.
+                if couplingEntry.connectorAnimationName ~= nil then
+                    couplingEntry.connectorAnim = SPSCouplerAnimator.bindVanilla(vehicle, couplingEntry.connectorAnimationName)
+                elseif couplingEntry.connectorAnimationId ~= nil then
                     couplingEntry.connectorAnim = SPSCouplerAnimator.bind(couplingEntry.mountNode, couplingEntry.connectorAnimationId, localAnimLibrary)
                 end
-                if couplingEntry.valveAnimationId ~= nil then
+                if couplingEntry.valveAnimationName ~= nil then
+                    couplingEntry.valveAnim = SPSCouplerAnimator.bindVanilla(vehicle, couplingEntry.valveAnimationName)
+                elseif couplingEntry.valveAnimationId ~= nil then
                     couplingEntry.valveAnim = SPSCouplerAnimator.bind(couplingEntry.mountNode, couplingEntry.valveAnimationId, localAnimLibrary)
                 end
                 SlurryPipeManager.log("sprayer bind DIAG (vehicle): id=%s connIds=%s/%s bound=%s/%s",
@@ -2073,6 +2093,14 @@ function SlurryPipeManager:registerVehicle(vehicle)
                                 --print(string.format("[SPS] section band '%s' built (index %d) startWorld=%.2f %.2f %.2f",
                                 --    tostring(b.workAreaNodeName), band.index, wx, wy, wz))
                             else
+                                -- [SPS 1.0.1.6] Was silent. The band parent resolved but its
+                                -- children are misnamed — field case: the Abbey authored
+                                -- workAreaStart1/Width1/Height1 (vanilla-style suffixed names)
+                                -- under workArea01; SPS requires the exact unsuffixed trio.
+                                print(string.format(
+                                    "[SPS] WARNING: blockage section '%s' on %s found its parent but not all of workAreaStart/workAreaWidth/workAreaHeight under it (start=%s width=%s height=%s) — section band skipped",
+                                    tostring(b.workAreaNodeName), tostring(vehicle.configFileName),
+                                    tostring(startNode ~= nil), tostring(widthNode ~= nil), tostring(heightNode ~= nil)))
                             end
                         else
                         end
@@ -2156,6 +2184,35 @@ function SlurryPipeManager:registerVehicle(vehicle)
         local ocRadius    = xmlFile:getFloat(ocKey .. "#radius", 1.5)
         local ocPto       = xmlFile:getBool(ocKey .. "#pto", false)
         local ocDirection = xmlFile:getBool(ocKey .. "#direction", false)
+        -- [SPS 1.0.1.6] Hydraulic changeover as a store option. A tanker sold
+        -- with BOTH a manual changeover (walk-up, this outside control) and a
+        -- hydraulic changeover configuration can declare which configuration
+        -- indices move the DIRECTION control into the cab:
+        --   cabDirectionConfigIndex : comma-separated 0-based active-config
+        --                             indices (same convention as fillArm /
+        --                             pipeCoupling gates)
+        --   cabDirectionConfigType  : configuration name (default "design")
+        -- When the active config matches, this control's direction flag is
+        -- cleared — vehicleHasOutsideDirectionControl then reports false and
+        -- the cab SPS_TOGGLE_DIRECTION action registers exactly as on any
+        -- cab-controlled tanker (including its hydraulics-connected gate, which
+        -- is semantically right for a hydraulic changeover). PTO on this
+        -- control is unaffected. Resolved once per registration; store
+        -- configurations are fixed for the vehicle instance.
+        if ocDirection then
+            local ocCabCfgStr = xmlFile:getString(ocKey .. "#cabDirectionConfigIndex")
+            if ocCabCfgStr ~= nil then
+                local ocCabCfgType = xmlFile:getString(ocKey .. "#cabDirectionConfigType", "design")
+                local ocActiveIdx  = getActiveConfigIndex(ocCabCfgType)
+                if ocActiveIdx ~= nil and configIndexMatches(ocCabCfgStr, ocActiveIdx) then
+                    ocDirection = false
+                    print(string.format(
+                        "[SPS] outsideControl id=%s on %s: direction control moved to the CAB (%s config %d matches '%s')",
+                        tostring(ocId), tostring(vehicle.configFileName),
+                        tostring(ocCabCfgType), ocActiveIdx, tostring(ocCabCfgStr)))
+                end
+            end
+        end
         local ocNode      = findLinkedNode(xmlFile:getString(ocKey .. "#mountNodeName"))
         if ocNode ~= nil then
             table.insert(entry.outsideControlEntries, { id = ocId, node = ocNode, radius = ocRadius, pto = ocPto, direction = ocDirection, vehicle = vehicle })
@@ -2173,6 +2230,80 @@ function SlurryPipeManager:registerVehicle(vehicle)
 	
 	-- Optional spreader animation, driven by SPS discharge state (not turnOn)
     entry.spreaderAnimationName = xmlFile:getString(kp .. "slurryPipeSystem.spreaderAnimation#name")
+    -- [SPS 1.0.1.6] Optional rear-valve animation from the vehicle's own
+    -- <animations>, driven by the SPS spreader valve. Convention: time 0 =
+    -- closed, time 1 = open. Played on every toggle, snapped closed at
+    -- registration (the valve state is not savegame-persisted and always
+    -- starts closed). See updateSpreaderValveAnimation (SPSM_Spreader).
+    entry.spreaderValveAnimationName = xmlFile:getString(kp .. "slurryPipeSystem.spreaderValveAnimation#name")
+
+    -- [SPS 1.0.1.6] Disarm any movingTool that drives an SPS-owned animation.
+    -- Modders keep the movingTool in their XML so the SAME file works without
+    -- SPS (manual axis control of the valve/lever); with SPS registered, two
+    -- drivers on one animation fight on three fronts: manual input desyncs the
+    -- visual from state.spreaderValveOpen, the tool's saved #animationTime
+    -- restores a stale pose at load, and Cylindered's MP join stream reasserts
+    -- the tool's stale curAnimTime over the SPS pose. Setting tool.isActive =
+    -- false is vanilla's own kill switch (getIsMovingToolActive = isActive AND
+    -- hasRequiredConfigurations, Cylindered.lua): input and movement stop, but
+    -- the tool STAYS in spec.movingTools so read/writeStream stay symmetric —
+    -- never remove it from the list. Runs on every peer at registration, so
+    -- all machines disarm identically.
+    do
+        local ownedAnims = {}
+        if entry.spreaderValveAnimationName ~= nil then ownedAnims[entry.spreaderValveAnimationName] = "spreaderValveAnimation" end
+        if entry.directionAnimationName ~= nil then ownedAnims[entry.directionAnimationName] = "directionAnimation" end
+        local cylSpec = vehicle.spec_cylindered
+        if next(ownedAnims) ~= nil and cylSpec ~= nil and cylSpec.movingTools ~= nil then
+            for _, tool in ipairs(cylSpec.movingTools) do
+                if tool.animName ~= nil and ownedAnims[tool.animName] ~= nil and tool.isActive ~= false then
+                    tool.isActive = false
+                    print(string.format(
+                        "[SPS] movingTool driving animation '%s' on %s disarmed — the animation is SPS-driven (%s); manual axis control remains for players without SPS",
+                        tostring(tool.animName), tostring(vehicle.configFileName), tostring(ownedAnims[tool.animName])))
+                end
+            end
+        end
+        -- [SPS 1.0.1.6] Same disarm for the FOLDABLE system. A pre-SPS tanker may
+        -- drive an SPS-owned animation through <foldable> (field case: the Abbey
+        -- built its changeover lever as foldingPart animationName="unfolding" with
+        -- "Toggle Pump Mode" texts — its standalone pump-mode mechanic). With SPS
+        -- registered, the cab fold key (X) would swing the lever with NO effect on
+        -- SPS direction, then the real SPS toggle plays the same animation from a
+        -- now-wrong pose — visual state ends up inverted. Wrap the instance's
+        -- getIsFoldAllowed to refuse with a proper warning, so X tells the player
+        -- WHY instead of lying. Vanilla shows the returned warning itself
+        -- (Foldable.lua:1832/:1898). AI keeps vanilla behaviour (SPS AI-gate
+        -- convention). Without SPS nothing runs and the fold lever works as
+        -- authored — one XML for both audiences, like the movingTool disarm.
+        if next(ownedAnims) ~= nil and vehicle.spec_foldable ~= nil
+        and vehicle.spec_foldable.foldingParts ~= nil
+        and vehicle.getIsFoldAllowed ~= nil
+        and not vehicle._spsFoldGateInstalled then
+            local foldOwned = nil
+            for _, fp in ipairs(vehicle.spec_foldable.foldingParts) do
+                if fp.animationName ~= nil and ownedAnims[fp.animationName] ~= nil then
+                    foldOwned = fp.animationName
+                    break
+                end
+            end
+            if foldOwned ~= nil then
+                vehicle._spsFoldGateInstalled = true
+                local origGetIsFoldAllowed = vehicle.getIsFoldAllowed
+                vehicle.getIsFoldAllowed = function(v, direction, onAiTurnOn)
+                    if SlurryPipeSystemOverride ~= nil
+                    and SlurryPipeSystemOverride.isAIControlled ~= nil
+                    and SlurryPipeSystemOverride.isAIControlled(v) then
+                        return origGetIsFoldAllowed(v, direction, onAiTurnOn)
+                    end
+                    return false, g_i18n:getText("warning_spsFoldIsSpsControlled")
+                end
+                print(string.format(
+                    "[SPS] foldable driving animation '%s' on %s disarmed — the animation is SPS-driven (%s); fold control remains for players without SPS",
+                    tostring(foldOwned), tostring(vehicle.configFileName), tostring(ownedAnims[foldOwned])))
+            end
+        end
+    end
     entry.spreaderAnimationStopDelay = xmlFile:getFloat(kp .. "slurryPipeSystem.spreaderAnimation#stopDelay", 2.0) * 1000
     entry._spreadAnimOn = false
     entry._spreadAnimTail = nil
@@ -2440,6 +2571,13 @@ function SlurryPipeManager:registerVehicle(vehicle)
         entry.pressure = nil
     end
 
+    -- [SPS 1.0.1.6] Changeover lever: snap to the current direction at
+    -- registration (fresh spawn = FILL default; a savegame restore may adjust
+    -- it again in tryResolvePendingConnections, also instantly).
+    self:updateDirectionAnimation(vehicle, true)
+    -- [SPS 1.0.1.6] Rear valve: snap closed (spreader valve always starts closed).
+    self:updateSpreaderValveAnimation(vehicle, true)
+
     -- [SPS 1.0.1.5] Custom-type safety net: a vehicle that registers as a slurry
     -- machine but whose TYPE never received the tanker override set (neither a
     -- vanilla tanker name nor a descendant of one) gets the same overrides
@@ -2495,6 +2633,11 @@ SlurryPipeManager._instanceOverrideAnnounced = {}
 function SlurryPipeManager:applyInstanceTankerOverrides(vehicle, entry)
     if vehicle == nil or vehicle._spsInstanceOverridesApplied then return end
     if entry ~= nil and entry.isSpreaderImplement then return end
+    -- [SPS 1.0.1.6] agitatorOnly vehicles declare themselves NOT-a-tanker (no
+    -- couplers, no pump, no discharge — just a tip node); the tanker override
+    -- set has nothing to gate on them. Field case: the Major agitator (typed
+    -- 'mulcher') collected 2 instance overrides it never needed.
+    if entry ~= nil and entry.agitatorOnly == true then return end
     if SlurryPipeSystemOverride == nil then return end
     local covered = SlurryPipeSystemOverride.typeLevelTankerOverrides
     if covered ~= nil and vehicle.typeName ~= nil and covered[vehicle.typeName] then return end
@@ -4587,6 +4730,9 @@ function SlurryPipeManager:tryResolvePendingConnections()
             end
             if best ~= nil then
                 best.state.direction = pending.direction
+                -- [SPS 1.0.1.6] Snap the changeover lever to the restored
+                -- direction (instant — no lever swing on savegame load).
+                self:updateDirectionAnimation(best.vehicle, true)
                 SlurryPipeManager.log("tryResolvePendingConnections: restored pump direction=%d on %s",
                     pending.direction, tostring(best.vehicle and best.vehicle.configFileName))
                 table.insert(resolvedPumps, pending)
@@ -5128,6 +5274,7 @@ function SlurryPipeManager:onAIGateChanged(vehicle, vEntry, aiNow)
             if state.spreaderValveOpen == true then
                 state.spreaderValveOpen = false
                 SPSSpreaderValveEvent.sendEvent(vehicle, false)
+                self:updateSpreaderValveAnimation(vehicle, false)
             end
             if state.pumpRunning == true then
                 state.pumpRunning = false
@@ -5811,6 +5958,38 @@ function SlurryPipeManager:update(dt)
                     candidates[#candidates + 1] = bar
                 end
 
+                -- [SPS 1.0.1.6] Gravity dribble visual: while discharging with no
+                -- charge built the spread effect runs SMALL -- density follows the
+                -- same scalar as the rate (gravityFlowScalar -> 1.0 as pressure
+                -- builds). g_effectManager:setDensity skips effects without the
+                -- API, so this is safe on any effect set. Cached per implement so
+                -- healthy frames cost one compare.
+                do
+                    local dens = 1.0
+                    if discharging and self.getSpreaderPressureScalar ~= nil then
+                        dens = self:getSpreaderPressureScalar(vehicle) or 1.0
+                    end
+                    -- Scalar is continuous with pressure now: quantise to 0.05
+                    -- steps so the cached compare stops per-frame micro-updates.
+                    dens = math.floor(dens * 20 + 0.5) / 20
+                    for _, sv in ipairs(candidates) do
+                        local specS = sv ~= nil and sv.spec_sprayer or nil
+                        if specS ~= nil and sv._spsEffectDensity ~= dens then
+                            sv._spsEffectDensity = dens
+                            if specS.effects ~= nil then
+                                g_effectManager:setDensity(specS.effects, dens)
+                            end
+                            if specS.sprayTypes ~= nil then
+                                for _, st in ipairs(specS.sprayTypes) do
+                                    if st.effects ~= nil then
+                                        g_effectManager:setDensity(st.effects, dens)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+
                 for _, sv in ipairs(candidates) do
                     if sv ~= nil and sv.getIsPrecisionSprayingRequired ~= nil then  -- PF present on this implement
                         local realOn = (sv.getIsTurnedOn ~= nil) and sv:getIsTurnedOn()
@@ -6040,8 +6219,21 @@ function SlurryPipeManager:update(dt)
                                             end
                                         end
                                         
-                                        if pumpOn2b and (self:getPressureFlowScalar(vehicle2) > 0) and valveOpen2 and dirOk2 and tankerHasSlurry2 then
-                                            shouldPlay = true
+                                        -- [SPS 1.0.1.6] Gravity-aware: ask the SAME resolver
+                                        -- the flow uses instead of demanding a running pump +
+                                        -- built pressure. resolveCouplingFlow returns the
+                                        -- gravity drain (pump off, pressure spent, content
+                                        -- left), so the store's pipe effect now plays whenever
+                                        -- slurry actually arrives — pumped, pressure-driven or
+                                        -- gravity/head-driven. Same fix the ARM effect got in
+                                        -- 1.0.1.4; this store-coupling gate was missed then.
+                                        if vState2 ~= nil then
+                                            local flowDir2, flowScalar2 = self:resolveCouplingFlow(
+                                                vehicle2, vState2, pumpOn2b, tankerHasSlurry2)
+                                            if flowDir2 ~= nil and flowScalar2 > 0
+                                            and valveOpen2 and dirOk2 and tankerHasSlurry2 then
+                                                shouldPlay = true
+                                            end
                                         end
                                     end
                                 end

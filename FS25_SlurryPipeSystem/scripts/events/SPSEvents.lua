@@ -748,6 +748,10 @@ function SPSSpreaderValveEvent:run(connection)
             if state ~= nil then
                 state.spreaderValveOpen = self.isOpen
                 g_slurryPipeManager:updateActionEventTexts(self.vehicle)
+                -- [SPS 1.0.1.6] Rear-valve animation on remote peers (this run()
+                -- also carries the JIP full-state resend, so late joiners see
+                -- an already-open valve animate to its open pose).
+                g_slurryPipeManager:updateSpreaderValveAnimation(self.vehicle, false)
             end
         end
     end

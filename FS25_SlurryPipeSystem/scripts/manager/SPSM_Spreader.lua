@@ -91,6 +91,43 @@ function SlurryPipeManager:onActionToggleSpreader(vehicle)
         SPSSpreaderValveEvent.sendEvent(vehicle, newOpen)
         self:updateActionEventTexts(vehicle)
     end
+    -- [SPS 1.0.1.6] Rear-valve animation follows the spreader valve.
+    self:updateSpreaderValveAnimation(vehicle, false)
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.6] Rear-valve animation (<spreaderValveAnimation name="...">).
+-- An animation from the vehicle's OWN <animations>, driven by the SPS spreader
+-- valve: plays forward when the valve opens, reverse when it closes.
+-- Convention: animation time 0 = closed, time 1 = open. instant=true snaps the
+-- pose (registration; the valve always starts closed — spreaderValveOpen is
+-- not savegame-persisted). Client-side only; every peer runs this from its own
+-- toggle path or SPSSpreaderValveEvent, so no extra sync is needed. Mirrors
+-- updateDirectionAnimation (SPSM_Flow).
+-- ---------------------------------------------------------------------------
+function SlurryPipeManager:updateSpreaderValveAnimation(vehicle, instant)
+    if vehicle == nil or not vehicle.isClient then return end
+    local entry = self:getVehicleEntry(vehicle)
+    if entry == nil or entry.spreaderValveAnimationName == nil then return end
+    local animName = entry.spreaderValveAnimationName
+    if vehicle.getAnimationExists == nil or not vehicle:getAnimationExists(animName) then
+        if not entry._spreaderValveAnimWarned then
+            entry._spreaderValveAnimWarned = true
+            print(string.format(
+                "[SPS] WARNING: spreaderValveAnimation '%s' not found in the animations of %s",
+                tostring(animName), tostring(vehicle.configFileName)))
+        end
+        return
+    end
+    local state = self:getVehicleState(vehicle)
+    local open = state ~= nil and state.spreaderValveOpen == true
+    if instant then
+        if vehicle.setAnimationTime ~= nil then
+            vehicle:setAnimationTime(animName, open and 1 or 0, true)
+        end
+    elseif vehicle.playAnimation ~= nil then
+        vehicle:playAnimation(animName, open and 1 or -1, nil, true)
+    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -273,7 +310,10 @@ function SlurryPipeManager:setBlockageState(vehicle, blockageEntry, blocked, noE
     SlurryPipeManager.log("setBlockageState: %s blocked=%s", tostring(vehicle and vehicle.configFileName), tostring(blocked))
     if blockageEntry == nil or blockageEntry.blocked == blocked then return end
     blockageEntry.blocked = blocked
-    self:playBlockageAnimation(vehicle, blockageEntry, blocked)
+    -- [SPS 1.0.1.6] The blockageAnimation NO LONGER plays on block/clear state
+    -- changes. It belongs to the CLEARING SEQUENCE (hold R at the node): the
+    -- animation opens the mechanism, the clearing time runs, the animation
+    -- closes it back up. See SPSBlockageActivatable's phase machine.
     if blocked and vehicle.isClient then
         -- Name what blocked so the player knows whether it's the whole-bar macerator
         -- (everything stops) or a single outlet section (only that strip stops).
@@ -301,11 +341,25 @@ function SlurryPipeManager:applyBlockageByIndex(vehicle, index, blocked)
     if b ~= nil then self:setBlockageState(vehicle, b, blocked, true) end
 end
 
-function SlurryPipeManager:playBlockageAnimation(vehicle, blockageEntry, blocked)
+-- [SPS 1.0.1.6] Clearing-sequence animation drive. forward=true plays the
+-- mechanism OPEN (phase 1 of a clear), false plays it back CLOSED (phase 3, or
+-- an abort wind-back). Local visuals only — MP peers receive the same call via
+-- SPSBlockageClearAnimEvent. A missing/unauthored animation is a silent no-op
+-- (the clearing then runs on the plain hold timer alone).
+function SlurryPipeManager:playBlockageClearAnimation(vehicle, blockageEntry, forward)
+    if blockageEntry == nil then return end
     local animName = blockageEntry.blockageAnimation
     if animName == nil or animName == "" then return end
-    if vehicle.playAnimation == nil or not vehicle.isClient then return end
-    vehicle:playAnimation(animName, blocked and 1 or -1, nil, true)
+    if vehicle == nil or vehicle.playAnimation == nil or not vehicle.isClient then return end
+    if vehicle.getAnimationExists ~= nil and not vehicle:getAnimationExists(animName) then return end
+    vehicle:playAnimation(animName, forward and 1 or -1, nil, true)
+end
+
+-- Remote form, addressed by node index (SPSBlockageClearAnimEvent).
+function SlurryPipeManager:playBlockageClearAnimByIndex(vehicle, index, forward)
+    local list = self:getBlockageEntries(vehicle)
+    local b = list ~= nil and list[index] or nil
+    if b ~= nil then self:playBlockageClearAnimation(vehicle, b, forward) end
 end
 
 function SlurryPipeManager:clearAllBlockages(vehicle)
@@ -343,10 +397,16 @@ function SlurryPipeManager:canClearBlockage(vehicle)
     if controller == nil then return false end
     local state = self:getVehicleState(controller)
     if state == nil then return false end
+    -- [SPS 1.0.1.6] Tightened (William): on EVERY drive model the pump must be
+    -- OFF and the spreader valve CLOSED before a blockage can be worked on —
+    -- you do not open the mechanism on a live bar. Vacuum tankers must also
+    -- have vented to ~0 bar (a charged line with the pump off is still live).
+    if self:_isPumpOn(controller) then return false end
+    if state.spreaderValveOpen == true then return false end
     if self:usesPressureModel(controller) then
         return math.abs(state.pressure or 0) <= SlurryPipeManager.BLOCKAGE_CLEAR_PRESSURE_EPS
     end
-    return state.pumpRunning ~= true
+    return true
 end
 
 -- Player-initiated clear of one specific blockage node (from its walk-up activatable).
@@ -372,7 +432,41 @@ function SlurryPipeManager:isSpreaderDischargeActive(vehicle)
         return state.pumpRunning == true
     end
     if state.direction ~= SPS_DIRECTION_DISCHARGE then return false end
-    return (state.pressure or 0) >= cfg.minThreshold
+    if (state.pressure or 0) >= cfg.minThreshold then return true end
+    -- [SPS 1.0.1.6] Gravity dribble: an OPEN spreader valve lets slurry fall
+    -- out even with no charge built -- the tank empties slowly (same
+    -- gravityFlowScalar as pipe gravity, applied in getSprayerUsage via
+    -- getSpreaderPressureScalar) and the discharge effect runs small (density,
+    -- turn-state driver). Builds into the full pressure-driven spread as the
+    -- charge comes up.
+    if state.spreaderValveOpen == true
+    and SlurryPipeSystemOverride ~= nil
+    and SlurryPipeSystemOverride.getSPSFillLevel ~= nil
+    and (SlurryPipeSystemOverride.getSPSFillLevel(vehicle) or 0) > 0 then
+        return true
+    end
+    return false
+end
+
+-- [SPS 1.0.1.6] Rate/effect scalar for the spreader — CONTINUOUS with stored
+-- pressure: the spread rate and the effect density both follow
+--   max(gravityFlowScalar, pressure / maxPressure), clamped to 1.
+-- So a chargeless open valve dribbles at the gravity floor, a half-charged
+-- tank spreads (and looks) proportionally weaker, and a full charge gives the
+-- full-rate, full-size spread. The gravity floor keeps the curve monotone —
+-- pressure never makes the spread WEAKER than plain gravity through an open
+-- valve. Exempt (non-pressure) endpoints always spread at full rate.
+function SlurryPipeManager:getSpreaderPressureScalar(vehicle)
+    local entry = self:getVehicleEntry(vehicle)
+    if entry == nil or entry.state == nil then return 1.0 end
+    if not self:usesPressureModel(entry) then return 1.0 end
+    local cfg  = entry.pressure
+    local maxP = cfg.maxPressure
+    if maxP == nil or maxP <= 0 then maxP = SlurryPipeManager.DEFAULT_MAX_PRESSURE end
+    local g = (cfg.gravityFlowScalar ~= nil) and cfg.gravityFlowScalar
+        or SlurryPipeManager.DEFAULT_GRAVITY_FLOW_SCALAR
+    local prop = math.min(1, math.max(0, (entry.state.pressure or 0) / maxP))
+    return math.max(g, prop)
 end
 
 -- True when the spreader's spraying component should be TURNED ON. Discharge is
