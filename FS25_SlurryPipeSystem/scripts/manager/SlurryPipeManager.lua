@@ -121,7 +121,9 @@ SlurryPipeManager.BLOCKAGE_CRUST_MIN        = 0.3   -- tanker-carried crust belo
 SlurryPipeManager.BLOCKAGE_MACERATOR_CRUST_MIN  = 0.25 -- macerator takes the punishment first, so it is exposed earliest
 SlurryPipeManager.BLOCKAGE_OUTLET_CRUST_MIN     = 0.60 -- outlets BEHIND a macerator: protected until lumps start getting past it
 SlurryPipeManager.BLOCKAGE_OUTLET_CRUST_MIN_RAW = 0.30 -- outlets with NO macerator fitted: unprotected, clog far earlier
-SlurryPipeManager.BLOCKAGE_BASE_CHANCE      = 0.0015-- per-outlet random clog chance even on clean slurry (wood/debris/foreign object)
+SlurryPipeManager.BLOCKAGE_BASE_CHANCE      = 0.0004-- per-roll, per-BAR random clog chance even on clean slurry (wood/debris/foreign object).
+                                                    -- [SPS 1.0.1.7] Was 0.0015: at one roll per 6 s that was ~59 % per hour of spreading,
+                                                    -- which players read as "blocks for no reason". 0.0004 = ~21 % per hour, ~5 % per load.
 SlurryPipeManager.BLOCKAGE_DM_BONUS         = 0.5   -- extra blockage multiplier at the jam point (thick + crusted is worst); 0 = DM has no effect
 -- [SPS CRUST v1.0.0.10.2] Crust timing. Both values are ABSOLUTE in-game hours and
 -- are deliberately independent of the player's daysPerPeriod setting: crust forms on
@@ -2301,6 +2303,40 @@ function SlurryPipeManager:registerVehicle(vehicle)
                 print(string.format(
                     "[SPS] foldable driving animation '%s' on %s disarmed — the animation is SPS-driven (%s); fold control remains for players without SPS",
                     tostring(foldOwned), tostring(vehicle.configFileName), tostring(ownedAnims[foldOwned])))
+            end
+        end
+        -- [SPS 1.0.1.6] Same disarm for the TURN-ON system. A pre-SPS tanker may
+        -- open its rear valve with vanilla turn-on via
+        -- <turnOnVehicle><turnedAnimation name="..."/> (field case: the Abbey
+        -- tankers — the valve opens when the tanker is turned on in base game).
+        -- With SPS registered the pump toggle goes through setIsTurnedOn, so
+        -- vanilla plays that same animation on every pump start/stop and the
+        -- valve visibly opens with the pump while state.spreaderValveOpen says
+        -- closed. TurnOnVehicle keeps it as spec.turnOnAnimation (client only,
+        -- TurnOnVehicle.lua:144) and reads that table at play time in
+        -- onTurnedOn/onTurnedOff (:304/:325); nothing else reads or streams it,
+        -- so clearing it is a complete disarm. The looping <turnedOnAnimation>
+        -- list (:150, driven from onUpdate :223) is filtered the same way.
+        -- Without SPS nothing runs and the valve opens on turn-on as authored.
+        local tovSpec = vehicle.spec_turnOnVehicle
+        if next(ownedAnims) ~= nil and tovSpec ~= nil then
+            if tovSpec.turnOnAnimation ~= nil and ownedAnims[tovSpec.turnOnAnimation.name] ~= nil then
+                print(string.format(
+                    "[SPS] turnedAnimation '%s' on %s disarmed — the animation is SPS-driven (%s); turn-on still plays it for players without SPS",
+                    tostring(tovSpec.turnOnAnimation.name), tostring(vehicle.configFileName),
+                    tostring(ownedAnims[tovSpec.turnOnAnimation.name])))
+                tovSpec.turnOnAnimation = nil
+            end
+            if tovSpec.turnedOnAnimations ~= nil then
+                for i = #tovSpec.turnedOnAnimations, 1, -1 do
+                    local toa = tovSpec.turnedOnAnimations[i]
+                    if toa.name ~= nil and ownedAnims[toa.name] ~= nil then
+                        print(string.format(
+                            "[SPS] turnedOnAnimation '%s' on %s disarmed — the animation is SPS-driven (%s)",
+                            tostring(toa.name), tostring(vehicle.configFileName), tostring(ownedAnims[toa.name])))
+                        table.remove(tovSpec.turnedOnAnimations, i)
+                    end
+                end
             end
         end
     end

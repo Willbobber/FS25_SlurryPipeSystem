@@ -382,7 +382,7 @@ Every attribute below is optional and sits on the **container**, not on individu
 Omit any and it inherits the global default, so an existing config needs no changes.
 
 ```xml
-<blockageNodes baseChance="0.001" maceratorCrustMin="0.25" maceratorChance="0.027"
+<blockageNodes baseChance="0.0004" maceratorCrustMin="0.25" maceratorChance="0.027"
                outletCrustMin="0.60" outletCrustMinRaw="0.25"
                outletChance="0.030" dmBonus="0.25">
     ...
@@ -391,7 +391,7 @@ Omit any and it inherits the global default, so an existing config needs no chan
 
 | Attribute           | Default | Meaning |
 |---------------------|---------|---------|
-| `baseChance`        | 0.001   | Per-roll, per-**bar** chance of a foreign-object clog (wood, stone) even on perfectly clean slurry. Applies to both rows. |
+| `baseChance`        | 0.0004  | Per-roll (every 6 s of spreading), per-**bar** chance of a foreign-object clog (wood, stone) even on perfectly clean slurry. Applies to both rows. ≈5 % per load, ≈21 % per hour of spreading (was 0.0015 before 1.0.1.7). |
 | `maceratorCrustMin` | 0.25    | Carried crust below which the macerator copes and nothing lump-driven happens. |
 | `maceratorChance`   | 0.027   | Per-roll chance added on top of `baseChance` at full crust, scaled by how far crust has climbed past `maceratorCrustMin`. |
 | `outletCrustMin`    | 0.60    | The macerator's capacity ceiling. Below this the outlets stay clear. Used only when a macerator node exists. |
@@ -430,6 +430,12 @@ a **`<foldable>`** setup driving an SPS-owned animation (a pre-SPS "pump mode on
 the fold key" mechanic): with SPS registered, the fold key refuses with the
 warning *"The pump changeover is controlled by the Slurry Pipe System"* instead
 of desyncing the lever; without SPS it folds as authored.
+Likewise a **`<turnOnVehicle><turnedAnimation name="..."/>`** (or a looping
+`<turnedOnAnimation>`) that names an SPS-owned animation — the usual pre-SPS
+way to open the rear valve when the tanker is turned on — is disarmed at
+registration (logged once). With SPS the pump toggle would otherwise play it on
+every pump start/stop and the valve would open with the pump; without SPS it
+opens on turn-on as authored.
 
 ### Optional spreader animation
 

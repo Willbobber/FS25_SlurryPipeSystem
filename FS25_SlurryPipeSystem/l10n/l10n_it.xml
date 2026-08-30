@@ -131,6 +131,8 @@
 		<text name="sps_hudRiskLow"          			text="Basso" />
 		<text name="sps_hudRiskMed"          			text="Medio" />
 		<text name="sps_hudRiskHigh"         			text="Alto" />
+		<text name="sps_hudBlocked"          			text="Intasato" />
+		<text name="sps_hudBlockedHint"      			text="Libera all'uscita (pompa spenta, valvola chiusa)" />
 		<text name="sps_hudVacuum"           			text="Aspirazione" />
 		<text name="sps_hudHVP"              			text="HVP" />
 		<text name="sps_hudPump"             			text="Pompa" />

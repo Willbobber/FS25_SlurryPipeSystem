@@ -124,6 +124,7 @@ Watch the whole process end to end before (or instead of) reading:
 
 - **Setting up a vacuum tanker** — fill arm, couplers, pressure model, nodeTree:
   https://www.youtube.com/watch?v=1JKplzkCDS4
+  https://www.youtube.com/watch?v=nd8IPuBHPrs
 - **Setting up a placeable store** — fill plane, couplers, surface detection:
   https://www.youtube.com/watch?v=C4EO5RhY6Fk
 

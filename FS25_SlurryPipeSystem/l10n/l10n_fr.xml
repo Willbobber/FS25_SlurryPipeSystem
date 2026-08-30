@@ -131,6 +131,8 @@
 		<text name="sps_hudRiskLow"          			text="Faible" />
 		<text name="sps_hudRiskMed"          			text="Moyen" />
 		<text name="sps_hudRiskHigh"         			text="Élevé" />
+		<text name="sps_hudBlocked"          			text="Bouché" />
+		<text name="sps_hudBlockedHint"      			text="Dégager à la sortie (pompe arrêtée, vanne fermée)" />
 		<text name="sps_hudVacuum"           			text="Aspiration" />
 		<text name="sps_hudHVP"              			text="HVP" />
 		<text name="sps_hudPump"             			text="Pompe" />

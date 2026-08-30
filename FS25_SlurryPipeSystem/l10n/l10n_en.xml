@@ -131,6 +131,8 @@
 		<text name="sps_hudRiskLow"          			text="Low" />
 		<text name="sps_hudRiskMed"          			text="Medium" />
 		<text name="sps_hudRiskHigh"         			text="High" />
+		<text name="sps_hudBlocked"          			text="Blocked" />
+		<text name="sps_hudBlockedHint"      			text="Clear at the outlet (pump off, valve closed)" />
 		<text name="sps_hudVacuum"           			text="Vacuum" />
 		<text name="sps_hudHVP"              			text="HVP" />
 		<text name="sps_hudPump"             			text="Pump" />

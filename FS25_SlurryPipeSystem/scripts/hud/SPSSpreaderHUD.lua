@@ -243,6 +243,20 @@ function SPSSpreaderHUD:draw()
             end
         end
     end
+    -- [SPS 1.0.1.7] Say it in words. Red cells alone were read as "the HUD went
+    -- red for no reason" (dedicated-server report): players did not know a
+    -- blocked outlet must be cleared on foot, or that refilling never clears it.
+    -- One extra row, in red, only while something is blocked.
+    do
+        local anyBlocked = maceratorBlocked
+        if not anyBlocked then
+            for i = 1, nCells do if blockedByCell[i] then anyBlocked = true break end end
+        end
+        if anyBlocked then
+            rows[#rows+1] = { l = g_i18n:getText("sps_hudBlocked"),
+                              v = g_i18n:getText("sps_hudBlockedHint"), red = true }
+        end
+    end
 
     local s = g_gameSettings:getValue(GameSettings.SETTING.UI_SCALE) * (self.scale or 1.0)
     local function W(px) local w = getNormalizedScreenValues(px, 0) return w end
@@ -295,10 +309,18 @@ function SPSSpreaderHUD:draw()
     for _, row in ipairs(rows) do
         local baseline = cy - H(rowHpx * 0.74)
         setTextAlignment(RenderText.ALIGN_LEFT)
-        setTextColor(0.82, 0.82, 0.80, 1)
+        if row.red then
+            setTextColor(0.95, 0.16, 0.16, 1)   -- same red as a blocked cell
+        else
+            setTextColor(0.82, 0.82, 0.80, 1)
+        end
         renderText(leftX + padX, baseline, textSize, row.l)
         setTextAlignment(RenderText.ALIGN_RIGHT)
-        setTextColor(1, 1, 1, 1)
+        if row.red then
+            setTextColor(0.95, 0.16, 0.16, 1)
+        else
+            setTextColor(1, 1, 1, 1)
+        end
         renderText(rightX, baseline, textSize, row.v)
         cy = cy - H(rowHpx)
     end

@@ -5,41 +5,11 @@
 <!-- Author: Oscar Mods -->
 <!-- Version: 1.0.0.9.31 -->
 
-<!-- crustGrow: crusting speed for every store on this placeable.
-     1.0 = baseline, 720 game hours (30 in-game days) clean -> fully crusted.
-     Note there is deliberately NO agitator="true" on this root element. When
-     <slurryStores> is present, each store declares its own #agitator - so the
-     slurry lagoon crusts while the digestate side, which has no store, does not. -->
-<slurryPipeSystem crustGrow="1.0">
+<slurryPipeSystem agitator="false">
 
     <nodeTree filename="nodeTree.i3d"/>
-
-    <!-- ===================================================================
-         Slurry stores
-         ===================================================================
-         Each <slurryStore> binds ONE fill type of this placeable's Storage to
-         ONE authored fill plane. A production point has no engine-driven fill
-         plane, so SPS drives it: local Y = minY + (level / capacity) * (maxY -
-         minY), recomputed every tick on server and client alike.
-
-         Level and capacity both come from the placeable's OWN storage block —
-         bga250kw.xml declares LIQUIDMANURE capacity 24000 — so the plane always
-         matches the level on the production point's display, whether slurry
-         left through the fill arm, through a coupler, or was consumed by the
-         BGA's own biogasLiquidManure production.
-
-         minY / maxY are measured in #node's local frame and set the visual
-         travel ONLY. They do not affect capacity.
-
-         Child node names (#fillPlaneNode, crust nodes) resolve from #node
-         downwards, so a second store can duplicate the whole nodeTree group and
-         rename only the group node.
-         =================================================================== -->
     
     <pipeCouplings>
-
-        <!-- #storeId binds this coupler to slurryStore01: a draw or deposit
-             through it moves that store's level, and therefore its plane. -->
         <pipeCoupling
             id="1"
             mountNodeName="SPS_pipeCoupler01"
@@ -54,10 +24,6 @@
             valveAnimation="2"
         />
 
-        <!-- No #storeId: coupling-only. Reads and writes the same Storage on
-             the DIGESTATE fill type (capacity 460000) with no plane and no arm
-             detection. The per-coupler #fillType restriction keeps it from
-             offering the store's slurry. -->
         <pipeCoupling
             id="2"
             mountNodeName="SPS_pipeCoupler02"

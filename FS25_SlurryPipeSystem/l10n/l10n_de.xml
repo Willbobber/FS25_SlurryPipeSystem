@@ -131,6 +131,8 @@
 		<text name="sps_hudRiskLow"          			text="Niedrig" />
 		<text name="sps_hudRiskMed"          			text="Mittel" />
 		<text name="sps_hudRiskHigh"         			text="Hoch" />
+		<text name="sps_hudBlocked"          			text="Verstopft" />
+		<text name="sps_hudBlockedHint"      			text="Am Auslass freimachen (Pumpe aus, Ventil zu)" />
 		<text name="sps_hudVacuum"           			text="Vakuum" />
 		<text name="sps_hudHVP"              			text="HVP" />
 		<text name="sps_hudPump"             			text="Pumpe" />

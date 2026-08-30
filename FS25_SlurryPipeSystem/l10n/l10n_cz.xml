@@ -131,6 +131,8 @@
 		<text name="sps_hudRiskLow"          			text="Nízké" />
 		<text name="sps_hudRiskMed"          			text="Střední" />
 		<text name="sps_hudRiskHigh"         			text="Vysoké" />
+		<text name="sps_hudBlocked"          			text="Ucpáno" />
+		<text name="sps_hudBlockedHint"      			text="Vyčistěte u výstupu (čerpadlo vyp., ventil zavřen)" />
 		<text name="sps_hudVacuum"           			text="Podtlak (Sání)" />
 		<text name="sps_hudHVP"              			text="HVP" />
 		<text name="sps_hudPump"             			text="Čerpadlo" />

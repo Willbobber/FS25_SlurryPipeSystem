@@ -133,6 +133,8 @@
 		<text name="sps_hudRiskLow"          			text="Laag" />
 		<text name="sps_hudRiskMed"          			text="Gemiddeld" />
 		<text name="sps_hudRiskHigh"         			text="Hoog" />
+		<text name="sps_hudBlocked"          			text="Verstopt" />
+		<text name="sps_hudBlockedHint"      			text="Vrijmaken bij de uitlaat (pomp uit, klep dicht)" />
 		<text name="sps_hudVacuum"           			text="Vacuüm" />
 		<text name="sps_hudHVP"              			text="HVP" />
 		<text name="sps_hudPump"             			text="Pomp" />
