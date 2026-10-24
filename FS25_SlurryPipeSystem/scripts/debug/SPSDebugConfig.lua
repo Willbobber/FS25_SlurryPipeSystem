@@ -32,6 +32,8 @@
 --   spsDebug                     -> list all channels and their state
 --   spsDebug <channel> on|off    -> toggle one channel
 --   spsDebug all on|off          -> toggle everything
+--   Toggles are SAVED to modSettings/FS25_SlurryPipeSystem/spsDebugChannels.xml
+--   and restored on the next load (1.0.1.8), so a channel can trace the load itself.
 -- ---------------------------------------------------------------------------
 
 SPSDebugConfig = {}
@@ -46,9 +48,11 @@ SPSDebugConfig.channels = {
     ["SPSM_Chains"]                    = false, -- RESERVED (module logs via SlurryPipeManager channels for now)
     ["SPSM_Couplers"]                  = false, -- RESERVED
     ["SPSM_Flow"]                      = false, -- RESERVED
+    ["SPSBootDeform"]                  = false, -- [SPS BOOT] skinned boot lock / release on the arm tip
     ["SPSM_Pressure"]                  = false, -- RESERVED
     ["SPSM_Consistency"]               = false, -- RESERVED
     ["SPSM_Stores"]                    = false, -- [SPS STORES] slurryStore parse / plane drive / MP trace
+    ["SPSWaterCourses"]                = false, -- [SPS WC] player-drawn water courses: file load/save, registration
     ["SPSM_Spreader"]                  = false, -- RESERVED
     ["SPSM_Sprayers"]                  = false, -- RESERVED
     ["SPSM_Sprayers.FrontTank"]        = false, -- [SPS FT-BAL] front/rear tank combo link + FlowControl balancer trace
@@ -63,11 +67,13 @@ SPSDebugConfig.channels = {
     ["Init.SprayerTrace"]              = false, -- [SPS SPRAY] action-event register trace
     ["Init.IbcRedirect"]               = false, -- [SPS IBC] i3d redirect prints
     ["Init.LoadTrigger"]               = false, -- [SPS LT]/[SPS FT] load/fill trigger block trace
+    ["Init.Keys"]                      = false, -- [SPS KEYS] SPS cab-control registration passes + who removes an SPS_ key event (callstack)
 
     -- ------------------------------------------------------- chains & pipes
     ["SPSChainActivatable"]            = false, -- [SPS SPCA]
     ["SPSPipeChain"]                   = false, -- [SPS PC]
     ["SPSPipeVisual"]                  = false, -- RESERVED (not yet wired)
+    ["SPSHoseVisual"]                  = false, -- [SPS HOSE] new physical hoses (proof build, 1.0.1.8)
     ["SPSPipeActivatable"]             = false, -- RESERVED (not yet wired)
     ["SPSCouplerAnimator"]             = false, -- RESERVED (not yet wired)
     ["SPSOutsideControlActivatable"]   = false, -- RESERVED (not yet wired)
@@ -81,6 +87,7 @@ SPSDebugConfig.channels = {
     ["SPSSprayerPipeActivatable"]      = false, -- [SPS SPR ACT] (class currently dormant)
     ["SPSSprayerPipeVisual"]           = false, -- [SPS SSPV]
     ["SPSSprayerPumpControl"]          = false, -- [SPS SPR CTRL]
+    ["SPSSprayerTankSwitch"]           = false, -- [SPS TANK SW] multi-tank coupler walk-up switch (1.0.1.8)
 
     -- ------------------------------------------------------------ agitators
     ["SPSFixedAgitator"]               = false, -- agitator trace
@@ -99,6 +106,12 @@ SPSDebugConfig.channels = {
     ["SPSSeparatorEvent"]              = false, -- [SPS SEP EVT] MP event trace
     ["SPSSlurryTankExtensions"]        = false, -- [SPS TANK EXT] slurry tank extension disabling
     ["SPSChainBondPersistence"]        = false, -- [SPS BOND SAVE] non-vehicle bond save trace
+
+    -- ------------------------------------------- farm liquid lanes (water / milk)
+    ["SPSM_LiquidLanes"]               = false, -- [SPS LL] register / connect / flow trace
+    ["SPSLiquidLaneControl"]           = false, -- [SPS LL CTRL] walk-up control trace
+    ["SPSLiquidLaneEvent"]             = false, -- [SPS LL EVT] MP event trace
+    ["SPSM_Preview"]                   = false, -- [SPS PREVIEW] build-menu preview dressing
 
     -- --------------------------------------------------------- buying station
     ["SPSBuyStationActivatable"]       = false, -- [SPS BUY ACT] type-switch walk-up trace
@@ -122,12 +135,23 @@ SPSDebugConfig.channels = {
     ["SlurryTractorCapability"]        = false, -- RESERVED (not yet wired)
     ["SPSCrustVegetation"]             = false, -- RESERVED (not yet wired)
     ["SPSWaterPlaneManager"]           = false, -- RESERVED (not yet wired)
+    ["Build"]                          = false, -- per-file "[SPS BUILD] X loaded" lines at script load
+    ["Info"]                           = false, -- routine "it worked" lines (holders, node trees, lanes, pipe grab/drop, hooks)
 }
 
 -- Channel query used by call-time gated log helpers.
 -- Safe to call with any string; unknown channels read as off.
 function SPSDebugConfig.isOn(channel)
     return SPSDebugConfig.channels[channel] == true
+end
+
+-- [SPS 1.0.1.8] Routine "it worked" lines (registration, pipe grab / drop / stow, hook installed, hose reach ...) go
+-- through spsInfo, so a normal log carries only warnings / errors and the one-off status lines. spsDebug Info on.
+function spsInfoOn()
+    return SPSDebugConfig ~= nil and SPSDebugConfig.channels ~= nil and SPSDebugConfig.channels["Info"] == true
+end
+function spsInfo(...)
+    if spsInfoOn() then print(...) end
 end
 
 -- Gated print helper for files wired at call time.
@@ -202,6 +226,68 @@ function SPSDebugConfig.applyAll()
 end
 
 -- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.8] Persistence. A console toggle now survives a reload: the ON
+-- channels are written to
+--   <My Games/FarmingSimulator2025>/modSettings/FS25_SlurryPipeSystem/spsDebugChannels.xml
+-- after every `spsDebug` toggle and read back when this file loads (first
+-- sourceFile, so before any other SPS script runs). Needed because mod scripts
+-- only load with a savegame — nothing that happens DURING load (the savegame
+-- enter pass, the first key registrations) could be traced before. The file
+-- lives outside the mod folder, so a release build is unaffected; delete the
+-- file or run `spsDebug all off` to go quiet. APIs: getUserProfileAppPath /
+-- createFolder (AIDebugDump.lua:3/44), XMLFile.create/load/iterate
+-- (XMLFile.lua:4/18/187).
+-- ---------------------------------------------------------------------------
+SPSDebugConfig.SETTINGS_DIR  = nil
+SPSDebugConfig.SETTINGS_FILE = nil
+if getUserProfileAppPath ~= nil then
+    SPSDebugConfig.SETTINGS_DIR  = getUserProfileAppPath() .. "modSettings/FS25_SlurryPipeSystem/"
+    SPSDebugConfig.SETTINGS_FILE = SPSDebugConfig.SETTINGS_DIR .. "spsDebugChannels.xml"
+end
+
+function SPSDebugConfig.save()
+    if SPSDebugConfig.SETTINGS_FILE == nil or XMLFile == nil then return end
+    if createFolder ~= nil then createFolder(SPSDebugConfig.SETTINGS_DIR) end
+    local xml = XMLFile.create("spsDebugChannels", SPSDebugConfig.SETTINGS_FILE, "spsDebugChannels")
+    if xml == nil then return end
+    local keys = {}
+    for k, v in pairs(SPSDebugConfig.channels) do
+        if v == true then table.insert(keys, k) end
+    end
+    table.sort(keys)
+    for i, k in ipairs(keys) do
+        local key = string.format("spsDebugChannels.channel(%d)", i - 1)
+        xml:setString(key .. "#name", k)
+        xml:setBool(key .. "#on", true)
+    end
+    xml:save(false, true)
+    xml:delete()
+end
+
+function SPSDebugConfig.loadSaved()
+    if SPSDebugConfig.SETTINGS_FILE == nil or XMLFile == nil or fileExists == nil then return end
+    if not fileExists(SPSDebugConfig.SETTINGS_FILE) then return end
+    local xml = XMLFile.load("spsDebugChannels", SPSDebugConfig.SETTINGS_FILE)
+    if xml == nil then return end
+    local ch = SPSDebugConfig.channels
+    local restored = {}
+    xml:iterate("spsDebugChannels.channel", function(_, key)
+        local name = xml:getString(key .. "#name")
+        if name ~= nil and ch[name] ~= nil and xml:getBool(key .. "#on", false) == true then
+            ch[name] = true
+            table.insert(restored, name)
+        end
+    end)
+    xml:delete()
+    if #restored > 0 then
+        print(string.format("[SPS DBG] restored ON channels from %s: %s",
+            SPSDebugConfig.SETTINGS_FILE, table.concat(restored, ", ")))
+    end
+end
+
+SPSDebugConfig.loadSaved()
+
+-- ---------------------------------------------------------------------------
 -- Console command (optional). Same registration pattern as the existing
 -- spsCap command in SlurryTractorCapability.lua.
 -- ---------------------------------------------------------------------------
@@ -235,7 +321,8 @@ function SPSDebugConfig.consoleDebug(_, channel, state)
             ch[k] = value
         end
         SPSDebugConfig.applyAll()
-        return string.format("[SPS DBG] ALL channels -> %s", value and "ON" or "off")
+        SPSDebugConfig.save()
+        return string.format("[SPS DBG] ALL channels -> %s (saved)", value and "ON" or "off")
     end
 
     if ch[channel] == nil then
@@ -244,7 +331,8 @@ function SPSDebugConfig.consoleDebug(_, channel, state)
 
     ch[channel] = value
     SPSDebugConfig.applyAll()
-    return string.format("[SPS DBG] %s -> %s", channel, value and "ON" or "off")
+    SPSDebugConfig.save()
+    return string.format("[SPS DBG] %s -> %s (saved, survives reload)", channel, value and "ON" or "off")
 end
 
 if addConsoleCommand ~= nil then
@@ -252,4 +340,4 @@ if addConsoleCommand ~= nil then
         "consoleDebug", SPSDebugConfig)
 end
 
-print("[SPS BUILD] SPSDebugConfig 1.0.0.10.4 loaded")
+print("[SPS] Slurry Pipe System scripts loading (routine lines: spsDebug Info on, per-file load lines: spsDebug Build on)")

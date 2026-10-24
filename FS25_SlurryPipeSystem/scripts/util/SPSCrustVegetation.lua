@@ -8,7 +8,7 @@
 -- Stage is declared per plant in fillPoints.xml.
 -- All pools share a global exclusion zone so no two instances overlap.
 
-print("[SPS BUILD] SPSCrustVegetation 1.0.0.10.3 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSCrustVegetation 1.0.0.10.3 loaded") end
 
 SPSCrustVegetation = {}
 

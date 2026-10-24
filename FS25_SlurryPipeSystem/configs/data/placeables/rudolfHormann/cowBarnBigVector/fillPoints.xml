@@ -6,6 +6,9 @@
 <!-- Version: 1.0.0.0 -->
 
 <slurryPipeSystem agitator="false">
+    <slurryStores>
+        <slurryStore id="1" node="slurryStore01" fillPlaneNode="virtualSurface" minY="0" maxY="2" fillType="LIQUIDMANURE" agitator="false" hideWhenEmpty="false"/>
+    </slurryStores>
 
     <nodeTree filename="nodeTree.i3d"/>
 	
@@ -34,5 +37,13 @@
         <node name="fillmasterS"/>
         <node name="fence"/>
     </hideCollisions>
-
+	
+	<milkPipeSystem>
+        <milkPipeCouplings>
+            <milkPipeCoupling 
+				id="1" 
+				mountNodeName="SPS_milkPipeCoupler01"
+                maxPipeLength="7.5" />
+        </milkPipeCouplings>
+    </milkPipeSystem>
 </slurryPipeSystem>

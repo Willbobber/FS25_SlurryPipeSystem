@@ -110,4 +110,36 @@
 		<vacPumpFull    template="slurry02"/>
 	</sounds>
 	
+
+    <!-- [SPS 1.0.1.8] Farm-liquid connector, WATER lane only: this tanker can deliver the water it
+         carries into a barn's drinking-water coupler (<animalWaterSystem>) through the sprayer-style
+         hose. Its nodes (SPS_liquidPipeCoupler01 + Arcs/inNode/outNode, SPS_liquidControlNode) are
+         EMPTY transforms in nodeTree.i3d at the "Cobra_vis" origin: position them and add the
+         sprayerConnector mesh in GIANTS Editor. See SPS_README_05_Animal_Water.md. -->
+    <liquidPipeSystem>
+        <liquidPipeCouplings>
+            <liquidPipeCoupling id="1" mountNodeName="SPS_liquidPipeCoupler01" fillUnitIndex="1" lanes="WATER"
+                                maxPipeLength="7.5" connectorAnimation="4"/>
+        </liquidPipeCouplings>
+        <liquidPumpControls>
+            <liquidPumpControl id="1" nodeName="SPS_liquidControlNode" radius="1.5"/>
+        </liquidPumpControls>
+    </liquidPipeSystem>
+	
+	<pipeHolders>
+        <pipeHolder id="1" nodeName="SPS_pipeHolder01" radius="1.0"/>
+        <pipeHolder id="2" nodeName="SPS_pipeHolder02" radius="1.0"/>
+    </pipeHolders>
+	
+    <!-- [SPS 1.0.1.8] Hidden while PHYSICAL pipes are in use (the store-bought pipes ride on this rack
+         instead), shown again in the original system. Any node name of the vehicle's own i3d or of
+         this nodeTree; every node of that name is hidden. -->
+    <physicalModeHide>
+        <node name="Embout"/>
+    </physicalModeHide>
+	
+	<!-- <physicalModeHide> You can also set col to false with this section, if a part has a col
+		<node name="Embout" collision="true"/>
+		<node name="EmboutCol" collision="true"/>
+	</physicalModeHide> -->
 </slurryPipeSystem>

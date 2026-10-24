@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Consistency 1.0.1.5 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSM_Consistency 1.0.1.5 loaded") end
 
 -- [SPS 1.0.1.5] Litres below which a store counts as EMPTY for the thickness
 -- model. dm = solids/total mathematically diverges as total -> 0 whenever the
@@ -34,10 +34,12 @@ end
 -- burst arrives before the placeable finishes SPS-registration), the value is queued
 -- and retried by _tryResolveMPPending as placeables register — without this the join
 -- dump was dropped and the store only corrected on the next live change.
-function SlurryPipeManager:applyStoreCrustState(placeable, solids, settle, fromDrain)
+-- [SPS 1.0.1.8] storeIndex (1-based, getStoreSources order) picks WHICH store of a multi-store placeable the value
+-- belongs to - it was sent by the server but ignored here, so every store's crust landed on the primary one.
+function SlurryPipeManager:applyStoreCrustState(placeable, solids, settle, fromDrain, storeIndex)
     for _, pEntry in ipairs(self.registeredPlaceables) do
         if pEntry.placeable == placeable and pEntry.sourceEntry ~= nil then
-            local se = pEntry.sourceEntry
+            local se = self:getStoreSourceByIndex(pEntry, storeIndex) or pEntry.sourceEntry
             se.solids = solids
             se.settle = settle
             if se.crustPlaneNode ~= nil and se.crustPlaneNode ~= 0 then
@@ -50,23 +52,24 @@ function SlurryPipeManager:applyStoreCrustState(placeable, solids, settle, fromD
         end
     end
     if not fromDrain then
-        self:_queuePendingStoreCrust(placeable, solids, settle)
+        self:_queuePendingStoreCrust(placeable, solids, settle, storeIndex)
     end
     return false
 end
 
 -- [SPS MP] Queue a store crust value whose placeable is not registered yet. Only the
--- latest value per placeable is kept (crust is absolute state, not a delta).
-function SlurryPipeManager:_queuePendingStoreCrust(placeable, solids, settle)
+-- latest value per placeable AND store is kept (crust is absolute state, not a delta).
+function SlurryPipeManager:_queuePendingStoreCrust(placeable, solids, settle, storeIndex)
     if self._pendingMPStoreCrust == nil then self._pendingMPStoreCrust = {} end
+    storeIndex = storeIndex or 1
     for _, e in ipairs(self._pendingMPStoreCrust) do
-        if e.placeable == placeable then
+        if e.placeable == placeable and (e.storeIndex or 1) == storeIndex then
             e.solids = solids
             e.settle = settle
             return
         end
     end
-    table.insert(self._pendingMPStoreCrust, { placeable = placeable, solids = solids, settle = settle })
+    table.insert(self._pendingMPStoreCrust, { placeable = placeable, solids = solids, settle = settle, storeIndex = storeIndex })
     SlurryPipeManager.logMP(string.format("[SPS MP] queued pending store crust (pending=%d)", #self._pendingMPStoreCrust))
 end
 
@@ -102,9 +105,28 @@ function SlurryPipeManager:_getStoreTotalFill(se)
     if se == nil or se.storage == nil then return 0 end
     local levels = se.storage.getFillLevels ~= nil and se.storage:getFillLevels() or se.storage.fillLevels
     if levels ~= nil then
+        -- [SPS 1.0.1.8] Sum only the store's OWN body of slurry. A husbandry Storage also
+        -- holds MILK / STRAW / MANURE and (on maps without automatic water supply) the
+        -- animals' drinking WATER; a BGA's holds SILAGE. Summing everything inflated the
+        -- dry-matter total, so DM read low and a rise in an unrelated type was reconciled
+        -- as fresh slurry. Rule: the store's declared #poolFillTypes when it has one
+        -- (<slurryStores>), else the slurry-class pumpable types (LIQUIDMANURE / DIGESTATE
+        -- plus the declared fillType, so a WATER-declared store still counts its water) with
+        -- WATER otherwise excluded — on a slurry store a WATER level only ever exists
+        -- as its own level on a store where it is drinking water, not pit volume; water
+        -- pumped INTO a pit is merged into the held slurry type on deposit and so is
+        -- already counted there.
+        local pool  = se.poolFillTypes
         local total = 0
-        for _, lvl in pairs(levels) do
-            total = total + (lvl or 0)
+        for ft, lvl in pairs(levels) do
+            local counts
+            if pool ~= nil then
+                counts = pool[ft] == true
+            else
+                counts = ft == se.fillType
+                    or (ft ~= FillType.WATER and self:_isPumpableSourceFillType(ft))
+            end
+            if counts then total = total + (lvl or 0) end
         end
         return total
     end
@@ -486,7 +508,12 @@ function SlurryPipeManager:applyAgitation(sourceEntry, gameHours, crustMix)
     -- getStoreSources so a secondary lagoon on a multi-store placeable refreshes its
     -- own crust foliage too; the old identity test against pEntry.sourceEntry only
     -- ever matched the primary store and left the others visually stale.
-    if SPSCrustVegetation ~= nil then
+    -- [SPS PERF] Agitation runs every tick, and updateVisibility walks every
+    -- scattered plant — refresh only when settle has moved >= 0.002 since the last
+    -- foliage refresh (same quantum as the growth path and SPSStoreCrustEvent).
+    if SPSCrustVegetation ~= nil
+    and math.abs((sourceEntry.settle or 0) - (sourceEntry._foliageSettle or -1)) >= 0.002 then
+        sourceEntry._foliageSettle = sourceEntry.settle or 0
         for _, pEntry in ipairs(self.registeredPlaceables) do
             local matched = false
             if self.getStoreSources ~= nil then

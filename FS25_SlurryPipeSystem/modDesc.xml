@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
-<modDesc descVersion="111">
+<modDesc descVersion="115">
 
     <author>Oscar Mods</author>
-    <version>1.0.1.7</version>
+    <version>1.0.1.8</version>
     <title>
         <en>Slurry Pipe System</en>
         <de>Gülle-Rohrsystem</de>
         <fr>Système de Tuyau à Lisier</fr>
         <it>Sistema Tubi Liquame</it>
+        <nl>Mestleidingsysteem</nl>
+        <cz>Systém potrubí na kejdu</cz>
     </title>
     <description>
         <en><![CDATA[Slurry Pipe System
@@ -114,20 +116,79 @@ Caratteristiche:
 - Funziona con LIQUIDMANURE e DIGESTATE
 - Compatibile con Manual Attach
 - Compatibile in multigiocatore]]></it>
+        <nl><![CDATA[Slurry Pipe System
+
+Vervangt het vanilla inrijden-en-vullen door een realistisch fysiek leiding- en pompsysteem. Sluit vularmen of leidingen aan op een mestbron, laat een aftakas-pomp draaien, bouw druk op en regel de stroom voordat er iets beweegt.
+
+Bediening:
+- Pomp aan/uit: start de pomp. Nodig voor elke gepompte stroom.
+- Leidingklep: opent het leidingcircuit voor vullen of lossen.
+- Uitrijklep: opent de uitlaat van de verdeler.
+- Richting: schakelt tussen vullen en lossen.
+
+Functies:
+- Vularmen voor open putten met detectie van het mestoppervlak
+- Koppeling via rubberen dockingpoort
+- Leidingketens uit meerdere delen en directe leidingkoppelingen
+- Overpompen van tank naar tank en werken met een voedingstank
+- Pompwagen (aftakas) voor overpompen tussen ketens
+- Drukmodel: vacuüm, hoogvolumepomp en open tanks
+- Mestfysica: mest wordt dikker, vormt een korst en kan verdelers verstoppen; mix of voeg water toe om hem te laten stromen
+- Sleepslangen en sleepvoeten met verstopping per uitlaat en een verdeler-HUD
+- Ondersteuning voor kunstmest- en herbicidespuiten
+- Water innemen uit meren en vijvers op de kaart
+- Optionele breekbout in de aftakas
+- Gekleurde leidingen, per spel opgeslagen
+- Werkt met DRIJFMEST en DIGESTAAT
+- Compatibel met Manual Attach
+- Geschikt voor multiplayer]]></nl>
+        <cz><![CDATA[Slurry Pipe System
+
+Nahrazuje vanilla plnění najetím realistickým fyzickým systémem potrubí a čerpadel. Připojte plnicí ramena nebo potrubí ke zdroji kejdy, spusťte čerpadlo poháněné vývodovým hřídelem, vytvořte tlak a řiďte průtok dříve, než se cokoli pohne.
+
+Ovládání:
+- Čerpadlo zap/vyp: spustí čerpadlo. Nutné pro jakýkoli čerpaný průtok.
+- Ventil potrubí: otevře okruh potrubí pro plnění nebo vypouštění.
+- Ventil rozmetadla: otevře výpusť rozmetadla.
+- Směr: přepíná mezi plněním a vypouštěním.
+
+Funkce:
+- Plnicí ramena pro otevřené jímky s detekcí hladiny kejdy
+- Napojení přes pryžový dokovací port
+- Vícedílné řetězy potrubí a přímé spojky potrubí
+- Přečerpávání mezi cisternami a provoz se zásobní cisternou
+- Čerpací vůz (vývodový hřídel) pro přečerpávání mezi řetězy
+- Tlakový model: podtlak, velkoobjemové čerpadlo a otevřené nádrže
+- Fyzika kejdy: houstne, tvoří krustu a může ucpat rozmetadla; míchejte nebo přidejte vodu, aby tekla
+- Vlečené hadice a botky s ucpáním jednotlivých vývodů a HUD rozmetadla
+- Podpora postřikovačů hnojiv a herbicidů
+- Odběr vody z jezer a rybníků na mapě
+- Volitelný střižný šroub vývodového hřídele
+- Barevné potrubí, ukládané pro každou hru
+- Funguje s KEJDOU a DIGESTÁTEM
+- Kompatibilní s Manual Attach
+- Podpora hry více hráčů]]></cz>
     </description>
     <iconFilename>icon_SPS.dds</iconFilename>
 	<multiplayer supported="true"/> 
     <l10n filenamePrefix="l10n/l10n" />
+    <constructionCategories>
+        <tab categoryName="landscaping" name="spsWater" title="$l10n_construction_tab_spsWater" iconFilename="icon_SPS.dds" refSize="1 1" iconUVs="0 0 1 1"/>
+    </constructionCategories>
 	
 	<extraSourceFiles>
 		<!-- [SPS] Central debug registry — MUST load before every other SPS script -->
 		<sourceFile filename="scripts/debug/SPSDebugConfig.lua"/>
+		<sourceFile filename="scripts/util/SPSAccess.lua"/>
 		<sourceFile filename="scripts/debug/SlurryDebug.lua"/>
+		<sourceFile filename="scripts/debug/SPSMPStateDump.lua"/>
 
 		<!-- shared utils -->
 		<sourceFile filename="scripts/util/SlurryNodeUtil.lua"/>
 		<sourceFile filename="scripts/util/SlurryTractorCapability.lua"/>
 		<sourceFile filename="scripts/util/SPSCrustVegetation.lua"/>
+		<sourceFile filename="scripts/util/SPSBootDeform.lua"/>
+		<sourceFile filename="scripts/util/SPSMovingToolDashboard.lua"/>
 
 		<!-- slurry MP events -->
 		<sourceFile filename="scripts/events/SPSEvents.lua"/>
@@ -140,6 +201,9 @@ Caratteristiche:
 		<sourceFile filename="scripts/couplers/SPSCouplerAnimator.lua"/>
 		<sourceFile filename="scripts/couplers/SPSPipeActivatable.lua"/>
 		<sourceFile filename="scripts/couplers/SPSPipeVisual.lua"/>
+		<sourceFile filename="scripts/hoses/SPSHoseVisual.lua"/>
+		<sourceFile filename="scripts/settings/SPSPipeModeDialog.lua"/>
+		<sourceFile filename="scripts/hoses/SPSHoseItemHands.lua"/>
 		<sourceFile filename="scripts/couplers/SPSPumpControlActivatable.lua"/>
 		<sourceFile filename="scripts/couplers/SPSOutsideControlActivatable.lua"/>
 
@@ -167,9 +231,17 @@ Caratteristiche:
 		<sourceFile filename="scripts/herbFertSprayer/SPSSprayerPipeVisual.lua"/>
 		<sourceFile filename="scripts/herbFertSprayer/SPSSprayerPipeActivatable.lua"/>
 		<sourceFile filename="scripts/herbFertSprayer/SPSSprayerPumpControl.lua"/>
+		<sourceFile filename="scripts/herbFertSprayer/SPSSprayerTankSwitchActivatable.lua"/>
+
+		<!-- farm liquid lanes: animal water in / milk out (own system; hose visual shared with the sprayer lane) -->
+		<sourceFile filename="scripts/liquidLanes/SPSLiquidLaneEvents.lua"/>
+		<sourceFile filename="scripts/liquidLanes/SPSLiquidLaneControl.lua"/>
+		<sourceFile filename="scripts/liquidLanes/SPSLaneValveActivatable.lua"/>
 
 		<!-- water -->
 		<sourceFile filename="scripts/water/SPSWaterPlaneManager.lua"/>
+		<sourceFile filename="scripts/water/SPSWaterCourses.lua"/>
+		<sourceFile filename="scripts/water/SPSWaterCourseEvent.lua"/>
 
 		<!-- manager: core MUST load before its SPSM_ domain modules -->
 		<sourceFile filename="scripts/manager/SlurryPipeManager.lua"/>
@@ -183,13 +255,17 @@ Caratteristiche:
 		<sourceFile filename="scripts/manager/SPSM_Sprayers.lua"/>
 		<sourceFile filename="scripts/manager/SPSM_IBC.lua"/>
 		<sourceFile filename="scripts/manager/SPSM_FrontMount.lua"/>
+		<sourceFile filename="scripts/manager/SPSM_LiquidLanes.lua"/>
+		<sourceFile filename="scripts/manager/SPSM_PhysPipes.lua"/>
+		<sourceFile filename="scripts/manager/SPSM_Preview.lua"/>
+		<sourceFile filename="scripts/overrides/SPSRampConfiguration.lua"/>
 		
-		<!-- Separator (loads AFTER the manager + domain modules: wraps manager seams) -->
 		<sourceFile filename="scripts/separator/SPSSeparatorEvent.lua"/>
 		<sourceFile filename="scripts/separator/SPSSeparatorActivatable.lua"/>
 		<sourceFile filename="scripts/separator/SPSSeparator.lua"/>
 		<sourceFile filename="scripts/overrides/SPSSlurryTankExtensions.lua"/>
 		<sourceFile filename="scripts/overrides/SPSChainBondPersistence.lua"/>
+		<sourceFile filename="scripts/shearBolt/SPSShearBoltPersistence.lua"/>
 		
 		<sourceFile filename="scripts/buyStation/SPSBuyStationEvent.lua"/>
 		<sourceFile filename="scripts/buyStation/SPSBuyStationActivatable.lua"/>
@@ -212,6 +288,10 @@ Caratteristiche:
 		<action name="SPS_ENGAGE_AGITATOR"			axisType="HALF"/>
 		<action name="SPS_TOGGLE_SEPARATOR"			axisType="HALF"/>
 		<action name="SPS_SEPARATOR_TIGHTNESS"		axisType="HALF"/>
+		<action name="SPS_STOW_NEXT"				axisType="HALF"/>
+		<action name="SPS_STOW_PREV"				axisType="HALF"/>
+		<action name="SPS_FREE_PIPE"				axisType="HALF"/>
+		<action name="SPS_PUMPMIXER_VALVE"			axisType="HALF"/>
 	</actions>
 	
 	<inputBinding>
@@ -245,14 +325,54 @@ Caratteristiche:
 		<actionBinding action="SPS_TOGGLE_SEPARATOR">
 			<binding device="KB_MOUSE_DEFAULT" input="KEY_o"/>
 		</actionBinding>
+		<actionBinding action="SPS_FREE_PIPE">
+			<binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_f" axisComponent="+" index="1"/>
+		</actionBinding>
+		<actionBinding action="SPS_STOW_NEXT">
+			<binding device="KB_MOUSE_DEFAULT" input="MOUSE_BUTTON_WHEEL_UP" axisComponent="+" index="1"/>
+			<binding device="KB_MOUSE_DEFAULT" input="KEY_apostrophe" axisComponent="+" index="2"/>
+		</actionBinding>
+		<actionBinding action="SPS_STOW_PREV">
+			<binding device="KB_MOUSE_DEFAULT" input="MOUSE_BUTTON_WHEEL_DOWN" axisComponent="-" index="1"/>
+			<binding device="KB_MOUSE_DEFAULT" input="KEY_semicolon" axisComponent="+" index="2"/>
+		</actionBinding>
+		<actionBinding action="SPS_PUMPMIXER_VALVE">
+			<binding device="KB_MOUSE_DEFAULT" input="KEY_lalt KEY_b" axisComponent="+" index="1"/>
+		</actionBinding>
 		<actionBinding action="SPS_SEPARATOR_TIGHTNESS">
 			<binding device="KB_MOUSE_DEFAULT" input="KEY_k"/>
 		</actionBinding>
 	</inputBinding>
 	
+    <specializations>
+        <specialization name="spsHoseItem" className="SPSHoseItem" filename="scripts/specializations/SPSHoseItem.lua"/>
+        <specialization name="spsDockingStation" className="SPSDockingStation" filename="scripts/specializations/SPSDockingStation.lua"/>
+        <specialization name="spsParkPose" className="SPSParkPose" filename="scripts/specializations/SPSParkPose.lua"/>
+        <specialization name="spsPumpMixerControl" className="SPSPumpMixerControl" filename="scripts/specializations/SPSPumpMixerControl.lua"/>
+        <specialization name="spsWorkDirt" className="SPSWorkDirt" filename="scripts/specializations/SPSWorkDirt.lua"/>
+    </specializations>
+
     <vehicleTypes>
         <type name="manurePump" parent="implement" className="Vehicle" filename="$dataS/scripts/vehicles/Vehicle.lua">
             <specialization name="turnOnVehicle"/>
+            <specialization name="spsWorkDirt"/>
+        </type>
+        <type name="spsHose" className="Vehicle" filename="$dataS/scripts/vehicles/Vehicle.lua">
+            <specialization name="washable"/>
+            <specialization name="wearable"/>
+            <specialization name="spsHoseItem"/>
+        </type>
+        <type name="spsTowerMixer" parent="implement" className="Vehicle" filename="$dataS/scripts/vehicles/Vehicle.lua">
+            <specialization name="turnOnVehicle"/>
+            <specialization name="enterable"/>
+            <specialization name="spsParkPose"/>
+            <specialization name="spsPumpMixerControl"/>
+            <specialization name="spsWorkDirt"/>
+        </type>
+        <type name="spsDockingStation" className="Vehicle" filename="$dataS/scripts/vehicles/Vehicle.lua">
+            <specialization name="washable"/>
+            <specialization name="wearable"/>
+            <specialization name="spsDockingStation"/>
         </type>
 	</vehicleTypes>
 	
@@ -263,8 +383,28 @@ Caratteristiche:
 	
 	<storeItems>
         <storeItem xmlFilename="vehicles/PTOSlurryPump/PTOSlurryPump.xml"/>
+        <storeItem xmlFilename="placeables/spsWater/spsWaterCourseDraw.xml"/>
+        <storeItem xmlFilename="placeables/spsWater/spsWaterCourseRemove.xml"/>
+        <!-- [SPS 1.0.1.8] ONE shop item for every physical pipe: Type / Length / Ends selectors (vehicles/hoses/spsPipe.xml) -->
+        <storeItem xmlFilename="vehicles/hoses/spsPipe.xml"/>
+        <storeItem xmlFilename="vehicles/dockingStation/dockingStation.xml"/>
+        <storeItem xmlFilename="vehicles/towerMixer/towerMixer.xml"/>
 		<storeItem xmlFilename="placeables/separators/borger125FixedBunker/borger125FixedBunker.xml"/>
+		<storeItem xmlFilename="placeables/silos/fertHerbSilo/sprayerSilo.xml"/>
+		<storeItem xmlFilename="placeables/husbandry/cowBarnMediumSPS/cowBarnMedium.xml"/>
     </storeItems>
+
+    <!-- [SPS 1.0.1.8] the pipe and the docking station together on one tile (shop > Packs); both stay in Slurry Tanks too
+         (a mod cannot add its own shop category - mods.lua reads modDesc storeCategories for DLCs only) -->
+    <storePacks>
+        <!-- name UPPERCASE: StoreManager:addPack stores string.upper(name) but addPackItem looks up the name as written; title literal: mods.lua resolves it with the global g_i18n before mod texts apply -->
+        <storePack name="SPSPIPES" title="SPS Slurry Kit" image="vehicles/hoses/icon_slurryPipe.png">
+            <storeItem>vehicles/hoses/spsPipe.xml</storeItem>
+            <storeItem>vehicles/dockingStation/dockingStation.xml</storeItem>
+            <storeItem>vehicles/PTOSlurryPump/PTOSlurryPump.xml</storeItem>
+            <storeItem>vehicles/towerMixer/towerMixer.xml</storeItem>
+        </storePack>
+    </storePacks>
 	
 	<brands>
         <brand name="SPS" title="Slurry Pipe System" image="brand_SPS.dds" />

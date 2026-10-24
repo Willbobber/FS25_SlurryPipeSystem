@@ -8,6 +8,8 @@
 <slurryPipeSystem agitator="true">
  
     <nodeTree filename="nodeTree.i3d"/>
+    <!-- [SPS 1.0.1.8] build menu "Ramp: Yes / No" - No removes this nodeTree node (and everything under it) from the placed store (SPSRampConfiguration) -->
+    <rampOption node="slurryPitRamp"/>
 	
     <fillPlane
         node="0>9|2|0"
@@ -58,5 +60,16 @@
 		<plant stage="3" i3d="i3d/foliage/mushroom.i3d" weight="1"/>
 		<plant stage="3" i3d="i3d/foliage/nettle.i3d"   weight="1"/>
 	</crust>
+
+    <!-- [SPS 1.0.1.8] MILK lane: barn -> tanker (MILK or BUFFALOMILK, 50000 l each). This barn has
+         automatic water supply, so there is deliberately NO water coupler. SPS_milkPipeCoupler01
+         (+ Arcs, inNode/outNode) sits in nodeTree.i3d as EMPTY transforms at the "storage" origin:
+         position it and add the sprayerConnector mesh in GIANTS Editor. See SPS_README_05_Animal_Water.md. -->
+    <milkPipeSystem>
+        <milkPipeCouplings>
+            <milkPipeCoupling id="1" mountNodeName="SPS_milkPipeCoupler01"
+                              maxPipeLength="7.5" connectorAnimation="3"/>
+        </milkPipeCouplings>
+    </milkPipeSystem>
 
 </slurryPipeSystem>

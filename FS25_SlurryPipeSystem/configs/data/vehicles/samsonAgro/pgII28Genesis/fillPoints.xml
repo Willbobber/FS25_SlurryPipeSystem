@@ -125,19 +125,11 @@
     <outsideControls>
 		<outsideControl mountNodeName="pumpControl01" pto="true" direction="false"/>
 	</outsideControls>
-	
-	<!-- RECEIVER side of the tractor-mounted front fill arm system.
-	     Config-gated (cylinderedConfigIndex, comma-separated 0-based indices,
-	     same convention as fillArm/pipeCoupling above):
-	       * staticPipe — the fixed pipe mesh for the active config is shown,
-	         the other hidden, once at registration. Config 0 = PT arm pipe,
-	         configs 1,2 = SAP2 turret pipe.
-	       * hose — the injected plain TOOL_CONNECTOR_TOP_RIGHT hose. Every
-	         SPS receiver uses the standard mount node name slurryPipe (under
-	         the coupler), so one ungated entry serves all configs.
-	     objectChange: the coupler shape is hidden until the hose connects
-	     (initialState="inactive" hides it at load; the hose and its mount sit
-	     under the coupler, so they appear together on connect). -->
+		
+    <dockingStationHolders>
+        <dockingStationHolder id="1" nodeName="dockingStationPosition" radius="1.5"/>
+    </dockingStationHolders>
+
 	<tractorMountFillArms accepted="true">
 		<staticPipe node="samsonFillPipe_PT"   cylinderedConfigIndex="0"/>
 		<staticPipe node="samsonFillPipe_Sap2" cylinderedConfigIndex="1,2"/>
@@ -146,4 +138,14 @@
 		</hose>
 	</tractorMountFillArms>
 	
+	<liquidPipeSystem>
+        <liquidPipeCouplings>
+            <liquidPipeCoupling id="1" mountNodeName="SPS_liquidPipeCoupler01" fillUnitIndex="1" lanes="WATER"
+                                maxPipeLength="7.5" connectorAnimation="4"/>
+        </liquidPipeCouplings>
+        <liquidPumpControls>
+            <liquidPumpControl id="1" nodeName="SPS_liquidControlNode" radius="1.5"/>
+        </liquidPumpControls>
+    </liquidPipeSystem>
+
 </slurryPipeSystem>

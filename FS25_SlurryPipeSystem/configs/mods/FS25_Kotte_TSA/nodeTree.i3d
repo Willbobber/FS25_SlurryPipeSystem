@@ -6,11 +6,36 @@
   </Asset>
 
   <Files>
+    <File fileId="6" filename="$data/shaders/vehicleShader.xml"/>
+    <File fileId="4" filename="$data/shared/default_normal.png"/>
+    <File fileId="5" filename="$data/shared/default_vmask.dds"/>
+    <File fileId="8" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="9" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_diffuse.png"/>
+    <File fileId="7" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_specular.png"/>
+    <File fileId="3" filename="$data/shared/white_diffuse.png"/>
   </Files>
 
 
   <Materials>
-    <Material name="lambert1" materialId="5" diffuseColor="0.8 0.8 0.8 1" specularColor="0.501961 1 0">
+    <Material name="black_plasticPainted_mat" materialId="298" customShaderId="6">
+      <Texture fileId="3"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="5"/>
+      <Custommap name="detailSpecular" fileId="7"/>
+      <Custommap name="detailNormal" fileId="8"/>
+      <Custommap name="detailDiffuse" fileId="9"/>
+      <CustomParameter name="colorScale" value="0.006 0.006 0.006"/>
+    </Material>
+    <Material name="Material.001" materialId="12" diffuseColor="0.8 0.8 0.8 1" specularColor="0.501961 1 0">
+    </Material>
+    <Material name="red_plasticPainted_mat" materialId="299" customShaderId="6">
+      <Texture fileId="3"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="5"/>
+      <Custommap name="detailSpecular" fileId="7"/>
+      <Custommap name="detailNormal" fileId="8"/>
+      <Custommap name="detailDiffuse" fileId="9"/>
+      <CustomParameter name="colorScale" value="0.359 0.033 0.035"/>
     </Material>
   </Materials>
 
@@ -19,36 +44,56 @@
   </Shapes>
 
   <Scene>
-    <TransformGroup name="SPS_tsa" nodeId="8">
-      <TransformGroup name="rubberBootPorts" nodeId="9">
-        <TransformGroup name="tsa_vis" nodeId="10">
-          <TransformGroup name="SPS_rubberBootLower01" translation="0 3.252 -3.19872" nodeId="11"/>
-          <TransformGroup name="SPS_rubberBootUpper01" translation="0 3.67535 -3.19872" nodeId="12"/>
-          <Shape name="dockingStationCol1" translation="0 3.2936 -3.17815" rotation="-1.69939 -0 0" scale="1.1 1 1.1" shapeId="1" nodeId="13" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="5"/>
+    <TransformGroup name="SPS_tsa" nodeId="265">
+      <TransformGroup name="rubberBootPorts" nodeId="266">
+        <TransformGroup name="tsa_vis" nodeId="267">
+          <TransformGroup name="SPS_rubberBootLower01" translation="0 3.252 -3.19872" nodeId="268"/>
+          <TransformGroup name="SPS_rubberBootUpper01" translation="0 3.67535 -3.19872" nodeId="269"/>
+          <Shape name="dockingStationCol1" translation="0 3.2936 -3.17815" rotation="-1.69939 -0 0" scale="1.1 1 1.1" shapeId="1" nodeId="270" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="12"/>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="pipeCouplers" nodeId="14">
-        <TransformGroup name="tsa_vis" nodeId="15">
-          <TransformGroup name="SPS_pipeCoupler01" translation="-0.537235 1.04626 -3.29918" rotation="-15.5 90 0" nodeId="16">
-            <TransformGroup name="SPS_pipeCoupler01Arcs" translation="0 0 5.75184e-08" rotation="167.471 -5.00896e-06 -180" nodeId="17">
-              <TransformGroup name="SPS_pipeCoupler01Arc01" translation="1.5 0 2.5" nodeId="18"/>
-              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="-1.5 0 2.5" nodeId="19"/>
+      <TransformGroup name="pipeCouplers" nodeId="271">
+        <TransformGroup name="tsa_vis" nodeId="272">
+          <TransformGroup name="SPS_pipeCoupler01" translation="-0.537235 1.04626 -3.29918" rotation="-15.5 90 0" nodeId="273">
+            <TransformGroup name="SPS_pipeCoupler01Arcs" translation="0 0 5.75184e-08" rotation="167.471 -5.00896e-06 -180" nodeId="274">
+              <TransformGroup name="SPS_pipeCoupler01Arc01" translation="1.5 0 2.5" nodeId="275"/>
+              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="-1.5 0 2.5" nodeId="276"/>
             </TransformGroup>
-            <TransformGroup name="inNode" nodeId="20"/>
-            <TransformGroup name="outNode" rotation="0 180 0" nodeId="21"/>
+            <TransformGroup name="inNode" nodeId="277"/>
+            <TransformGroup name="outNode" rotation="0 180 0" nodeId="278"/>
           </TransformGroup>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="pumpControls" nodeId="22">
-        <TransformGroup name="tsa_vis" nodeId="23">
-          <TransformGroup name="rearControlNode" translation="1.14868 1.04626 -3.37517" nodeId="24"/>
-          <TransformGroup name="exhaustNode" translation="1.14868 1.04626 -3.37517" nodeId="25"/>
+      <TransformGroup name="pumpControls" nodeId="279">
+        <TransformGroup name="tsa_vis" nodeId="280">
+          <TransformGroup name="rearControlNode" translation="1.14868 1.04626 -3.37517" nodeId="281"/>
+          <TransformGroup name="exhaustNode" translation="1.14868 1.04626 -3.37517" nodeId="282"/>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="slurryHeight" nodeId="26">
-        <TransformGroup name="tsa_vis" nodeId="27">
-          <TransformGroup name="emptyNode" translation="0 1.12618 0" nodeId="28"/>
-          <TransformGroup name="fullNode" translation="0 3.60545 0" nodeId="29"/>
+      <TransformGroup name="slurryHeight" nodeId="283">
+        <TransformGroup name="tsa_vis" nodeId="284">
+          <TransformGroup name="emptyNode" translation="0 1.12618 0" nodeId="285"/>
+          <TransformGroup name="fullNode" translation="0 3.60545 0" nodeId="286"/>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="liquidPipeCouplers" nodeId="287">
+        <TransformGroup name="tsa_vis" nodeId="288">
+          <TransformGroup name="SPS_liquidPipeCoupler01" translation="0.32482 0.765705 -3.43749" rotation="-180 -1.86693e-05 -180" nodeId="306">
+            <TransformGroup name="SPS_liquidPipeCoupler01Arcs" rotation="0 -90 0" nodeId="307">
+              <TransformGroup name="SPS_liquidPipeCoupler01Arc01" translation="3.5 0 -1.5" nodeId="308"/>
+              <TransformGroup name="SPS_liquidPipeCoupler01Arc02" translation="3.5 0 1.5" nodeId="309"/>
+            </TransformGroup>
+            <Shape name="sprayerConnector" shapeId="2" clipDistance="150" nodeId="310" castsShadows="true" receiveShadows="true" materialIds="298">
+              <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="3" clipDistance="150" nodeId="311" castsShadows="true" receiveShadows="true" materialIds="299"/>
+              <TransformGroup name="inNode" translation="2.49905e-08 1.64534e-08 0.205501" rotation="0 180 0" nodeId="312"/>
+              <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="313"/>
+            </Shape>
+          </TransformGroup>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="liquidPumpControls" nodeId="295">
+        <TransformGroup name="tsa_vis" nodeId="296">
+          <TransformGroup name="SPS_liquidControlNode" translation="1.24259 0 -3.70558" nodeId="297"/>
         </TransformGroup>
       </TransformGroup>
     </TransformGroup>

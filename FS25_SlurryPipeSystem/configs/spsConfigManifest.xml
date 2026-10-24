@@ -125,8 +125,11 @@
         <placeable path="data/placeables/brandless/liquidManureTanks/extensionLarge/extensionLarge.xml"/>
         <placeable path="data/placeables/brandless/liquidManureTanks/extensionSmall/extensionSmall.xml"/>
         <placeable path="data/placeables/rudolfHormann/cowBarnBig/cowBarnBig.xml"/>
-        <placeable path="data/placeables/rudolfHormann/cowBarnBig/cowBarnBigGea.xml"/>
-        <placeable path="data/placeables/rudolfHormann/cowBarnBig/cowBarnBigVector.xml"/>
+        <!-- [SPS 1.0.1.8] own config folders: without configFolder both resolved to cowBarnBig/fillPoints.xml -->
+        <placeable path="data/placeables/rudolfHormann/cowBarnBig/cowBarnBigGea.xml"
+                   configFolder="data/placeables/rudolfHormann/cowBarnBigGea"/>
+        <placeable path="data/placeables/rudolfHormann/cowBarnBig/cowBarnBigVector.xml"
+                   configFolder="data/placeables/rudolfHormann/cowBarnBigVector"/>
         <placeable path="data/placeables/rudolfHormann/cowBarnMedium/cowBarnMedium.xml"/>
         <placeable path="data/placeables/rudolfHormann/pigBarnBig/pigBarnBig.xml"/>
         <placeable path="data/placeables/rudolfHormann/pigBarnMedium/pigBarnMedium.xml"/>
@@ -271,4 +274,22 @@
 				 configFolder="IBCs/fertilizerTank"/>
 				 
 	</sprayerSourceVehicleConfigs>
+	<!-- ===================================================================
+	     [SPS 1.0.1.8] FARM LIQUID LANES — separate from slurry AND from sprayers.
+	     Placeables/vehicles that ALREADY have a slurry config carry their lane blocks
+	     INSIDE that config's <slurryPipeSystem> root (see rudolfHormann/cowBarnBig/
+	     fillPoints.xml) and need NO entry here. These sections are only for things
+	     with no slurry side.
+	     =================================================================== -->
+	<liquidVehicleConfigs>
+		<!-- Lizard water trailers (base game; the tank takes MILK BUFFALOMILK WATER LIQUIDFERTILIZER HERBICIDE) -->
+		<vehicle path="data/vehicles/lizard/mks8/mks8.xml"/>
+		<vehicle path="data/vehicles/lizard/mks32/mks32.xml"/>
+	</liquidVehicleConfigs>
+
+	<liquidPlaceableConfigs>
+		<!-- Only for barns with NO slurry side. Every shipped barn carries its lane blocks inside its
+		     own slurry config instead, so this section ships empty. (Base small barns were tried and
+		     removed by William 2026-09-28.) -->
+	</liquidPlaceableConfigs>
 </spsConfigManifest>

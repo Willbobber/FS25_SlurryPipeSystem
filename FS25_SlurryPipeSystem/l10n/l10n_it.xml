@@ -3,9 +3,12 @@
     <texts>
 		<!-- Inputs -->
 		<text name="input_SPS_TOGGLE_PUMP"      		text="SPS Pompa On/Off" />
+		<text name="input_SPS_STOW_NEXT"			text="SPS: supporto tubo successivo" />
+		<text name="input_SPS_STOW_PREV"			text="SPS: supporto tubo precedente" />
 		<text name="input_SPS_TOGGLE_AGITATOR"		text="Collega/Scollega agitatore" />
 		<text name="input_SPS_ENGAGE_AGITATOR"		text="PTO agitatore On/Off" />
 		<text name="input_SPS_TOGGLE_FLOW"      		text="SPS Apri/Chiudi flusso" />
+		<text name="input_SPS_PUMPMIXER_VALVE"		text="SPS Apri/Chiudi valvola pompa miscelatrice" />
 		<text name="input_SPS_TOGGLE_DIRECTION" 		text="SPS Direzione flusso" />
         <text name="input_SPS_TOGGLE_SPREADER"          text="SPS Valvola spandiletame" />
         
@@ -46,6 +49,12 @@
 		<text name="action_spsRemovePipe"           	text="Rimuovi tubo" />
 		<text name="action_spsRemoveDockingStation" 	text="Rimuovi stazione di aggancio" />
 		<text name="action_spsDisconnectPipe" 			text="Scollega tubo" />
+		<text name="action_spsPhysConnect" 			text="Collega l'estremità del tubo"/>
+		<text name="action_spsPhysDisconnect" 		text="Scollega l'estremità e trasportala"/>
+		<text name="action_spsPhysDrop" 				text="Scollega il tubo"/>
+		<text name="action_spsPhysStow" 				text="Riponi il tubo: supporto %d (%s %d/%d liberi)"/>
+		<text name="action_spsPhysStowCycle" 			text="[rotella o ; '] altro supporto"/>
+		<text name="action_spsDsStow" 				text="Posa la stazione di attracco sul supporto %d"/>
 		<text name="action_spsFinalisePipe"  			text="Finalizza tubo [R] | Annulla [tieni premuto R]" />
 		<text name="action_spsDeployCoupling" 			text="Posiziona raccordo tubo [tieni premuto R]"/>
 		<text name="action_spsRemoveCoupling" 			text="Rimuovi raccordo tubo [tieni premuto R]"/>
@@ -53,9 +62,7 @@
 		<text name="action_spsRearValveClose"			text="Chiudi valvola [R]" />
 		
         <!-- Warnings -->
-        <text name="warning_slurryNoConnection"    		text="Nessun collegamento liquame attivo" />
         <text name="warning_slurryCloseFlowFirst"  		text="Chiudi la valvola prima di cambiare direzione della pompa" />
-        <text name="warning_slurryNoPipeTarget"    		text="Nessun punto di collegamento tubo nel raggio d'azione" />
 		<text name="warning_slurryEngineOff" 			text="Avvia prima il motore"/>
 		<text name="warning_spsConnectHydraulics"		text="Collega prima i tubi idraulici" />
 		<text name="warning_spsSetToPressure"			text="Imposta prima la pompa su Mandata" />
@@ -66,7 +73,27 @@
         <text name="typeDesc_manurePump"                text="Pompa liquame PTO" />
 
         <!-- Conduit pump HUD and direction -->
-        <text name="hud_spsConduitPumped"               text="Pompato: %d L" />
+        <text name="hud_spsPumpMixerTitle" text="Pompa miscelatrice" />
+        <text name="hud_spsPumpStatus" text="Stato: %s" />
+        <text name="hud_spsPumpPumping" text="POMPAGGIO" />
+        <text name="hud_spsPumpStopped" text="fermo - %s" />
+        <text name="hud_spsPumpRate" text="Portata: %d L/s   Pompato: %d L" />
+        <text name="hud_spsPumpThickness" text="Densità: %d%%   Flusso: %d%%" />
+        <text name="hud_spsPumpValveClosed" text="valvola chiusa" />
+        <text name="hud_spsPumpOff" text="pompa spenta" />
+        <text name="hud_spsPumpBladesOff" text="pale ferme" />
+        <text name="hud_spsPumpNotInSlurry" text="miscelatore fuori dal liquame" />
+        <text name="hud_spsPumpNoPipe" text="nessun tubo collegato" />
+        <text name="hud_spsPumpRecvValve" text="valvola di ricezione chiusa" />
+        <text name="hud_spsPumpNoTank" text="nessuna destinazione" />
+        <text name="hud_spsPumpSameStore" text="il tubo torna nella stessa vasca" />
+        <text name="hud_spsPumpDrawOnly" text="il lato ricevente non accetta liquame" />
+        <text name="hud_spsPumpSourceEmpty" text="sorgente vuota" />
+        <text name="hud_spsPumpDestFull" text="destinazione piena" />
+        <text name="hud_spsPumpTooThick" text="troppo denso" />
+        <text name="hud_spsPumpBlades" text="Pale: %s" />
+        <text name="hud_spsPumpBladesSpinning" text="IN ROTAZIONE" />
+        <text name="hud_spsPumpBladesStopped" text="ferme" />
         <text name="action_spsConduitDirAtoB"           text="Flusso: Porta 1 → Porta 2" />
         <text name="action_spsConduitDirBtoA"           text="Flusso: Porta 2 → Porta 1" />
 		
@@ -74,14 +101,9 @@
         <text name="warning_spsSlurryThickening"  		text="Liquame in addensamento: %d%% — agitazione consigliata" />
         <text name="warning_spsSlurryThickeningWater"  	text="Liquame in addensamento: %d%% — aggiungere acqua" />
         <text name="warning_spsSlurryTooThick"          text="Liquame troppo denso — acqua necessaria" />
-        <text name="sps_settingsAgitation"              text="Agitazione liquame" />
-        <text name="sps_settingsAgitationTooltip"       text="Abilita sistema di addensamento e agitazione del liquame" />
+        <text name="warning_spsStoreNoAccess"           text="Nessun accesso a questo deposito (appartiene a un'altra fattoria)" />
         <text name="sps_settingsRealism"                text="Realismo liquame" />
         <text name="sps_settingsRealismTooltip"         text="Interruttore principale per densità, crosta, intasamenti e calo di portata sulla lunghezza" />
-        <text name="sps_settingsStoreThickening"        text="    Addensamento in deposito" />
-        <text name="sps_settingsStoreThickeningTooltip" text="Il liquame nei depositi si addensa nel tempo (sempre attivo con Realismo)" />
-        <text name="sps_settingsCrust"                  text="    Crosta vegetale" />
-        <text name="sps_settingsCrustTooltip"           text="Una crosta visibile cresce sul liquame denso (sempre attiva con Realismo)" />
         <text name="sps_settingsThicknessFlow"          text="    La densità influisce sul flusso" />
         <text name="sps_settingsThicknessFlowTooltip"   text="Il liquame denso rallenta carico, scarico e spandimento" />
         <text name="sps_settingsBlockages"              text="    Intasamenti spandimento" />
@@ -89,26 +111,16 @@
         <text name="sps_settingsLengthFalloff"          text="    Calo di portata sulla lunghezza" />
         <text name="sps_settingsLengthFalloffTooltip"   text="La portata cala lungo la lunghezza di un tubo liquame collegato" />
         <text name="warning_spsBlockage"                text="Spandiletame intasato — libera l'intasamento per continuare" />
-        <text name="action_spsAgitatorOn"               text="Agitatore: SPENTO — PTO attiva" />
-        <text name="action_spsAgitatorOff"              text="Agitatore: ACCESO — PTO attiva" />
-        <text name="warning_spsAgitatorNotSubmerged"    text="Agitatore non immerso" />
         <text name="sps_infoThicknessTitle"             text="Densità liquame" />
 		<text name="sps_infoLiquidTitle"                text="Liquido" />
         <text name="sps_infoDryMatterTitle"             text="Sostanza secca" />
         <text name="sps_infoCrustTitle"                 text="Crosta" />
         <text name="sps_infoTankEmpty"               text="Vuoto" />
+        <text name="shopItem_spsSprayerSilo"        text="Silo per irroratrici (4 serbatoi, SPS)" />
+        <text name="function_spsSprayerSilo"        text="Quattro serbatoi separati dietro un unico attacco SPS. Entra nel quadro per scegliere il serbatoio; fertilizzante liquido o erbicida, ogni serbatoio resta vincolato al contenuto finché non si svuota. Solo tubo: nessun carico passando sotto." />
 		
 		<!-- Water -->
-		<text name="action_spsDeployWaterPipe"			text="Tieni premuto R: Stendi tubo dell'acqua" />
-		<text name="action_spsFinalizeWaterPipe"		text="Tieni premuto R: Finalizza tubo dell'acqua" />
-		<text name="action_spsCancelWaterPipe"			text="Tieni premuto R: Annulla posizionamento" />
-		<text name="action_spsRemoveWaterPipe"			text="Tieni premuto R: Rimuovi tubo dell'acqua" />
-		<text name="info_spsPipeWalkToWater"			text="Avvicinati all'acqua per posare il tubo" />
-		<text name="info_spsPipeDeployed"				text="Tubo dell'acqua steso" />
-		<text name="info_spsPipeCancelled"				text="Posizionamento tubo annullato" />
-		<text name="info_spsPipeRemoved"				text="Tubo dell'acqua rimosso" />
 		<text name="warning_spsPipeTooShort"			text="Tubo troppo corto (minimo 2 m)" />
-		<text name="warning_spsPipeTooLong"				text="Tubo troppo lungo (massimo 20 m)" />
 		
 		<!-- Sprayer -->
 		<text name="input_SPS_TOGGLE_ANIMATION_SPRAYER"	text="Apri coperchio | Chiudi coperchio" />
@@ -120,10 +132,8 @@
 		<text name="action_sprayerFlowOn"				text="Flusso: ATTIVO" />
 		<text name="action_sprayerDirLoad"				text="Direzione: CARICO" />
 		<text name="action_sprayerDirUnload"			text="Direzione: SCARICO" />
-		<text name="sps_warningCloseCoverBeforeTurnOn" 	text="Chiudere il coperchio prima dell'accensione"/>
 		
 		<!-- SPS spreader HUD -->
-		<text name="sps_hudTitle"            			text="Spandiletame" />
 		<text name="sps_hudSlurry"           			text="Liquame" />
 		<text name="sps_hudCrust"            			text="Crosta" />
 		<text name="sps_hudThickness"        			text="Densità" />
@@ -155,7 +165,7 @@
 		<text name="sps_hudSetHideHelpTooltip" 		text="Sì: l'HUD SPS si nasconde insieme al menu di aiuto premendo F1. No: resta visibile." />
 		<text name="sps_hudSetScale"         			text="Scala HUD" />
 		<text name="sps_hudSetScaleTooltip"  			text="Dimensione dell'HUD dello spandiletame. Modificabile anche con la rotellina mentre si sposta l'HUD." />
-		<text name="sps_hudPressure" 					text="Pressure"/>
+		<text name="sps_hudPressure" 					text="Pressione"/>
 		<text name="input_SPS_HUD_EDIT"          		text="Modifica HUD spandiletame" />
 		<!-- SPS blockage clearing -->
 		<text name="sps_blockageMacerator"   			text="Maceratore" />
@@ -175,7 +185,7 @@
 		<text name="sps_settingsShearBoltTooltip" 		text="Abilita il bullone di sicurezza della PTO."/>
 	
 		<!-- Agitator -->
-		<text name="action_spsAgitatorConnect" 			text="Connect PTO"/>
+		<text name="action_spsAgitatorConnect" 			text="Collega la presa di forza"/>
 		<text name="action_spsAgitatorDisconnect" 		text="Scollega la PTO"/>
 		<text name="action_spsAgitatorPtoOn"  			text="Innesta la PTO"/>
 		<text name="action_spsAgitatorPtoOff" 			text="Disinnesta la PTO"/>
@@ -183,6 +193,22 @@
 		<!-- IBCs -->
 		<text name="sps_settingsIbcPersist" 			text="L'IBC rimane in posizione anche quando è vuoto."/>
 		<text name="sps_settingsIbcPersistTooltip" 		text="Sì: gli IBC svuotati rimangono sulla mappa (riportali al negozio o riempili). No: scompaiono una volta svuotati (impostazione predefinita)."/>
+		<text name="sps_settingsPhysicalPipes" 			text="Tubi fisici"/>
+		<text name="sps_settingsPhysicalPipesTooltip" 	text="No: sistema originale - posa e collega i tubi a raccordi, catene, irroratrici e linee acqua/latte; i tubi acquistabili sono nascosti nel negozio. Sì: solo tubi fisici - compra i tubi nel negozio e trasportali a mano; tutti i comandi dei tubi originali sono disattivati. I due sistemi non funzionano mai insieme."/>
+		<text name="sps_pipeModeTitle" 	text="Slurry Pipe System - scegli il sistema di tubi"/>
+		<text name="sps_pipeModeQuestion" 	text="Quale sistema di tubi vuoi usare in questa partita?&#xA;&#xA;ORIGINALE: posa e collega i tubi a raccordi, catene, irroratrici e linee acqua/latte come prima.&#xA;FISICO (nuovo): compra i tubi nel negozio e trasportali a mano; il sistema originale di posa/collegamento è disattivato.&#xA;&#xA;I due non funzionano mai insieme. Puoi cambiarlo in seguito in Impostazioni > Tubi fisici."/>
+		<text name="sps_pipeModeExisting" 	text="Questa partita ha già %s."/>
+		<text name="sps_pipeModeCounts" 	text="%d catene di tubi posate, %d raccordi collegati, %d tubi irroratrice, %d tubi acqua/latte"/>
+		<text name="sps_pipeModeBtnPhysical" 	text="Tubi fisici (nuovo)"/>
+		<text name="sps_pipeModeBtnOriginal" 	text="Sistema originale"/>
+		<text name="sps_pipeModeWarnTitle" 	text="ATTENZIONE - passaggio ai tubi fisici"/>
+		<text name="sps_pipeModeWarnText" 	text="Passare ai nuovi tubi fisici RIMUOVE tutti i tubi posati o collegati con il sistema originale in questa partita (%s) e DISATTIVA il sistema di collegamento originale - anche a partita in corso. I tubi rimossi non possono essere ripristinati.&#xA;&#xA;Passare ora ai tubi fisici?"/>
+		<text name="sps_pipeModeBtnSwitch" 	text="Cambia e rimuovi i tubi"/>
+		<text name="sps_pipeModeBtnKeep" 	text="Mantieni l'originale"/>
+		<text name="sps_pipeModeWarnOrigTitle" 	text="ATTENZIONE - passaggio al sistema originale"/>
+		<text name="sps_pipeModeWarnOrigText" 	text="Tornare al sistema originale RIMUOVE tutti i tubi fisici e tutte le stazioni di attracco trasportabili di questa partita (%s) e DISATTIVA i tubi fisici - anche a partita in corso. I tubi e le stazioni rimossi non possono essere ripristinati.&#xA;&#xA;Passare ora al sistema originale?"/>
+		<text name="sps_pipeModePhysCounts" 	text="%d tubi fisici, %d estremità collegate, %d riposti sui supporti, %d stazioni di attracco"/>
+		<text name="sps_pipeModeBtnKeepPhysical" 	text="Mantieni i tubi fisici"/>
 		<text name="action_spsAddIbc" 					text="Hold: aggiungere IBC" />
 
 		<!-- Separator -->
@@ -203,5 +229,95 @@
 
 		<!-- Buying station -->
 		<text name="action_spsBuyStationSwitch"		text="Acquisto: %s — passa a %s" />
+		<text name="action_spsTankSwitch"		text="Serbatoio %s (%s) - passa al serbatoio %s (%s)" />
+		<!-- Farm liquid lanes: animal water in / milk out (1.0.1.8) -->
+		<text name="sps_laneWater"						text="Acqua" />
+		<text name="sps_laneMilk"						text="Latte" />
+		<text name="action_spsWaterFlowOn"				text="Acqua: IN CORSO" />
+		<text name="action_spsWaterFlowOff"				text="Acqua: FERMA" />
+		<text name="action_spsMilkFlowOn"				text="Latte: IN CORSO" />
+		<text name="action_spsMilkFlowOff"				text="Latte: FERMO" />
+		<text name="warning_spsAnimalWaterOnly"			text="Solo l'acqua può essere pompata agli animali" />
+		<text name="warning_spsAnimalWaterEmpty"		text="Il serbatoio è vuoto" />
+		<text name="warning_spsMilkOnly"				text="Da questo attacco passa solo latte" />
+		<text name="warning_spsMilkBarnEmpty"			text="La stalla non ha latte da raccogliere" />
+		<text name="warning_spsLiquidTankFull"			text="Il serbatoio è pieno" />
+		<text name="warning_spsLiquidBarnFull"			text="L'acqua da bere è piena" />
+		<text name="warning_spsLiquidDirectionFixed"	text="La direzione è fissa su questo attacco" />
+		<!-- [SPS 1.0.1.8] physical pipes: fitting valves + tanker-to-tanker transfer -->
+		<text name="action_spsFittingValveOpen"		text="Apri valvola" />
+		<text name="action_spsFittingValveClose"		text="Chiudi valvola" />
+		<text name="warning_spsFittingValveClosed"		text="Apri prima le valvole di entrambi i raccordi" />
+		<text name="warning_spsCloseValveFirst"		text="Chiudere la valvola prima di scollegare il tubo" />
+		<text name="sps_laneTransfer"					text="Da cisterna a cisterna" />
+		<text name="warning_spsTransferOtherEmpty"		text="L'altra cisterna è vuota" />
+		<text name="warning_spsTransferOtherFull"		text="L'altra cisterna è piena" />
+		<text name="warning_spsTransferType"			text="Le cisterne contengono liquidi diversi" />
+		<text name="warning_spsTransferPumping"		text="L'altra cisterna sta già pompando" />
+		<text name="sps_laneSprayer"					text="Sorgente irroratrice" />
+		<text name="shopItem_spsCowBarnMedium"		text="Stalla bovini media (SPS)" />
+		<text name="function_spsCowBarnMedium"		text="La stalla Rudolf Hörmann media con tre attacchi: liquame in uscita, latte in uscita, acqua da bere in entrata. L'acqua è una riserva reale di 35.000 l: le mucche vanno abbeverate tramite tubo o cisterna." />
+		<!-- [SPS 1.0.1.8] bought pipe shop item -->
+		<text name="shopItem_spsHose"			text="Tubo SPS" />
+		<text name="typeDesc_spsHose"			text="Tubo" />
+		<text name="function_spsHose"			text="Un tubo fisico. Da scegliere nel negozio: liquame 140 mm, acqua o latte 80 mm, 4 m o 6 m e, per il liquame, le estremità (femmina/maschio, femmina/femmina o maschio/maschio). Raccoglilo con le mani (tasto sinistro), porta un&apos;estremità a un attacco e premi il tasto destro per collegarlo. Il tasto destro su un&apos;estremità collegata la stacca nelle tue mani; il tasto sinistro su un tubo collegato lo lascia cadere. I tubi del liquame si possono colorare. Fisso dopo l&apos;acquisto - vendilo per cambiarlo." />
+		<text name="spsHose_slurry"			text="Tubo liquame SPS 140 mm" />
+		<text name="spsDockingStation_name"		text="Stazione di attracco SPS" />
+		<text name="function_spsDockingStation"	text="Palo di attracco portatile. Portalo con le mani (tasto sinistro) e posalo dove serve, collega un tubo al suo raccordo, poi abbassa il braccio di carico di una botte nello stivale di gomma per caricare attraverso il tubo." />
+		<text name="typeDesc_spsDockingStation"	text="Stazione di attracco" />
+		<text name="configuration_spsRamp" text="Rampa" />
+		<text name="spsHose_FM"				text="Slurry 140 mm - female / male" />
+		<text name="spsHose_FF"				text="Slurry 140 mm - female / female" />
+		<text name="spsHose_MM"				text="Slurry 140 mm - male / male" />
+		<text name="spsHose_WATER"			text="Tubo acqua SPS 80 mm" />
+		<text name="spsHose_MILK"			text="Tubo latte SPS 80 mm" />
+		<text name="spsHose_slurry_long"		text="Tubo liquame SPS 140 mm (6 m)" />
+		<text name="spsHose_WATER_long"		text="Tubo acqua SPS 80 mm (6 m)" />
+		<text name="spsHose_MILK_long"		text="Tubo latte SPS 80 mm (6 m)" />
+		<text name="configuration_spsPipeType"	text="Tubo" />
+		<text name="configuration_spsPipeLength"	text="Lunghezza" />
+		<text name="configuration_spsPipeEnds"	text="Estremità (tubo liquame)" />
+		<text name="spsPipe_typeSlurry"		text="Tubo liquame 140 mm" />
+		<text name="spsPipe_typeWater"		text="Tubo acqua 80 mm" />
+		<text name="spsPipe_typeMilk"		text="Tubo latte 80 mm" />
+		<text name="spsPipe_length4"			text="4 m" />
+		<text name="spsPipe_length6"			text="6 m" />
+		<text name="spsColor_green"			text="Verde" />
+		<text name="spsColor_blue"			text="Blu" />
+		<text name="spsColor_brown"			text="Marrone" />
+		<text name="spsColor_black"			text="Nero" />
+
+        <!-- [SPS 1.0.1.8] player-drawn water courses (building screen, Landscaping > SPS Water) -->
+        <text name="construction_tab_spsWater" text="SPS Acqua" />
+        <text name="shopItem_spsWaterCourseDraw" text="Traccia specchio d'acqua" />
+        <text name="function_spsWaterCourseDraw" text="Traccia un anello attorno a un lago o fiume perché le botti SPS possano prelevare acqua. Clicca prima sull'acqua (imposta il livello), poi posa i marcatori lungo la riva e clicca il primo per chiudere." />
+        <text name="shopItem_spsWaterCourseRemove" text="Rimuovi specchio d'acqua" />
+        <text name="function_spsWaterCourseRemove" text="Rimuove uno specchio d'acqua tracciato in precedenza." />
+        <text name="sps_waterCourse_defaultName" text="Specchio d'acqua %d" />
+        <text name="sps_waterCourse_namePrompt" text="Nome dello specchio d'acqua" />
+        <text name="sps_waterCourse_hintClickWater" text="Clicca prima sull'acqua - imposta il livello" />
+        <text name="sps_waterCourse_clickWaterFirst" text="Qui non c'è acqua - clicca prima sull'acqua" />
+        <text name="sps_waterCourse_levelSet" text="Livello impostato - ora posa i marcatori lungo la riva" />
+        <text name="sps_waterCourse_complete" text="Specchio d'acqua completato" />
+        <text name="sps_waterCourse_cancelled" text="Specchio d'acqua annullato" />
+        <text name="sps_waterCourse_removed" text="Specchio d'acqua rimosso" />
+        <text name="sps_waterCourse_removeConfirm" text="Rimuovere lo specchio d'acqua '%s'?" />
+        <text name="sps_waterCourse_noneOnMap" text="Nessuno specchio d'acqua tracciato su questa mappa" />
+        <text name="sps_waterCourse_tooFewPoints" text="Servono almeno 3 marcatori" />
+        <text name="sps_waterCourse_tooManyPoints" text="Troppi marcatori (max 256)" />
+        <text name="sps_waterCourse_edgeTooShort" text="Troppo vicino all'ultimo marcatore" />
+        <text name="sps_waterCourse_tooSmall" text="L'anello è troppo piccolo" />
+        <text name="sps_waterCourse_crossing" text="La linea incrocerebbe l'anello" />
+        <text name="sps_waterCourse_actionClickWater" text="Clicca l'acqua (livello)" />
+        <text name="sps_waterCourse_actionPlace" text="Posa marcatore" />
+        <text name="sps_waterCourse_actionClose" text="Chiudi l'anello" />
+        <text name="sps_waterCourse_actionRemoveLast" text="Rimuovi ultimo marcatore" />
+        <text name="sps_waterCourse_actionRemoveLevel" text="Rimuovi punto acqua" />
+        <text name="sps_waterCourse_actionRemove" text="Rimuovi questo specchio d'acqua" />
+        <text name="shopItem_spsPtoPump"		text="Pompa liquame SPS a presa di forza" />
+        <text name="shopItem_spsTowerMixer"		text="Miscelatore a torre SPS" />
+        <text name="function_spsTowerMixer"		text="Un miscelatore per lagune azionato dal trattore su una torre pieghevole. Abbassa i piedi, apri il braccio nella vasca e miscela il liquame con la presa di forza; un tubo dalla sua pompa porta il liquame miscelato a una botte." />
+        <text name="sps_hudPipeFlow"		text="Flusso tubo" />
+        <text name="input_SPS_FREE_PIPE"		text="Libera il tubo incastrato" />
 	</texts>
 </l10n>

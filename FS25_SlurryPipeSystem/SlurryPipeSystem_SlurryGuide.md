@@ -93,6 +93,43 @@ If you do clog up mid-field, the spread stops. Get out on foot, walk up to the b
 
 The spreader readout shows your fill level along with the slurry's condition — thickness, crust, blockage risk and pump state. If the risk reading is high before you head out, that's your cue to mix the store first. You can resize, reposition or turn off parts of this readout in the mod settings.
 
+The **pump panel** (PTO pump and the tower mixer's pump) shows **Status: PUMPING** in green, or
+"stopped" and the reason (valve closed, pump or blades off, no pipe, receiving valve closed,
+source empty, destination full, too thick), the rate in l/s, the litres pumped, the thickness of
+what you are pumping and the flow speed it allows, and where it comes from and goes to. The
+tower mixer adds **Blades: SPINNING** while its blades turn.
+
+When an outlet or the macerator is blocked, the readout adds a red **"Blocked — Clear at the outlet"** row. That is not a random red HUD: get out, pump off, valve closed, and clear it at the outlet on foot. Refilling never clears it.
+
+---
+
+## Controls
+
+Default keys in the cab (all rebindable in Options > Controls):
+
+| Key | Does |
+|-----|------|
+| **B** | Pump / PTO on-off |
+| **X** | Open / close the flow valve |
+| **Y** | Switch fill / discharge direction (only while the valve is closed) |
+| **Z** | Spreader valve open / close |
+| **T** / **B** | Fixed lagoon agitator (tractor backed up to it): connect-disconnect / PTO on-off |
+| **X** | Sprayer: open / close the cover while no pipe is connected |
+| Hold **R** | Replace a snapped shear bolt (on foot, at the pump) |
+| **Left Alt + B** | Tower mixer (pump mixer): open / close its pump valve |
+| **R** | Physical pipes: open / close the valve at a coupler or water / milk fitting (on foot) |
+| Left / right mouse | Physical pipes: pick up, connect, unplug (see `SPS_README_06_Physical_Pipes.md`) |
+| Mouse wheel or **;** / **'** | Physical pipes: choose the pipe rack when stowing |
+| Middle mouse | Move or resize the spreader HUD |
+
+The pump, valve and direction rows appear in the F1 help box for the tanker the tractor has selected (G). If another implement in the chain uses the same key, the game keeps only one of them; SPS then writes one `[SPS] WARNING` line in `log.txt` naming the clashing action. Rebind one of them, or re-select the tanker. If you played SPS before mid-2026 your profile may still hold the old layout (valve on Z), which is fine, just different from the list above.
+
+---
+
+## Reporting a problem
+
+Send `log.txt` from your profile folder. For a multiplayer problem, first open the console (`~`) on the machine showing the wrong prompt and run `spsMpState`, which writes the full coupling state to the log. `spsDebug` lists trace channels the author may ask you to switch on; they are remembered until you run `spsDebug all off`.
+
 ---
 
 ## Turning the system off

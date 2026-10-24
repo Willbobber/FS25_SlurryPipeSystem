@@ -3,9 +3,12 @@
     <texts>
 		<!-- Inputs -->
 		<text name="input_SPS_TOGGLE_PUMP"      		text="SPS Pump On/Off" />
+		<text name="input_SPS_STOW_NEXT"			text="SPS: next pipe holder" />
+		<text name="input_SPS_STOW_PREV"			text="SPS: previous pipe holder" />
 		<text name="input_SPS_TOGGLE_AGITATOR"		text="Connect/Disconnect Agitator" />
 		<text name="input_SPS_ENGAGE_AGITATOR"		text="Agitator PTO On/Off" />
 		<text name="input_SPS_TOGGLE_FLOW"      		text="SPS Flow Open/Close" />
+		<text name="input_SPS_PUMPMIXER_VALVE"		text="SPS pump mixer valve Open/Close" />
 		<text name="input_SPS_TOGGLE_DIRECTION" 		text="SPS Flow Direction" />
         <text name="input_SPS_TOGGLE_SPREADER"          text="SPS Spreader Valve" />
         
@@ -46,6 +49,12 @@
 		<text name="action_spsRemovePipe"           	text="Remove pipe" />
 		<text name="action_spsRemoveDockingStation" 	text="Remove docking station" />
 		<text name="action_spsDisconnectPipe" 			text="Disconnect pipe" />
+		<text name="action_spsPhysConnect" 			text="Connect pipe end"/>
+		<text name="action_spsPhysDisconnect" 		text="Unplug pipe end and carry it"/>
+		<text name="action_spsPhysDrop" 				text="Unplug pipe"/>
+		<text name="action_spsPhysStow" 				text="Stow pipe: holder %d (%s %d/%d free)"/>
+		<text name="action_spsPhysStowCycle" 			text="[wheel or ; '] other holder"/>
+		<text name="action_spsDsStow" 				text="Place docking station on holder %d"/>
 		<text name="action_spsFinalisePipe"  			text="Finalise pipe [R] | Cancel [hold R]" />
 		<text name="action_spsDeployCoupling" 			text="Deploy pipe coupling [hold R]"/>
 		<text name="action_spsRemoveCoupling" 			text="Remove pipe coupling [hold R]"/>
@@ -53,9 +62,7 @@
 		<text name="action_spsRearValveClose"			text="Close valve" />
 		
         <!-- Warnings -->
-        <text name="warning_slurryNoConnection"    		text="No slurry connection active" />
         <text name="warning_slurryCloseFlowFirst"  		text="Close valve before changing pump direction" />
-        <text name="warning_slurryNoPipeTarget"    		text="No pipe connection point in range" />
 		<text name="warning_slurryEngineOff" 			text="Start the engine first"/>
 		<text name="warning_spsConnectHydraulics"		text="Connect hydraulic hoses first" />
 		<text name="warning_spsSetToPressure"			text="Set pump to Pressure first" />
@@ -66,7 +73,27 @@
         <text name="typeDesc_manurePump"                text="PTO Slurry Pump" />
 
         <!-- Conduit pump HUD and direction -->
-        <text name="hud_spsConduitPumped"               text="Pumped: %d L" />
+        <text name="hud_spsPumpMixerTitle" text="Pump mixer" />
+        <text name="hud_spsPumpStatus" text="Status: %s" />
+        <text name="hud_spsPumpPumping" text="PUMPING" />
+        <text name="hud_spsPumpStopped" text="stopped - %s" />
+        <text name="hud_spsPumpRate" text="Rate: %d L/s   Pumped: %d L" />
+        <text name="hud_spsPumpThickness" text="Thickness: %d%%   Flow speed: %d%%" />
+        <text name="hud_spsPumpValveClosed" text="valve closed" />
+        <text name="hud_spsPumpOff" text="pump off" />
+        <text name="hud_spsPumpBladesOff" text="blades off" />
+        <text name="hud_spsPumpNotInSlurry" text="mixer not in slurry" />
+        <text name="hud_spsPumpNoPipe" text="no pipe connected" />
+        <text name="hud_spsPumpRecvValve" text="receiving valve closed" />
+        <text name="hud_spsPumpNoTank" text="nothing to pump into" />
+        <text name="hud_spsPumpSameStore" text="pipe leads back to the same store" />
+        <text name="hud_spsPumpDrawOnly" text="receiving side cannot take slurry" />
+        <text name="hud_spsPumpSourceEmpty" text="source empty" />
+        <text name="hud_spsPumpDestFull" text="destination full" />
+        <text name="hud_spsPumpTooThick" text="too thick" />
+        <text name="hud_spsPumpBlades" text="Blades: %s" />
+        <text name="hud_spsPumpBladesSpinning" text="SPINNING" />
+        <text name="hud_spsPumpBladesStopped" text="off" />
         <text name="action_spsConduitDirAtoB"           text="Flow: Port 1 → Port 2" />
         <text name="action_spsConduitDirBtoA"           text="Flow: Port 2 → Port 1" />
 		
@@ -74,14 +101,9 @@
         <text name="warning_spsSlurryThickening"  		text="Slurry thickening: %d%% — agitation advised" />
         <text name="warning_spsSlurryThickeningWater"  	text="Slurry thickening: %d%% — add water" />
         <text name="warning_spsSlurryTooThick"          text="Slurry too thick — Water required" />
-        <text name="sps_settingsAgitation"              text="Slurry Agitation" />
-        <text name="sps_settingsAgitationTooltip"       text="Enable slurry thickening and agitation system" />
+        <text name="warning_spsStoreNoAccess"           text="No access to this store (another farm owns it)" />
         <text name="sps_settingsRealism"                text="Slurry Realism" />
         <text name="sps_settingsRealismTooltip"         text="Master switch for slurry thickness, crust, blockages and pipe-length falloff" />
-        <text name="sps_settingsStoreThickening"        text="    Store Thickening" />
-        <text name="sps_settingsStoreThickeningTooltip" text="Slurry in stores thickens over time (always on with Realism)" />
-        <text name="sps_settingsCrust"                  text="    Crust Vegetation" />
-        <text name="sps_settingsCrustTooltip"           text="Visual crust grows on thick slurry surfaces (always on with Realism)" />
         <text name="sps_settingsThicknessFlow"          text="    Thickness Affects Flow" />
         <text name="sps_settingsThicknessFlowTooltip"   text="Thick slurry slows filling, discharging and spreading" />
         <text name="sps_settingsBlockages"              text="    Spread Blockages" />
@@ -89,26 +111,16 @@
         <text name="sps_settingsLengthFalloff"          text="    Pipe Length Falloff" />
         <text name="sps_settingsLengthFalloffTooltip"   text="Flow rate drops over the length of a connected slurry pipe" />
         <text name="warning_spsBlockage"                text="Spreader blocked — clear the blockage to continue" />
-        <text name="action_spsAgitatorOn"               text="Agitator: OFF — PTO running" />
-        <text name="action_spsAgitatorOff"              text="Agitator: ON — PTO running" />
-        <text name="warning_spsAgitatorNotSubmerged"    text="Agitator not submerged" />
         <text name="sps_infoThicknessTitle"             text="Slurry Thickness" />
 		<text name="sps_infoLiquidTitle"                text="Liquid" />
         <text name="sps_infoDryMatterTitle"             text="Dry Matter" />
         <text name="sps_infoCrustTitle"                 text="Crust" />
         <text name="sps_infoTankEmpty"               text="Empty" />
+        <text name="shopItem_spsSprayerSilo"        text="Sprayer Silo (4 tanks, SPS)" />
+        <text name="function_spsSprayerSilo"        text="Four separate liquid tanks behind one SPS pipe connection. Walk into the switch box to choose the tank; any liquid fertiliser or herbicide, each tank locks to what it holds until empty. Pipe-only: no drive-under loading." />
 		
 		<!-- Water -->
-		<text name="action_spsDeployWaterPipe"			text="Hold R: Deploy Water Pipe" />
-		<text name="action_spsFinalizeWaterPipe"		text="Hold R: Finalize Water Pipe" />
-		<text name="action_spsCancelWaterPipe"			text="Hold R: Cancel Placement" />
-		<text name="action_spsRemoveWaterPipe"			text="Hold R: Remove Water Pipe" />
-		<text name="info_spsPipeWalkToWater"			text="Walk toward water to place pipe" />
-		<text name="info_spsPipeDeployed"				text="Water pipe deployed" />
-		<text name="info_spsPipeCancelled"				text="Pipe placement cancelled" />
-		<text name="info_spsPipeRemoved"				text="Water pipe removed" />
 		<text name="warning_spsPipeTooShort"			text="Pipe too short (minimum 2m)" />
-		<text name="warning_spsPipeTooLong"				text="Pipe too long (maximum 20m)" />
 		
 		<!-- Sprayer -->
 		<text name="input_SPS_TOGGLE_ANIMATION_SPRAYER"	text="Open Cover | Close Cover" />
@@ -120,10 +132,8 @@
 		<text name="action_sprayerFlowOn"				text="Flow: RUNNING" />
 		<text name="action_sprayerDirLoad"				text="Direction: LOAD" />
 		<text name="action_sprayerDirUnload"			text="Direction: UNLOAD" />
-		<text name="sps_warningCloseCoverBeforeTurnOn" 	text="Close the cover before turning on"/>
 		
 		<!-- SPS spreader HUD -->
-		<text name="sps_hudTitle"            			text="Spreader" />
 		<text name="sps_hudSlurry"           			text="Slurry" />
 		<text name="sps_hudCrust"            			text="Crust" />
 		<text name="sps_hudThickness"        			text="Thickness" />
@@ -183,6 +193,22 @@
 		<!-- IBCs -->
 		<text name="sps_settingsIbcPersist" 			text="IBC Persists When Empty"/>
 		<text name="sps_settingsIbcPersistTooltip" 		text="Yes: emptied IBCs stay on the map (return to store or refill them). No: they disappear when emptied (default)."/>
+		<text name="sps_settingsPhysicalPipes" 			text="Physical Pipes"/>
+		<text name="sps_settingsPhysicalPipesTooltip" 	text="No: original system - lay and connect pipes at the couplings, chains, sprayer and water/milk lanes; the bought pipes are hidden in the shop. Yes: physical pipes only - buy pipes in the shop, carry them with your hands; every original pipe prompt is switched off. The two systems never run together."/>
+		<text name="sps_pipeModeTitle" 	text="Slurry Pipe System - choose your pipe system"/>
+		<text name="sps_pipeModeQuestion" 	text="Which pipe system do you want to use in this game?&#xA;&#xA;ORIGINAL: lay and connect pipes at the couplings, chains, sprayers and water/milk lanes as before.&#xA;PHYSICAL (new): buy pipes in the shop, carry them with your hands; the original lay/connect system is switched off.&#xA;&#xA;The two never run together. You can change this later under Settings > Physical Pipes."/>
+		<text name="sps_pipeModeExisting" 	text="This game already has %s."/>
+		<text name="sps_pipeModeCounts" 	text="%d laid pipe chain(s), %d connected coupling(s), %d sprayer pipe(s), %d water/milk pipe(s)"/>
+		<text name="sps_pipeModeBtnPhysical" 	text="Physical pipes (new)"/>
+		<text name="sps_pipeModeBtnOriginal" 	text="Original system"/>
+		<text name="sps_pipeModeWarnTitle" 	text="WARNING - switching to physical pipes"/>
+		<text name="sps_pipeModeWarnText" 	text="Switching to the new physical pipes REMOVES every pipe laid or connected with the original system in this game (%s) and switches the original connection system OFF - even mid-game. The removed pipes cannot be restored.&#xA;&#xA;Switch to physical pipes now?"/>
+		<text name="sps_pipeModeBtnSwitch" 	text="Switch and remove pipes"/>
+		<text name="sps_pipeModeBtnKeep" 	text="Keep original"/>
+		<text name="sps_pipeModeWarnOrigTitle" 	text="WARNING - switching to the original system"/>
+		<text name="sps_pipeModeWarnOrigText" 	text="Switching back to the original system REMOVES every physical pipe and carriable docking station in this game (%s) and switches the physical pipes OFF - even mid-game. The removed pipes and stations cannot be restored.&#xA;&#xA;Switch to the original system now?"/>
+		<text name="sps_pipeModePhysCounts" 	text="%d physical pipe(s), %d plugged end(s), %d stowed on racks, %d docking station(s)"/>
+		<text name="sps_pipeModeBtnKeepPhysical" 	text="Keep physical pipes"/>
 		<text name="action_spsAddIbc" 					text="Hold: add IBC" />
 
 		<!-- Separator -->
@@ -203,5 +229,95 @@
 
 		<!-- Buying station -->
 		<text name="action_spsBuyStationSwitch"		text="Buying: %s - switch to %s" />
+		<text name="action_spsTankSwitch"		text="Tank %s (%s) - switch to tank %s (%s)" />
+		<!-- Farm liquid lanes: animal water in / milk out (1.0.1.8) -->
+		<text name="sps_laneWater"						text="Water" />
+		<text name="sps_laneMilk"						text="Milk" />
+		<text name="action_spsWaterFlowOn"				text="Water: RUNNING" />
+		<text name="action_spsWaterFlowOff"				text="Water: STOPPED" />
+		<text name="action_spsMilkFlowOn"				text="Milk: RUNNING" />
+		<text name="action_spsMilkFlowOff"				text="Milk: STOPPED" />
+		<text name="warning_spsAnimalWaterOnly"			text="Only water can be pumped to the animals" />
+		<text name="warning_spsAnimalWaterEmpty"		text="Tank is empty" />
+		<text name="warning_spsMilkOnly"				text="Only milk passes through this connection" />
+		<text name="warning_spsMilkBarnEmpty"			text="The barn has no milk to collect" />
+		<text name="warning_spsLiquidTankFull"			text="Tank is full" />
+		<text name="warning_spsLiquidBarnFull"			text="Drinking water is full" />
+		<text name="warning_spsLiquidDirectionFixed"	text="Direction is fixed at this connection" />
+		<!-- [SPS 1.0.1.8] physical pipes: fitting valves + tanker-to-tanker transfer -->
+		<text name="action_spsFittingValveOpen"		text="Open valve" />
+		<text name="action_spsFittingValveClose"		text="Close valve" />
+		<text name="warning_spsFittingValveClosed"		text="Open the valves at both fittings first" />
+		<text name="warning_spsCloseValveFirst"		text="Close the valve before unplugging the pipe" />
+		<text name="sps_laneTransfer"					text="Tanker to tanker" />
+		<text name="warning_spsTransferOtherEmpty"		text="The other tank is empty" />
+		<text name="warning_spsTransferOtherFull"		text="The other tank is full" />
+		<text name="warning_spsTransferType"			text="The tanks hold different liquids" />
+		<text name="warning_spsTransferPumping"		text="The other tanker is already pumping" />
+		<text name="sps_laneSprayer"					text="Sprayer source" />
+		<text name="shopItem_spsCowBarnMedium"		text="Cow Barn Medium (SPS)" />
+		<text name="function_spsCowBarnMedium"		text="The medium Rudolf Hörmann cow barn with three pipe connections: slurry out, milk out and drinking water in. The water is a real 35,000 l supply here, so the cows must be watered by pipe or trailer." />
+		<!-- [SPS 1.0.1.8] bought pipe shop item -->
+		<text name="shopItem_spsHose"			text="SPS Pipe" />
+		<text name="typeDesc_spsHose"			text="Pipe" />
+		<text name="function_spsHose"			text="A physical pipe. Choose it in the shop: slurry 140 mm, water or milk 80 mm, 4 m or 6 m, and for slurry the ends (female/male, female/female or male/male). Pick it up with your hands (left mouse), carry an end to a coupling and press the right mouse button to connect it. Right mouse at a connected end unplugs it into your hands; left mouse on a connected pipe drops it. Slurry pipes take a colour. Fixed after purchase - sell it to change." />
+		<text name="spsHose_slurry"			text="SPS Slurry Pipe 140 mm" />
+		<text name="spsDockingStation_name"		text="SPS Docking Station" />
+		<text name="function_spsDockingStation"	text="A portable docking post. Carry it with your hands (left mouse) and set it down where you need it, plug a pipe into its coupling, then dock a tanker&apos;s fill arm into the rubber boot to load through the pipe." />
+		<text name="typeDesc_spsDockingStation"	text="Docking station" />
+		<text name="configuration_spsRamp" text="Ramp" />
+		<text name="spsHose_FM"				text="Female / male ends" />
+		<text name="spsHose_FF"				text="Female / female ends" />
+		<text name="spsHose_MM"				text="Male / male ends" />
+		<text name="spsHose_WATER"			text="SPS Water Hose 80 mm" />
+		<text name="spsHose_MILK"			text="SPS Milk Hose 80 mm" />
+		<text name="spsHose_slurry_long"		text="SPS Slurry Pipe 140 mm (6 m)" />
+		<text name="spsHose_WATER_long"		text="SPS Water Hose 80 mm (6 m)" />
+		<text name="spsHose_MILK_long"		text="SPS Milk Hose 80 mm (6 m)" />
+		<text name="configuration_spsPipeType"	text="Pipe" />
+		<text name="configuration_spsPipeLength"	text="Length" />
+		<text name="configuration_spsPipeEnds"	text="Ends (slurry pipe)" />
+		<text name="spsPipe_typeSlurry"		text="Slurry pipe 140 mm" />
+		<text name="spsPipe_typeWater"		text="Water hose 80 mm" />
+		<text name="spsPipe_typeMilk"		text="Milk hose 80 mm" />
+		<text name="spsPipe_length4"			text="4 m" />
+		<text name="spsPipe_length6"			text="6 m" />
+		<text name="spsColor_green"			text="Green" />
+		<text name="spsColor_blue"			text="Blue" />
+		<text name="spsColor_brown"			text="Brown" />
+		<text name="spsColor_black"			text="Black" />
+
+        <!-- [SPS 1.0.1.8] player-drawn water courses (building screen, Landscaping > SPS Water) -->
+        <text name="construction_tab_spsWater" text="SPS Water" />
+        <text name="shopItem_spsWaterCourseDraw" text="Draw water course" />
+        <text name="function_spsWaterCourseDraw" text="Draw a ring around a lake or river so SPS tankers can draw water from it. Click the water first (sets the level), then click markers around the shore, click the first marker to close." />
+        <text name="shopItem_spsWaterCourseRemove" text="Remove water course" />
+        <text name="function_spsWaterCourseRemove" text="Remove a water course you drew earlier." />
+        <text name="sps_waterCourse_defaultName" text="Water course %d" />
+        <text name="sps_waterCourse_namePrompt" text="Name this water course" />
+        <text name="sps_waterCourse_hintClickWater" text="Click on the water first - that sets the water level" />
+        <text name="sps_waterCourse_clickWaterFirst" text="No water here - click on the water first" />
+        <text name="sps_waterCourse_levelSet" text="Water level set - now click markers around the shore" />
+        <text name="sps_waterCourse_complete" text="Water course complete" />
+        <text name="sps_waterCourse_cancelled" text="Water course cancelled" />
+        <text name="sps_waterCourse_removed" text="Water course removed" />
+        <text name="sps_waterCourse_removeConfirm" text="Remove the water course '%s'?" />
+        <text name="sps_waterCourse_noneOnMap" text="No drawn water courses on this map" />
+        <text name="sps_waterCourse_tooFewPoints" text="At least 3 markers are needed" />
+        <text name="sps_waterCourse_tooManyPoints" text="Too many markers (256 max)" />
+        <text name="sps_waterCourse_edgeTooShort" text="Too close to the last marker" />
+        <text name="sps_waterCourse_tooSmall" text="The ring is too small" />
+        <text name="sps_waterCourse_crossing" text="The line would cross the ring" />
+        <text name="sps_waterCourse_actionClickWater" text="Click the water (set level)" />
+        <text name="sps_waterCourse_actionPlace" text="Place marker" />
+        <text name="sps_waterCourse_actionClose" text="Close the ring" />
+        <text name="sps_waterCourse_actionRemoveLast" text="Remove last marker" />
+        <text name="sps_waterCourse_actionRemoveLevel" text="Remove water point" />
+        <text name="sps_waterCourse_actionRemove" text="Remove this water course" />
+        <text name="shopItem_spsPtoPump"		text="SPS PTO Slurry Pump" />
+        <text name="shopItem_spsTowerMixer"		text="SPS Tower Mixer" />
+        <text name="function_spsTowerMixer"		text="A tractor-driven lagoon mixer on a folding tower. Lower the legs, fold the boom into the store and mix the slurry with the PTO; a pipe from its pump moves the mixed slurry to a tanker." />
+        <text name="sps_hudPipeFlow"		text="Pipe flow" />
+        <text name="input_SPS_FREE_PIPE"		text="Free stuck pipe" />
 	</texts>
 </l10n>

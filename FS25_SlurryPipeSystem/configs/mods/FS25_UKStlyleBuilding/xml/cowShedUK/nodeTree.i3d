@@ -14,6 +14,8 @@
     <File fileId="6" filename="$data/shared/detailLibrary/flat_normal.png"/>
     <File fileId="7" filename="$data/shared/detailLibrary/metallic/silverScratched_diffuse.png"/>
     <File fileId="5" filename="$data/shared/detailLibrary/metallic/silverScratched_specular.png"/>
+    <File fileId="18" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_diffuse.png"/>
+    <File fileId="17" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_specular.png"/>
     <File fileId="16" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_diffuse.dds"/>
     <File fileId="15" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_normal.dds"/>
     <File fileId="14" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_specular.dds"/>
@@ -22,7 +24,16 @@
 
 
   <Materials>
-    <Material name="hose_mat" materialId="5" customShaderId="4">
+    <Material name="black_plasticPainted_mat" materialId="868" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="17"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="18"/>
+      <CustomParameter name="colorScale" value="0.006 0.006 0.006"/>
+    </Material>
+    <Material name="hose_mat" materialId="741" customShaderId="4">
       <Texture fileId="1"/>
       <Normalmap fileId="12"/>
       <Glossmap fileId="13"/>
@@ -31,7 +42,16 @@
       <Custommap name="detailDiffuse" fileId="16"/>
       <CustomParameter name="colorScale" value="0 0.05 0"/>
     </Material>
-    <Material name="silverScratched_mat" materialId="6" customShaderId="4">
+    <Material name="red_plasticPainted_mat" materialId="871" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="17"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="18"/>
+      <CustomParameter name="colorScale" value="0.359 0.033 0.035"/>
+    </Material>
+    <Material name="silverScratched_mat" materialId="742" customShaderId="4">
       <Texture fileId="1"/>
       <Normalmap fileId="2"/>
       <Glossmap fileId="3"/>
@@ -46,24 +66,45 @@
   </Shapes>
 
   <Scene>
-    <TransformGroup name="SPS_cowShedUK" nodeId="10">
-      <TransformGroup name="pipeCouplers" nodeId="11">
-        <TransformGroup name="cowShedUK" nodeId="12">
-          <TransformGroup name="SPS_pipeCoupler01" translation="-2.62726 0.164293 60.3558" rotation="0 180 0" nodeId="13">
-            <TransformGroup name="SPS_pipeCoupler01Arcs" translation="0 0 8.5607e-07" rotation="180 1.86693e-05 180" nodeId="14">
-              <TransformGroup name="SPS_pipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="15"/>
-              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="16"/>
+    <TransformGroup name="SPS_cowShedUK" nodeId="746">
+      <TransformGroup name="pipeCouplers" nodeId="747">
+        <TransformGroup name="cowShedUK" nodeId="748">
+          <TransformGroup name="SPS_pipeCoupler01" translation="-2.62726 0.164293 60.3558" rotation="0 180 0" nodeId="749">
+            <TransformGroup name="SPS_pipeCoupler01Arcs" translation="0 0 8.5607e-07" rotation="180 1.86693e-05 180" nodeId="750">
+              <TransformGroup name="SPS_pipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="751"/>
+              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="752"/>
             </TransformGroup>
-            <Shape name="slurryHoseConnetorMale01" translation="-2.62728 -0.164293 60.3558" rotation="180 1.86693e-05 180" shapeId="1" kinematic="true" compound="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="17" castsShadows="false" receiveShadows="false" materialIds="6">
-              <Shape name="hose" shapeId="2" kinematic="true" compound="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="18" castsShadows="true" receiveShadows="true" materialIds="5"/>
+            <Shape name="slurryHoseConnetorMale01" translation="-2.62728 -0.164293 60.3558" rotation="180 1.86693e-05 180" shapeId="1" kinematic="true" compound="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="753" castsShadows="false" receiveShadows="false" materialIds="742">
+              <Shape name="hose" shapeId="2" kinematic="true" compound="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="754" castsShadows="true" receiveShadows="true" materialIds="741"/>
             </Shape>
-            <TransformGroup name="inNode" nodeId="19"/>
-            <TransformGroup name="outNode" rotation="0 180 0" nodeId="20"/>
-            <TransformGroup name="headHeight01" nodeId="25"/>
+            <TransformGroup name="inNode" nodeId="755"/>
+            <TransformGroup name="outNode" rotation="0 180 0" nodeId="756"/>
+            <TransformGroup name="headHeight01" nodeId="757"/>
           </TransformGroup>
-          <TransformGroup name="slurryPlaneCentre" translation="-1.91255 -1.94 59.0255" nodeId="21"/>
-          <TransformGroup name="slurryPlaneCorner1" translation="-0.41255 -1.94 60.5255" nodeId="22"/>
-          <TransformGroup name="slurryPlaneCorner2" translation="-3.41255 -1.94 57.5255" nodeId="23"/>
+          <TransformGroup name="slurryPlaneCentre" translation="-1.91255 -1.94 59.0255" nodeId="758"/>
+          <TransformGroup name="slurryPlaneCorner1" translation="-0.41255 -1.94 60.5255" nodeId="759"/>
+          <TransformGroup name="slurryPlaneCorner2" translation="-3.41255 -1.94 57.5255" nodeId="760"/>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="milkPipeCouplers" nodeId="761">
+        <TransformGroup name="cowShedUK" nodeId="762">
+          <TransformGroup name="SPS_milkPipeCoupler01" translation="-10.2356 0.346845 8.82468" rotation="-5.3312e-12 -60 3.0942e-05" nodeId="906">
+            <TransformGroup name="SPS_milkPipeCoupler01Arcs" rotation="3.40168e-05 -30 -1.4133e-05" nodeId="907">
+              <TransformGroup name="SPS_milkPipeCoupler01Arc01" translation="1.5 0 3.5" nodeId="908"/>
+              <TransformGroup name="SPS_milkPipeCoupler01Arc02" translation="-1.5 0 3.5" nodeId="909"/>
+            </TransformGroup>
+            <Shape name="sprayerConnector" shapeId="3" clipDistance="150" nodeId="910" castsShadows="true" receiveShadows="true" materialIds="868">
+              <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="4" clipDistance="150" nodeId="911" castsShadows="true" receiveShadows="true" materialIds="871"/>
+              <TransformGroup name="inNode" translation="2.49905e-08 1.64534e-08 0.205501" rotation="0 180 0" nodeId="912"/>
+              <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="913"/>
+            </Shape>
+            <Shape name="sprayerConnector" translation="-2.1679 -0.00289838 -1.24993" shapeId="3" clipDistance="150" nodeId="916" castsShadows="true" receiveShadows="true" materialIds="868">
+              <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="4" clipDistance="150" nodeId="917" castsShadows="true" receiveShadows="true" materialIds="871"/>
+            </Shape>
+            <Shape name="sprayerConnector" translation="2.16387 -0.00217171 1.2501" shapeId="3" clipDistance="150" nodeId="926" castsShadows="true" receiveShadows="true" materialIds="868">
+              <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="4" clipDistance="150" nodeId="927" castsShadows="true" receiveShadows="true" materialIds="871"/>
+            </Shape>
+          </TransformGroup>
         </TransformGroup>
       </TransformGroup>
     </TransformGroup>

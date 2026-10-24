@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Flow 1.0.1.8 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSM_Flow 1.0.1.8 loaded") end
 
 
 function SlurryPipeManager:connectionIsFillArm(vehicle)
@@ -51,6 +51,72 @@ end
 
 -- Returns the source entry on the far side of a coupling's connection.
 -- Used by conduit pump to find what to pull from / push into.
+-- [SPS 1.0.1.8] Pump mixer endpoints (tower mixer). Source = the SPS store whose fill plane contains the agitator tip
+-- with the tip below its surface (same test as the agitator loop in SlurryPipeManager:update). Destination = the
+-- partner of the first CONNECTED coupler (configuration gates already leave only one registered: coupler 1 without
+-- the extension, coupler 2 with it). Pull-out only: never pumps into the store it stands in, and refuses a partner
+-- declared flowDirection="FILL" (a draw-only store), as the conduit does for its destination.
+-- [SPS 1.0.1.8] The store a pump mixer's agitator tip is submerged in (plane bounds contain the tip, tip below the
+-- surface - same test as the agitator loop), or nil. Shared by the flow and the pump HUD (runs on every peer).
+function SlurryPipeManager:getPumpMixerStore(entry)
+    local tip = entry ~= nil and entry.agitatorTipNode or nil
+    if tip == nil or not entityExists(tip) then return nil end
+    local tx, ty, tz = getWorldTranslation(tip)
+    for _, pEntry in ipairs(self.registeredPlaceables) do
+        for _, se in ipairs(self:getStoreSources(pEntry)) do
+            if se.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE and se.planeBounds ~= nil
+               and SlurryNodeUtil.isNodeInPlaneBounds(tip, se.planeBounds) then
+                local surfY = SlurryNodeUtil.getSurfaceWorldY(se, tx, tz)
+                if surfY ~= -math.huge and ty <= surfY then return se end
+            end
+        end
+    end
+    return nil
+end
+
+function SlurryPipeManager:_pumpMixerEndpoints(entry, session)
+    local function bail(tag)
+        if SPSDebugConfig ~= nil and SPSDebugConfig.isOn("SPSM_Flow") and session ~= nil and session._pmBail ~= tag then
+            session._pmBail = tag
+            print(string.format("[SPS PUMPMIX] %s: %s", tostring(entry.vehicle and entry.vehicle.configFileName), tag))
+        end
+        return nil, nil, tag   -- tag: the stop reason, shown by the pump HUD
+    end
+    local tip = entry.agitatorTipNode
+    if tip == nil or not entityExists(tip) then return bail("no agitator tip") end
+    local srcEntry = self:getPumpMixerStore(entry)
+    if srcEntry == nil then return bail("tip not submerged in a store") end
+    local coupling = nil
+    for _, c in ipairs(entry.couplingEntries or {}) do
+        if c.isConnected and c.connectedPartnerCoupling ~= nil then coupling = c break end
+    end
+    if coupling == nil then return bail("no connected coupler") end
+    local partner = coupling.connectedPartnerCoupling
+    if partner.isChainTerminus and partner.chain ~= nil then partner = partner.chain.anchorCoupling or partner end
+    if partner ~= nil and partner.flowDirection == "FILL" then return bail("partner is draw-only (flowDirection FILL)") end
+    -- [SPS 1.0.1.8] A closed valve on the receiving side stops the flow (William: closing the tanker's manual valve must
+    -- stop the pump mixer). MANUAL partner: its own valve; HYDRAULIC: the owning vehicle's cab valve state; NONE (store
+    -- couplers, valve-less): never blocks.
+    if partner ~= nil and partner.valveType ~= SPS_VALVE_TYPE_NONE then
+        local open
+        if partner.valveType == SPS_VALVE_TYPE_HYDRAULIC then
+            local ownerV = self:_findCouplingOwner(partner)
+            local st = ownerV ~= nil and self:getVehicleState(ownerV) or nil
+            open = (st ~= nil and st.valveOpen == true) or partner.valveOpen == true
+        else
+            open = partner.valveOpen == true
+        end
+        if not open then return bail("receiving coupler's valve is closed") end
+    end
+    local dstEntry = self:resolveSourceForCouplingPartner(coupling)
+    if dstEntry == nil then return bail("partner has no tank / store") end
+    if dstEntry == srcEntry or (dstEntry.storage ~= nil and dstEntry.storage == srcEntry.storage) then
+        return bail("partner is the store being pumped from")
+    end
+    if session ~= nil then session._pmBail = nil end
+    return srcEntry, dstEntry
+end
+
 function SlurryPipeManager:resolveSourceForCouplingPartner(coupling)
     if not coupling.isConnected then return nil end
     local partner = coupling.connectedPartnerCoupling
@@ -392,6 +458,39 @@ function SlurryPipeManager:updateActionEventTexts(vehicle)
     if vehicle.spsActionEvents == nil then return end
     local state = self:getVehicleState(vehicle)
     if state == nil then return end
+    -- [SPS 1.0.1.8] Eviction watch. Vanilla's addActionEvent evicts an already
+    -- registered event when a SELECTED vehicle registers a colliding key later in
+    -- the same pass (Vehicle.lua addActionEvent: otherEvent.parentEventsTable ->
+    -- removeActionEvent). SPS's controls register on the root's pass BEFORE the
+    -- implement passes, so a selected implement whose vanilla key shares our key
+    -- (e.g. fold on IMPLEMENT_EXTRA2) silently removes the SPS control. Detect the
+    -- dead id and say so once. Skipped while a re-registration is pending
+    -- (actionEventUpdateRequested) or the vehicle context is not live, so the
+    -- normal enter/attach churn never false-positives.
+    local ev   = vehicle.spsActionEvents
+    local root = vehicle.rootVehicle or vehicle
+    -- Only the chain the local player is sitting in owns live cab events; a parked
+    -- tanker's ids are legitimately dead (its events were removed on detach), so
+    -- it must never trip the warning.
+    local enteredRoot = nil
+    if g_localPlayer ~= nil and g_localPlayer.getCurrentVehicle ~= nil then
+        enteredRoot = g_localPlayer:getCurrentVehicle()
+    end
+    if g_inputBinding ~= nil and g_inputBinding.currentContextName == Vehicle.INPUT_CONTEXT_NAME
+    and enteredRoot ~= nil and root == enteredRoot
+    and root.actionEventUpdateRequested ~= true then
+        for _, key in ipairs({ "pumpEventId", "flowEventId", "dirEventId", "spreaderEventId" }) do
+            local id = ev[key]
+            if id ~= nil and id ~= "" and g_inputBinding.events[id] == nil then
+                ev[key] = nil
+                if ev._evictWarned ~= true then
+                    ev._evictWarned = true
+                    print(string.format("[SPS] WARNING: %s on '%s' was removed by a colliding key binding on a selected implement - re-select the tanker, or rebind the clashing key in Options > Controls",
+                        tostring(key), tostring(vehicle.configFileName)))
+                end
+            end
+        end
+    end
     local pumpType = self:getPumpType(vehicle)
     local pumpId = vehicle.spsActionEvents.pumpEventId
     if pumpId ~= nil then
@@ -636,6 +735,10 @@ end
 -- ---------------------------------------------------------------------------
 SlurryPipeManager.EQUALISE_INTERVAL_MS   = 150      -- throttle cadence (ms)
 SlurryPipeManager.EQUALISE_HEAD_DEADBAND = 0.0015   -- m (~1.5 mm): level, stop
+-- [SPS 1.0.1.8] Below this many litres a tank counts as EMPTY for every pipe
+-- effect gate (arm stream, store inlet). Same threshold tickFlow uses for its
+-- own empty test; an exact "> 0" let a float residue keep a stream playing.
+SlurryPipeManager.EFFECT_EMPTY_LITRES = 0.001
 SlurryPipeManager.EQUALISE_TAPER_HEAD    = 0.30     -- m: head over which rate -> full
 
 -- Surface world-Y for a FILL_VOLUME or STORAGE_PLANE source, or nil when the
@@ -722,8 +825,10 @@ function SlurryPipeManager:_equaliseSideIsNeutral(vehicle)
 end
 
 -- Current fill level held in a source for the given type.
-function SlurryPipeManager:_equaliseSourceLevel(srcEntry, fillType)
+function SlurryPipeManager:_equaliseSourceLevel(srcEntry, fillType, farmVehicle)
     if srcEntry == nil then return 0 end
+    -- [SPS 1.0.1.8] A store the farm may not draw from reads as empty.
+    if not self:canFarmDrawFromStore(srcEntry, farmVehicle) then return 0 end
     if srcEntry.type == SlurryNodeUtil.SOURCE_TYPE_FILL_VOLUME or srcEntry.type == "FILL_UNIT_ONLY" then
         if srcEntry.vehicle ~= nil then
             return srcEntry.vehicle:getFillUnitFillLevel(srcEntry.fillUnitIndex) or 0
@@ -737,8 +842,14 @@ function SlurryPipeManager:_equaliseSourceLevel(srcEntry, fillType)
 end
 
 -- Free capacity in a destination for the given type.
-function SlurryPipeManager:_equaliseDestFree(dstEntry, fillType)
+function SlurryPipeManager:_equaliseDestFree(dstEntry, fillType, farmVehicle)
     if dstEntry == nil then return 0 end
+    -- [SPS 1.0.1.8] Equalisation is unpaid gravity flow: a store the farm cannot
+    -- access, or one that would turn the litres into a sale, takes nothing here.
+    if dstEntry.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE
+    and self:getStoreDepositMode(dstEntry, fillType, farmVehicle) ~= "store" then
+        return 0
+    end
     if dstEntry.type == SlurryNodeUtil.SOURCE_TYPE_FILL_VOLUME or dstEntry.type == "FILL_UNIT_ONLY" then
         if dstEntry.vehicle ~= nil then
             local cap   = dstEntry.vehicle:getFillUnitCapacity(dstEntry.fillUnitIndex) or 0
@@ -913,10 +1024,10 @@ function SlurryPipeManager:_equalisePair(entryA, couplingA, entryB, couplingB, p
     -- slurry and water never equalise into each other.
     local fillType = self:_resolveSourceFillType(hiSrc)
     if fillType == nil then return bail("hi_fillType_nil(srcLevel<=0?)") end
-    if not self:_destAcceptsFillType(loSrc, fillType) then return bail("lo_rejects_fillType=" .. tostring(fillType)) end
+    if not self:_destAcceptsFillType(loSrc, fillType, loEntry.vehicle) then return bail("lo_rejects_fillType=" .. tostring(fillType)) end
 
-    local sourceLevel = self:_equaliseSourceLevel(hiSrc, fillType)
-    local destFree    = self:_equaliseDestFree(loSrc, fillType)
+    local sourceLevel = self:_equaliseSourceLevel(hiSrc, fillType, hiEntry.vehicle)
+    local destFree    = self:_equaliseDestFree(loSrc, fillType, loEntry.vehicle)
     if sourceLevel <= 0 then return bail("hi_sourceLevel<=0") end
     if destFree <= 0 then return bail("lo_destFree<=0") end
     if entryA.state ~= nil then entryA.state._eqLastReason = nil end
@@ -953,13 +1064,29 @@ end
 function SlurryPipeManager:_equaliseResolveStoreCoupling(coupling)
     local partner = coupling.connectedPartnerCoupling
     if partner == nil then return nil end
-    if partner.placeable ~= nil and partner.sourceEntry ~= nil then return partner end
+    -- [SPS 1.0.1.8] Chain termini FIRST. A terminus coupling COPIES its anchor's
+    -- placeable and sourceEntry (SPSPipeChain lockLivePipe / _loadPipe), so the
+    -- direct "partner.placeable ~= nil" test below matched the terminus itself —
+    -- which carries no headHeightNode — and every store reached through a chain
+    -- was skipped as "store_no_headHeightNode". Walk to the real store coupler:
+    -- the chain anchor when the chain was laid from the store, else the far-end
+    -- terminus's own partner when the chain was laid from the vehicle.
     if (partner.isChainTerminus or partner.isChainStart) and partner.chain ~= nil then
-        local anchor = partner.chain.anchorCoupling
+        local chain  = partner.chain
+        local anchor = chain.anchorCoupling
         if anchor ~= nil and anchor.placeable ~= nil and anchor.sourceEntry ~= nil then
             return anchor
         end
+        local segs    = chain.segments
+        local endTerm = segs and segs[#segs] and segs[#segs].chainCoupling or nil
+        local farCpl  = endTerm ~= nil and endTerm ~= partner and endTerm.connectedPartnerCoupling or nil
+        if farCpl ~= nil and not farCpl.isChainTerminus and not farCpl.isChainStart
+        and farCpl.placeable ~= nil and farCpl.sourceEntry ~= nil then
+            return farCpl
+        end
+        return nil
     end
+    if partner.placeable ~= nil and partner.sourceEntry ~= nil then return partner end
     return nil
 end
 
@@ -1000,6 +1127,11 @@ function SlurryPipeManager:_equalisePairStore(entryA, couplingA, sc, passSec)
     local srcS = self:_restrictSourceToCoupling(sc.sourceEntry, sc)
     if srcS == nil or srcS.fillPlaneNode == nil or not entityExists(srcS.fillPlaneNode) then
         return bail("store_src_nil")
+    end
+    -- [SPS 1.0.1.8] A buying station may now carry a fillPlaneNode (arm access).
+    -- Equalisation is unpaid gravity flow - never from or into a paid pool.
+    if srcS.type == SPS_SOURCE_TYPE_BUYING_STATION then
+        return bail("store_is_buyStation(paid)")
     end
 
     local yA = self:_equaliseSurfaceWorldY(vehA, srcA)
@@ -1046,10 +1178,10 @@ function SlurryPipeManager:_equalisePairStore(entryA, couplingA, sc, passSec)
     -- fillType from the high (source) side; the low side must accept it.
     local fillType = self:_resolveSourceFillType(hiSrc)
     if fillType == nil then return bail("hi_fillType_nil(srcLevel<=0?)") end
-    if not self:_destAcceptsFillType(loSrc, fillType) then return bail("lo_rejects_fillType=" .. tostring(fillType)) end
+    if not self:_destAcceptsFillType(loSrc, fillType, vehA) then return bail("lo_rejects_fillType=" .. tostring(fillType)) end
 
-    local sourceLevel = self:_equaliseSourceLevel(hiSrc, fillType)
-    local destFree    = self:_equaliseDestFree(loSrc, fillType)
+    local sourceLevel = self:_equaliseSourceLevel(hiSrc, fillType, vehA)
+    local destFree    = self:_equaliseDestFree(loSrc, fillType, vehA)
     if sourceLevel <= 0 then return bail("hi_sourceLevel<=0") end
     if destFree <= 0 then return bail("lo_destFree<=0") end
     if entryA.state ~= nil then entryA.state._eqLastReason = nil end
@@ -1216,6 +1348,14 @@ end
 -- ---------------------------------------------------------------------------
 -- Arm detection
 -- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.8] Per frame: ease every skinned rubber boot (docking stations) toward its arm tip, or back to rest.
+function SlurryPipeManager:tickBootDeform(dt)
+    if SPSBootDeform == nil then return end
+    for _, rbp in ipairs(self.rubberBootPortEntries) do
+        if rbp.boot ~= nil then SPSBootDeform.tick(rbp, dt) end
+    end
+end
+
 function SlurryPipeManager:detectArmConnection(vehicle, entry, arm)
     -- If any pipe coupling on this vehicle is connected, the pipe governs.
     -- Arm detection is blocked completely to prevent cab valve from bypassing
@@ -1242,11 +1382,6 @@ function SlurryPipeManager:detectArmConnection(vehicle, entry, arm)
     local direction = state and state.direction or SPS_DIRECTION_FILL
     local tipType   = arm.tipType or SPS_TIP_TYPE_OPEN_PIT
 
-    -- [SPS ARMDIAG] throttled, read-only. Logs only while the cab valve is open.
-    arm._spsDiagN = (arm._spsDiagN or 0) + 1
-    --local diagOn  = (state ~= nil and state.valveOpen == true) and (arm._spsDiagN % 10 == 0)
-	local diagOn  = false
-	
     local newConnected    = false
     local foundSource     = nil
     local foundBootPort   = nil
@@ -1257,15 +1392,26 @@ function SlurryPipeManager:detectArmConnection(vehicle, entry, arm)
         local tx, ty, tz   = getWorldTranslation(arm.tipNode)
         local XZ_TOLERANCE = 0.15
         for _, rbpEntry in ipairs(self.rubberBootPortEntries) do
-            if rbpEntry.vehicle ~= vehicle and rbpEntry.lowerNode ~= nil and rbpEntry.upperNode ~= nil then
+            -- [SPS 1.0.1.8] a docking station riding on a vehicle's frame is not a dock (SPSDockingStation:spsDsStow)
+            local rbpStowed = rbpEntry.vehicle ~= nil and rbpEntry.vehicle.spsDsIsStowed ~= nil and rbpEntry.vehicle:spsDsIsStowed()
+            if rbpEntry.vehicle ~= vehicle and not rbpStowed and rbpEntry.lowerNode ~= nil and rbpEntry.upperNode ~= nil then
                 if entityExists(rbpEntry.lowerNode) and entityExists(rbpEntry.upperNode) then
                     local lx, lowerY, lz = getWorldTranslation(rbpEntry.lowerNode)
                     local _,  upperY, _  = getWorldTranslation(rbpEntry.upperNode)
                     if lowerY > upperY then lowerY, upperY = upperY, lowerY end
                     local xzDist = math.sqrt((tx - lx) * (tx - lx) + (tz - lz) * (tz - lz))
+                    -- [SPS 1.0.1.8] skinned boot: let the deform driver see this tip (SPSBootDeform.tick)
+                    if rbpEntry.boot ~= nil and SPSBootDeform ~= nil then
+                        SPSBootDeform.noteTip(rbpEntry, arm.tipNode, ty, lowerY, upperY, xzDist)
+                    end
                     if ty >= lowerY and ty <= upperY and xzDist <= XZ_TOLERANCE then
                         newConnected  = true
                         foundBootPort = rbpEntry
+                        -- [SPS 1.0.1.8] wake a frozen docking station: its washable / wearable ticks (dirt + wear
+                        -- with use, SPSDockingStation:spsDsGetUsageLevel) only run while the vehicle is active
+                        if rbpEntry.vehicle ~= nil and rbpEntry.vehicle.spsDsGetUsageLevel ~= nil then
+                            rbpEntry.vehicle:raiseActive()
+                        end
                         break
                     end
                 end
@@ -1302,6 +1448,14 @@ function SlurryPipeManager:detectArmConnection(vehicle, entry, arm)
                 local dz = centreZ - bz
                 local r = SlurryPipeManager.FILL_VOLUME_SEARCH_RADIUS
                 xzOk = (dx * dx + dz * dz) <= (r * r)
+            elseif sourceEntry.type == SPS_SOURCE_TYPE_BUYING_STATION then
+                -- [SPS 1.0.1.8] Paid pool (buying station with an authored <fillPlane>):
+                -- FILL only - a buying station is never a destination, and a station
+                -- without plane bounds stays pipe-only. The draw is charged per litre by
+                -- transferFillFromBuyingStation, which tickFlow already routes every
+                -- buying-station external source through.
+                if direction ~= SPS_DIRECTION_FILL or sourceEntry.planeBounds == nil then continue end
+                xzOk = SlurryNodeUtil.isNodeInPlaneBounds(arm.centreNode, sourceEntry.planeBounds)
             end
             if not xzOk then continue end
 
@@ -1353,109 +1507,16 @@ function SlurryPipeManager:detectArmConnection(vehicle, entry, arm)
         end
     end
 
-    if diagOn then
-        local cx, cy, cz = 0, 0, 0
-        if arm.centreNode ~= nil and entityExists(arm.centreNode) then
-            cx, cy, cz = getWorldTranslation(arm.centreNode)
-        end
-        -- Evaluate the REAL xz-bounds test + surface check per source (mirrors detection).
-        local parts = {}
-        for si, se in ipairs(self.sourceEntries) do
-            if se.vehicle ~= vehicle then
-                local xzOk = false
-                if se.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
-                    local b = se.planeBounds
-                    if b ~= nil then
-                        if b.shape == "round" and b.centreNode ~= nil then
-                            local bx, _, bz = getWorldTranslation(b.centreNode)
-                            local dx, dz = cx - bx, cz - bz
-                            xzOk = (dx*dx + dz*dz) <= (b.radius * b.radius)
-                        elseif b.shape == "rectangle" and b.centreNode ~= nil then
-                            local lx, _, lz = worldToLocal(b.centreNode, cx, cy, cz)
-                            xzOk = lx >= b.minX and lx <= b.maxX and lz >= b.minZ and lz <= b.maxZ
-                        end
-                    end
-                elseif se.type == SlurryNodeUtil.SOURCE_TYPE_FILL_VOLUME and se.baseNode ~= nil then
-                    local bx, _, bz = getWorldTranslation(se.baseNode)
-                    local dx, dz = cx - bx, cz - bz
-                    local r = SlurryPipeManager.FILL_VOLUME_SEARCH_RADIUS
-                    xzOk = (dx*dx + dz*dz) <= (r*r)
-                end
-                local sy = SlurryNodeUtil.getSurfaceWorldY(se, cx, cz)
-                local submerged = (sy ~= -math.huge) and (sy > cy + 0.08)
-                parts[#parts+1] = string.format("#%d[%s xz=%s surfY=%.2f sub=%s]",
-                    si, tostring(se.type), tostring(xzOk), sy, tostring(submerged))
-            end
-        end
-        --print(string.format(
-        --    "[SPS ARMDIAG] arm id=%s tip=%s dir=%s centre=(%.2f,%.2f,%.2f) sources=%d boots=%d %s -> connected=%s",
-        --    tostring(arm.id), tostring(tipType), tostring(direction), cx, cy, cz,
-        --    #self.sourceEntries, #self.rubberBootPortEntries,
-        --    table.concat(parts, " "), tostring(newConnected)))
-    end
-
     local prevConnected   = arm.isConnected
     arm.isConnected       = newConnected
     arm.connectedSource   = foundSource
     arm.connectedBootPort = foundBootPort
 
-    -- [SPS FRCDIAG] Crash-proof, change-gated diagnostic for "arm won't suck from FRC".
-    -- Validates every node with entityExists BEFORE any engine call (getSurfaceWorldY
-    -- can hard-error on a source whose volume/base node is nil), and reports node
-    -- validity so a source registered with a missing node is immediately visible.
-    do
-        local function nodeOk(n) return n ~= nil and n ~= 0 and entityExists(n) end
-        local cx, cy, cz = 0, 0, 0
-        if nodeOk(arm.centreNode) then cx, cy, cz = getWorldTranslation(arm.centreNode) end
-        local tpx, tpy, tpz = cx, cy, cz
-        if nodeOk(arm.tipNode) then tpx, tpy, tpz = getWorldTranslation(arm.tipNode) end
-        local srcParts = {}
-        for _, se in ipairs(self.sourceEntries) do
-            if se.vehicle ~= vehicle and (se.type == SlurryNodeUtil.SOURCE_TYPE_FILL_VOLUME
-                                          or se.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE) then
-                local label = tostring(se.debugLabel or se.type)
-                if se.type == SlurryNodeUtil.SOURCE_TYPE_FILL_VOLUME then
-                    local baseOk = nodeOk(se.baseNode)
-                    local volOk  = nodeOk(se.volumeNode)
-                    local xz, surfY, sub = -1, nil, "n/a"
-                    if baseOk then
-                        local bx, _, bz = getWorldTranslation(se.baseNode)
-                        xz = math.sqrt((cx - bx) * (cx - bx) + (cz - bz) * (cz - bz))
-                    end
-                    if baseOk and volOk then
-                        surfY = SlurryNodeUtil.getSurfaceWorldY(se, cx, cz)
-                        sub = tostring(surfY ~= -math.huge and surfY > cy + 0.08)
-                    end
-                    srcParts[#srcParts+1] = string.format("[%s FV base=%s vol=%s xz=%.2f surfY=%s cY=%.2f sub=%s]",
-                        label, tostring(baseOk), tostring(volOk), xz, tostring(surfY), cy, sub)
-                else
-                    local planeOk = nodeOk(se.fillPlaneNode)
-                    srcParts[#srcParts+1] = string.format("[%s STORE plane=%s]", label, tostring(planeOk))
-                end
-            end
-        end
-        local bootParts = {}
-        for _, rbp in ipairs(self.rubberBootPortEntries) do
-            if rbp.vehicle ~= vehicle and nodeOk(rbp.lowerNode) and nodeOk(rbp.upperNode) then
-                local lx, lY, lz = getWorldTranslation(rbp.lowerNode)
-                local _,  uY, _  = getWorldTranslation(rbp.upperNode)
-                if lY > uY then lY, uY = uY, lY end
-                local xz = math.sqrt((tpx - lx) * (tpx - lx) + (tpz - lz) * (tpz - lz))
-                local ok = (tpy >= lY and tpy <= uY and xz <= 0.15)
-                bootParts[#bootParts+1] = string.format("[chain=%s tipY=%.2f band=%.2f..%.2f xz=%.2f ok=%s]",
-                    tostring(rbp.isChain == true), tpy, lY, uY, xz, tostring(ok))
-            end
-        end
-        local sig = string.format("%s|s=%d|b=%d|c=%s", tostring(tipType), #srcParts, #bootParts, tostring(newConnected))
-        if arm._frcDiagSig ~= sig then
-            arm._frcDiagSig = sig
-            SlurryPipeManager.logMP(string.format("[SPS FRCDIAG] %s tip=%s dir=%s connected=%s | sources: %s | boots: %s",
-                tostring(vehicle and vehicle.configFileName), tostring(tipType), tostring(direction),
-                tostring(newConnected),
-                (#srcParts > 0 and table.concat(srcParts, " ") or "none"),
-                (#bootParts > 0 and table.concat(bootParts, " ") or "none")))
-        end
-    end
+    -- [SPS PERF 2026-09-08] The [SPS ARMDIAG] and [SPS FRCDIAG] blocks that lived
+    -- here were removed: both questions they answered are closed, and FRCDIAG built
+    -- per-source format strings for every arm every 3rd tick on every peer BEFORE
+    -- its change-gate (with logMP dead under MP_DEBUG=false) — pure GC/CPU churn.
+    -- Rebuild from git history behind an SPSDebugConfig channel if ever needed.
 
     if prevConnected ~= newConnected then
         SlurryPipeManager.log("detectArmConnection: %s arm %s -> %s",
@@ -1495,17 +1556,17 @@ function SlurryPipeManager:detectArmConnection(vehicle, entry, arm)
                 vehicle, state, self:_isPumpOn(vehicle), fillLevel > 0)
         end
         -- Direction from the RESOLVED flow, not the cab selector: a gravity drain
-        -- is DISCHARGE even while the selector still reads FILL, and the content
-        -- test has to follow the direction the slurry actually travels.
+        -- is DISCHARGE even while the selector still reads FILL.
+        -- [SPS 1.0.1.8] William's rule (2026-09-25): a pipe effect shows ONLY while
+        -- liquid is being UNLOADED and only while there is liquid to move. The old
+        -- "suction stream while filling" branch (foundSource ~= nil) is gone — a
+        -- water pool fill showed a stream pouring nowhere. Empty test uses the
+        -- mod's 0.001 L convention (tickFlow :2731) instead of an exact zero, so a
+        -- float residue after a drain no longer keeps the stream alive.
         local isDischarge = flowDir == SPS_DIRECTION_DISCHARGE
-        local hasFlowContent
-        if isDischarge then
-            hasFlowContent = fillLevel > 0      -- discharging: slurry must be in the tank
-        else
-            hasFlowContent = foundSource ~= nil -- filling: a source must be present to draw from
-        end
         local shouldPlay  = arm.isConnected and valveOpen
-            and flowDir ~= nil and flowScalar > 0 and hasFlowContent
+            and isDischarge and flowScalar > 0
+            and fillLevel > SlurryPipeManager.EFFECT_EMPTY_LITRES
         if shouldPlay then
             if not arm.effectPlaying then
                 local effectFillType = vehicle:getFillUnitFillType(arm.fillUnitIndex)
@@ -1609,9 +1670,39 @@ function SlurryPipeManager:tickFlow(session, dt)
     end
 
     -- Conduit pump: direct source-to-source transfer, no vehicle fill unit involved
-    if self:isVehicleConduit(vehicle) then
-        if not state.valveOpen then return end
-        if not pumpRunning then return end
+    -- [SPS 1.0.1.8] Pump mixer (tower mixer): same transfer, but the source is the store its agitator tip is submerged
+    -- in and the destination is whatever is plugged into its active coupler; pull-out only (see _pumpMixerEndpoints).
+    local pumpMixerEntry = self:getVehicleEntry(vehicle)
+    local isPumpMixer = pumpMixerEntry ~= nil and pumpMixerEntry.pumpMixer == true
+    if self:isVehicleConduit(vehicle) or isPumpMixer then
+        if isPumpMixer then
+            -- [SPS 1.0.1.8] Pump mixer valve: the valve button (state.valveOpen, SPSPumpMixerControl). A HYDRAULIC coupler
+            -- has no valve of its own - it IS the cab valve; its valveOpen flag is only the partner's valve mirrored onto
+            -- it (applyValveState), so counting it let the tanker's open valve override a closed mixer valve (William
+            -- 2026-10-22). Only a MANUAL coupler's own valve counts here.
+            local valveOpen = state.valveOpen == true
+            if not valveOpen then
+                for _, c in ipairs(pumpMixerEntry.couplingEntries or {}) do
+                    if c.isConnected and c.valveOpen and c.valveType == SPS_VALVE_TYPE_MANUAL then valveOpen = true break end
+                end
+            end
+            local function pmTrace(tag)
+                if SPSDebugConfig ~= nil and SPSDebugConfig.isOn("SPSM_Flow") and session._pmBail ~= tag then
+                    session._pmBail = tag
+                    print(string.format("[SPS PUMPMIX] %s: %s", tostring(vehicle.configFileName), tag))
+                end
+            end
+            if not valveOpen then pmTrace("valve closed") return end
+            if not pumpRunning then pmTrace("blades off (turn the mixer on)") return end
+        else
+            if not state.valveOpen then return end
+            if not pumpRunning then return end
+        end
+        local srcEntry, dstEntry
+        if isPumpMixer then
+            srcEntry, dstEntry = self:_pumpMixerEndpoints(pumpMixerEntry, session)
+            if srcEntry == nil or dstEntry == nil then return end
+        else
         local c1, c2
         for _, vEntry in ipairs(self.registeredVehicles) do
             if vEntry.vehicle == vehicle then
@@ -1656,8 +1747,9 @@ function SlurryPipeManager:tickFlow(session, dt)
         local dstPartnerDir = resolvePartnerFlowDirection(dstCoupling)
         if srcPartnerDir == "DISCHARGE" then return end
         if dstPartnerDir == "FILL" then return end
-        local srcEntry = self:resolveSourceForCouplingPartner(srcCoupling)
-        local dstEntry = self:resolveSourceForCouplingPartner(dstCoupling)
+        srcEntry = self:resolveSourceForCouplingPartner(srcCoupling)
+        dstEntry = self:resolveSourceForCouplingPartner(dstCoupling)
+        end
         if srcEntry == nil or dstEntry == nil then return end
 
         -- Resolve fillType from what the source actually holds (LIQUIDMANURE,
@@ -1666,7 +1758,10 @@ function SlurryPipeManager:tickFlow(session, dt)
         if fillType == nil then return end
 
         -- Verify destination accepts this fillType (right category + free space).
-        if not self:_destAcceptsFillType(dstEntry, fillType) then
+        if not self:_destAcceptsFillType(dstEntry, fillType, vehicle) then
+            if self:getStoreAccessCapacityOverride(dstEntry, fillType, vehicle) == 0 then
+                self:warnStoreNoAccess(vehicle)
+            end
             if not session._loggedTypeMismatch then
                 session._loggedTypeMismatch = true
             end
@@ -1681,6 +1776,11 @@ function SlurryPipeManager:tickFlow(session, dt)
         elseif srcEntry.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
             if srcEntry.storage ~= nil then
                 sourceLevel = srcEntry.storage:getFillLevel(fillType) or 0
+                -- [SPS 1.0.1.8] Game rule: no drawing from a store the farm has no access to.
+                if sourceLevel > 0 and not self:canFarmDrawFromStore(srcEntry, vehicle) then
+                    self:warnStoreNoAccess(vehicle)
+                    sourceLevel = 0
+                end
             end
         end
         if sourceLevel <= 0 then return end
@@ -1693,7 +1793,9 @@ function SlurryPipeManager:tickFlow(session, dt)
             end
         elseif dstEntry.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
             if dstEntry.storage ~= nil then
-                freeCapacity = dstEntry.storage:getFreeCapacity(self:resolveStoreDepositFillType(dstEntry, fillType)) or 0
+                -- [SPS 1.0.1.8] Farm access: a sale takes anything, no access takes nothing.
+                freeCapacity = self:getStoreAccessCapacityOverride(dstEntry, fillType, vehicle)
+                    or dstEntry.storage:getFreeCapacity(self:resolveStoreDepositFillType(dstEntry, fillType)) or 0
             end
         end
         if freeCapacity <= 0 then return end
@@ -1771,7 +1873,10 @@ function SlurryPipeManager:tickFlow(session, dt)
     end
     
     -- If connected to water source via arm, override fillType to WATER
-    if isArmActive and state.direction == SPS_DIRECTION_FILL then
+    -- [SPS 1.0.1.8] ...and the same on the coupling path when a physical pipe lies free in the water
+    -- (resolveExternalSource returns the type-3 water source there too). A tank already holding slurry
+    -- then refuses WATER in addFillUnitFillLevel, which is the right outcome.
+    if (isArmActive or hasCouplingFlow) and state.direction == SPS_DIRECTION_FILL then
         local extSrc = self:resolveExternalSource(vehicle)
         if extSrc ~= nil and extSrc.type == 3 then  -- SPSWaterPlaneManager.SOURCE_TYPE_WATER
             fillType = FillType.WATER
@@ -1852,7 +1957,12 @@ function SlurryPipeManager:tickFlow(session, dt)
             SlurryPipeManager.log("tickFlow[coupling]: %s flowDir=%s scalar=%.2f pump=%s",
                 tostring(vehicle.configFileName), tostring(flowDir), scalar or 0, tostring(pumpRunning))
         end
-        if flowDir == nil or scalar <= 0 then return end
+        if flowDir == nil or scalar <= 0 then
+            -- [SPS 1.0.1.8] Pump OFF and nothing driving the flow: WATER drawn from a lake / water course runs
+            -- back into it by gravity through an open MANUAL coupler valve (William 2026-10-20). Both systems.
+            if not pumpRunning then self:tickWaterGravityReturn(vehicle, session, dt, fillType) end
+            return
+        end
 
         for _, vEntry in ipairs(self.registeredVehicles) do
             if vEntry.vehicle == vehicle then
@@ -1918,6 +2028,50 @@ function SlurryPipeManager:tickFlow(session, dt)
             self:transferDischarge(vehicle, session, rate, fillType)
         end
     end
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.8] WATER GRAVITY RETURN (William 2026-10-20): "a manual valve on any tanker will have gravity in
+-- both modes, original and physical" - the water level of a lake / drawn course is known, so with the pump OFF a
+-- tanker holding WATER whose pipe end lies in that water drains back into it as long as its liquid surface sits
+-- above the water surface. Water only (a slurry-filled tanker never empties itself into a lake because the pump
+-- stopped). Independent of pumpType: the vacuum tankers' stored-pressure backflow (resolveCouplingFlow) runs
+-- first and this only takes over once that resolver returns nothing. Rate = empty rate x gravityFlowScalar,
+-- tapered over the same head band as the level equalisation, stopping inside its dead band.
+-- Reaches the water through the same resolver the fill uses (resolveExternalSource -> type 3): the physical
+-- pipe's free end (physFreeEndWaterPlane) or the original strap pipe's free end, both behind an open coupler
+-- valve. Server only (tickFlow is server only).
+-- ---------------------------------------------------------------------------
+function SlurryPipeManager:tickWaterGravityReturn(vehicle, session, dt, fillType)
+    if fillType ~= FillType.WATER then return end
+    local tank = session.tankVehicle or vehicle
+    if tank == nil or tank.getFillUnitFillLevel == nil then return end
+    if (tank:getFillUnitFillLevel(session.vehicleFillUnit) or 0) <= 0 then return end
+    local entry = self:getVehicleEntry(vehicle)
+    if entry == nil then return end
+    local manualOpen = false
+    for _, c in ipairs(entry.couplingEntries or {}) do
+        if c.valveOpen and c.valveType == SPS_VALVE_TYPE_MANUAL then manualOpen = true break end
+    end
+    if not manualOpen then return end
+    local ext = self:resolveExternalSource(vehicle)
+    if ext == nil or ext.type ~= 3 or ext.waterPlane == nil or ext.waterPlane.waterY == nil then return end
+    local surfaceY = self:_equaliseSurfaceWorldY(vehicle, self:resolveVehicleSource(vehicle))
+    if surfaceY == nil then return end
+    local head = surfaceY - ext.waterPlane.waterY
+    local active = head > SlurryPipeManager.EQUALISE_HEAD_DEADBAND
+    if SlurryPipeManager.DEBUG and session._waterReturnActive ~= active then
+        session._waterReturnActive = active
+        SlurryPipeManager.log("tickFlow[waterReturn]: %s %s (tank surface %.2f, water %.2f, head %.2f m)",
+            tostring(vehicle.configFileName), active and "draining back into the water" or "level - stopped",
+            surfaceY, ext.waterPlane.waterY, head)
+    end
+    if not active then return end
+    local taper = math.min(1.0, head / SlurryPipeManager.EQUALISE_TAPER_HEAD)
+    local g = (entry.pressure ~= nil and entry.pressure.gravityFlowScalar) or SlurryPipeManager.DEFAULT_GRAVITY_FLOW_SCALAR
+    local rate = (session.baseEmptyLitersPerSecond or session.baseLitersPerSecond or 0) * dt * 0.001 * g * taper
+    if rate <= 0 then return end
+    self:transferDischarge(vehicle, session, rate, fillType)
 end
 
 -- Flow falloff over the length of a connected strap pipe: full rate when the couplers
@@ -2031,7 +2185,7 @@ end
 
 -- Returns true if the destination entry can accept the given fillType right now
 -- (has free capacity for that specific type).
-function SlurryPipeManager:_destAcceptsFillType(dstEntry, fillType)
+function SlurryPipeManager:_destAcceptsFillType(dstEntry, fillType, farmVehicle)
     if dstEntry == nil or fillType == nil then return false end
     -- [SPS] This deposit is going through a specific coupler that declares its own
     -- fillType — reject anything else even if the shared store would otherwise take it.
@@ -2054,6 +2208,9 @@ function SlurryPipeManager:_destAcceptsFillType(dstEntry, fillType)
         -- which already convert before calling getFreeCapacity. Without this, a
         -- slurry store returns 0 free capacity for WATER and the conduit bails every
         -- tick, even though the fill-arm / bez-pipe paths accept water fine.
+        -- [SPS 1.0.1.8] Farm access first: a sale takes anything, no access takes nothing.
+        local override = self:getStoreAccessCapacityOverride(dstEntry, fillType, farmVehicle)
+        if override ~= nil then return override > 0 end
         local depositType = self:resolveStoreDepositFillType(dstEntry, fillType)
         local free = dstEntry.storage:getFreeCapacity(depositType) or 0
         return free > 0
@@ -2101,6 +2258,11 @@ function SlurryPipeManager:transferFill(vehicle, session, delta, fillType)
                 fillType = extSource.restrictFillType
             end
             sourceLevel = extSource.storage:getFillLevel(fillType) or 0
+            -- [SPS 1.0.1.8] Game rule: no drawing from a store the farm has no access to.
+            if sourceLevel > 0 and not self:canFarmDrawFromStore(extSource, vehicle) then
+                self:warnStoreNoAccess(vehicle)
+                sourceLevel = 0
+            end
         end
     elseif extSource.type == 3 then  -- Water source (infinite)
         sourceLevel = 999999  -- Infinite water source
@@ -2150,7 +2312,11 @@ function SlurryPipeManager:transferDischarge(vehicle, session, delta, fillType)
         end
     elseif extDest.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
         if extDest.storage ~= nil then
-            freeCapacity = extDest.storage:getFreeCapacity(self:resolveStoreDepositFillType(extDest, fillType)) or 0
+            -- [SPS 1.0.1.8] Farm access: a sale takes anything, no access takes nothing.
+            local override = self:getStoreAccessCapacityOverride(extDest, fillType, vehicle)
+            if override == 0 then self:warnStoreNoAccess(vehicle) end
+            freeCapacity = override
+                or extDest.storage:getFreeCapacity(self:resolveStoreDepositFillType(extDest, fillType)) or 0
         end
     elseif extDest.type == 3 then  -- Water source (infinite capacity)
         freeCapacity = 999999  -- Infinite capacity
@@ -2416,7 +2582,23 @@ function SlurryPipeManager:resolveExternalSource(vehicle)
                         end
                     end
                 else
-                    return self:resolveVehicleSource(arm.connectedBootPort.vehicle)
+                    local portVehicle = arm.connectedBootPort.vehicle
+                    local vsrc = self:resolveVehicleSource(portVehicle)
+                    if vsrc ~= nil then return vsrc end
+                    -- [SPS 1.0.1.8] Docking station: a CONDUIT vehicle with no tank of its own. The source is
+                    -- whatever its pipe coupling is connected to (a store coupler through the physical pipe).
+                    if portVehicle ~= nil and self:isVehicleConduit(portVehicle) then
+                        local pEntry = self:getVehicleEntry(portVehicle)
+                        if pEntry ~= nil and pEntry.couplingEntries ~= nil then
+                            for _, cpl in ipairs(pEntry.couplingEntries) do
+                                if cpl.isConnected then
+                                    local far = self:resolveSourceForCouplingPartner(cpl)
+                                    if far ~= nil then return far end
+                                end
+                            end
+                        end
+                    end
+                    return nil
                 end
             end
             if arm.connectedSource ~= nil then return arm.connectedSource end
@@ -2529,6 +2711,18 @@ function SlurryPipeManager:resolveExternalSource(vehicle)
         end
     end
     
+    -- [SPS 1.0.1.8] Physical pipe plugged into this vehicle's slurry coupling with the chain's far end
+    -- lying free in the water -> infinite WATER source (the physical twin of the strap-pipe check below).
+    for _, coupling in ipairs(entry.couplingEntries) do
+        if coupling.valveOpen and not coupling.isConnected and coupling.physPipe ~= nil
+           and self.physFreeEndWaterPlane ~= nil then
+            local waterPlane = self:physFreeEndWaterPlane(coupling)
+            if waterPlane ~= nil then
+                return { type = 3, storage = waterPlane, waterPlane = waterPlane }
+            end
+        end
+    end
+
     -- Check strap pipe free end for water (before declaring no source found)
     for _, coupling in ipairs(entry.couplingEntries) do
         if coupling.pipeId ~= nil and coupling.valveOpen then
@@ -2583,6 +2777,102 @@ function SlurryPipeManager:resolveExternalSource(vehicle)
     return nil
 end
 
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.8] Farm access to placeable stores — the game's own rules.
+--
+-- A pipe used to write straight into a placeable's Storage (setFillLevel), so a
+-- tanker could fill or drain ANY store on the map regardless of who owned it, and a
+-- delivery into a BGA the farm did not own vanished unpaid. Vanilla (verified in
+-- ProductionPoint.lua 218-241, SellingStation.lua 319-381, LoadingStation.lua
+-- 247-262, UnloadingStation.lua 295-308, AccessHandler.lua canFarmAccess):
+--   * a production point (BGA) takes deliveries through a SellingStation:
+--       getStoreGoods(farm) true  -> own / accessible farm: goods STORED, no money;
+--       getStoreGoods(farm) false -> unowned map BGA or another farm's: a SALE,
+--                                    goods are not stored, the farm is paid.
+--   * a production point's loading station is owner-only;
+--   * silos / barns are accessible to the owner, to EVERYONE-owned (map) objects,
+--     and to farms granted access (accessHandler:canFarmAccess).
+-- These helpers apply exactly that. "store" keeps the existing SPS bookkeeping
+-- (DM pools, plane drive) untouched; "sell" pays through the station's own
+-- sellFillType (price drop, statistics, finances) and never touches the Storage;
+-- "denied" moves nothing. Entries without a placeable (legacy / synthetic) are
+-- unchanged.
+-- ---------------------------------------------------------------------------
+SlurryPipeManager.SALE_FREE_CAPACITY = 1e9   -- a sell point never fills up
+
+local function spsStoreFarmId(farmVehicle)
+    if farmVehicle ~= nil and farmVehicle.getOwnerFarmId ~= nil then
+        return farmVehicle:getOwnerFarmId()
+    end
+    return nil
+end
+
+-- The SellingStation a production point delivers through, or nil for any other store.
+function SlurryPipeManager:getStoreSellingStation(entry)
+    local placeable = entry ~= nil and entry.placeable or nil
+    if placeable == nil or placeable.spec_productionPoint == nil then return nil end
+    local pp = placeable.spec_productionPoint.productionPoint
+    if pp == nil then return nil end
+    local station = pp.unloadingStation
+    if station == nil or station.sellFillType == nil or station.getStoreGoods == nil then return nil end
+    return station
+end
+
+-- How a deposit into this store from this vehicle's farm is handled:
+-- "store" | "sell" | "denied".
+function SlurryPipeManager:getStoreDepositMode(entry, fillType, farmVehicle)
+    if entry == nil or entry.type ~= SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then return "store" end
+    local placeable = entry.placeable
+    if placeable == nil or placeable.getOwnerFarmId == nil then return "store" end
+    local farmId  = spsStoreFarmId(farmVehicle)
+    local station = self:getStoreSellingStation(entry)
+    if station ~= nil then
+        if station:getStoreGoods(farmId, fillType) then return "store" end
+        -- Not ours: vanilla sells. Only a type the station prices (never the WATER
+        -- a store would otherwise convert on deposit), and only for a real farm.
+        if farmId ~= nil and farmId ~= FarmManager.SPECTATOR_FARM_ID and fillType ~= nil
+        and station:getIsFillTypeAllowed(fillType)
+        and station.fillTypePrices ~= nil and station.fillTypePrices[fillType] ~= nil then
+            return "sell"
+        end
+        return "denied"
+    end
+    if g_currentMission.accessHandler:canFarmAccess(farmId, placeable) then return "store" end
+    return "denied"
+end
+
+-- May this vehicle's farm pump OUT of the store?
+function SlurryPipeManager:canFarmDrawFromStore(entry, farmVehicle)
+    if entry == nil or entry.type ~= SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then return true end
+    local placeable = entry.placeable
+    if placeable == nil or placeable.getOwnerFarmId == nil then return true end
+    local farmId = spsStoreFarmId(farmVehicle)
+    if placeable.spec_productionPoint ~= nil then
+        -- ProductionPoint loadingStation.hasFarmAccessToStorage: owner only.
+        return farmId ~= nil and farmId == placeable:getOwnerFarmId()
+    end
+    return g_currentMission.accessHandler:canFarmAccess(farmId, placeable)
+end
+
+-- Free-capacity override for a deposit: nil = normal storage maths, 0 = denied,
+-- SALE_FREE_CAPACITY = a sale (the station takes any amount).
+function SlurryPipeManager:getStoreAccessCapacityOverride(entry, fillType, farmVehicle)
+    local mode = self:getStoreDepositMode(entry, fillType, farmVehicle)
+    if mode == "denied" then return 0 end
+    if mode == "sell" then return SlurryPipeManager.SALE_FREE_CAPACITY end
+    return nil
+end
+
+-- Blinking HUD warning, rate-limited per vehicle, only for the vehicle being driven.
+function SlurryPipeManager:warnStoreNoAccess(farmVehicle)
+    if farmVehicle == nil or g_currentMission.showBlinkingWarning == nil then return end
+    if farmVehicle.getIsActiveForInput ~= nil and not farmVehicle:getIsActiveForInput(true) then return end
+    local now = g_time or 0
+    if farmVehicle._spsStoreAccessWarnAt ~= nil and now - farmVehicle._spsStoreAccessWarnAt < 2000 then return end
+    farmVehicle._spsStoreAccessWarnAt = now
+    g_currentMission:showBlinkingWarning(g_i18n:getText("warning_spsStoreNoAccess"), 2000)
+end
+
 function SlurryPipeManager:removeFromSource(sourceEntry, amount, fillType, farmVehicle)
     if sourceEntry == nil then return end
     if sourceEntry.type == SlurryNodeUtil.SOURCE_TYPE_FILL_VOLUME or sourceEntry.type == "FILL_UNIT_ONLY" then
@@ -2631,6 +2921,16 @@ function SlurryPipeManager:removeFromSource(sourceEntry, amount, fillType, farmV
             end
         end
     elseif sourceEntry.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
+        -- [SPS 1.0.1.8] Game rule: no drawing from a store the farm has no access to.
+        if not self:canFarmDrawFromStore(sourceEntry, farmVehicle) then
+            self:warnStoreNoAccess(farmVehicle)
+            if farmVehicle ~= nil and not farmVehicle._spsStoreDrawDeniedLogged then
+                farmVehicle._spsStoreDrawDeniedLogged = true
+                SlurryPipeManager.log("removeFromSource: %s denied draw from %s (farm %s has no access)",
+                    tostring(farmVehicle.configFileName), tostring(sourceEntry.debugLabel), tostring(spsStoreFarmId(farmVehicle)))
+            end
+            return
+        end
         local storage = sourceEntry.storage
         if storage ~= nil then
             local oldLevel = storage:getFillLevel(fillType) or 0
@@ -2916,6 +3216,32 @@ function SlurryPipeManager:addToSource(sourceEntry, amount, fillType, farmVehicl
             end
         end
     elseif sourceEntry.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
+        -- [SPS 1.0.1.8] Game rule: own/accessible store -> stored; a BGA the farm
+        -- does not own -> SOLD through its SellingStation (paid, not stored); any
+        -- other store the farm cannot access -> nothing moves.
+        local mode = self:getStoreDepositMode(sourceEntry, fillType, farmVehicle)
+        if mode == "denied" then
+            self:warnStoreNoAccess(farmVehicle)
+            if farmVehicle ~= nil and not farmVehicle._spsStoreDepositDeniedLogged then
+                farmVehicle._spsStoreDepositDeniedLogged = true
+                SlurryPipeManager.log("addToSource: %s denied deposit into %s (farm %s has no access / type not sellable)",
+                    tostring(farmVehicle.configFileName), tostring(sourceEntry.debugLabel), tostring(spsStoreFarmId(farmVehicle)))
+            end
+            return
+        elseif mode == "sell" then
+            local station = self:getStoreSellingStation(sourceEntry)
+            local farmId  = spsStoreFarmId(farmVehicle)
+            if station ~= nil and farmId ~= nil and amount > 0 and g_currentMission:getIsServer() then
+                local price = station:sellFillType(farmId, amount, fillType, ToolType.TRIGGER)
+                if farmVehicle ~= nil and not farmVehicle._spsStoreSaleLogged then
+                    farmVehicle._spsStoreSaleLogged = true
+                    SlurryPipeManager.log("addToSource: %s SELLING %s to %s (not owned by farm %s) - first batch %.1f L for %s",
+                        tostring(farmVehicle.configFileName), tostring(g_fillTypeManager:getFillTypeNameByIndex(fillType) or fillType),
+                        tostring(sourceEntry.debugLabel), tostring(farmId), amount, tostring(price))
+                end
+            end
+            return
+        end
         local storage = sourceEntry.storage
         if storage ~= nil then
             -- Convert an unsupported incoming type (e.g. WATER) to the store's native

@@ -78,4 +78,45 @@
 			<outsideControl mountNodeName="pumpControl01" pto="true" direction="false"/>
 		</outsideControls>
 	
+
+    <!-- [SPS 1.0.1.8] Farm-liquid connector, WATER lane only: this tanker can deliver the water it
+         carries into a barn's drinking-water coupler (<animalWaterSystem>) through the sprayer-style
+         hose. Its nodes (SPS_liquidPipeCoupler01 + Arcs/inNode/outNode, SPS_liquidControlNode) are
+         EMPTY transforms in nodeTree.i3d at the "pgII20Genesis_vis" origin: position them and add the
+         sprayerConnector mesh in GIANTS Editor. See SPS_README_05_Animal_Water.md. -->
+    <liquidPipeSystem>
+        <liquidPipeCouplings>
+            <liquidPipeCoupling id="1" mountNodeName="SPS_liquidPipeCoupler01" fillUnitIndex="1" lanes="WATER"
+                                maxPipeLength="7.5" connectorAnimation="4"/>
+        </liquidPipeCouplings>
+        <liquidPumpControls>
+            <liquidPumpControl id="1" nodeName="SPS_liquidControlNode" radius="1.5"/>
+        </liquidPumpControls>
+    </liquidPipeSystem>
+
+    <!-- [SPS 1.0.1.8] Physical pipes on the "Additional hoses" carriers. Both follow the shop option
+         design12 (0 = No, 1 = Left, 2 = Right, 3 = Both), so a rack exists only on a carrier that was bought
+         (README 01 §13). Build the racks in GIANTS Editor with SPS_PipePlacement.lua > Create pipe set:
+         Attach to = hoseHolderLeft  -> SPS_pipeHolder01,  Attach to = hoseHolderRight -> SPS_pipeHolder02. -->
+    <pipeHolders>
+        <pipeHolder id="1" nodeName="SPS_pipeHolder01" radius="1.0" configType="design12" cylinderedConfigIndex="1,3"/>
+        <pipeHolder id="2" nodeName="SPS_pipeHolder02" radius="1.0" configType="design12" cylinderedConfigIndex="2,3"/>
+    </pipeHolders>
+
+    <!-- [SPS 1.0.1.8] The SPS Docking Station rides where the tanker's own docking funnel station stood
+         (shop option design8: 0 = No, 1 = Yes) - only on a tanker bought with one. dockingStationPosition is an
+         empty transform in nodeTree.i3d under the vehicle node "docking": the station's ROOT (its base) goes there,
+         +Y up, +Z = the station's coupling side. -->
+    <dockingStationHolders>
+        <dockingStationHolder id="1" nodeName="dockingStationPosition" radius="1.5" configType="design8" cylinderedConfigIndex="1"/>
+    </dockingStationHolders>
+
+    <!-- the carriers' own hoses make way for the bought pipes in physical mode - same design12 rule -->
+    <physicalModeHide>
+        <node name="hoseLeft"  configType="design12" cylinderedConfigIndex="1,3"/>
+        <node name="hoseRight" configType="design12" cylinderedConfigIndex="2,3"/>
+        <!-- the tanker's own docking funnel station and its collision (col17, under it) make way for the SPS one -->
+        <node name="dockingStation" collision="true" configType="design8" cylinderedConfigIndex="1"/>
+    </physicalModeHide>
+
 </slurryPipeSystem>

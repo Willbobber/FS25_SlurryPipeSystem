@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="hoses.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="SPS build_pipes_orig_donors.py (from i3dio export)" version="2026-10-23"/>
+  </Asset>
+
+  <Files>
+    <File fileId="1" filename="$data/shared/white_diffuse.dds"/>
+    <File fileId="2" filename="$data/shared/default_normal.dds"/>
+    <File fileId="3" filename="$data/shared/connectionHoses/hosesAtlas_normal.dds"/>
+    <File fileId="4" filename="../../vehicles/hoses/spsPipes_vmask.dds"/>
+    <File fileId="5" filename="$data/shaders/vehicleShader.xml"/>
+    <File fileId="6" filename="$data/shared/detailLibrary/metallic/zincGalvanized_specular.png"/>
+    <File fileId="7" filename="$data/shared/detailLibrary/metallic/zincGalvanized_normal.png"/>
+    <File fileId="8" filename="$data/shared/detailLibrary/metallic/zincGalvanized_diffuse.png"/>
+    <File fileId="9" filename="$data/shared/detailLibrary/metallic/silverScratched_specular.png"/>
+    <File fileId="10" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="11" filename="$data/shared/detailLibrary/metallic/silverScratched_diffuse.png"/>
+    <File fileId="12" filename="$data/shared/detailLibrary/metallic/scratched_specular.png"/>
+    <File fileId="13" filename="$data/shared/detailLibrary/metallic/scratched_diffuse.png"/>
+    <File fileId="14" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_specular.dds"/>
+    <File fileId="15" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_normal.dds"/>
+    <File fileId="16" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_diffuse.dds"/>
+  </Files>
+
+  <Materials>
+    <Material name="lambert1" materialId="1" diffuseColor="0.8 0.8 0.8 1" specularColor="0.501961 1 0">
+    </Material>
+    <Material name="hose_mat" materialId="2" customShaderId="5" customShaderVariation="vmaskUV2">
+      <Texture fileId="1"/>
+      <Normalmap fileId="3"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="14"/>
+      <Custommap name="detailNormal" fileId="15"/>
+      <Custommap name="detailDiffuse" fileId="16"/>
+      <CustomParameter name="colorScale" value="0 0.05 0"/>
+    </Material>
+    <Material name="zincGalvanized_mat" materialId="3" customShaderId="5" customShaderVariation="vmaskUV2">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="6"/>
+      <Custommap name="detailNormal" fileId="7"/>
+      <Custommap name="detailDiffuse" fileId="8"/>
+    </Material>
+    <Material name="silverScratched_mat" materialId="4" customShaderId="5" customShaderVariation="vmaskUV2">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="9"/>
+      <Custommap name="detailNormal" fileId="10"/>
+      <Custommap name="detailDiffuse" fileId="11"/>
+    </Material>
+    <Material name="brassScratched_mat" materialId="5" customShaderId="5" customShaderVariation="vmaskUV2">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="12"/>
+      <Custommap name="detailNormal" fileId="10"/>
+      <Custommap name="detailDiffuse" fileId="13"/>
+      <CustomParameter name="colorScale" value="0.9647 0.7913 0.3095"/>
+    </Material>
+    <Material name="hose_mat" materialId="90" customShaderId="5" customShaderVariation="vmaskUV2">
+      <Texture fileId="1"/>
+      <Normalmap fileId="3"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="14"/>
+      <Custommap name="detailNormal" fileId="15"/>
+      <Custommap name="detailDiffuse" fileId="16"/>
+      <CustomParameter name="colorScale" value="0 0.02 0.08"/>
+    </Material>
+    <Material name="hose_mat" materialId="91" customShaderId="5" customShaderVariation="vmaskUV2">
+      <Texture fileId="1"/>
+      <Normalmap fileId="3"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="14"/>
+      <Custommap name="detailNormal" fileId="15"/>
+      <Custommap name="detailDiffuse" fileId="16"/>
+      <CustomParameter name="colorScale" value="0.8 0.8 0.8"/>
+    </Material>
+  </Materials>
+
+  <Shapes externalShapesFile="hoses.i3d.shapes">
+  </Shapes>
+
+  <Dynamics>
+  </Dynamics>
+
+  <Scene>
+    <Shape name="pipe_F/M" shapeId="8" nodeId="14" castsShadows="true" receiveShadows="true" skinBindNodeIds="1 2 3 4 5 6 7 8 9 10 11 12 13" materialIds="2 3 4" clipDistance="300">
+      <TransformGroup name="Bone01" translation="0 0 0.171051" nodeId="1">
+        <Shape name="col" shapeId="6" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="15" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone02" translation="0 0 0.504384" nodeId="2">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="16" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone03" translation="0 0 0.837718" nodeId="3">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="17" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone04" translation="0 0 1.17105" nodeId="4">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="18" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone05" translation="0 0 1.50438" nodeId="5">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="19" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone06" translation="0 0 1.83772" nodeId="6">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="20" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone07" translation="0 0 2.17105" nodeId="7">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="21" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone08" translation="0 0 2.50438" nodeId="8">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="22" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone09" translation="0 0 2.83772" nodeId="9">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="23" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone10" translation="0 0 3.17105" nodeId="10">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="24" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone11" translation="0 0 3.50438" nodeId="11">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="25" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone12" translation="0 0 3.83772" nodeId="12">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="26" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone13" translation="0 0 4.17105" nodeId="13">
+        <Shape name="col" shapeId="7" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="27" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="pipe_F/M_endConnector" translation="0 0 4.31991" nodeId="28">
+        <TransformGroup name="detectionNode04" nodeId="29"/>
+      </TransformGroup>
+      <TransformGroup name="detectionNode01" nodeId="30">
+        <TransformGroup name="detectionNode02" translation="-1.5 0 -2.5" nodeId="31"/>
+        <TransformGroup name="detectionNode03" translation="1.5 0 -2.5" nodeId="32"/>
+      </TransformGroup>
+    </Shape>
+    <Shape name="pipe_F/F" shapeId="5" nodeId="46" castsShadows="true" receiveShadows="true" skinBindNodeIds="33 34 35 36 37 38 39 40 41 42 43 44 45" materialIds="2 3 4" clipDistance="300">
+      <TransformGroup name="Bone14" translation="0 0 0.171051" nodeId="33">
+        <Shape name="col" shapeId="1" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="47" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone15" translation="0 0 0.504384" nodeId="34">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="48" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone16" translation="0 0 0.837718" nodeId="35">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="49" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone17" translation="0 0 1.17105" nodeId="36">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="50" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone18" translation="0 0 1.50438" nodeId="37">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="51" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone19" translation="0 0 1.83772" nodeId="38">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="52" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone20" translation="0 0 2.17105" nodeId="39">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="53" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone21" translation="0 0 2.50438" nodeId="40">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="54" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone22" translation="0 0 2.83772" nodeId="41">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="55" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone23" translation="0 0 3.17105" nodeId="42">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="56" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone24" translation="0 0 3.50438" nodeId="43">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="57" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone25" translation="0 0 3.83772" nodeId="44">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="58" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone26" translation="0 0 4.17105" nodeId="45">
+        <Shape name="col" shapeId="4" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="59" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="pipe_F/F_endConnector" translation="0 0 4.34206" nodeId="60">
+        <TransformGroup name="detectionNode04" nodeId="61"/>
+      </TransformGroup>
+      <TransformGroup name="detectionNode01" nodeId="62">
+        <TransformGroup name="detectionNode02" translation="-1.5 0 -2.5" nodeId="63"/>
+        <TransformGroup name="detectionNode03" translation="1.5 0 -2.5" nodeId="64"/>
+      </TransformGroup>
+    </Shape>
+    <Shape name="pipe_M/M" shapeId="10" nodeId="78" castsShadows="true" receiveShadows="true" skinBindNodeIds="65 66 67 68 69 70 71 72 73 74 75 76 77" materialIds="2 3 4" clipDistance="300">
+      <TransformGroup name="Bone27" translation="0 0 0.148864" nodeId="65">
+        <Shape name="col" shapeId="9" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="79" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone28" translation="0 0 0.482197" nodeId="66">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="80" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone29" translation="0 0 0.815531" nodeId="67">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="81" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone30" translation="0 0 1.14886" nodeId="68">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="82" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone31" translation="0 0 1.48219" nodeId="69">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="83" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone32" translation="0 0 1.81553" nodeId="70">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="84" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone33" translation="0 0 2.14886" nodeId="71">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="85" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone34" translation="0 0 2.48219" nodeId="72">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="86" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone35" translation="0 0 2.81553" nodeId="73">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="87" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone36" translation="0 0 3.14886" nodeId="74">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="88" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone37" translation="0 0 3.48219" nodeId="75">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="89" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone38" translation="0 0 3.81553" nodeId="76">
+        <Shape name="col" shapeId="3" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="90" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone39" translation="0 0 4.14886" nodeId="77">
+        <Shape name="col" shapeId="7" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="91" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="pipe_M/M_endConnector" translation="0 0 4.29773" nodeId="92">
+        <TransformGroup name="detectionNode04" nodeId="93"/>
+      </TransformGroup>
+      <TransformGroup name="detectionNode01" nodeId="94">
+        <TransformGroup name="detectionNode02" translation="-1.5 0 -2.5" nodeId="95"/>
+        <TransformGroup name="detectionNode03" translation="1.5 0 -2.5" nodeId="96"/>
+      </TransformGroup>
+    </Shape>
+    <Shape name="waterHose" shapeId="11" nodeId="110" castsShadows="true" receiveShadows="true" skinBindNodeIds="97 98 99 100 101 102 103 104 105 106 107 108 109" materialIds="90 3 5 4" clipDistance="300">
+      <TransformGroup name="Bone40" translation="0 0 0.15157" nodeId="97">
+        <Shape name="col" shapeId="12" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="111" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone41" translation="0 0 0.484904" nodeId="98">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="112" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone42" translation="0 0 0.818237" nodeId="99">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="113" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone43" translation="0 0 1.15157" nodeId="100">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="114" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone44" translation="0 0 1.4849" nodeId="101">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="115" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone45" translation="0 0 1.81824" nodeId="102">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="116" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone46" translation="0 0 2.15157" nodeId="103">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="117" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone47" translation="0 0 2.4849" nodeId="104">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="118" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone48" translation="0 0 2.81824" nodeId="105">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="119" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone49" translation="0 0 3.15157" nodeId="106">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="120" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone50" translation="0 0 3.4849" nodeId="107">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="121" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone51" translation="0 0 3.81824" nodeId="108">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="122" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone52" translation="0 0 4.15157" nodeId="109">
+        <Shape name="col" shapeId="15" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="123" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="waterHose_endConnector" translation="0 0 4.30314" nodeId="124">
+        <TransformGroup name="detectionNode04" nodeId="125"/>
+      </TransformGroup>
+      <TransformGroup name="detectionNode01" nodeId="126">
+        <TransformGroup name="detectionNode02" translation="-1.5 0 -2.5" nodeId="127"/>
+        <TransformGroup name="detectionNode03" translation="1.5 0 -2.5" nodeId="128"/>
+      </TransformGroup>
+    </Shape>
+    <Shape name="milkHose" shapeId="11" nodeId="142" castsShadows="true" receiveShadows="true" skinBindNodeIds="129 130 131 132 133 134 135 136 137 138 139 140 141" materialIds="91 3 5 4" clipDistance="300">
+      <TransformGroup name="Bone53" translation="0 0 0.15157" nodeId="129">
+        <Shape name="col" shapeId="12" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="143" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone54" translation="0 0 0.484904" nodeId="130">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="144" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone55" translation="0 0 0.818237" nodeId="131">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="145" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone56" translation="0 0 1.15157" nodeId="132">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="146" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone57" translation="0 0 1.4849" nodeId="133">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="147" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone58" translation="0 0 1.81824" nodeId="134">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="148" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone59" translation="0 0 2.15157" nodeId="135">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="149" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone60" translation="0 0 2.4849" nodeId="136">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="150" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone61" translation="0 0 2.81824" nodeId="137">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="151" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone62" translation="0 0 3.15157" nodeId="138">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="152" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone63" translation="0 0 3.4849" nodeId="139">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="153" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone64" translation="0 0 3.81824" nodeId="140">
+        <Shape name="col" shapeId="14" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="154" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="Bone65" translation="0 0 4.15157" nodeId="141">
+        <Shape name="col" shapeId="15" kinematic="true" collisionFilterGroup="0x11004" collisionFilterMask="0xfe3efb83" nodeId="155" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="1"/>
+      </TransformGroup>
+      <TransformGroup name="milkHose_endConnector" translation="0 0 4.30314" nodeId="156">
+        <TransformGroup name="detectionNode04" nodeId="157"/>
+      </TransformGroup>
+      <TransformGroup name="detectionNode01" nodeId="158">
+        <TransformGroup name="detectionNode02" translation="-1.5 0 -2.5" nodeId="159"/>
+        <TransformGroup name="detectionNode03" translation="1.5 0 -2.5" nodeId="160"/>
+      </TransformGroup>
+    </Shape>
+  </Scene>
+
+</i3D>

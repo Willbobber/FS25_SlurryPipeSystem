@@ -198,7 +198,11 @@ function SPSPlaceableOverride.updateInfo(self, superFunc, infoTable)
             for _, sc in ipairs(sEntry.dynCouplers) do
                 table.insert(tanks, sc)
             end
-            table.sort(tanks, function(a, b) return (a.id or 0) < (b.id or 0) end)
+            -- [SPS 1.0.1.8] displayId = row number assigned at registration (unique per
+            -- store even when a multi-tank coupler's <tank> ids restart at 1).
+            table.sort(tanks, function(a, b)
+                return (a.displayId or a.id or 0) < (b.displayId or b.id or 0)
+            end)
 
             -- Drop the vanilla per-fillType rows these tanks account for, so the
             -- same litres are not listed twice under two different groupings.
@@ -221,7 +225,7 @@ function SPSPlaceableOverride.updateInfo(self, superFunc, infoTable)
 
             local emptyLabel = g_i18n:getText("sps_infoTankEmpty")
             for _, sc in ipairs(tanks) do
-                local title = string.format("T-%d", sc.id or 0)
+                local title = string.format("T-%d", sc.displayId or sc.id or 0)
                 local text
                 if sc.dynFillType ~= nil then
                     local ftTitle = g_fillTypeManager:getFillTypeTitleByIndex(sc.dynFillType)

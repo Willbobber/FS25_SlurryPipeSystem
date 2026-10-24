@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Chains 1.0.0.9.3 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSM_Chains 1.0.0.9.3 loaded") end
 
 
 -- Called at the end of registerVehicle and registerPlaceable.

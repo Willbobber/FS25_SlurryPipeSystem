@@ -68,7 +68,7 @@
 -- original vanilla behaviour proceeds.
 -- ---------------------------------------------------------------------------
 
-print("[SPS BUILD] SPSSlurryTankExtensions 1.0.0.10.1 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSSlurryTankExtensions 1.0.0.10.1 loaded") end
 
 SPSSlurryTankExtensions = {}
 

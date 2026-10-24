@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
+  </Asset>
+
+  <Files>
+  </Files>
+
+
+  <Materials>
+  </Materials>
+
+
+  <Shapes>
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="SPS_buyingStationLiquidManure" nodeId="118">
+      <TransformGroup name="pipeCouplers" nodeId="119">
+        <TransformGroup name="manureHeap" nodeId="120">
+          <TransformGroup name="SPS_pipeCoupler01" translation="6.85742 0.647895 6.04227" rotation="138.847 -56.9138 -180" nodeId="121">
+            <TransformGroup name="SPS_pipeCoupler01Arcs" rotation="41.3179 1.70755e-06 1.70755e-06" nodeId="122">
+              <TransformGroup name="SPS_pipeCoupler01Arc01" translation="1.5 -1.24274e-09 -2.5" nodeId="123"/>
+              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="-1.5 0 -2.5" nodeId="124"/>
+            </TransformGroup>
+            <TransformGroup name="inNode" nodeId="125"/>
+            <TransformGroup name="outNode" rotation="0 180 0" nodeId="126"/>
+            <TransformGroup name="headHeight01" nodeId="127"/>
+          </TransformGroup>
+          <TransformGroup name="slurryPlaneCentre" translation="0 0.5 0" nodeId="128"/>
+          <TransformGroup name="slurryPlaneEdge" translation="0 0.5 7.31401" nodeId="129"/>
+        </TransformGroup>
+      </TransformGroup>
+    </TransformGroup>
+  </Scene>
+
+</i3D>

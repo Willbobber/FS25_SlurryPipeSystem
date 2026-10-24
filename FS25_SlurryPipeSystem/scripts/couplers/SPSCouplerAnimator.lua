@@ -13,7 +13,7 @@
 -- disconnect) and a valveAnimation id (plays forward on valve open, reverse
 -- on valve close). Both are independent and per-coupling local.
 
-print("[SPS BUILD] SPSCouplerAnimator 1.0.1.2 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSCouplerAnimator 1.0.1.2 loaded") end
 
 SPSCouplerAnimator = {}
 
@@ -120,14 +120,14 @@ function SPSCouplerAnimator.ensureLoaded(modDirectory)
             end
             SPSCouplerAnimator._library[id] = entry
             count = count + 1
-            print(string.format("[SPS] couplerAnimation id=%d '%s' loaded with %d part(s)",
+            spsInfo(string.format("[SPS] couplerAnimation id=%d '%s' loaded with %d part(s)",
                 id, entry.name, #entry.parts))
         end
         idx = idx + 1
     end
 
     xmlFile:delete()
-    print("[SPS] SPSCouplerAnimator.ensureLoaded: " .. tostring(count) .. " animation(s) from " .. path)
+    spsInfo("[SPS] SPSCouplerAnimator.ensureLoaded: " .. tostring(count) .. " animation(s) from " .. path)
 end
 
 
@@ -184,7 +184,7 @@ function SPSCouplerAnimator.parseLocal(xmlFile, keyPrefix)
             end
             if localLib == nil then localLib = {} end
             localLib[id] = entry
-            print(string.format("[SPS] local couplerAnimation id=%d '%s' loaded with %d part(s) from config xml",
+            spsInfo(string.format("[SPS] local couplerAnimation id=%d '%s' loaded with %d part(s) from config xml",
                 id, entry.name, #entry.parts))
         end
         idx = idx + 1

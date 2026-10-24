@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<placeable type="cowHusbandryBarnManure" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../shared/xml/schema/placeable.xsd">
+    <storeData>
+        <name>$l10n_Stabulation_Engraissement</name>
+        <image>store/store_Stabulation_Engraissement.png</image>
+        <price>100000</price>
+        <functions>
+            <function>$l10n_function_animalPenCow</function>
+        </functions>
+        <lifetime>1000</lifetime>
+        <canBeSold>true</canBeSold>
+        <dailyUpkeep>110</dailyUpkeep>
+        <rotation>0</rotation>
+        <brand>NONE</brand>
+        <species>PLACEABLE</species>
+        <category>animalpens</category>
+        <brush>
+            <type>husbandry</type>
+            <category>animals</category>
+            <tab>cows</tab>
+        </brush>
+        <vertexBufferMemoryUsage>3947008</vertexBufferMemoryUsage>
+        <indexBufferMemoryUsage>585472</indexBufferMemoryUsage>
+        <textureMemoryUsage>13303808</textureMemoryUsage>
+        <audioMemoryUsage>0</audioMemoryUsage>
+        <instanceVertexBufferMemoryUsage>0</instanceVertexBufferMemoryUsage>
+        <instanceIndexBufferMemoryUsage>0</instanceIndexBufferMemoryUsage>
+    </storeData>
+
+    <base>
+        <filename>i3d/VACQ/Stabulation_Engraissement.i3d</filename>
+        <boughtWithFarmland>true</boughtWithFarmland>
+        <canBeRenamed>true</canBeRenamed>
+    </base>
+
+    <placement useRandomYRotation="false" useManualYRotation="true" >
+        <testAreas>
+            <testArea startNode="testArea1Start" endNode="testArea1End" />
+        </testAreas>
+
+        <sounds>
+            <place template="medImp" />
+            <placeLayered template="cowLayer" />
+        </sounds>
+    </placement>
+
+    <clearAreas>
+        <clearArea startNode="clearArea1Start" widthNode="clearArea1Width" heightNode="clearArea1Height"/>
+    </clearAreas>
+
+    <leveling requireLeveling="true" maxSmoothDistance="10" maxSlope="75" maxEdgeAngle="30">
+        <levelAreas>
+            <levelArea startNode="levelArea1Start" widthNode="levelArea1Width" heightNode="levelArea1Height" groundType="gravel"/>
+        </levelAreas>
+    </leveling>
+
+    <indoorAreas>
+        <indoorArea startNode="indoorArea1Start" widthNode="indoorArea1Width" heightNode="indoorArea1Height"/>
+        <indoorArea startNode="indoorArea2Start" widthNode="indoorArea2Width" heightNode="indoorArea2Height"/>
+        <indoorArea startNode="indoorArea3Start" widthNode="indoorArea3Width" heightNode="indoorArea3Height"/>
+    </indoorAreas>
+
+    <triggerMarkers>
+        <triggerMarker node="markerFood"                    filename="$data/shared/assets/marker/markerIconFood.i3d" />
+        <triggerMarker node="manureloadingTriggerMarker"    filename="textures/custom_marker/markerIconManure.i3d" adjustToGround="true"/>
+        <triggerMarker node="markerAnimals"                 filename="$data/shared/assets/marker/markerIconAnimals.i3d" />
+        <triggerMarker node="markerliquidManure"            filename="$data/shared/assets/marker/markerIconSlurry.i3d"/>
+    </triggerMarkers>
+
+    <tipOcclusionUpdateAreas>
+        <tipOcclusionUpdateArea startNode="tipOcclusionUpdateArea1Start" endNode="tipOcclusionUpdateArea1End" />
+    </tipOcclusionUpdateAreas>
+
+    <ai>
+        <updateAreas>
+            <updateArea startNode="tipOcclusionUpdateArea1Start" endNode="tipOcclusionUpdateArea1End" />
+        </updateAreas>
+    </ai>
+
+    <hotspots>
+        <hotspot type="COW" teleportNode="teleportNode" />
+    </hotspots>
+
+    <animatedObjects>
+        <animatedObject saveId="light" >
+            <animation duration="0.1">
+                <part node="realLightsLow">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.3" visibility="true"/>
+                </part>
+                <part node="realLightsHigh">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.6" visibility="true"/>
+                </part>
+                <shader node="neon" parameterName="lightControl">
+                    <keyFrame time="0.0" values="0" />
+                    <keyFrame time="1.0" values="10" />
+                </shader>
+            </animation>
+            <controls triggerNode="lightTrigger" posAction="ACTIVATE_HANDTOOL" posText="On" negText="Off" />
+        </animatedObject>
+        <animatedObject saveId="Porte01" >
+            <animation duration="3">
+                <part node="porte01">
+                    <keyFrame time="0.0" translation="-4.325 0 0"/>
+                    <keyFrame time="1.0" translation="0 0 0"/>
+                </part>
+            </animation>
+            <controls triggerNode="trigger01" posAction="ACTIVATE_HANDTOOL" posText="action_openDoor" negText="action_closeDoor" />
+            <sounds>
+                <moving linkNode="porte01" template="slidingGateMetalLoop" />
+                <posEnd linkNode="porte01" template="slidingGateMetalOpen" />
+                <negEnd linkNode="porte01" template="slidingGateMetalClose" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="Barriere01" >
+            <animation duration="3">
+                <part node="barriere01">
+                    <keyFrame time="0.0" rotation="0 0 0"/>
+                    <keyFrame time="1.0" rotation="0 -97 0"/>
+                </part>
+            </animation>
+            <controls triggerNode="trigger02" posAction="ACTIVATE_HANDTOOL" posText="action_openDoor" negText="action_closeDoor" />
+            <sounds>
+                <moving linkNode="barriere01" template="fenceMetalLoop" />
+                <posEnd linkNode="barriere01" template="fenceMetalOpen" />
+                <negEnd linkNode="barriere01" template="fenceMetalClose" />
+            </sounds>
+        </animatedObject>
+    </animatedObjects>
+
+    <dynamicallyLoadedParts>
+    </dynamicallyLoadedParts>
+
+    <lights>
+    </lights>
+
+    <infoTrigger triggerNode="infoTrigger" />
+
+    <husbandry saveId="Animals_COW" hasStatistics="false">
+        <storage node="storage" fillTypes="LIQUIDMANURE STRAW MANURE" isExtension="false">
+            <capacity fillType="LIQUIDMANURE" capacity="200000" />
+            <capacity fillType="STRAW"        capacity="40000" />
+            <capacity fillType="MANURE"       capacity="0" />
+        </storage>
+
+        <unloadingStation supportsExtension="true" storageRadius="15" hideFromPricesMenu="true">
+            <unloadTrigger exactFillRootNode="exactFillRootNodeStraw" fillTypes="STRAW" />
+            <baleTrigger triggerNode="baleTriggerStraw" fillTypes="STRAW"/>
+            <unloadTrigger fillTypes="MANURE LIQUIDMANURE" />
+        </unloadingStation>
+
+        <loadingStation supportsExtension="true" storageRadius="15">
+            <loadTrigger triggerNode="lqiuidManureTrigger" fillTypes="LIQUIDMANURE" fillLitersPerSecond="2000" aiNode="aiLoadingNodeLiquidManure" />
+        </loadingStation>
+
+        <animals type="COW" baseMaxNumAnimals="35" maxNumAnimals="15" maxNumVisualAnimals="15">
+            <navigation shape="navMeshShape" />
+            <loadingTrigger node="loadingTrigger" />
+        </animals>
+
+        <food capacity="45000" >
+            <foodPlaces>
+                <foodPlace node="foodPlace1" />
+                <foodPlace node="foodPlace2" />
+                <foodPlace node="foodPlace3" />
+                <foodPlace node="foodPlace4" />
+                <foodPlace node="foodPlace5" />
+                <foodPlace node="foodPlace6" />
+                <foodPlace node="foodPlace7" />
+                <foodPlace node="foodPlace8" />
+                <foodPlace node="foodPlace9" />
+                <foodPlace node="foodPlace10" />
+            </foodPlaces>
+            <dynamicFoodPlane node="fillVolumeFood" defaultFillType="forage" maxAllowedHeapAngle="60" maxSubDivEdgeLength="0.5" capacity="10000"/>
+            <unloadTrigger exactFillRootNode="exactFillRootNodeFood" />
+            <baleTrigger triggerNode="baleTrigger"/>
+        </food>
+
+        <liquidManure />
+
+        <milk />
+
+        <water automaticWaterSupply="true">
+            <waterPlaces>
+                <waterPlace node="waterPlace1" />
+                <waterPlace node="waterPlace2" />
+            </waterPlaces>
+        </water>
+
+        <straw>
+            <manure factor="1.5" />
+            <strawPlane node="strawPlane" minY="-0.19" maxY="0" colorChange="false" />
+        </straw>
+
+        <fence xmlFilename="Fences_invisible.xml">
+            <sections>
+                <section segmentId="SEGMENT" customizable="false">
+                    <node node="fence1Node1" />
+                    <node node="fence1Node2" />
+                    <node node="fence1Node3" />
+                    <node node="fence1Node4" />
+                </section>
+            </sections>
+        </fence>
+    </husbandry>
+
+    <manureHeap node="manureHeap" capacity="300000" isExtension="true" >
+        <area startNode="manuretipAreaStart" widthNode="manuretipAreaWidth" heightNode="manuretipAreaHeight" activationTriggerNode="manureInfoTrigger" />
+        <clearArea startNode="clearAreaManureStart" widthNode="clearAreaManureWidth" heightNode="clearAreaManureHeight" />
+
+        <loadingStation storageRadius="15" supportsExtension="true">
+            <loadTrigger triggerNode="manureloadingTrigger" aiNode="manureloadingTriggerAINode" fillTypes="MANURE" fillLitersPerSecond="2000" />
+        </loadingStation>
+    </manureHeap>
+	
+	<slurryPipeSystem agitator="false">
+        <nodeTree filename="SPS_nodeTree_Stabulation_Engraissement.i3d"/>
+        <!-- Virtual surface: the shed has no arm-reachable slurry plane, so store 1 drives an
+             EMPTY transform (virtualSurface, in the nodeTree under liquidManure/slurryStore01)
+             from the shed's own 200 000 L LIQUIDMANURE storage. Nothing to see, nothing for a
+             fill arm to detect (no shape), but head-height equalisation through the coupler
+             gets a real surface: minY = pit floor, maxY = pit full, both local to the node. -->
+        <slurryStores>
+            <slurryStore id="1" node="slurryStore01" fillPlaneNode="virtualSurface" minY="0" maxY="0.763" fillType="LIQUIDMANURE" agitator="false" hideWhenEmpty="false"/>
+        </slurryStores>
+        <pipeCouplings>
+            <pipeCoupling id="1" mountNodeName="SPS_pipeCoupler01" storeId="1" flowDirection="BOTH" valveType="MANUAL" deployable="false" maxPipeLength="4.0" connector="male" connectorAnimation="1" valveAnimation="2" headHeightNodeName="headHeight01"/>
+        </pipeCouplings>
+    </slurryPipeSystem>
+	
+    <i3dMappings>
+        <i3dMapping id="clearArea1Start" node="0>0|0"/>
+        <i3dMapping id="clearArea1Width" node="0>0|0|0"/>
+        <i3dMapping id="clearArea1Height" node="0>0|0|1"/>
+        <i3dMapping id="indoorArea1Start" node="0>2|0"/>
+        <i3dMapping id="indoorArea1Width" node="0>2|0|0"/>
+        <i3dMapping id="indoorArea1Height" node="0>2|0|1"/>
+        <i3dMapping id="indoorArea2Start" node="0>2|1"/>
+        <i3dMapping id="indoorArea2Width" node="0>2|1|0"/>
+        <i3dMapping id="indoorArea2Height" node="0>2|1|1"/>
+        <i3dMapping id="indoorArea3Start" node="0>2|2"/>
+        <i3dMapping id="indoorArea3Width" node="0>2|2|0"/>
+        <i3dMapping id="indoorArea3Height" node="0>2|2|1"/>
+        <i3dMapping id="levelArea1Start" node="0>1|0"/>
+        <i3dMapping id="levelArea1Width" node="0>1|0|0"/>
+        <i3dMapping id="levelArea1Height" node="0>1|0|1"/>
+        <i3dMapping id="testArea1Start" node="0>3|0"/>
+        <i3dMapping id="testArea1End" node="0>3|0|0"/>
+        <i3dMapping id="tipOcclusionUpdateArea1Start" node="0>4|0"/>
+        <i3dMapping id="tipOcclusionUpdateArea1End" node="0>4|0|0"/>
+        <!--function-->
+        <i3dMapping id="waterPlace1" node="0>10|0"/>
+        <i3dMapping id="waterPlace2" node="0>10|1"/>
+        <i3dMapping id="navMeshShape" node="0>11|0"/>
+        <i3dMapping id="markerAnimals" node="0>12|0"/>
+        <i3dMapping id="markerFood" node="0>12|1"/>
+        <i3dMapping id="fence1Node1" node="0>13|0|0"/>
+        <i3dMapping id="fence1Node2" node="0>13|0|1"/>
+        <i3dMapping id="fence1Node3" node="0>13|0|2"/>
+        <i3dMapping id="fence1Node4" node="0>13|0|3"/>
+        <i3dMapping id="teleportNode" node="0>14"/>
+        <i3dMapping id="storage" node="0>15"/>
+        <i3dMapping id="infoTrigger" node="0>16"/>
+        <i3dMapping id="loadingTrigger" node="0>17"/>
+        <i3dMapping id="fillVolumeFood" node="0>8|0"/>
+        <i3dMapping id="exactFillRootNodeFood" node="0>8|1"/>
+        <i3dMapping id="foodPlace1" node="0>8|2|0"/>
+        <i3dMapping id="foodPlace2" node="0>8|2|1"/>
+        <i3dMapping id="foodPlace3" node="0>8|2|2"/>
+        <i3dMapping id="foodPlace4" node="0>8|2|3"/>
+        <i3dMapping id="foodPlace5" node="0>8|2|4"/>
+        <i3dMapping id="foodPlace6" node="0>8|2|5"/>
+        <i3dMapping id="foodPlace7" node="0>8|2|6"/>
+        <i3dMapping id="foodPlace8" node="0>8|2|7"/>
+        <i3dMapping id="foodPlace9" node="0>8|2|8"/>
+        <i3dMapping id="foodPlace10" node="0>8|2|9"/>
+        <i3dMapping id="baleTrigger" node="0>8|3"/>
+        <i3dMapping id="strawPlane" node="0>9|0"/>
+        <i3dMapping id="exactFillRootNodeStraw" node="0>9|1"/>
+        <i3dMapping id="baleTriggerStraw" node="0>9|2"/>
+        <!--animation-->
+        <i3dMapping id="lightTrigger" node="0>6|0|0"/>
+        <i3dMapping id="neon" node="0>6|0|1"/>
+        <i3dMapping id="realLightsLow" node="0>6|0|2"/>
+        <i3dMapping id="realLightsHigh" node="0>6|0|3"/>
+        <i3dMapping id="porte01" node="0>6|1|0"/>
+        <i3dMapping id="trigger01" node="0>6|1|1"/>
+        <i3dMapping id="barriere01" node="0>6|2|0"/>
+        <i3dMapping id="trigger02" node="0>6|2|1"/>
+        <!--manure-->
+        <i3dMapping id="manureloadingTriggerMarker" node="0>18|0|2"/>
+        <i3dMapping id="manureHeap" node="0>18|0"/>
+        <i3dMapping id="manuretipAreaStart" node="0>18|0|3|0"/>
+        <i3dMapping id="manuretipAreaWidth" node="0>18|0|3|0|0"/>
+        <i3dMapping id="manuretipAreaHeight" node="0>18|0|3|0|1"/>
+        <i3dMapping id="manureloadingTrigger" node="0>18|0|0"/>
+        <i3dMapping id="manureloadingTriggerAINode" node="0>18|0|2"/>
+        <i3dMapping id="manureInfoTrigger" node="0>18|0|4"/>
+        <i3dMapping id="clearAreaManureStart" node="0>18|0|5"/>
+        <i3dMapping id="clearAreaManureWidth" node="0>18|0|5|0"/>
+        <i3dMapping id="clearAreaManureHeight" node="0>18|0|5|1"/>
+        <i3dMapping id="markerliquidManure" node="0>12|2"/>
+        <i3dMapping id="lqiuidManureTrigger" node="0>19|0"/>
+        <i3dMapping id="aiLoadingNodeLiquidManure" node="0>19|1"/>
+    </i3dMappings>
+</placeable>

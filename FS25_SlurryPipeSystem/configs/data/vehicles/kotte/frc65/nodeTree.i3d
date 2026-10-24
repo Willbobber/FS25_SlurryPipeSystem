@@ -61,6 +61,23 @@
           <TransformGroup name="fullNode" translation="0 3.71894 0" nodeId="256"/>
         </TransformGroup>
       </TransformGroup>
+      <TransformGroup name="liquidPipeCouplers" nodeId="257">
+        <TransformGroup name="frc65_vis" nodeId="258">
+          <TransformGroup name="SPS_liquidPipeCoupler01" nodeId="259">
+            <TransformGroup name="SPS_liquidPipeCoupler01Arcs" nodeId="260">
+              <TransformGroup name="SPS_liquidPipeCoupler01Arc01" translation="3.5 0 -1.5" nodeId="261"/>
+              <TransformGroup name="SPS_liquidPipeCoupler01Arc02" translation="3.5 0 1.5" nodeId="262"/>
+            </TransformGroup>
+            <TransformGroup name="inNode" rotation="0 180 0" nodeId="263"/>
+            <TransformGroup name="outNode" nodeId="264"/>
+          </TransformGroup>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="liquidPumpControls" nodeId="265">
+        <TransformGroup name="frc65_vis" nodeId="266">
+          <TransformGroup name="SPS_liquidControlNode" translation="1 0 0" nodeId="267"/>
+        </TransformGroup>
+      </TransformGroup>
     </TransformGroup>
   </Scene>
 

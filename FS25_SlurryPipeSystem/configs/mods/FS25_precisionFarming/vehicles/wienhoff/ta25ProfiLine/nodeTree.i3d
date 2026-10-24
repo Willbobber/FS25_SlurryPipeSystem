@@ -15,16 +15,27 @@
     <File fileId="14" filename="$data/shared/detailLibrary/metallic/metalGalvanized_specular.png"/>
     <File fileId="8" filename="$data/shared/detailLibrary/metallic/scratched_diffuse.png"/>
     <File fileId="6" filename="$data/shared/detailLibrary/metallic/scratched_specular.png"/>
+    <File fileId="18" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_diffuse.png"/>
+    <File fileId="17" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_specular.png"/>
     <File fileId="3" filename="$data/shared/white_diffuse.png"/>
     <File fileId="4" filename="../../../../../../i3d/connectors/frontArmConnections_Vmask.dds"/>
   </Files>
 
 
   <Materials>
-    <Material name="default_mat" materialId="5" diffuseColor="0.501961 0.501961 0.501961 1">
+    <Material name="black_plasticPainted_mat" materialId="391" customShaderId="5">
+      <Texture fileId="3"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="13"/>
+      <Custommap name="detailSpecular" fileId="17"/>
+      <Custommap name="detailNormal" fileId="7"/>
+      <Custommap name="detailDiffuse" fileId="18"/>
+      <CustomParameter name="colorScale" value="0.006 0.006 0.006"/>
+    </Material>
+    <Material name="default_mat" materialId="336" diffuseColor="0.501961 0.501961 0.501961 1">
       <Normalmap fileId="2"/>
     </Material>
-    <Material name="metalGalvanized_mat_coupler" materialId="51" customShaderId="5">
+    <Material name="metalGalvanized_mat_coupler" materialId="337" customShaderId="5">
       <Texture fileId="3"/>
       <Normalmap fileId="2"/>
       <Glossmap fileId="13"/>
@@ -32,7 +43,16 @@
       <Custommap name="detailNormal" fileId="15"/>
       <Custommap name="detailDiffuse" fileId="16"/>
     </Material>
-    <Material name="silverScratchedShiny_mat" materialId="7" customShaderId="5">
+    <Material name="red_plasticPainted_mat" materialId="392" customShaderId="5">
+      <Texture fileId="3"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="13"/>
+      <Custommap name="detailSpecular" fileId="17"/>
+      <Custommap name="detailNormal" fileId="7"/>
+      <Custommap name="detailDiffuse" fileId="18"/>
+      <CustomParameter name="colorScale" value="0.359 0.033 0.035"/>
+    </Material>
+    <Material name="silverScratchedShiny_mat" materialId="338" customShaderId="5">
       <Texture fileId="3"/>
       <Normalmap fileId="2"/>
       <Glossmap fileId="4"/>
@@ -48,60 +68,80 @@
   </Shapes>
 
   <Scene>
-    <TransformGroup name="SPS_ta25ProfiLine" nodeId="13">
-      <TransformGroup name="fillArmNodes" nodeId="14">
-        <TransformGroup name="arm02" translation="-9.99979e-07 3.684 -1.5854" nodeId="15">
-          <TransformGroup name="SPS_fillArmCentre01" translation="-0.117019 -0.598827 -0.631329" nodeId="16"/>
+    <TransformGroup name="SPS_ta25ProfiLine" nodeId="344">
+      <TransformGroup name="fillArmNodes" nodeId="345">
+        <TransformGroup name="arm02" translation="-9.99979e-07 3.684 -1.5854" nodeId="346">
+          <TransformGroup name="SPS_fillArmCentre01" translation="-0.117019 -0.598827 -0.631329" nodeId="347"/>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="pipeCouplers" nodeId="17">
-        <TransformGroup name="ta25ProfiLine_vis" translation="0 0 3.28143" nodeId="18">
-          <TransformGroup name="SPS_pipeCoupler01" translation="-1.4036 0.884002 -1.0979" rotation="-16 90 0" nodeId="19">
-            <TransformGroup name="SPS_pipeCoupler01Arcs" translation="-1.17765e-07 0 0" rotation="-20 -1.86689e-05 180" nodeId="20">
-              <TransformGroup name="SPS_pipeCoupler01Arc01" translation="1.5 7.00249e-07 -2.5" rotation="180 0 6.87363e-05" nodeId="21"/>
-              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="-1.5 -3.57628e-07 -2.5" rotation="-180 0 -0.000314568" nodeId="22"/>
+      <TransformGroup name="pipeCouplers" nodeId="348">
+        <TransformGroup name="ta25ProfiLine_vis" translation="0 0 3.28143" nodeId="349">
+          <TransformGroup name="SPS_pipeCoupler01" translation="-1.4036 0.884002 -1.0979" rotation="-16 90 0" nodeId="350">
+            <TransformGroup name="SPS_pipeCoupler01Arcs" translation="-1.17765e-07 0 0" rotation="-20 -1.86689e-05 180" nodeId="351">
+              <TransformGroup name="SPS_pipeCoupler01Arc01" translation="1.5 7.00249e-07 -2.5" rotation="180 0 6.87363e-05" nodeId="352"/>
+              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="-1.5 -3.57628e-07 -2.5" rotation="-180 0 -0.000314568" nodeId="353"/>
             </TransformGroup>
-            <TransformGroup name="inNode" nodeId="23"/>
-            <TransformGroup name="outNode" rotation="0 180 0" nodeId="24"/>
+            <TransformGroup name="inNode" nodeId="354"/>
+            <TransformGroup name="outNode" rotation="0 180 0" nodeId="355"/>
           </TransformGroup>
         </TransformGroup>
-        <TransformGroup name="sidePipe" translation="0.680386 0.970427 -3.60723" nodeId="25">
-          <TransformGroup name="SPS_pipeCoupler02" translation="0.662855 -0.223828 -0.0755161" rotation="-14.2308 -74.1899 -1.83087" nodeId="26">
-            <TransformGroup name="SPS_pipeCoupler02Arcs" translation="-1.17765e-07 0 0" rotation="-20 -1.86689e-05 180" nodeId="27">
-              <TransformGroup name="SPS_pipeCoupler02Arc01" translation="1.5 7.00249e-07 -2.5" rotation="180 0 6.87363e-05" nodeId="28"/>
-              <TransformGroup name="SPS_pipeCoupler02Arc02" translation="-1.5 -3.57628e-07 -2.5" rotation="-180 0 -0.000314568" nodeId="29"/>
+        <TransformGroup name="sidePipe" translation="0.680386 0.970427 -3.60723" nodeId="356">
+          <TransformGroup name="SPS_pipeCoupler02" translation="0.662855 -0.223828 -0.0755161" rotation="-14.2308 -74.1899 -1.83087" nodeId="357">
+            <TransformGroup name="SPS_pipeCoupler02Arcs" translation="-1.17765e-07 0 0" rotation="-20 -1.86689e-05 180" nodeId="358">
+              <TransformGroup name="SPS_pipeCoupler02Arc01" translation="1.5 7.00249e-07 -2.5" rotation="180 0 6.87363e-05" nodeId="359"/>
+              <TransformGroup name="SPS_pipeCoupler02Arc02" translation="-1.5 -3.57628e-07 -2.5" rotation="-180 0 -0.000314568" nodeId="360"/>
             </TransformGroup>
-            <TransformGroup name="inNode" nodeId="30"/>
-            <TransformGroup name="outNode" rotation="0 180 0" nodeId="31"/>
+            <TransformGroup name="inNode" nodeId="361"/>
+            <TransformGroup name="outNode" rotation="0 180 0" nodeId="362"/>
           </TransformGroup>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="outsideControl" nodeId="32">
-        <TransformGroup name="ta25ProfiLine_vis" translation="0 0 3.28143" nodeId="33">
-          <TransformGroup name="pumpControl01" translation="0 1 1" nodeId="34"/>
+      <TransformGroup name="outsideControl" nodeId="363">
+        <TransformGroup name="ta25ProfiLine_vis" translation="0 0 3.28143" nodeId="364">
+          <TransformGroup name="pumpControl01" translation="0 1 1" nodeId="365"/>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="pipeEffects" nodeId="35">
-        <TransformGroup name="arm02" translation="-1e-06 3.68435 -1.5854" nodeId="36">
-          <TransformGroup name="effect" translation="-0.117019 -0.59918 -0.631329" nodeId="37">
-            <Shape name="pipeEffect" translation="-0.000407 0 0" rotation="-90 0 180" shapeId="1" clipDistance="100" nodeId="38" castsShadows="true" receiveShadows="true" materialIds="5"/>
-            <Shape name="pipeEffectSmoke" translation="1.13457e-07 -3.25029 0" rotation="0 0 2e-06" shapeId="2" visibility="false" clipDistance="100" nodeId="39" castsShadows="true" receiveShadows="true" materialIds="5"/>
+      <TransformGroup name="pipeEffects" nodeId="366">
+        <TransformGroup name="arm02" translation="-1e-06 3.68435 -1.5854" nodeId="367">
+          <TransformGroup name="effect" translation="-0.117019 -0.59918 -0.631329" nodeId="368">
+            <Shape name="pipeEffect" translation="-0.000407 0 0" rotation="-90 0 180" shapeId="1" clipDistance="100" nodeId="369" castsShadows="true" receiveShadows="true" materialIds="336"/>
+            <Shape name="pipeEffectSmoke" translation="1.13457e-07 -3.25029 0" rotation="0 0 2e-06" shapeId="2" visibility="false" clipDistance="100" nodeId="370" castsShadows="true" receiveShadows="true" materialIds="336"/>
           </TransformGroup>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="slurryHeight" nodeId="40">
-        <TransformGroup name="ta25ProfiLine_vis" translation="0 0 3.281" nodeId="41">
-          <TransformGroup name="emptyNode" translation="0 1.31048 -6.96026" nodeId="42"/>
-          <TransformGroup name="fullNode" translation="0 3.4236 0.0432389" nodeId="43"/>
+      <TransformGroup name="slurryHeight" nodeId="371">
+        <TransformGroup name="ta25ProfiLine_vis" translation="0 0 3.281" nodeId="372">
+          <TransformGroup name="emptyNode" translation="0 1.31048 -6.96026" nodeId="373"/>
+          <TransformGroup name="fullNode" translation="0 3.4236 0.0432389" nodeId="374"/>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="tractorMountFillArm" nodeId="44">
-        <TransformGroup name="ta25ProfiLine_vis" translation="0 0 3.281" nodeId="45">
-          <Shape name="weinhoffFillPipe" translation="0 0 -3.281" shapeId="3" clipDistance="300" nodeId="46" castsShadows="true" receiveShadows="true" materialIds="7">
-            <Shape name="coupler" translation="0.00045125 3.14535 4.62708" shapeId="4" clipDistance="300" nodeId="54" castsShadows="true" receiveShadows="true" materialIds="51">
-              <TransformGroup name="slurryPipe" translation="3.28367e-05 -0.000358105 0.0655367" nodeId="55"/>
+      <TransformGroup name="tractorMountFillArm" nodeId="375">
+        <TransformGroup name="ta25ProfiLine_vis" translation="0 0 3.281" nodeId="376">
+          <Shape name="weinhoffFillPipe" translation="0 0 -3.281" shapeId="3" clipDistance="300" nodeId="377" castsShadows="true" receiveShadows="true" materialIds="338">
+            <Shape name="coupler" translation="0.00045125 3.14535 4.62708" shapeId="4" clipDistance="300" nodeId="378" castsShadows="true" receiveShadows="true" materialIds="337">
+              <TransformGroup name="slurryPipe" translation="3.28367e-05 -0.000358105 0.0655367" nodeId="379"/>
             </Shape>
           </Shape>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="liquidPipeCouplers" nodeId="380">
+        <TransformGroup name="ta25ProfiLine_vis" nodeId="381">
+          <TransformGroup name="SPS_liquidPipeCoupler01" translation="-1.10652 0.938371 3.33471" rotation="19.0429 -90 0" nodeId="399">
+            <TransformGroup name="SPS_liquidPipeCoupler01Arcs" rotation="0 -90 0" nodeId="400">
+              <TransformGroup name="SPS_liquidPipeCoupler01Arc01" translation="3.5 0 -1.5" nodeId="401"/>
+              <TransformGroup name="SPS_liquidPipeCoupler01Arc02" translation="3.5 0 1.5" nodeId="402"/>
+            </TransformGroup>
+            <Shape name="sprayerConnector" shapeId="5" clipDistance="150" nodeId="403" castsShadows="true" receiveShadows="true" materialIds="391">
+              <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="6" clipDistance="150" nodeId="404" castsShadows="true" receiveShadows="true" materialIds="392"/>
+              <TransformGroup name="inNode" translation="2.49905e-08 1.64534e-08 0.205501" rotation="0 180 0" nodeId="405"/>
+              <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="406"/>
+            </Shape>
+          </TransformGroup>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="liquidPumpControls" nodeId="388">
+        <TransformGroup name="ta25ProfiLine_vis" nodeId="389">
+          <TransformGroup name="SPS_liquidControlNode" translation="-1.84405 0 2.68973" nodeId="390"/>
         </TransformGroup>
       </TransformGroup>
     </TransformGroup>

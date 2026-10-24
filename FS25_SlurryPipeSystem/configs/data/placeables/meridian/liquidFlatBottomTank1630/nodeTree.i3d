@@ -2,38 +2,81 @@
 
 <i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
   <Asset>
-    <Export program="GIANTS Editor 64bit" version="10.0.11"/>
+    <Export program="GIANTS Editor 64bit" version="10.0.14"/>
   </Asset>
 
   <Files>
     <File fileId="4" filename="$data/shaders/vehicleShader.xml"/>
     <File fileId="2" filename="$data/shared/default_normal.dds"/>
-    <File fileId="3" filename="$data/shared/default_vmask.dds"/>
-    <File fileId="6" filename="$data/shared/detailLibrary/flat_normal.png"/>
-    <File fileId="7" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_diffuse.png"/>
-    <File fileId="5" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_specular.png"/>
+    <File fileId="13" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="14" filename="$data/shared/detailLibrary/metallic/scratched_diffuse.png"/>
+    <File fileId="12" filename="$data/shared/detailLibrary/metallic/scratched_specular.png"/>
+    <File fileId="17" filename="$data/shared/detailLibrary/metallic/silverScratched_diffuse.png"/>
+    <File fileId="16" filename="$data/shared/detailLibrary/metallic/silverScratched_specular.png"/>
+    <File fileId="7" filename="$data/shared/detailLibrary/metallic/zincGalvanized_diffuse.png"/>
+    <File fileId="6" filename="$data/shared/detailLibrary/metallic/zincGalvanized_normal.png"/>
+    <File fileId="5" filename="$data/shared/detailLibrary/metallic/zincGalvanized_specular.png"/>
+    <File fileId="20" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_diffuse.png"/>
+    <File fileId="19" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_normal.png"/>
+    <File fileId="18" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_specular.png"/>
     <File fileId="1" filename="$data/shared/white_diffuse.dds"/>
+    <File fileId="15" filename="../../../../../i3d/connectors/ballValve_Vmask.dds"/>
+    <File fileId="3" filename="../../../../../i3d/connectors/hoses_Vmask.dds"/>
   </Files>
 
 
   <Materials>
-    <Material name="black_plasticPainted_mat" materialId="5" customShaderId="4">
+    <Material name="brassScratched_mat" materialId="81" customShaderId="4">
       <Texture fileId="1"/>
       <Normalmap fileId="2"/>
-      <Glossmap fileId="3"/>
-      <Custommap name="detailSpecular" fileId="5"/>
-      <Custommap name="detailNormal" fileId="6"/>
-      <Custommap name="detailDiffuse" fileId="7"/>
-      <CustomParameter name="colorScale" value="0.006 0.006 0.006"/>
+      <Glossmap fileId="15"/>
+      <Custommap name="detailSpecular" fileId="12"/>
+      <Custommap name="detailNormal" fileId="13"/>
+      <Custommap name="detailDiffuse" fileId="14"/>
+      <CustomParameter name="colorScale" value="0.9647 0.7913 0.3095"/>
     </Material>
-    <Material name="red_plasticPainted_mat" materialId="6" customShaderId="4">
+    <Material name="brassScratched_mat" materialId="82" customShaderId="4" customShaderVariation="vmaskUV2">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="12"/>
+      <Custommap name="detailNormal" fileId="13"/>
+      <Custommap name="detailDiffuse" fileId="14"/>
+      <CustomParameter name="colorScale" value="0.9647 0.7913 0.3095"/>
+    </Material>
+    <Material name="rubber_mat" materialId="83" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="15"/>
+      <Custommap name="detailSpecular" fileId="18"/>
+      <Custommap name="detailNormal" fileId="19"/>
+      <Custommap name="detailDiffuse" fileId="20"/>
+      <CustomParameter name="colorScale" value="0.02 0.02 0.8"/>
+      <CustomParameter name="porosity" value="0.5"/>
+    </Material>
+    <Material name="silverScratched_mat" materialId="84" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="15"/>
+      <Custommap name="detailSpecular" fileId="16"/>
+      <Custommap name="detailNormal" fileId="13"/>
+      <Custommap name="detailDiffuse" fileId="17"/>
+    </Material>
+    <Material name="zincGalvanized_mat" materialId="85" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="15"/>
+      <Custommap name="detailSpecular" fileId="5"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="7"/>
+    </Material>
+    <Material name="zincGalvanized_mat" materialId="86" customShaderId="4" customShaderVariation="vmaskUV2">
       <Texture fileId="1"/>
       <Normalmap fileId="2"/>
       <Glossmap fileId="3"/>
       <Custommap name="detailSpecular" fileId="5"/>
       <Custommap name="detailNormal" fileId="6"/>
       <Custommap name="detailDiffuse" fileId="7"/>
-      <CustomParameter name="colorScale" value="0.359 0.033 0.035"/>
     </Material>
   </Materials>
 
@@ -45,16 +88,22 @@
     <TransformGroup name="SPS_liquidFlatBottomTank1630" nodeId="10">
       <TransformGroup name="sprayerPipeCouplers" nodeId="11">
         <TransformGroup name="storage" nodeId="12">
-          <TransformGroup name="SPS_sprayerPipeCoupler01" translation="0 0.2 2.45395" nodeId="13">
-            <TransformGroup name="SPS_sprayerPipeCoupler01Arcs" nodeId="14">
-              <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="-1.5 0 3.5" nodeId="15"/>
-              <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="1.5 0 3.5" nodeId="16"/>
+          <TransformGroup name="SPS_sprayerPipeCoupler01" translation="-1.52205 0.359415 2.17368" rotation="-180 34.6494 -180" nodeId="95">
+            <TransformGroup name="SPS_sprayerPipeCoupler01Arcs" translation="0 0 -0.061" rotation="180 0 -180" nodeId="96">
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="97"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="98"/>
             </TransformGroup>
-            <Shape name="sprayerConnector" shapeId="1" clipDistance="150" nodeId="17" castsShadows="true" receiveShadows="true" materialIds="5">
-              <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="18" castsShadows="true" receiveShadows="true" materialIds="6"/>
-              <TransformGroup name="inNode" translation="2.49905e-08 1.64534e-08 0.205501" rotation="0 180 0" nodeId="19"/>
-              <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="21"/>
+            <Shape name="waterHoseConnector01" translation="2.38419e-07 0 -0.061" rotation="-90 -0 0" shapeId="1" nodeId="99" castsShadows="true" receiveShadows="true" materialIds="86,82">
+              <Shape name="ballValve" translation="0 -0.146139 0" shapeId="2" nodeId="100" castsShadows="true" receiveShadows="true" materialIds="84,81,85">
+                <Shape name="handle" translation="0 0 0.078824" shapeId="3" nodeId="101" castsShadows="true" receiveShadows="true" materialIds="84,83"/>
+              </Shape>
             </Shape>
+            <TransformGroup name="inNode" translation="0 0 -0.061" rotation="0 1.4e-05 5e-06" nodeId="102"/>
+            <TransformGroup name="outNode" translation="0 0 -0.061" rotation="180 0 -180" nodeId="103"/>
+            <TransformGroup name="tankHeadHeight01" translation="0 0 -0.061" rotation="180 0 -180" nodeId="130">
+              <TransformGroup name="tankTop" translation="-3.4462e-13 8.7769 5.96048e-08" rotation="4.07111e-13 1.70755e-06 8.14222e-13" nodeId="131"/>
+              <TransformGroup name="tankBottom" translation="1.2436e-14 -0.326574 5.96046e-08" rotation="4.07111e-13 1.70755e-06 8.14222e-13" nodeId="132"/>
+            </TransformGroup>
           </TransformGroup>
         </TransformGroup>
       </TransformGroup>

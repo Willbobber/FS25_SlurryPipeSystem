@@ -19,7 +19,7 @@
 -- sendFullStateToConnection pass 12).
 -- ---------------------------------------------------------------------------
 
-print("[SPS BUILD] SPSBuyStationEvent 1.0.1.2 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSBuyStationEvent 1.0.1.2 loaded") end
 
 SPSBuyStationEvent = {}
 
@@ -114,6 +114,6 @@ function SPSBuyStationEvent.sendState(placeable, fillTypeIndex, systemId)
             tostring(systemId or 0), tostring(name))
         g_server:broadcastEvent(
             SPSBuyStationEvent.new(SPSBuyStationEvent.STATE, placeable, name, systemId),
-            nil, nil, placeable)
+            nil, nil, placeable, nil, nil, true)
     end
 end

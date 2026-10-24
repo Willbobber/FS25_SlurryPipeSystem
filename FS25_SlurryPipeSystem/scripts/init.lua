@@ -8,7 +8,7 @@
 local SPS_MOD_DIRECTORY = g_currentModDirectory
 local SPS_MOD_NAME      = "FS25_SlurryPipeSystem"
 
-print("[SPS BUILD] init 1.0.0.9.37 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] init 1.0.0.9.37 loaded") end
 
 SlurryDebug.enabled = false  -- boot default; controlled by SPSDebugConfig channel "SlurryDebug"
 
@@ -257,7 +257,7 @@ do
         end
 
         -- Positive confirmation the hook installed (always printed, once, at source time).
-        print("[SPS INIT] LoadTrigger.getAllowsActivation hook INSTALLED")
+        spsInfo("[SPS INIT] LoadTrigger.getAllowsActivation hook INSTALLED")
     else
         print("[SPS INIT] WARNING: LoadTrigger.getAllowsActivation not available — universal R/I block not installed")
     end
@@ -313,7 +313,7 @@ do
             end
         end
 
-        print("[SPS INIT] FillTrigger.getIsActivatable/fillVehicle hook INSTALLED")
+        spsInfo("[SPS INIT] FillTrigger.getIsActivatable/fillVehicle hook INSTALLED")
     else
         print("[SPS INIT] WARNING: FillTrigger.getIsActivatable not available — vehicle-side fill block not installed")
     end
@@ -663,6 +663,11 @@ function SPSMod:loadMap(filename)
     g_slurryPipeManager:loadSprayerVehicleConfigs(SPS_MOD_DIRECTORY)
     g_slurryPipeManager:loadSprayerPlaceableConfigs(SPS_MOD_DIRECTORY)
     g_slurryPipeManager:loadSprayerSourceVehicleConfigs(SPS_MOD_DIRECTORY)
+    -- [SPS 1.0.1.8] Farm liquid lanes: animal water in / milk out (own registries, own XML blocks)
+    if g_slurryPipeManager.loadLiquidLaneVehicleConfigs ~= nil then
+        g_slurryPipeManager:loadLiquidLaneVehicleConfigs(SPS_MOD_DIRECTORY)
+        g_slurryPipeManager:loadLiquidLanePlaceableConfigs(SPS_MOD_DIRECTORY)
+    end
 
     -- Append " SPS" to the shop name of every SPS-compatible store item. Runs here,
     -- after all config maps (slurry + sprayer, vehicle + placeable) are populated,
@@ -685,6 +690,31 @@ function SPSMod:loadMap(filename)
     g_spsSprayerPipeVisual = SPSSprayerPipeVisual.new(SPS_MOD_DIRECTORY)
     g_spsSprayerPipeVisual:load()
 
+    -- [SPS 1.0.1.8] Liquid-lane hose: a SECOND instance of the sprayer hose
+    -- visual (same asset, own pipe list) so the two lanes never share state.
+    if g_spsLiquidLanePipeVisual ~= nil then
+        g_spsLiquidLanePipeVisual:delete()
+        g_spsLiquidLanePipeVisual = nil
+    end
+    if g_spsHoseVisual ~= nil then
+        g_spsHoseVisual:delete()
+        g_spsHoseVisual = nil
+    end
+    g_spsLiquidLanePipeVisual = SPSSprayerPipeVisual.new(SPS_MOD_DIRECTORY)
+    g_spsLiquidLanePipeVisual:load()
+
+    -- [SPS 1.0.1.8] NEW physical hoses (proof build). Loads
+    -- i3d/pipes/hoses.i3d once as an invisible template; nothing
+    -- in the live mod draws with it yet - only the spsHoseProof* console commands.
+    if g_spsHoseVisual ~= nil then
+        g_spsHoseVisual:delete()
+        g_spsHoseVisual = nil
+    end
+    if SPSHoseVisual ~= nil then
+        g_spsHoseVisual = SPSHoseVisual.new(SPS_MOD_DIRECTORY)
+        g_spsHoseVisual:load()
+    end
+
     -- Create water plane manager (but don't load planes yet - terrain not ready)
     g_waterPlaneManager = SPSWaterPlaneManager.new(SPS_MOD_DIRECTORY)
 
@@ -692,6 +722,11 @@ function SPSMod:loadMap(filename)
     if savePath ~= nil then
         g_slurryPipeManager:loadCouplingConnections(savePath)
     end
+    -- [SPS 1.0.1.8] Pipe mode: hide / show the physical pipe shop items for the loaded (or default) mode;
+    -- arm the one-off start-up choice dialog (shows only while pipeModeChosen is false, host only).
+    g_slurryPipeManager:applyPhysicalPipesSetting()
+    if SPSPipeModeDialog ~= nil then SPSPipeModeDialog.reset() end
+    addConsoleCommand("spsPhysicalPipes", "Pipe mode: [on|off] - on = physical pipes only (original lay/connect prompts off), off = original system (physical pipes hidden in the shop)", "consolePhysicalPipes", g_slurryPipeManager)
 
     registerOverrides()
 
@@ -716,6 +751,9 @@ function SPSMod:loadMap(filename)
             if placeable ~= nil and (placeable.spec_silo ~= nil or placeable.spec_husbandry ~= nil or placeable.spec_siloExtension ~= nil or placeable.spec_productionPoint ~= nil or placeable.spec_buyingStation ~= nil) then
                 g_slurryPipeManager:registerPlaceable(placeable)
                 g_slurryPipeManager:registerSprayerPlaceable(placeable)
+                if g_slurryPipeManager.registerLiquidLanePlaceable ~= nil then
+                    g_slurryPipeManager:registerLiquidLanePlaceable(placeable)
+                end
             end
         end
         -- Map-embedded (preplaced) placeables
@@ -725,6 +763,9 @@ function SPSMod:loadMap(filename)
                 if placeable ~= nil and (placeable.spec_silo ~= nil or placeable.spec_husbandry ~= nil or placeable.spec_siloExtension ~= nil or placeable.spec_productionPoint ~= nil or placeable.spec_buyingStation ~= nil) then
                     g_slurryPipeManager:registerPlaceable(placeable)
                     g_slurryPipeManager:registerSprayerPlaceable(placeable)
+                    if g_slurryPipeManager.registerLiquidLanePlaceable ~= nil then
+                        g_slurryPipeManager:registerLiquidLanePlaceable(placeable)
+                    end
                 end
             end
         end
@@ -761,6 +802,10 @@ function SPSMod:deleteMap()
         g_spsSprayerPipeVisual:delete()
         g_spsSprayerPipeVisual = nil
     end
+    if g_spsLiquidLanePipeVisual ~= nil then
+        g_spsLiquidLanePipeVisual:delete()
+        g_spsLiquidLanePipeVisual = nil
+    end
     if g_slurryPipeManager ~= nil then
         g_slurryPipeManager:delete()
         g_slurryPipeManager = nil
@@ -778,10 +823,25 @@ function SPSMod:deleteMap()
         g_waterPipeActivatable = nil
     end
 
+    -- [SPS 1.0.1.8] drop the player-drawn water courses of this map (a joined client's set came from the host)
+    if SPSWaterCourses ~= nil and SPSWaterCourses.reset ~= nil then
+        SPSWaterCourses.reset()
+    end
+
     -- Delete water plane manager
     if g_waterPlaneManager ~= nil then
         g_waterPlaneManager:delete()
         g_waterPlaneManager = nil
+    end
+
+    -- [SPS 1.0.1.8] unregister the console commands added in loadMap, so a second savegame load in the same game
+    -- session re-adds them cleanly (the ones added at script load are left alone - they are only added once)
+    if removeConsoleCommand ~= nil then
+        removeConsoleCommand("spsPhysicalPipes")
+        removeConsoleCommand("spsAgitatorDebug")
+    end
+    if SPSFixedAgitator ~= nil then
+        SPSFixedAgitator._consoleRegistered = nil
     end
 end
 
@@ -862,7 +922,16 @@ function SPSMod:update(dt)
     if g_slurryPipeManager ~= nil then
         g_slurryPipeManager:update(dt)
         g_slurryPipeManager:updateSprayers(dt)
+        if g_slurryPipeManager.updateLiquidLanes ~= nil then
+            g_slurryPipeManager:updateLiquidLanes(dt)
+        end
     end
+    -- [SPS 1.0.1.8] proof hoses follow their end nodes (no-op when none are laid)
+    if g_spsHoseVisual ~= nil and g_spsHoseVisual.update ~= nil then
+        g_spsHoseVisual:update(dt)
+    end
+    -- [SPS 1.0.1.8] pipe mode start-up choice (one-off per game, host only; no-op once answered)
+    if SPSPipeModeDialog ~= nil then SPSPipeModeDialog.update(dt) end
 
     -- -----------------------------------------------------------------------
     -- [SPS 1.0.0.9.36] Drive-input watchdog. Background: vanilla's action
@@ -950,9 +1019,11 @@ function SPSMod:update(dt)
     -- Deferred water plane loading (wait for terrain to be ready)
     if g_waterPlaneManager ~= nil and not g_waterPlaneManager.planesLoaded then
         if g_currentMission ~= nil and g_currentMission.terrainRootNode ~= nil then
-            print("[SPS INIT] Terrain ready, loading water planes now")
+            spsInfo("[SPS INIT] Terrain ready, loading water planes now")
             g_waterPlaneManager:loadWaterPlanes()
             g_waterPlaneManager.planesLoaded = true
+            -- [SPS 1.0.1.8] player-drawn water courses of this map (per-PC file), added on top
+            if SPSWaterCourses ~= nil then SPSWaterCourses.loadForMap() end
         end
     end
 end
@@ -987,6 +1058,13 @@ function Vehicle:onFinishedLoading()
     local sprayerSourceConfig = g_slurryPipeManager:findSprayerSourceVehicleConfigForVehicle(self)
     if sprayerSourceConfig ~= nil then
         g_slurryPipeManager:registerSprayerSourceVehicle(self)
+    end
+
+    -- [SPS 1.0.1.8] Farm liquid carrier (water in / milk out; independent of the other two;
+    -- a water trailer is usually neither slurry- nor sprayer-registered)
+    if g_slurryPipeManager.findLiquidLaneVehicleConfigForVehicle ~= nil
+    and g_slurryPipeManager:findLiquidLaneVehicleConfigForVehicle(self) ~= nil then
+        g_slurryPipeManager:registerLiquidLaneVehicle(self)
     end
 
     -- Samson-specific patch and action events only apply to slurry-registered vehicles
@@ -1042,6 +1120,76 @@ local function spsStripVanillaTurnOn(vehicle)
     end
 end
 
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.8] Key trace (console: spsDebug Init.Keys on). Prints every SPS
+-- cab-control registration pass on the root, and — the part no registration
+-- log can show — WHO removes an SPS_ event afterwards: every removal in the
+-- engine funnels through InputBinding:removeEventInternal (removeActionEvent,
+-- removeActionEventsByTarget, clearActionEventsTable all end there, verified
+-- InputBinding.lua:702/714/741), so one wrapper with a callstack names the
+-- caller (vanilla eviction in Vehicle:addActionEvent, AttacherJoints
+-- removeActionEvents on requestActionEventUpdate, a mod, ...). Zero cost when
+-- the channel is off beyond one table read per removal.
+-- ---------------------------------------------------------------------------
+local function spsKeysOn()
+    return SPSDebugConfig ~= nil and SPSDebugConfig.isOn ~= nil and SPSDebugConfig.isOn("Init.Keys")
+end
+local function spsKeysLog(fmt, ...)
+    if spsKeysOn() then print("[SPS KEYS] " .. string.format(fmt, ...)) end
+end
+if InputBinding ~= nil and InputBinding.removeEventInternal ~= nil and not InputBinding._spsKeysTraced then
+    InputBinding._spsKeysTraced = true
+    local origRemoveEventInternal = InputBinding.removeEventInternal
+    function InputBinding:removeEventInternal(event, eventList, index)
+        if event ~= nil and spsKeysOn() then
+            local an = tostring(event.actionName)
+            if an:sub(1, 4) == "SPS_" then
+                local tgt = event.targetObject
+                print(string.format("[SPS KEYS] REMOVE %s id=%s target=%s  (callstack follows)",
+                    an, tostring(event.id),
+                    tostring(tgt ~= nil and tgt.configFileName or tgt)))
+                if printCallstack ~= nil then printCallstack() end
+            end
+        end
+        return origRemoveEventInternal(self, event, eventList, index)
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.8] spsAddControl: addActionEvent with a diagnosable failure.
+-- Vehicle:addActionEvent returns state=false and eventId "" (an EMPTY STRING,
+-- not nil) both when the same action is already registered for this target
+-- (vanilla's duplicate pass in one tick) and when the key collides with an
+-- ACTIVE action of the same category (checkEventCollision, the profile binds
+-- the same key to both). The old `if id ~= nil` test treated "" as success, so a
+-- dropped SPS key was stored as a dead id and nothing was logged. Now: a
+-- duplicate reuses the live event id (texts keep updating); a collision prints
+-- ONE warning naming the clashing action and returns nil.
+-- ---------------------------------------------------------------------------
+local function spsAddControl(registrar, events, action, target, callback, triggerUp, triggerDown, triggerAlways, startActive, callbackState)
+    local ok, id = registrar:addActionEvent(events, action, target, callback,
+        triggerUp, triggerDown, triggerAlways, startActive, callbackState)
+    if ok and id ~= nil and id ~= "" then
+        spsKeysLog("registered %s id=%s target=%s registrar=%s", tostring(action), tostring(id),
+            tostring(target and target.configFileName), tostring(registrar and registrar.configFileName))
+        return id
+    end
+    spsKeysLog("addActionEvent refused %s for %s (state=%s id=%s)", tostring(action),
+        tostring(target and target.configFileName), tostring(ok), tostring(id))
+    local actionObj = g_inputBinding.nameActions[action]
+    local list = actionObj ~= nil and g_inputBinding.actionEvents[actionObj] or nil
+    if list ~= nil then
+        for _, ev in ipairs(list) do
+            if ev.targetObject == target then return ev.id end
+        end
+    end
+    local collides, other = g_inputBinding:checkEventCollision(action, false)
+    local otherName = other ~= nil and other.name or (collides and "?" or "none found")
+    print(string.format("[SPS] WARNING: control '%s' NOT registered on '%s' - key collision with active action '%s' (both bound to the same key in this input profile). Rebind one of them in Options > Controls.",
+        tostring(action), tostring(target and target.configFileName), tostring(otherName)))
+    return nil
+end
+
 local function spsRegisterSlurryControlsFor(registrar, vehicle)
     local isSelfPowered = g_slurryPipeManager:isVehicleSelfPowered(vehicle)
     local spsEvents   = {}
@@ -1064,7 +1212,7 @@ local function spsRegisterSlurryControlsFor(registrar, vehicle)
     -- All SPS actions use addActionEvent (never addPoweredActionEvent) so fold state
     -- and implement power state never block them. Motor/PTO checks are done manually
     -- in the callbacks where needed. All registered at GS_PRIO_VERY_HIGH.
-    local _, pid = registrar:addActionEvent(
+    local pid = spsAddControl(registrar,
         spsEvents, InputAction.SPS_TOGGLE_PUMP, vehicle,
         pumpCallback, false, true, false, true, nil)
     if pid ~= nil then
@@ -1089,7 +1237,7 @@ local function spsRegisterSlurryControlsFor(registrar, vehicle)
     -- SPS_HUD_EDIT: enter spreader-HUD edit mode (camera frozen via context switch).
     -- Default bind is middle mouse (rebindable in Controls). Exiting is handled by a
     -- second binding registered inside the edit context (see SPSMod:enterHudEdit).
-    local _, hudEditId = registrar:addActionEvent(
+    local hudEditId = spsAddControl(registrar,
         spsEvents, InputAction.SPS_HUD_EDIT, vehicle,
         function(vehicle, actionName, inputValue, callbackState, isAnalog)
             SPSMod:enterHudEdit()
@@ -1100,7 +1248,7 @@ local function spsRegisterSlurryControlsFor(registrar, vehicle)
         g_inputBinding:setActionEventTextPriority(hudEditId, GS_PRIO_LOW)
     end
     if g_slurryPipeManager:vehicleHasFillArms(vehicle) or g_slurryPipeManager:isVehicleConduit(vehicle) then
-        local _, id = registrar:addActionEvent(
+        local id = spsAddControl(registrar,
             spsEvents,
             InputAction.SPS_TOGGLE_FLOW,
             vehicle,
@@ -1130,7 +1278,7 @@ local function spsRegisterSlurryControlsFor(registrar, vehicle)
     -- node — in that case direction is set only at the node.
     local dirEventId = nil
     if not (g_slurryPipeManager ~= nil and g_slurryPipeManager:vehicleHasOutsideDirectionControl(vehicle)) then
-        local _, dirId = registrar:addActionEvent(
+        local dirId = spsAddControl(registrar,
             spsEvents,
             InputAction.SPS_TOGGLE_DIRECTION,
             vehicle,
@@ -1173,7 +1321,7 @@ local function spsRegisterSlurryControlsFor(registrar, vehicle)
     if g_slurryPipeManager:vehicleHasSpreader(vehicle)
        and not (g_slurryPipeManager.isFrontMountVehicle ~= nil
                 and g_slurryPipeManager:isFrontMountVehicle(vehicle)) then
-        local _, sid = registrar:addActionEvent(
+        local sid = spsAddControl(registrar,
             spsEvents,
             InputAction.SPS_TOGGLE_SPREADER,
             vehicle,
@@ -1209,6 +1357,37 @@ function Vehicle:registerActionEvents(excludedVehicle)
     if origRegisterActionEvents ~= nil then
         origRegisterActionEvents(self, excludedVehicle)
     end
+
+    -- -----------------------------------------------------------------------
+    -- [SPS 1.0.1.8] Mirror vanilla's early-out. Vehicle:registerActionEvents
+    -- (Vehicle.lua:2059) does NOTHING while a GUI is visible, the player is
+    -- frozen, or this vehicle is the excluded one: no actionEventUpdateRequested
+    -- reset, no beginActionEventsModification(VEHICLE). Everything below used to
+    -- run anyway, so with a dialog open (EasyDevControls teleport, 2026-09-25
+    -- 14:03:02) the SPS keys were registered straight into the CURRENT context —
+    -- MENU — as second event objects carrying the SAME id strings as the live
+    -- VEHICLE ones (InputEvent:makeId = action|target|trigger). g_inputBinding.
+    -- events[id] then pointed at the MENU copy, every setActionEventText went
+    -- there, and the F1 box kept drawing the untouched VEHICLE copy until a
+    -- re-enter recreated the context. Vanilla also re-requests the update every
+    -- frame in that state (flag never cleared), which is why the trace showed a
+    -- root pass per frame while the dialog was open. Now SPS is a no-op there too.
+    -- -----------------------------------------------------------------------
+    if (g_gui ~= nil and g_gui:getIsGuiVisible())
+    or (g_currentMission ~= nil and g_currentMission.isPlayerFrozen)
+    or excludedVehicle == self then
+        if self._spsRegSkipLogged ~= true then
+            self._spsRegSkipLogged = true
+            spsKeysLog("registerActionEvents %s: skipped like vanilla (guiVisible=%s playerFrozen=%s excluded=%s ctx=%s)",
+                tostring(self.configFileName),
+                tostring(g_gui ~= nil and g_gui:getIsGuiVisible()),
+                tostring(g_currentMission ~= nil and g_currentMission.isPlayerFrozen),
+                tostring(excludedVehicle == self),
+                tostring(g_inputBinding and g_inputBinding.currentContextName))
+        end
+        return
+    end
+    self._spsRegSkipLogged = nil
 
     -- -----------------------------------------------------------------------
     -- [SPS 1.0.0.9.35 DIAG] Drive-guard trace. Vanilla Drivable registers the
@@ -1372,7 +1551,10 @@ function Vehicle:registerActionEvents(excludedVehicle)
             table.insert(candidates, v)
         end
     end
-    if #candidates == 0 then return end
+    if #candidates == 0 then
+        spsKeysLog("root pass %s: no SPS candidates in chain", tostring(self.configFileName))
+        return
+    end
 
     local target = candidates[1]
     if #candidates > 1 then
@@ -1384,14 +1566,52 @@ function Vehicle:registerActionEvents(excludedVehicle)
         end
     end
 
-    -- Prevent double-registration within the same tick (FS25 calls
+    -- Prevent double-registration within the same frame (FS25 calls
     -- registerActionEvents multiple times per context switch). Keyed on the
     -- ROOT: it is the sole registrar now.
-    local currentTime = g_currentMission and g_currentMission.time or 0
-    if self._spsRegisterTime == currentTime then
-        return
+    -- [SPS 1.0.1.8] Keyed on g_updateLoopIndex (engine frame counter, vanilla
+    -- AnimationManager.lua:101/201), NOT g_currentMission.time: mission time only
+    -- advances while the mission isRunning (BaseMission.lua:800-809, set true only
+    -- in doUnpauseGame), so it is frozen for the whole savegame load (the player is
+    -- put in the spawn vehicle in Player:onStartMission, before the unpause) and in
+    -- every pause menu. Every pass in those windows shared "time 0" and was skipped
+    -- here AFTER vanilla's requestActionEventUpdate had already removed the SPS
+    -- events (removeActionEventsByTarget, callstack in log 2026-09-25 13:06:19) —
+    -- dead ids, F1 rows frozen, vanilla turn-on back on B. Belt and braces: even in
+    -- the same frame, never skip when the stored events are no longer live (a
+    -- duplicate pass with live events is refused by vanilla anyway and
+    -- spsAddControl reuses the live id).
+    local frame = g_updateLoopIndex or (g_currentMission and g_currentMission.time) or 0
+    if self._spsRegisterFrame == frame then
+        local ev = target.spsActionEvents
+        local pumpLive = ev ~= nil and ev.pumpEventId ~= nil and g_inputBinding ~= nil
+                         and g_inputBinding.events[ev.pumpEventId] ~= nil
+        if pumpLive then
+            if spsKeysOn() then
+                local live = string.format("pump=%s flow=%s dir=%s",
+                    tostring(ev.pumpEventId ~= nil and g_inputBinding.events[ev.pumpEventId] ~= nil),
+                    tostring(ev.flowEventId ~= nil and g_inputBinding.events[ev.flowEventId] ~= nil),
+                    tostring(ev.dirEventId  ~= nil and g_inputBinding.events[ev.dirEventId]  ~= nil))
+                spsKeysLog("root pass %s SKIPPED (same-frame guard, frame=%s) target=%s liveEvents[%s]",
+                    tostring(self.configFileName), tostring(frame), tostring(target.configFileName), live)
+            end
+            return
+        end
+        spsKeysLog("root pass %s same frame %s but SPS events dead - re-registering",
+            tostring(self.configFileName), tostring(frame))
     end
-    self._spsRegisterTime = currentTime
+    self._spsRegisterFrame = frame
+    if spsKeysOn() then
+        local sel = "nil"
+        if self.getSelectedVehicle ~= nil and self:getSelectedVehicle() ~= nil then
+            sel = tostring(self:getSelectedVehicle().configFileName)
+        end
+        spsKeysLog("root pass %s: candidates=%d target=%s selected=%s context=%s frame=%s missionTime=%s running=%s",
+            tostring(self.configFileName), #candidates, tostring(target.configFileName), sel,
+            tostring(g_inputBinding and g_inputBinding.currentContextName), tostring(frame),
+            tostring(g_currentMission and g_currentMission.time),
+            tostring(g_currentMission and g_currentMission.isRunning))
+    end
 
     for _, v in ipairs(candidates) do
         v.spsActionEvents = nil   -- clear so re-registration always gets fresh events
@@ -1413,6 +1633,10 @@ function Vehicle:delete(immediate)
         if g_slurryPipeManager:isSprayerVehicleRegistered(self) then
             g_slurryPipeManager:unregisterSprayerVehicle(self)
         end
+        if g_slurryPipeManager.isLiquidLaneVehicleRegistered ~= nil
+        and g_slurryPipeManager:isLiquidLaneVehicleRegistered(self) then
+            g_slurryPipeManager:unregisterLiquidLaneVehicle(self)
+        end
         -- IBC source entries live in registeredSprayerPlaceables (object-keyed);
         -- this is a no-op scan for non-IBC vehicles.
         g_slurryPipeManager:unregisterSprayerPlaceable(self)
@@ -1425,11 +1649,35 @@ end
 -- ---------------------------------------------------------------------------
 -- Placeable hooks
 -- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.8] Build-menu preview: dress it like the placed building (SPS nodes
+-- linked, base parts hidden) — visual only, see SPSM_Preview.lua.
+local origPlaceableOnFinishedLoading = Placeable.onFinishedLoading
+function Placeable:onFinishedLoading(...)
+    if origPlaceableOnFinishedLoading ~= nil then
+        origPlaceableOnFinishedLoading(self, ...)
+    end
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.applyPlaceablePreviewVisuals ~= nil
+    and PlaceablePropertyState ~= nil and self.propertyState == PlaceablePropertyState.CONSTRUCTION_PREVIEW then
+        local ok, err = pcall(g_slurryPipeManager.applyPlaceablePreviewVisuals, g_slurryPipeManager, self)
+        if not ok then
+            print("[SPS PREVIEW] error dressing preview of " .. tostring(self.configFileName) .. ": " .. tostring(err))
+        end
+    end
+end
+
 local origPlaceableFinalize = Placeable.finalizePlacement
 function Placeable:finalizePlacement()
     if origPlaceableFinalize ~= nil then
         origPlaceableFinalize(self)
     end
+    -- [SPS FLOOR 1.0.1.8] A placeable's collision just entered physics: let every
+    -- hose and locked chain segment re-probe its floor for a while, so pipes that
+    -- were shaped before this pad/building existed (load order, or a pad placed
+    -- under a parked hose) climb onto it instead of staying sunk.
+    if SPSPipeVisual ~= nil and SPSPipeVisual.bumpFloorEpoch ~= nil then SPSPipeVisual.bumpFloorEpoch() end
+    if SPSHoseVisual ~= nil and SPSHoseVisual.bumpFloorEpoch ~= nil then SPSHoseVisual.bumpFloorEpoch() end
+    if SPSSprayerPipeVisual ~= nil and SPSSprayerPipeVisual.bumpFloorEpoch ~= nil then SPSSprayerPipeVisual.bumpFloorEpoch() end
+    if SPSPipeChain ~= nil and SPSPipeChain.bumpFloorEpoch ~= nil then SPSPipeChain.bumpFloorEpoch() end
     if g_slurryPipeManager ~= nil and (self.spec_silo ~= nil or self.spec_husbandry ~= nil or self.spec_siloExtension ~= nil or self.spec_productionPoint ~= nil or self.spec_buyingStation ~= nil) then
         -- Avoid double-registration for placeables already registered in loadMap
         if g_slurryPipeManager:getPlaceableEntry(self) == nil then
@@ -1437,6 +1685,10 @@ function Placeable:finalizePlacement()
         end
         if g_slurryPipeManager:getSprayerPlaceableEntry(self) == nil then
             g_slurryPipeManager:registerSprayerPlaceable(self)
+        end
+        if g_slurryPipeManager.registerLiquidLanePlaceable ~= nil
+        and g_slurryPipeManager:getLiquidLanePlaceableEntry(self) == nil then
+            g_slurryPipeManager:registerLiquidLanePlaceable(self)
         end
     end
 end
@@ -1446,6 +1698,9 @@ function Placeable:delete(immediate)
     if g_slurryPipeManager ~= nil and (self.spec_silo ~= nil or self.spec_husbandry ~= nil or self.spec_siloExtension ~= nil or self.spec_productionPoint ~= nil or self.spec_buyingStation ~= nil) then
         g_slurryPipeManager:unregisterPlaceable(self)
         g_slurryPipeManager:unregisterSprayerPlaceable(self)
+        if g_slurryPipeManager.unregisterLiquidLanePlaceable ~= nil then
+            g_slurryPipeManager:unregisterLiquidLanePlaceable(self)
+        end
     end
     if origPlaceableDelete ~= nil then
         origPlaceableDelete(self, immediate)
@@ -1461,7 +1716,7 @@ end
 -- ---------------------------------------------------------------------------
 if SPSDebugConfig ~= nil and SPSDebugConfig.applyAll ~= nil then
     SPSDebugConfig.applyAll()
-    print("[SPS INIT] SPSDebugConfig.applyAll — debug channels synced")
+    spsInfo("[SPS INIT] SPSDebugConfig.applyAll — debug channels synced")
 else
     print("[SPS INIT] WARNING: SPSDebugConfig not loaded — debug channels not synced")
 end

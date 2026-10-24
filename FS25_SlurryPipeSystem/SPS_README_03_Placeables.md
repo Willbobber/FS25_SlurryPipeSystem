@@ -12,6 +12,7 @@ Editing files inside the SPS mod folder will break multiplayer and is not suppor
 
 Two placeable kinds, two blocks:
 - **Slurry store / pit / lagoon** → `<slurryPipeSystem>`.
+- **Animal drinking water into a barn / milk out of a barn** → `<animalWaterSystem>` / `<milkPipeSystem>` — separate system with one vehicle connector, see `SPS_README_05_Animal_Water.md`.
 - **Liquid-fertiliser / herbicide source tank** (for sprayers) → `<sprayerPipeSystem>`.
 
 > Drawing **water** from map lakes/ponds is a separate, map-i3d system — see the dedicated
@@ -149,6 +150,14 @@ every tick, on both server and client.
 Store 1 becomes the placeable's **primary** source, so every existing coupler binding, save
 path and HUD readout keeps working unchanged; the remaining stores ride alongside it.
 
+**Who moves the plane (1.0.1.8).** SPS drives a store's `fillPlaneNode` itself whenever the
+placeable's vanilla storage declares **no** fill plane for that store's fill type (and always
+on a production point). If vanilla declares one, the engine keeps driving it as before. This
+means a husbandry barn whose slurry surface is decorative or hidden can get a **virtual
+surface**: an empty transform as `fillPlaneNode`, no mesh, no `shape` — invisible and not
+arm-detectable, but it rises with the level so head-height equalisation through the coupler
+works. Put the node where the slurry physically sits and set `minY`/`maxY` to the pit depth.
+
 Each store keeps its **own** dry matter, crust and thickness, saved independently and synced
 independently in multiplayer. A fixed agitator stirs the store named by its `storeId` (§6A).
 Detection bounds nodes should live **inside** the store's own subtree so a lagoon can be
@@ -224,6 +233,20 @@ At the coupler, the player presses ACTIVATE_OBJECT (R):
 - `valveType="NONE"` couplers show no valve prompts at all — connect and disconnect only,
   and the far end of a connected run is treated as free-flowing.
 
+### Farm ownership — who may pump in and out (1.0.1.8)
+
+Pipes follow the game's own access rules at a store, the same as a tipping trigger. Nothing to
+configure:
+
+| Store | Pumping in | Drawing out |
+|-------|-----------|-------------|
+| Your own, or one your farm may use | Stored, no money | Allowed |
+| A map biogas plant (or other selling point) you do not own | **Sold**: paid at its price, shown in the finances, the level does not rise | Refused |
+| Another farm's store with no access | Refused | Refused |
+
+Refusals show the blinking warning "No access to this store (another farm owns it)". Water is
+never sold: water into a store you may not use is refused.
+
 ### Lid-linked deployable couplers — `deployAnimatedObjectSaveId`
 
 If your placeable already has a vanilla `<animatedObjects>` lid (e.g. a slurry tank cover),
@@ -274,6 +297,10 @@ liquid effect still runs, just without the smoke layer. The pipe mesh must be th
 resolved by child position, not by name). `inletDistance` (default 1.5) sets the effect
 length.
 
+**When it plays (1.0.1.8):** only while slurry is being **unloaded into** the store, pumped
+or by gravity, and only while the tanker still has liquid. It never plays while a tanker
+fills from the store. The tanker's own fill-arm stream follows the same rule.
+
 ### Effect timing and shaping
 
 Each `<effectNode>` accepts its own timing attributes. All are optional; omitted or negative
@@ -305,6 +332,35 @@ Times are in **seconds**.
 The same attributes are read on fill arm effect blocks.
 
 ---
+
+## 4B. Optional parts in the build menu — `<rampOption>` (1.0.1.8)
+
+A node your nodeTree adds (a ramp, a platform, a fence) can be made a **Yes / No choice in the
+build menu**, chosen per store as it is placed:
+
+```xml
+<slurryPipeSystem>
+    <nodeTree filename="nodeTree.i3d"/>
+    <rampOption node="slurryPitRamp"/>
+</slurryPipeSystem>
+```
+
+- The placeable then shows a **Ramp: Yes / No** row when you place it (Yes is the default, both
+  free). **No** deletes every node of that name, and everything under it, from the placed store and
+  from the placement preview, visual and collision together.
+- Several `<rampOption>` lines may be given; one row covers them all.
+- The choice is a normal game configuration: saved with the placeable, synced in multiplayer.
+  Stores placed before 1.0.1.8, and stores the map places, load as **Yes**.
+- Works for bundled configs (`fillPoints.xml` root) and embedded blocks
+  (`<placeable><slurryPipeSystem>`).
+- Shipped on: Liquid Manure Tank, Liquid Manure Tank Extension (Small), and the Witcombe Cow Barn
+  Parlour (map and buildings pack).
+
+## 4C. Parts hidden in physical pipe mode — `<physicalModeHide>` (1.0.1.8)
+
+Same block as on vehicles (README 01 §7B): `<physicalModeHide><node name="..."/></physicalModeHide>`
+inside `<slurryPipeSystem>` hides those nodes while physical pipes are in use and shows them in
+the original system. `<hideNodes>` below hides a node in both modes.
 
 ## 5. Hiding base-game parts — `<hideNodes>` / `<hideCollisions>`
 
@@ -377,7 +433,8 @@ entirely and nothing is registered.
 
 ```xml
 <slurryPipeSystem>
-    <fixedAgitator turnOffIfNotAllowed="true" maxConnectDistance="0.2" crustMix="1.0">
+    <fixedAgitator turnOffIfNotAllowed="true" maxConnectDistance="0.3" crustMix="1.0"
+                   neededPtoPower="60" ptoRpm="540">
         <input inputNode="agitatorInput" detachNode="agitatorDetach"
                filename="shaft/ptoShaft.i3d" zOffset="0"
                distanceNode="ptoDistanceNode"/>
@@ -396,8 +453,10 @@ entirely and nothing is registered.
 | Attribute                        | Default            | Meaning |
 |----------------------------------|--------------------|---------|
 | `turnOffIfNotAllowed`            | `true`             | Shut down automatically when the connection is no longer valid. |
-| `maxConnectDistance`             | 0.2                | Metres within which the tractor's PTO must sit to connect. |
+| `maxConnectDistance`             | 0.3                | Metres within which the tractor's PTO must sit to connect. |
 | `crustMix`                       | 1.0                | Mixing-speed multiplier, clamped 0.1–10. Same meaning as the vehicle agitator's — `2.0` clears a full crust in half the baseline 2 game hours. Lets a permanent lagoon mixer be rated separately from a PTO unit. |
+| `neededPtoPower`                 | 60                 | kW drawn from the connected tractor while the unit runs — real engine load, the motor holds `ptoRpm`, and the tractor's schema symbol turns green. Same units as a vanilla `<powerConsumer>`. `0` = no load. |
+| `ptoRpm`                         | 540                | PTO speed the power figure is quoted at. |
 | `storeId`                        | primary store      | Which `<slurryStore>` (§3A) this unit stirs, matching that store's `#id`. Omit on a single-store placeable. A referenced id that does not exist is warned about once in the log. |
 | `input#inputNode`                | —                  | Node the PTO shaft attaches to. |
 | `input#detachNode`               | —                  | Node used for the detach position. |
@@ -542,6 +601,60 @@ Remaining rules:
 
 ---
 
+## 9C. One connection, several tanks — `<tank>` children + a walk-in switch (1.0.1.8)
+
+A silo with N physical tanks but only one coupler. The player connects to that coupler and
+picks which tank it routes to at a walk-in switch. Each `<tank>` is exactly a §9 compartment
+(own `capacity`, own type rule, lock-until-empty, own `T-n` info row).
+
+```xml
+<sprayerPipeSystem>
+    <sprayerPipeCouplings>
+        <sprayerPipeCoupling id="1" mountNodeName="SPS_sprayerPipeCoupler01"
+                             flowDirection="BOTH" maxPipeLength="7.5"
+                             switchTriggerNode="SPS_playerTrigger"
+                             switchMarkerNode="SPS_tankSwitchMarker">
+            <tank id="1" fillTypeCategories="ANY" capacity="43375"/>
+            <tank id="2" fillTypeCategories="ANY" capacity="43375"/>
+            <tank id="3" fillType="HERBICIDE"     capacity="43375"/>
+            <tank id="4" fillTypes="LIQUIDFERTILIZER HERBICIDE" capacity="43375"/>
+        </sprayerPipeCoupling>
+    </sprayerPipeCouplings>
+</sprayerPipeSystem>
+```
+
+| Attribute (on the coupler)  | Default | Meaning |
+|-----------------------------|---------|---------|
+| `switchTriggerNode`         | —       | **Preferred.** A player trigger shape the player walks into: `trigger="true"`, group `0x20000000`, mask `0x100000` (the vanilla `infoTrigger` flags). SPS warns at load if the PLAYER bit is missing. |
+| `switchNodeName` / `switchRadius` | — / 3.0 | Fallback: a node and a radius, like the buying-station switch. The coupler mount is used if neither is given. |
+| `switchMarkerNode`          | —       | Optional transform for a marker icon above the switch. |
+| `switchMarkerIcon`          | vanilla question mark | Optional marker i3d, any `$data/shared/assets/marker/markerIcon*.i3d` or your own. Obeys the game's "show trigger markers" setting. |
+
+| Attribute (on each `<tank>`) | Meaning |
+|------------------------------|---------|
+| `id`                         | Tank number, 1-based, shown in the prompt. |
+| `capacity`                   | **Required.** Litres this tank holds. Tanks may differ. |
+| `fillTypeCategories` / `fillTypes` / `fillType` | The type rule, exactly as in §9. A fixed `fillType` tank is a one-type compartment. |
+
+Rules:
+- Tanks replace the coupler's own `capacity` / type rule; declaring both is a config error
+  (logged, the tanks win). Couplers without `<tank>` children behave exactly as before.
+- The selected tank starts at 1, cycles 1 → 2 → … → N → 1 with the activate key (R by
+  default), Shift + R steps back. Prompt: **"Tank 2 (Herbicide 12,000 l) - switch to tank 3
+  (Empty)"**. Saved with the placeable, synced to joining players.
+- Switching is refused, and the prompt hidden, while a connected sprayer's valve is open —
+  liquid is never re-routed mid-transfer. Connect, pick the tank, then open the valve.
+- The vanilla `<storage>` stays the shared total: list every base liquid the tanks may hold and
+  set its capacity to the sum of the tanks. Liquid from the vanilla load/unload triggers is
+  adopted into free tanks as in §9.
+- Keep the trigger cube a few metres from where a sprayer's own pump-control node ends up when
+  parked at the coupler, or its R prompt and the switch prompt compete.
+
+Shipped example: `placeables/silos/fertHerbSilo/sprayerSilo.xml` (four Meridian tanks, one
+coupler, four ANY tanks of 43,375 l).
+
+---
+
 ## 9B. Buying stations — `<buyingStation>` (paid, infinite pipe sources)
 
 A placeable that already carries the vanilla **buying station** spec
@@ -574,6 +687,41 @@ Both variants use the same attributes:
   (server-validated).
 - No Storage object exists on a buying station — every draw is a purchase at the moment it
   flows.
+
+### Fill-arm access — `<fillPlane>` on a slurry buying station (1.0.1.8)
+
+A buying station with a visible pool (a water reservoir, an open slurry well) can also be
+drawn from by an **open-pit fill arm**, not just by pipe. Add the normal `<fillPlane>` block
+(§3) next to `<buyingStation>`:
+
+```xml
+<slurryPipeSystem>
+    <nodeTree filename="reservoir_SPS_nodeTree.i3d"/>
+    <buyingStation fillType="WATER"/>
+    <fillPlane node="0>5|2" fillType="WATER"
+               shape="rectangle" centreNodeName="poolCentre"
+               corner1NodeName="poolCorner1" corner2NodeName="poolCorner2"/>
+    <pipeCouplings> ... optional coupler(s), flowDirection="FILL" ... </pipeCouplings>
+</slurryPipeSystem>
+```
+
+Rules, exactly as SPS reads them:
+
+- `node` is the pool's own water-plane shape in the placeable i3d. Its **world Y as placed**
+  is the surface — a buying station is infinite, so the surface never moves and `minY` /
+  `maxY` are ignored.
+- `shape` + centre/edge (round) or centre/corner (rectangle) nodes are **required** for arm
+  detection; they come from the nodeTree like any store. Without them the station logs a
+  warning and stays pipe-only.
+- **Fill only.** The arm connects when its centre node is below the surface and the cab
+  selector is on FILL. In DISCHARGE the pool is invisible to the arm (never a destination).
+- Every litre the arm draws is a purchase through the same path as a coupler draw
+  (`transferFillFromBuyingStation`): vanilla pricing for station-declared types,
+  `<extraFillType>` pricing for SPS-extra types. A part-full tanker keeps its held type, so a
+  tanker carrying slurry cannot top up with water here (same as the coupler).
+- A map `SPS_waterNodes` quad over the same pool would make the water free by arm; a buying
+  station source is checked **before** map water planes, so the paid pool wins where both exist.
+- Front-mount pumps draw into their hose-connected receiver tank; the receiver's farm pays.
 
 ---
 

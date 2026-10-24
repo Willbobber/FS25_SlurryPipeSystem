@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Sprayers 1.0.1.6 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSM_Sprayers 1.0.1.6 loaded") end
 
 
 -- Applies saved sprayer animation state to a newly registered vehicle.
@@ -630,7 +630,7 @@ function SlurryPipeManager:registerSprayerVehicle(vehicle)
                 outNode                  = outNode,
                 flowDirection            = xmlFile:getString(cKey .. "#flowDirection", "BOTH"),
                 restrictFillType         = restrictFillType,
-                maxPipeLength            = xmlFile:getFloat(cKey .. "#maxPipeLength", 7.5),
+                maxPipeLength            = SPSHoseVisual.capReach80(xmlFile:getFloat(cKey .. "#maxPipeLength", 7.5), cKey),   -- [SPS HOSE] 6c reach rule
                 fillUnitIndex            = xmlFile:getInt(cKey .. "#fillUnitIndex", 1),
                 connectorAnimationId     = xmlFile:getInt(cKey .. "#connectorAnimation"),
                 valveAnimationId         = xmlFile:getInt(cKey .. "#valveAnimation"),
@@ -842,16 +842,17 @@ function SlurryPipeManager:_syncSprayerCompartment(entry, sc, force)
     local now = g_time or 0
     if not force and sc._dynSyncMs ~= nil and (now - sc._dynSyncMs) < 1000 then return end
     sc._dynSyncMs = now
-    g_server:broadcastEvent(SPSSprayerCompartmentEvent.new(entry.object, sc.id,
-        sc.dynFillType or 0, sc.dynLevel or 0), nil, nil, entry.object)
+    local cId, tId = self:_sprayerCompKey(sc)
+    g_server:broadcastEvent(SPSSprayerCompartmentEvent.new(entry.object, cId,
+        sc.dynFillType or 0, sc.dynLevel or 0, tId), nil, nil, entry.object, nil, nil, true)
 end
 
 function SlurryPipeManager:_dynCompartmentDeposit(entry, sc, fillType, amount)
     if sc.dynFillType == nil then
         sc.dynFillType = fillType
         sc.dynLevel    = sc.dynLevel or 0
-        SlurryPipeManager.log("compartment LOCK: %s coupler=%s -> %s",
-            tostring(entry.object and entry.object.configFileName), tostring(sc.id),
+        SlurryPipeManager.log("compartment LOCK: %s %s -> %s",
+            tostring(entry.object and entry.object.configFileName), self:_sprayerCompLabel(sc),
             tostring(g_fillTypeManager:getFillTypeNameByIndex(fillType) or fillType))
         self:_recomputeSprayerDynCapacities(entry)
         self:_syncSprayerCompartment(entry, sc, true)
@@ -872,8 +873,8 @@ function SlurryPipeManager:_dynCompartmentWithdraw(entry, sc, fillType, amount)
         storage:setFillLevel((storage:getFillLevel(fillType) or 0) - removed, fillType)
     end
     if sc.dynLevel <= 0.001 then
-        SlurryPipeManager.log("compartment UNLOCK (empty): %s coupler=%s was %s",
-            tostring(entry.object and entry.object.configFileName), tostring(sc.id),
+        SlurryPipeManager.log("compartment UNLOCK (empty): %s %s was %s",
+            tostring(entry.object and entry.object.configFileName), self:_sprayerCompLabel(sc),
             tostring(g_fillTypeManager:getFillTypeNameByIndex(sc.dynFillType) or sc.dynFillType))
         sc.dynFillType = nil
         sc.dynLevel    = 0
@@ -1294,16 +1295,15 @@ end
 -- Client-side apply (event + join dump). Levels of the vanilla Storage arrive
 -- via its own update stream; this mirrors only the compartment ledger so the
 -- capacity recompute matches the server.
-function SlurryPipeManager:applySprayerCompartmentState(placeable, couplerId, fillType, level)
+function SlurryPipeManager:applySprayerCompartmentState(placeable, couplerId, fillType, level, tankId)
     for _, pEntry in ipairs(self.registeredSprayerPlaceables) do
         if pEntry.object == placeable then
-            for _, sc in ipairs(pEntry.dynCouplers or {}) do
-                if sc.id == couplerId then
-                    sc.dynFillType = (fillType ~= nil and fillType > 0) and fillType or nil
-                    sc.dynLevel    = level or 0
-                    self:_recomputeSprayerDynCapacities(pEntry)
-                    return true
-                end
+            local sc = self:_findSprayerCompartment(pEntry, couplerId, tankId)
+            if sc ~= nil then
+                sc.dynFillType = (fillType ~= nil and fillType > 0) and fillType or nil
+                sc.dynLevel    = level or 0
+                self:_recomputeSprayerDynCapacities(pEntry)
+                return true
             end
         end
     end
@@ -1318,10 +1318,12 @@ function SlurryPipeManager:_saveSprayerCompartments(xmlFile)
             for _, sc in ipairs(pEntry.dynCouplers) do
                 if sc.dynFillType ~= nil and (sc.dynLevel or 0) > 0 then
                     local base = string.format("slurryPipeSystem.sprayerCompartments.compartment(%d)", idx)
+                    local cId, tId = self:_sprayerCompKey(sc)
                     xmlFile:setFloat(base .. "#x", px)
                     xmlFile:setFloat(base .. "#y", py)
                     xmlFile:setFloat(base .. "#z", pz)
-                    xmlFile:setInt(base .. "#couplerId", sc.id)
+                    xmlFile:setInt(base .. "#couplerId", cId)
+                    if tId > 0 then xmlFile:setInt(base .. "#tank", tId) end
                     xmlFile:setString(base .. "#fillType",
                         g_fillTypeManager:getFillTypeNameByIndex(sc.dynFillType) or "UNKNOWN")
                     xmlFile:setFloat(base .. "#level", sc.dynLevel)
@@ -1332,6 +1334,26 @@ function SlurryPipeManager:_saveSprayerCompartments(xmlFile)
     end
     if idx > 0 then
         SlurryPipeManager.log("saveCouplingConnections: wrote %d sprayer compartment(s)", idx)
+    end
+    -- [SPS 1.0.1.8] Selected tank per multi-tank coupler.
+    local sIdx = 0
+    for _, pEntry in ipairs(self.registeredSprayerPlaceables) do
+        if pEntry.object ~= nil and pEntry.object.rootNode ~= nil then
+            local px, _, pz = getWorldTranslation(pEntry.object.rootNode)
+            for _, sc in ipairs(pEntry.couplings or {}) do
+                if sc.tanks ~= nil then
+                    local base = string.format("slurryPipeSystem.sprayerTankSelections.selection(%d)", sIdx)
+                    xmlFile:setFloat(base .. "#x", px)
+                    xmlFile:setFloat(base .. "#z", pz)
+                    xmlFile:setInt(base .. "#couplerId", sc.id)
+                    xmlFile:setInt(base .. "#tank", sc.selectedTank or 1)
+                    sIdx = sIdx + 1
+                end
+            end
+        end
+    end
+    if sIdx > 0 then
+        SlurryPipeManager.log("saveCouplingConnections: wrote %d sprayer tank selection(s)", sIdx)
     end
 end
 
@@ -1345,6 +1367,7 @@ function SlurryPipeManager:_loadSprayerCompartments(xmlFile)
             x            = xmlFile:getFloat(base .. "#x", 0),
             z            = xmlFile:getFloat(base .. "#z", 0),
             couplerId    = xmlFile:getInt(base .. "#couplerId", 0),
+            tankId       = xmlFile:getInt(base .. "#tank", 0),
             fillTypeName = xmlFile:getString(base .. "#fillType", ""),
             level        = xmlFile:getFloat(base .. "#level", 0),
         })
@@ -1352,6 +1375,23 @@ function SlurryPipeManager:_loadSprayerCompartments(xmlFile)
     end
     if idx > 0 then
         SlurryPipeManager.log("loadCouplingConnections: %d pending sprayer compartment(s)", idx)
+    end
+    -- [SPS 1.0.1.8] Selected tank per multi-tank coupler.
+    self._pendingSprayerTankSelections = {}
+    local sIdx = 0
+    while true do
+        local base = string.format("slurryPipeSystem.sprayerTankSelections.selection(%d)", sIdx)
+        if not xmlFile:hasProperty(base) then break end
+        table.insert(self._pendingSprayerTankSelections, {
+            x         = xmlFile:getFloat(base .. "#x", 0),
+            z         = xmlFile:getFloat(base .. "#z", 0),
+            couplerId = xmlFile:getInt(base .. "#couplerId", 0),
+            tank      = xmlFile:getInt(base .. "#tank", 1),
+        })
+        sIdx = sIdx + 1
+    end
+    if sIdx > 0 then
+        SlurryPipeManager.log("loadCouplingConnections: %d pending sprayer tank selection(s)", sIdx)
     end
 end
 
@@ -1670,6 +1710,94 @@ function SlurryPipeManager:registerSprayerPlaceable(placeable)
         sourceEntry      = sourceEntry,
     }
 
+    -- [SPS 1.0.1.8] Compartment spec parser, shared by a coupler's own attributes
+    -- (one physical tank per coupler, the original model) and by each <tank>
+    -- child of a multi-tank coupler. Returns restrictFillType, capacity,
+    -- dynAllowed, dynAllowAny with exactly the rules documented on the coupler
+    -- attributes (README 03 §9): #capacity requires a type rule; ANY needs
+    -- #capacity; dynamic wins over a fixed #fillType when both are given.
+    local function parseCompartmentSpec(key, label)
+        local restrictFillType = nil
+        local restrictFillTypeName = xmlFile:getString(key .. "#fillType")
+        if restrictFillTypeName ~= nil then
+            restrictFillType = g_fillTypeManager:getFillTypeIndexByName(restrictFillTypeName)
+            if restrictFillType == nil then
+                SlurryPipeManager.log("registerSprayerPlaceable: unknown #fillType '%s' (%s) — no restriction applied",
+                    tostring(restrictFillTypeName), tostring(label))
+            end
+        end
+        -- [SPS 1.0.0.9.4] Optional capacity. Requires a type rule; same-type
+        -- fixed couplers on one store SUM into that type's capacity (each
+        -- coupler = one physical tank). Applied to the Storage in
+        -- _seedStorageFillTypes / _recomputeSprayerDynCapacities.
+        local spsCapacity = xmlFile:getFloat(key .. "#capacity")
+        -- [SPS 1.0.0.9.5] Dynamic compartment: #fillTypeCategories (or a
+        -- #fillTypes name list) instead of a fixed #fillType. One physical
+        -- tank: starts unlocked, LOCKS to the first fillType that flows through
+        -- it and only unlocks when its own level drains to zero. Requires #capacity.
+        local dynAllowed = nil
+        local dynAllowAny = false
+        local dynCats  = xmlFile:getString(key .. "#fillTypeCategories")
+        local dynNames = xmlFile:getString(key .. "#fillTypes")
+        -- [SPS 1.0.0.9.6] fillTypes="ANY" (or fillTypeCategories="ANY"):
+        -- accept whatever fillType the CONNECTED SPRAYER actually holds.
+        -- Needed because script mods (e.g. SoilFertilizer) grant their
+        -- liquids to vehicle fillUnits at runtime WITHOUT putting them in
+        -- the base 'sprayer' category, so category resolution never sees
+        -- them. ANY compartments still lock-until-empty exactly the same.
+        -- Display contract [1.0.0.9.9]: ANY couplers pre-seed the base
+        -- 'sprayer' CATEGORY at register (static + deterministic on every
+        -- machine, so join-stream type lists stay identical), so basegame
+        -- herb/fert/liquid fert always show on the tank's info panel.
+        -- Script-mod types (e.g. SoilFertilizer) display when THAT mod
+        -- makes the storage support them — SF does, which is why SF
+        -- liquids appeared on the panel while unseeded herb did not.
+        -- A mod type nobody seeds still flows and locks correctly but
+        -- tracks in the SPS ledger + save + MP event only (no panel row).
+        if (dynCats ~= nil and dynCats:upper() == "ANY")
+        or (dynNames ~= nil and dynNames:upper() == "ANY") then
+            dynAllowAny = true
+            dynAllowed  = {}
+            dynCats, dynNames = nil, nil
+            if spsCapacity == nil or spsCapacity <= 0 then
+                SlurryPipeManager.log("registerSprayerPlaceable: %s declares ANY without #capacity — dynamic compartment disabled",
+                    tostring(label))
+                dynAllowAny = false
+                dynAllowed  = nil
+            end
+        end
+        if dynCats ~= nil or dynNames ~= nil then
+            local list = nil
+            if dynCats ~= nil then
+                list = g_fillTypeManager:getFillTypesByCategoryNames(dynCats,
+                    "Warning: [SPS] sprayerPipeCoupling has invalid fillTypeCategory '%s'.")
+            else
+                list = g_fillTypeManager:getFillTypesByNames(dynNames,
+                    "Warning: [SPS] sprayerPipeCoupling has invalid fillType '%s'.")
+            end
+            if list ~= nil and #list > 0 then
+                if spsCapacity == nil or spsCapacity <= 0 then
+                    SlurryPipeManager.log("registerSprayerPlaceable: %s declares fillTypeCategories/fillTypes without #capacity — dynamic compartment disabled",
+                        tostring(label))
+                else
+                    dynAllowed = {}
+                    for _, ft in ipairs(list) do dynAllowed[ft] = true end
+                    if restrictFillType ~= nil then
+                        SlurryPipeManager.log("registerSprayerPlaceable: %s declares BOTH #fillType and categories/list — dynamic wins, fixed restriction dropped",
+                            tostring(label))
+                        restrictFillType = nil
+                    end
+                end
+            end
+        end
+        if spsCapacity ~= nil and restrictFillType == nil and dynAllowed == nil then
+            SlurryPipeManager.log("registerSprayerPlaceable: %s declares #capacity without a valid #fillType — capacity ignored",
+                tostring(label))
+            spsCapacity = nil
+        end
+        return restrictFillType, spsCapacity, dynAllowed, dynAllowAny
+    end
+
     -- Load sprayer pipe couplings
     local couplingIndex = 0
     while true do
@@ -1706,85 +1834,9 @@ function SlurryPipeManager:registerSprayerPlaceable(placeable)
             -- Per-coupler fillType restriction (sprayerPipeCoupling#fillType). Optional.
             -- When set, only that fillType may pass through this coupler in either
             -- direction; enforced in tickSprayerFlow. nil => unrestricted (any type).
-            local restrictFillType = nil
-            local restrictFillTypeName = xmlFile:getString(cKey .. "#fillType")
-            if restrictFillTypeName ~= nil then
-                restrictFillType = g_fillTypeManager:getFillTypeIndexByName(restrictFillTypeName)
-                if restrictFillType == nil then
-                    SlurryPipeManager.log("registerSprayerPlaceable: unknown coupling #fillType '%s' (coupling id=%s) — no restriction applied",
-                        tostring(restrictFillTypeName), tostring(couplingId))
-                end
-            end
-            -- [SPS 1.0.0.9.4] Optional per-coupler capacity (sprayerPipeCoupling#capacity).
-            -- Requires #fillType; same-type couplers on one store SUM into that
-            -- type's capacity (each coupler = one physical tank). Applied to the
-            -- Storage in _seedStorageFillTypes below.
-            local spsCapacity = xmlFile:getFloat(cKey .. "#capacity")
-            -- [SPS 1.0.0.9.5] Dynamic compartment coupler: #fillTypeCategories (or a
-            -- #fillTypes name list) instead of a fixed #fillType. The coupler is one
-            -- physical tank: it starts unlocked, LOCKS to the first fillType that
-            -- flows through it and only unlocks when its own level drains to zero
-            -- (the type then vanishes from the tank again). Requires #capacity.
-            local dynAllowed = nil
-            local dynAllowAny = false
-            local dynCats  = xmlFile:getString(cKey .. "#fillTypeCategories")
-            local dynNames = xmlFile:getString(cKey .. "#fillTypes")
-            -- [SPS 1.0.0.9.6] fillTypes="ANY" (or fillTypeCategories="ANY"):
-            -- accept whatever fillType the CONNECTED SPRAYER actually holds.
-            -- Needed because script mods (e.g. SoilFertilizer) grant their
-            -- liquids to vehicle fillUnits at runtime WITHOUT putting them in
-            -- the base 'sprayer' category, so category resolution never sees
-            -- them. ANY compartments still lock-until-empty exactly the same.
-            -- Display contract [1.0.0.9.9]: ANY couplers pre-seed the base
-            -- 'sprayer' CATEGORY at register (static + deterministic on every
-            -- machine, so join-stream type lists stay identical), so basegame
-            -- herb/fert/liquid fert always show on the tank's info panel.
-            -- Script-mod types (e.g. SoilFertilizer) display when THAT mod
-            -- makes the storage support them — SF does, which is why SF
-            -- liquids appeared on the panel while unseeded herb did not.
-            -- A mod type nobody seeds still flows and locks correctly but
-            -- tracks in the SPS ledger + save + MP event only (no panel row).
-            if (dynCats ~= nil and dynCats:upper() == "ANY")
-            or (dynNames ~= nil and dynNames:upper() == "ANY") then
-                dynAllowAny = true
-                dynAllowed  = {}
-                dynCats, dynNames = nil, nil
-                if spsCapacity == nil or spsCapacity <= 0 then
-                    SlurryPipeManager.log("registerSprayerPlaceable: coupling id=%s declares ANY without #capacity — dynamic compartment disabled",
-                        tostring(couplingId))
-                    dynAllowAny = false
-                    dynAllowed  = nil
-                end
-            end
-            if dynCats ~= nil or dynNames ~= nil then
-                local list = nil
-                if dynCats ~= nil then
-                    list = g_fillTypeManager:getFillTypesByCategoryNames(dynCats,
-                        "Warning: [SPS] sprayerPipeCoupling has invalid fillTypeCategory '%s'.")
-                else
-                    list = g_fillTypeManager:getFillTypesByNames(dynNames,
-                        "Warning: [SPS] sprayerPipeCoupling has invalid fillType '%s'.")
-                end
-                if list ~= nil and #list > 0 then
-                    if spsCapacity == nil or spsCapacity <= 0 then
-                        SlurryPipeManager.log("registerSprayerPlaceable: coupling id=%s declares fillTypeCategories/fillTypes without #capacity — dynamic compartment disabled",
-                            tostring(couplingId))
-                    else
-                        dynAllowed = {}
-                        for _, ft in ipairs(list) do dynAllowed[ft] = true end
-                        if restrictFillType ~= nil then
-                            SlurryPipeManager.log("registerSprayerPlaceable: coupling id=%s declares BOTH #fillType and categories/list — dynamic wins, fixed restriction dropped",
-                                tostring(couplingId))
-                            restrictFillType = nil
-                        end
-                    end
-                end
-            end
-            if spsCapacity ~= nil and restrictFillType == nil and dynAllowed == nil then
-                SlurryPipeManager.log("registerSprayerPlaceable: coupling id=%s declares #capacity without a valid #fillType — capacity ignored",
-                    tostring(couplingId))
-                spsCapacity = nil
-            end
+            -- Capacity / dynamic compartment rules: parseCompartmentSpec above.
+            local restrictFillType, spsCapacity, dynAllowed, dynAllowAny =
+                parseCompartmentSpec(cKey, string.format("coupling id=%s", tostring(couplingId)))
             local sc = {
                 id                       = couplingId,
                 mountNode                = mountNode,
@@ -1797,7 +1849,7 @@ function SlurryPipeManager:registerSprayerPlaceable(placeable)
                 dynAllowAny              = dynAllowAny,
                 dynFillType              = nil,
                 dynLevel                 = 0,
-                maxPipeLength            = xmlFile:getFloat(cKey .. "#maxPipeLength", 7.5),
+                maxPipeLength            = SPSHoseVisual.capReach80(xmlFile:getFloat(cKey .. "#maxPipeLength", 7.5), cKey),   -- [SPS HOSE] 6c reach rule
                 connectorAnimationId     = xmlFile:getInt(cKey .. "#connectorAnimation"),
                 valveAnimationId         = xmlFile:getInt(cKey .. "#valveAnimation"),
                 isConnected              = false,
@@ -1823,6 +1875,83 @@ function SlurryPipeManager:registerSprayerPlaceable(placeable)
                     tostring(sc.id), tostring(sc.connectorAnimationId), tostring(sc.valveAnimationId),
                     tostring(sc.connectorAnim ~= nil), tostring(sc.valveAnim ~= nil))
             end
+            -- [SPS 1.0.1.8] Multi-tank coupler: <tank> children make this ONE
+            -- connection serve N physical tanks. Each <tank> is a compartment with
+            -- exactly the attributes a compartment coupler takes (capacity + a type
+            -- rule); a fixed #fillType tank is modelled as a one-type dynamic
+            -- compartment so routing is uniform. The coupler carries the selected
+            -- tank (default 1, cycled at the walk-up switch), and its OWN capacity /
+            -- type rule is ignored when tanks exist (logged once).
+            do
+                local tanks = nil
+                local tIdx  = 0
+                while true do
+                    local tKey = string.format("%s.tank(%d)", cKey, tIdx)
+                    if not xmlFile:hasProperty(tKey) then break end
+                    local tankId = xmlFile:getInt(tKey .. "#id", tIdx + 1)
+                    local label  = string.format("coupling id=%s tank id=%s", tostring(couplingId), tostring(tankId))
+                    local tRestrict, tCap, tAllowed, tAny = parseCompartmentSpec(tKey, label)
+                    if tCap ~= nil and tCap > 0 and (tAllowed ~= nil or tRestrict ~= nil) then
+                        if tAllowed == nil then
+                            tAllowed = { [tRestrict] = true }
+                            tAny     = false
+                        end
+                        tanks = tanks or {}
+                        table.insert(tanks, {
+                            id          = tankId,        -- tank id (info rows, logs)
+                            tankId      = tankId,        -- compartment identity: (couplerId, tankId)
+                            couplerId   = couplingId,
+                            coupler     = sc,
+                            spsCapacity = tCap,
+                            dynAllowed  = tAllowed,
+                            dynAllowAny = tAny,
+                            dynFillType = nil,
+                            dynLevel    = 0,
+                            object      = placeable,
+                            placeable   = placeable,
+                        })
+                    else
+                        print(string.format("[SPS WARNING] %s on '%s': a <tank> needs #capacity and a type rule (fillType / fillTypes / fillTypeCategories) — tank ignored",
+                            label, tostring(placeable.configFileName)))
+                    end
+                    tIdx = tIdx + 1
+                end
+                if tanks ~= nil then
+                    table.sort(tanks, function(a, b) return (a.id or 0) < (b.id or 0) end)
+                    if sc.spsCapacity ~= nil or sc.dynAllowed ~= nil then
+                        print(string.format("[SPS WARNING] coupling id=%s on '%s' declares its own capacity/type rule AND <tank> children — the tanks win, coupler-level capacity ignored",
+                            tostring(couplingId), tostring(placeable.configFileName)))
+                    end
+                    sc.spsCapacity  = nil
+                    sc.dynAllowed   = nil
+                    sc.dynAllowAny  = false
+                    sc.tanks        = tanks
+                    sc.selectedTank = 1
+                    -- Walk-up switch: a player trigger cube (preferred) or a node +
+                    -- radius like the buying-station switch; optional marker node
+                    -- + icon (vanilla trigger-marker system).
+                    sc.switchTriggerNode = findLinkedNode(xmlFile:getString(cKey .. "#switchTriggerNode", nil))
+                    sc.switchNode        = findLinkedNode(xmlFile:getString(cKey .. "#switchNodeName", nil))
+                    sc.switchRadius      = xmlFile:getFloat(cKey .. "#switchRadius", 3.0)
+                    sc.switchMarkerNode  = findLinkedNode(xmlFile:getString(cKey .. "#switchMarkerNode", nil))
+                    sc.switchMarkerIcon  = xmlFile:getString(cKey .. "#switchMarkerIcon",
+                                               "$data/shared/assets/marker/markerIconQuestionMark.i3d")
+                    if sc.switchTriggerNode ~= nil and CollisionFlag ~= nil
+                    and CollisionFlag.getHasMaskFlagSet ~= nil
+                    and not CollisionFlag.getHasMaskFlagSet(sc.switchTriggerNode, CollisionFlag.PLAYER) then
+                        print(string.format("[SPS WARNING] coupling id=%s on '%s': switchTriggerNode '%s' has no PLAYER bit in its collision mask — the tank switch will never trigger (mask needs 0x100000, group 0x20000000, trigger=true)",
+                            tostring(couplingId), tostring(placeable.configFileName), tostring(getName(sc.switchTriggerNode))))
+                    end
+                    if sc.switchTriggerNode == nil and sc.switchNode == nil then
+                        print(string.format("[SPS WARNING] coupling id=%s on '%s' has <tank> children but no switchTriggerNode / switchNodeName — the switch prompt will sit at the coupler mount",
+                            tostring(couplingId), tostring(placeable.configFileName)))
+                    end
+                    SlurryPipeManager.log("registerSprayerPlaceable[%s]: coupling id=%s is a %d-tank coupler (switch trigger=%s node=%s marker=%s)",
+                        tostring(placeable.configFileName), tostring(couplingId), #tanks,
+                        tostring(sc.switchTriggerNode ~= nil), tostring(sc.switchNode ~= nil),
+                        tostring(sc.switchMarkerNode ~= nil))
+                end
+            end
             table.insert(entry.couplings, sc)
             -- Placeable-side SPSSprayerPipeActivatable intentionally NOT registered.
             -- All connect/disconnect must go through the vehicle's sprayerPumpControl
@@ -1841,39 +1970,48 @@ function SlurryPipeManager:registerSprayerPlaceable(placeable)
     entry.spsFixedCaps = nil
     entry.dynCouplers  = nil
     local dynUnion = nil
+    -- [SPS 1.0.1.8] entry.dynCouplers is the list of COMPARTMENT records: a
+    -- plain coupler (one tank) or each <tank> of a multi-tank coupler. Every
+    -- helper below (capacities, adoption, occupancy gate, save, MP sync, info
+    -- rows) walks this list and only reads compartment fields, so tank records
+    -- and coupler records are interchangeable there.
     for _, sc in ipairs(entry.couplings) do
         if sc.restrictFillType ~= nil and sc.spsCapacity ~= nil and sc.spsCapacity > 0 then
             entry.spsFixedCaps = entry.spsFixedCaps or {}
             entry.spsFixedCaps[sc.restrictFillType] = (entry.spsFixedCaps[sc.restrictFillType] or 0) + sc.spsCapacity
         end
-        if sc.dynAllowed ~= nil then
-            entry.dynCouplers = entry.dynCouplers or {}
-            table.insert(entry.dynCouplers, sc)
-            dynUnion = dynUnion or {}
-            for ft in pairs(sc.dynAllowed) do dynUnion[ft] = true end
-            -- [SPS 1.0.0.9.9] ANY couplers seed the base 'sprayer' category so
-            -- basegame liquids always display (see ANY doc block above).
-            if sc.dynAllowAny == true then
-                local baseList = g_fillTypeManager:getFillTypesByCategoryNames("sprayer",
-                    "Warning: [SPS] base category 'sprayer' missing fillType '%s'.")
-                if baseList ~= nil then
-                    for _, ft in ipairs(baseList) do dynUnion[ft] = true end
+        local comps = sc.tanks or { sc }
+        for _, comp in ipairs(comps) do
+            if comp.dynAllowed ~= nil then
+                entry.dynCouplers = entry.dynCouplers or {}
+                table.insert(entry.dynCouplers, comp)
+                comp.displayId = #entry.dynCouplers      -- T-n row number, unique per store
+                dynUnion = dynUnion or {}
+                for ft in pairs(comp.dynAllowed) do dynUnion[ft] = true end
+                -- [SPS 1.0.0.9.9] ANY couplers seed the base 'sprayer' category so
+                -- basegame liquids always display (see ANY doc block above).
+                if comp.dynAllowAny == true then
+                    local baseList = g_fillTypeManager:getFillTypesByCategoryNames("sprayer",
+                        "Warning: [SPS] base category 'sprayer' missing fillType '%s'.")
+                    if baseList ~= nil then
+                        for _, ft in ipairs(baseList) do dynUnion[ft] = true end
+                    end
                 end
             end
         end
     end
     for _, sc in ipairs(entry.dynCouplers or {}) do
         if sc.dynAllowAny == true then
-            SlurryPipeManager.log("registerSprayerPlaceable[%s]: coupler=%s dynamic=ANY (vehicle-held type), capacity=%d",
-                tostring(placeable.configFileName), tostring(sc.id), sc.spsCapacity or 0)
+            SlurryPipeManager.log("registerSprayerPlaceable[%s]: %s dynamic=ANY (vehicle-held type), capacity=%d",
+                tostring(placeable.configFileName), self:_sprayerCompLabel(sc), sc.spsCapacity or 0)
         else
             local names = {}
             for ft in pairs(sc.dynAllowed or {}) do
                 table.insert(names, g_fillTypeManager:getFillTypeNameByIndex(ft) or tostring(ft))
             end
             table.sort(names)
-            SlurryPipeManager.log("registerSprayerPlaceable[%s]: coupler=%s dynamic allowed: %s, capacity=%d",
-                tostring(placeable.configFileName), tostring(sc.id), table.concat(names, ", "), sc.spsCapacity or 0)
+            SlurryPipeManager.log("registerSprayerPlaceable[%s]: %s dynamic allowed: %s, capacity=%d",
+                tostring(placeable.configFileName), self:_sprayerCompLabel(sc), table.concat(names, ", "), sc.spsCapacity or 0)
         end
     end
     if storage ~= nil and storageControl ~= "store" then
@@ -1892,19 +2030,39 @@ function SlurryPipeManager:registerSprayerPlaceable(placeable)
             local p = self._pendingSprayerCompartments[i]
             local dx, dz = p.x - px, p.z - pz
             if dx*dx + dz*dz <= 0.25 then
-                for _, sc in ipairs(entry.dynCouplers or {}) do
-                    if sc.id == p.couplerId then
-                        local ft = g_fillTypeManager:getFillTypeIndexByName(p.fillTypeName)
-                        if ft ~= nil and (sc.dynAllowAny == true or sc.dynAllowed[ft] == true) then
-                            sc.dynFillType = ft
-                            sc.dynLevel    = p.level
-                            SlurryPipeManager.log("registerSprayerPlaceable[%s]: restored compartment coupler=%s %s %.1f l",
-                                tostring(placeable.configFileName), tostring(sc.id), tostring(p.fillTypeName), p.level)
+                local sc = self:_findSprayerCompartment(entry, p.couplerId, p.tankId)
+                if sc ~= nil then
+                    local ft = g_fillTypeManager:getFillTypeIndexByName(p.fillTypeName)
+                    if ft ~= nil and (sc.dynAllowAny == true or sc.dynAllowed[ft] == true) then
+                        sc.dynFillType = ft
+                        sc.dynLevel    = p.level
+                        SlurryPipeManager.log("registerSprayerPlaceable[%s]: restored compartment %s %s %.1f l",
+                            tostring(placeable.configFileName), self:_sprayerCompLabel(sc), tostring(p.fillTypeName), p.level)
+                    end
+                end
+                table.remove(self._pendingSprayerCompartments, i)
+            end
+        end
+    end
+    -- [SPS 1.0.1.8] Restore the selected tank of every multi-tank coupler
+    -- (position + coupler id keyed, same scheme as the compartments).
+    if self._pendingSprayerTankSelections ~= nil and placeable.rootNode ~= nil then
+        local px, _, pz = getWorldTranslation(placeable.rootNode)
+        for i = #self._pendingSprayerTankSelections, 1, -1 do
+            local p = self._pendingSprayerTankSelections[i]
+            local dx, dz = p.x - px, p.z - pz
+            if dx*dx + dz*dz <= 0.25 then
+                for _, sc in ipairs(entry.couplings) do
+                    if sc.id == p.couplerId and sc.tanks ~= nil then
+                        if p.tank >= 1 and p.tank <= #sc.tanks then
+                            sc.selectedTank = p.tank
+                            SlurryPipeManager.log("registerSprayerPlaceable[%s]: restored tank selection coupler=%s -> tank %d",
+                                tostring(placeable.configFileName), tostring(sc.id), p.tank)
                         end
                         break
                     end
                 end
-                table.remove(self._pendingSprayerCompartments, i)
+                table.remove(self._pendingSprayerTankSelections, i)
             end
         end
     end
@@ -1956,8 +2114,119 @@ function SlurryPipeManager:registerSprayerPlaceable(placeable)
         g_currentMission.activatableObjectsSystem:addActivatable(buyAct)
     end
 
+    -- [SPS 1.0.1.8] Tank switch on every multi-tank coupler: walk-in trigger
+    -- (or node + radius) + optional marker icon. Client-side object; the
+    -- selection itself is server-authoritative (requestSprayerTankToggle).
+    if SPSSprayerTankSwitchActivatable ~= nil and g_currentMission ~= nil
+    and g_currentMission.activatableObjectsSystem ~= nil then
+        for _, sc in ipairs(entry.couplings) do
+            if sc.tanks ~= nil and #sc.tanks > 0 then
+                sc.tankSwitchActivatable = SPSSprayerTankSwitchActivatable.new(entry, sc)
+            end
+        end
+    end
+
     if xmlFileOwned then xmlFile:delete() end
     table.insert(self.registeredSprayerPlaceables, entry)
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.8] Multi-tank couplers — helpers
+-- A compartment record is either a coupler (one tank, id = couplerId) or a
+-- <tank> record (couplerId + tankId). Identity everywhere (save, MP event,
+-- join dump) is the pair (couplerId, tankId or 0).
+-- ---------------------------------------------------------------------------
+function SlurryPipeManager:_sprayerCompLabel(comp)
+    if comp == nil then return "coupler=?" end
+    if comp.tankId ~= nil then
+        return string.format("coupler=%s tank=%s", tostring(comp.couplerId), tostring(comp.tankId))
+    end
+    return string.format("coupler=%s", tostring(comp.id))
+end
+
+function SlurryPipeManager:_sprayerCompKey(comp)
+    if comp == nil then return 0, 0 end
+    return comp.couplerId or comp.id or 0, comp.tankId or 0
+end
+
+function SlurryPipeManager:_findSprayerCompartment(entry, couplerId, tankId)
+    tankId = tankId or 0
+    for _, comp in ipairs(entry.dynCouplers or {}) do
+        local cId, tId = self:_sprayerCompKey(comp)
+        if cId == couplerId and tId == tankId then return comp end
+    end
+    return nil
+end
+
+-- The compartment a store coupler currently routes to: its selected <tank>,
+-- or the coupler itself for the single-tank model.
+function SlurryPipeManager:_sprayerActiveCompartment(sc)
+    if sc == nil then return nil end
+    if sc.tanks ~= nil and #sc.tanks > 0 then
+        return sc.tanks[sc.selectedTank or 1] or sc.tanks[1]
+    end
+    return sc
+end
+
+function SlurryPipeManager:getSprayerTankCoupler(placeable, couplerId)
+    local entry = self:getSprayerPlaceableEntry(placeable)
+    if entry == nil then return nil, nil end
+    for _, sc in ipairs(entry.couplings) do
+        if sc.id == couplerId and sc.tanks ~= nil then return entry, sc end
+    end
+    return entry, nil
+end
+
+-- True while liquid can be moving through this store coupler: a sprayer is
+-- connected and its SPS valve is open. Both facts are client-synced, so the
+-- prompt and the server refusal agree on every machine.
+function SlurryPipeManager:isSprayerCouplerFlowing(sc)
+    if sc == nil or not sc.isConnected then return false end
+    local veh = sc.connectedTarget
+    if veh == nil then
+        local pc = sc.connectedPartnerCoupling
+        veh = pc ~= nil and (pc.object or pc.vehicle) or nil
+    end
+    if veh == nil then return false end
+    local state = self:getSprayerObjectState(veh)
+    return state ~= nil and state.valveOpen == true
+end
+
+function SlurryPipeManager:requestSprayerTankToggle(placeable, couplerId, backwards)
+    local _, sc = self:getSprayerTankCoupler(placeable, couplerId)
+    if sc == nil then return end
+    local n   = #sc.tanks
+    local cur = sc.selectedTank or 1
+    local nextIdx
+    if backwards == true then
+        nextIdx = ((cur - 2) % n) + 1
+    else
+        nextIdx = (cur % n) + 1
+    end
+    if g_server ~= nil then
+        self:applySprayerTankSelection(placeable, couplerId, nextIdx, true)
+    elseif SPSSprayerTankSelectEvent ~= nil then
+        SPSSprayerTankSelectEvent.sendRequest(placeable, couplerId, nextIdx)
+    end
+end
+
+function SlurryPipeManager:applySprayerTankSelection(placeable, couplerId, tankIndex, broadcast)
+    local _, sc = self:getSprayerTankCoupler(placeable, couplerId)
+    if sc == nil or tankIndex == nil then return false end
+    if tankIndex < 1 or tankIndex > #sc.tanks then return false end
+    -- Server rule: never re-route a coupler while liquid is moving through it.
+    if g_server ~= nil and self:isSprayerCouplerFlowing(sc) then
+        SlurryPipeManager.log("applySprayerTankSelection: %s coupler=%s is flowing — switch to tank %d refused",
+            tostring(placeable.configFileName), tostring(couplerId), tankIndex)
+        return false
+    end
+    sc.selectedTank = tankIndex
+    SlurryPipeManager.log("applySprayerTankSelection: %s coupler=%s -> tank %d",
+        tostring(placeable.configFileName), tostring(couplerId), tankIndex)
+    if broadcast == true and g_server ~= nil and SPSSprayerTankSelectEvent ~= nil then
+        SPSSprayerTankSelectEvent.sendState(placeable, couplerId, tankIndex)
+    end
+    return true
 end
 
 -- [SPS 1.0.1.2] Returns entry, sourceEntry for a registered SPRAYER
@@ -2134,7 +2403,7 @@ function SlurryPipeManager:registerSprayerSourceVehicle(vehicle)
                 outNode                  = outNode,
                 flowDirection            = xmlFile:getString(cKey .. "#flowDirection", "BOTH"),
                 restrictFillType         = restrictFillType,
-                maxPipeLength            = xmlFile:getFloat(cKey .. "#maxPipeLength", 7.5),
+                maxPipeLength            = SPSHoseVisual.capReach80(xmlFile:getFloat(cKey .. "#maxPipeLength", 7.5), cKey),   -- [SPS HOSE] 6c reach rule
                 connectorAnimationId     = xmlFile:getInt(cKey .. "#connectorAnimation"),
                 valveAnimationId         = xmlFile:getInt(cKey .. "#valveAnimation"),
                 isConnected              = false,
@@ -2277,6 +2546,13 @@ function SlurryPipeManager:unregisterSprayerPlaceable(placeable)
             if entry.buyStationActivatable ~= nil then
                 entry.buyStationActivatable:delete()
                 entry.buyStationActivatable = nil
+            end
+            -- [SPS 1.0.1.8] Tank switches (trigger + marker + activatable).
+            for _, sc in ipairs(entry.couplings) do
+                if sc.tankSwitchActivatable ~= nil then
+                    sc.tankSwitchActivatable:delete()
+                    sc.tankSwitchActivatable = nil
+                end
             end
             table.remove(self.registeredSprayerPlaceables, i)
             return
@@ -2489,7 +2765,7 @@ function SlurryPipeManager:applySprayerConnect(couplingA, couplingB, ownerA, own
         -- couplingB is the far side — pipe ends at its inNode.
         local nodeA = couplingA.outNode or couplingA.mountNode
         local nodeB = couplingB.inNode  or couplingB.mountNode
-        local inst  = g_spsSprayerPipeVisual:createPipe(nodeA, nodeB)
+        local inst  = g_spsSprayerPipeVisual:createPipe(nodeA, nodeB, "water")   -- fert/herb use the 80 mm water hose (D1)
         if inst ~= nil then
             local pipeId = self._nextSprayerPipeId
             self._nextSprayerPipeId = self._nextSprayerPipeId + 1
@@ -2573,6 +2849,8 @@ end
 -- applies via applySprayerConnect (not ...ById) so a still-unresolved entry cannot
 -- re-queue. Called as each sprayer vehicle / IBC source registers.
 function SlurryPipeManager:_tryResolveSprayerConnects()
+    -- [SPS 1.0.1.8] Savegame hoses first (position-matched), then the MP queue.
+    if self._tryResolveSavedSprayerConnects ~= nil then self:_tryResolveSavedSprayerConnects() end
     if self._pendingSprayerConnects == nil or #self._pendingSprayerConnects == 0 then return end
     local kept = {}
     for _, e in ipairs(self._pendingSprayerConnects) do
@@ -3017,9 +3295,13 @@ function SlurryPipeManager:tickSprayerFlow(session, dt)
     local dynStoreCoupler, dynEntry = nil, nil
     do
         local pc = activeCoupling.connectedPartnerCoupling
-        if pc ~= nil and pc.dynAllowed ~= nil then
+        -- [SPS 1.0.1.8] A multi-tank coupler routes to its SELECTED <tank>
+        -- compartment; a plain coupler is its own compartment. Every dyn* read
+        -- and the deposit/withdraw below act on that record only.
+        local comp = self:_sprayerActiveCompartment(pc)
+        if pc ~= nil and comp ~= nil and comp.dynAllowed ~= nil then
             dynEntry = self:_findSprayerPlaceableEntryByCoupling(pc)
-            if dynEntry ~= nil then dynStoreCoupler = pc end
+            if dynEntry ~= nil then dynStoreCoupler = comp end
         end
     end
     if dynStoreCoupler ~= nil then
@@ -3117,7 +3399,7 @@ function SlurryPipeManager:tickSprayerFlow(session, dt)
     -- Destination must accept this fillType (dynamic compartments enforce their
     -- own permit + capacity above/below, and pre-seeded zero-capacity types
     -- would fail the vanilla free-capacity check before the first lock).
-    if dynStoreCoupler == nil and not comboDestAccepts and not self:_destAcceptsFillType(dstEntry, fillType) then 
+    if dynStoreCoupler == nil and not comboDestAccepts and not self:_destAcceptsFillType(dstEntry, fillType, vehicle) then 
         strace("STOP:dest-rejects-fillType",
             string.format("dir=%s fillType=%s dstType=%s", tostring(state.direction), tostring(fillType), tostring(dstEntry.type)))
         return 
@@ -3134,6 +3416,11 @@ function SlurryPipeManager:tickSprayerFlow(session, dt)
             sourceLevel = dynStoreCoupler.dynLevel or 0
         elseif srcEntry.storage ~= nil then
             sourceLevel = srcEntry.storage:getFillLevel(fillType) or 0
+            -- [SPS 1.0.1.8] Game rule: no drawing from a store the farm has no access to.
+            if sourceLevel > 0 and not self:canFarmDrawFromStore(srcEntry, vehicle) then
+                self:warnStoreNoAccess(vehicle)
+                sourceLevel = 0
+            end
         end
     elseif srcEntry.type == SPS_SOURCE_TYPE_BUYING_STATION then
         -- [SPS 1.0.1.2] Infinite paid source — the per-tick amount is bounded
@@ -3164,7 +3451,9 @@ function SlurryPipeManager:tickSprayerFlow(session, dt)
         if dynStoreCoupler ~= nil then
             freeCapacity = (dynStoreCoupler.spsCapacity or 0) - (dynStoreCoupler.dynLevel or 0)
         elseif dstEntry.storage ~= nil then
-            freeCapacity = dstEntry.storage:getFreeCapacity(fillType) or 0
+            -- [SPS 1.0.1.8] Farm access: a sale takes anything, no access takes nothing.
+            freeCapacity = self:getStoreAccessCapacityOverride(dstEntry, fillType, vehicle)
+                or dstEntry.storage:getFreeCapacity(fillType) or 0
         end
     end
     -- [SPS 1.0.1.4] Combo fill: free capacity is the SUM across both members that
@@ -3619,7 +3908,8 @@ function SlurryPipeManager:_updateSprayerCombos()
     local combos = {}
     for _, vEntry in ipairs(self.registeredSprayerVehicles) do
         local obj = vEntry.object
-        if obj ~= nil and obj.getRootVehicle ~= nil then
+        -- [SPS 1.0.1.8] A liquid-lane bridge (water/milk trailer at a silo) is not a sprayer.
+        if obj ~= nil and obj.getRootVehicle ~= nil and not vEntry.isLiquidLaneBridge then
             local root = obj:getRootVehicle()
             if root ~= nil and root.rootNode ~= nil then
                 local front, rear, frontFui, rearFui
@@ -3938,4 +4228,99 @@ function SlurryPipeManager:_tickSprayerDynReconcile()
             end
         end
     end
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.8] Sprayer hose persistence (William: "save after reload for all
+-- pipes, not just slurry"). Same scheme as the slurry lane: both mount-node world
+-- positions, valve state and direction; restored by position match (0.1 m) as
+-- vehicles / placeables / IBC sources register, retried during the first 300
+-- update ticks because vehicle positions settle after onFinishedLoading.
+-- ---------------------------------------------------------------------------
+function SlurryPipeManager:_saveSprayerConnections(xmlFile)
+    local idx = 0
+    for _, pipeData in pairs(self.activeSprayerPipes or {}) do
+        local cA, cB = pipeData.couplingA, pipeData.couplingB
+        -- Bridged (liquid-lane) hoses are saved by SPSM_LiquidLanes with their lane.
+        if cA ~= nil and cB ~= nil and cA.mountNode ~= nil and cB.mountNode ~= nil
+        and not cA.isLiquidLaneBridge and not cB.isLiquidLaneBridge
+        and entityExists(cA.mountNode) and entityExists(cB.mountNode) then
+            local ax, ay, az = getWorldTranslation(cA.mountNode)
+            local bx, by, bz = getWorldTranslation(cB.mountNode)
+            local base = string.format("slurryPipeSystem.sprayerConnections.connection(%d)", idx)
+            xmlFile:setFloat(base .. "#ax", ax); xmlFile:setFloat(base .. "#ay", ay); xmlFile:setFloat(base .. "#az", az)
+            xmlFile:setFloat(base .. "#bx", bx); xmlFile:setFloat(base .. "#by", by); xmlFile:setFloat(base .. "#bz", bz)
+            local vehOwner = cA.object ~= nil and cA.object.getFillUnitFillLevel ~= nil and cA.object or nil
+            local vEntry = self:getSprayerVehicleEntry(vehOwner)
+            xmlFile:setBool(base .. "#valveOpen", vEntry ~= nil and vEntry.state.valveOpen == true)
+            xmlFile:setInt (base .. "#direction", vEntry ~= nil and (vEntry.state.direction or SPS_SPRAYER_DIRECTION_FILL) or SPS_SPRAYER_DIRECTION_FILL)
+            idx = idx + 1
+        end
+    end
+    SlurryPipeManager.log("_saveSprayerConnections: wrote %d", idx)
+end
+
+function SlurryPipeManager:_loadSprayerConnections(xmlFile)
+    self._pendingSavedSprayerConnects = {}
+    local idx = 0
+    while true do
+        local base = string.format("slurryPipeSystem.sprayerConnections.connection(%d)", idx)
+        if not xmlFile:hasProperty(base) then break end
+        table.insert(self._pendingSavedSprayerConnects, {
+            ax = xmlFile:getFloat(base .. "#ax", 0), ay = xmlFile:getFloat(base .. "#ay", 0), az = xmlFile:getFloat(base .. "#az", 0),
+            bx = xmlFile:getFloat(base .. "#bx", 0), by = xmlFile:getFloat(base .. "#by", 0), bz = xmlFile:getFloat(base .. "#bz", 0),
+            valveOpen = xmlFile:getBool(base .. "#valveOpen", false),
+            direction = xmlFile:getInt(base .. "#direction", SPS_SPRAYER_DIRECTION_FILL),
+        })
+        idx = idx + 1
+    end
+    SlurryPipeManager.log("_loadSprayerConnections: %d pending", idx)
+end
+
+function SlurryPipeManager:_findSprayerCouplingAtPos(wx, wy, wz)
+    local TOL_SQ = 0.1 * 0.1
+    local function near(c)
+        if c.mountNode == nil or not entityExists(c.mountNode) then return false end
+        local cx, cy, cz = getWorldTranslation(c.mountNode)
+        local dx, dy, dz = cx - wx, cy - wy, cz - wz
+        return dx*dx + dy*dy + dz*dz <= TOL_SQ
+    end
+    for _, vEntry in ipairs(self.registeredSprayerVehicles) do
+        for _, c in ipairs(vEntry.couplings) do
+            if near(c) then return c, vEntry.object end
+        end
+    end
+    for _, pEntry in ipairs(self.registeredSprayerPlaceables) do
+        for _, c in ipairs(pEntry.couplings) do
+            if near(c) then return c, pEntry.object end
+        end
+    end
+    return nil, nil
+end
+
+function SlurryPipeManager:_tryResolveSavedSprayerConnects()
+    local list = self._pendingSavedSprayerConnects
+    if list == nil or #list == 0 then return end
+    local kept = {}
+    for _, p in ipairs(list) do
+        local cA, ownerA = self:_findSprayerCouplingAtPos(p.ax, p.ay, p.az)
+        local cB, ownerB = self:_findSprayerCouplingAtPos(p.bx, p.by, p.bz)
+        if cA ~= nil and cB ~= nil and not cA.isConnected and not cB.isConnected then
+            self:applySprayerConnect(cA, cB, ownerA, ownerB)
+            local vEntry = self:getSprayerVehicleEntry(ownerA) or self:getSprayerVehicleEntry(ownerB)
+            if vEntry ~= nil then
+                vEntry.state.direction = p.direction or SPS_SPRAYER_DIRECTION_FILL
+                if p.valveOpen then
+                    vEntry.state.valveOpen   = true
+                    vEntry.state.pumpRunning = true
+                    cA.valveOpen = true; cB.valveOpen = true
+                    if self.applySprayerEngineSound ~= nil then self:applySprayerEngineSound(vEntry.object, true) end
+                end
+            end
+            SlurryPipeManager.log("_tryResolveSavedSprayerConnects: restored hose idA=%s idB=%s", tostring(cA.id), tostring(cB.id))
+        else
+            table.insert(kept, p)
+        end
+    end
+    self._pendingSavedSprayerConnects = kept
 end

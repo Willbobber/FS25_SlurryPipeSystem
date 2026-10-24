@@ -8,6 +8,8 @@
 <slurryPipeSystem agitator="true">
  
     <nodeTree filename="nodeTree.i3d"/>
+    <!-- [SPS 1.0.1.8] build menu "Ramp: Yes / No" - No removes this nodeTree node (and everything under it) from the placed store (SPSRampConfiguration) -->
+    <rampOption node="slurryPitRamp"/>
 	
     <fillPlane
         node="slurryPit_fillPlane"

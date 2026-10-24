@@ -3,9 +3,12 @@
     <texts>
 		<!-- Inputs -->
 		<text name="input_SPS_TOGGLE_PUMP"      		text="SPS čerpadlo zap/vyp" />
+		<text name="input_SPS_STOW_NEXT"			text="SPS: další držák hadic" />
+		<text name="input_SPS_STOW_PREV"			text="SPS: předchozí držák hadic" />
 		<text name="input_SPS_TOGGLE_AGITATOR"			text="Připojit/odpojit míchadlo" />
 		<text name="input_SPS_ENGAGE_AGITATOR"			text="Vývodový hřídel míchadla zap/vyp" />
 		<text name="input_SPS_TOGGLE_FLOW"      		text="SPS průtok otevřít/zavřít" />
+		<text name="input_SPS_PUMPMIXER_VALVE"		text="SPS ventil čerpacího míchadla otevřít/zavřít" />
 		<text name="input_SPS_TOGGLE_DIRECTION" 		text="SPS směr průtoku" />
         <text name="input_SPS_TOGGLE_SPREADER"          text="SPS ventil rozmetadla" />
         
@@ -46,6 +49,12 @@
 		<text name="action_spsRemovePipe"           	text="Odstranit hadici" />
 		<text name="action_spsRemoveDockingStation" 	text="Odstranit dokovací stanici" />
 		<text name="action_spsDisconnectPipe" 			text="Odpojit hadici" />
+		<text name="action_spsPhysConnect" 			text="Připojit konec hadice"/>
+		<text name="action_spsPhysDisconnect" 		text="Odpojit konec hadice a nést ho"/>
+		<text name="action_spsPhysDrop" 				text="Odpojit hadici"/>
+		<text name="action_spsPhysStow" 				text="Uložit hadici: držák %d (%s %d/%d volných)"/>
+		<text name="action_spsPhysStowCycle" 			text="[kolečko nebo ; '] jiný držák"/>
+		<text name="action_spsDsStow" 				text="Odložit dokovací sloupek na držák %d"/>
 		<text name="action_spsFinalisePipe"  			text="Dokončit pokládání hadice [R] | Zrušit [podržet R]" />
 		<text name="action_spsDeployCoupling" 			text="Umístit hadicovou spojku [podržet R]"/>
 		<text name="action_spsRemoveCoupling" 			text="Odstranit hadicovou spojku [podržet R]"/>
@@ -53,9 +62,7 @@
 		<text name="action_spsRearValveClose"			text="Zavřít ventil" />
 		
         <!-- Warnings -->
-        <text name="warning_slurryNoConnection"    		text="Není aktivní žádné připojení na kejdu" />
         <text name="warning_slurryCloseFlowFirst"  		text="Před změnou směru čerpadla zavřete ventil" />
-        <text name="warning_slurryNoPipeTarget"    		text="V dosahu není žádný bod pro připojení hadice" />
 		<text name="warning_slurryEngineOff" 			text="Nejprve nastartujte motor"/>
 		<text name="warning_spsConnectHydraulics"		text="Nejprve připojte hydraulické hadice" />
 		<text name="warning_spsSetToPressure"			text="Nejprve nastavte čerpadlo na Výtlak (Tlak)" />
@@ -66,7 +73,27 @@
         <text name="typeDesc_manurePump"                text="Čerpadlo na kejdu poháněné vývodovým hřídelem" />
 
         <!-- Conduit pump HUD and direction -->
-        <text name="hud_spsConduitPumped"               text="Přečerpáno: %d L" />
+        <text name="hud_spsPumpMixerTitle" text="Čerpací míchadlo" />
+        <text name="hud_spsPumpStatus" text="Stav: %s" />
+        <text name="hud_spsPumpPumping" text="ČERPÁ" />
+        <text name="hud_spsPumpStopped" text="zastaveno - %s" />
+        <text name="hud_spsPumpRate" text="Výkon: %d L/s   Přečerpáno: %d L" />
+        <text name="hud_spsPumpThickness" text="Hustota: %d%%   Průtok: %d%%" />
+        <text name="hud_spsPumpValveClosed" text="ventil zavřený" />
+        <text name="hud_spsPumpOff" text="čerpadlo vypnuté" />
+        <text name="hud_spsPumpBladesOff" text="lopatky vypnuté" />
+        <text name="hud_spsPumpNotInSlurry" text="míchadlo není v kejdě" />
+        <text name="hud_spsPumpNoPipe" text="nepřipojena hadice" />
+        <text name="hud_spsPumpRecvValve" text="ventil na přijímací straně zavřený" />
+        <text name="hud_spsPumpNoTank" text="není kam čerpat" />
+        <text name="hud_spsPumpSameStore" text="hadice vede zpět do stejné nádrže" />
+        <text name="hud_spsPumpDrawOnly" text="přijímací strana nebere kejdu" />
+        <text name="hud_spsPumpSourceEmpty" text="zdroj prázdný" />
+        <text name="hud_spsPumpDestFull" text="cíl plný" />
+        <text name="hud_spsPumpTooThick" text="příliš hustá" />
+        <text name="hud_spsPumpBlades" text="Lopatky: %s" />
+        <text name="hud_spsPumpBladesSpinning" text="TOČÍ SE" />
+        <text name="hud_spsPumpBladesStopped" text="vypnuté" />
         <text name="action_spsConduitDirAtoB"           text="Průtok: Port 1 → Port 2" />
         <text name="action_spsConduitDirBtoA"           text="Průtok: Port 2 → Port 1" />
 		
@@ -74,14 +101,9 @@
 		<text name="warning_spsSlurryThickening"  		text="Houstnutí kejdy: %d%% — doporučuje se míchání" />
         <text name="warning_spsSlurryThickeningWater"  	text="Houstnutí kejdy: %d%% — přidejte vodu" />
         <text name="warning_spsSlurryTooThick"          text="Kejda je příliš hustá — přidejte vodu" />
-        <text name="sps_settingsAgitation"              text="Míchání kejdy" />
-        <text name="sps_settingsAgitationTooltip"       text="Povolí systém houstnutí a míchání kejdy" />
+        <text name="warning_spsStoreNoAccess"           text="Žádný přístup k tomuto skladu (patří jiné farmě)" />
         <text name="sps_settingsRealism"                text="Realistické chování kejdy" />
         <text name="sps_settingsRealismTooltip"         text="Hlavní vypínač pro hustotu kejdy, krustu, ucpávání a pokles průtoku podle délky potrubí" />
-        <text name="sps_settingsStoreThickening"        text="Houstnutí v jímkách" />
-        <text name="sps_settingsStoreThickeningTooltip" text="Kejda v jímkách a skladech postupem času houstne (v realistickém režimu je tato volba vždy aktivní)" />
-        <text name="sps_settingsCrust"                  text="Vegetace na krustě" />
-        <text name="sps_settingsCrustTooltip"           text="Na povrchu husté kejdy se vizuálně tvoří krusta (v realistickém režimu je tato volba vždy aktivní)" />
         <text name="sps_settingsThicknessFlow"          text="Hustota ovlivňuje průtok" />
         <text name="sps_settingsThicknessFlowTooltip"   text="Hustá kejda zpomaluje plnění, vyprazdňování a aplikaci/rozmetání" />
         <text name="sps_settingsBlockages"              text="Ucpávání rozmetadla" />
@@ -89,26 +111,16 @@
         <text name="sps_settingsLengthFalloff"          text="Pokles průtoku délkou hadice" />
         <text name="sps_settingsLengthFalloffTooltip"   text="Rychlost průtoku klesá s celkovou délkou připojených hadic" />
         <text name="warning_spsBlockage"                text="Rozmetadlo je ucpané — pro pokračování odstraňte ucpání" />
-        <text name="action_spsAgitatorOn"               text="Míchadlo: VYPNUTO — vývodový hřídel běží" />
-        <text name="action_spsAgitatorOff"              text="Míchadlo: ZAPNUTO — vývodový hřídel běží" />
-        <text name="warning_spsAgitatorNotSubmerged"    text="Míchadlo není ponořené" />
         <text name="sps_infoThicknessTitle"             text="Hustota kejdy" />
 		<text name="sps_infoLiquidTitle"                text="Tekutina" />
         <text name="sps_infoDryMatterTitle"             text="Sušina" />
         <text name="sps_infoCrustTitle"                 text="Krusta" />
         <text name="sps_infoTankEmpty"					text="Prázdná" />
+        <text name="shopItem_spsSprayerSilo" text="Silo na postřiky (4 nádrže, SPS)" />
+        <text name="function_spsSprayerSilo" text="Čtyři samostatné nádrže na kapaliny za jednou přípojkou SPS. Vstupte do spínací skříňky a vyberte nádrž; každá nádrž pojme kapalné hnojivo nebo herbicid a zůstane mu vyhrazena, dokud se nevyprázdní. Jen potrubím: bez plnění podjetím." />
 		
 		<!-- Water -->
-		<text name="action_spsDeployWaterPipe"			text="Podržet R: Umístit vodní hadici" />
-		<text name="action_spsFinalizeWaterPipe"		text="Podržet R: Dokončit pokládání vodní hadice" />
-		<text name="action_spsCancelWaterPipe"			text="Podržet R: Zrušit umístění" />
-		<text name="action_spsRemoveWaterPipe"			text="Podržet R: Odstranit vodní hadici" />
-		<text name="info_spsPipeWalkToWater"			text="Pro umístění hadice jděte směrem k vodě" />
-		<text name="info_spsPipeDeployed"				text="Vodní hadice byla rozvinuta" />
-		<text name="info_spsPipeCancelled"				text="Umístění hadice bylo zrušeno" />
-		<text name="info_spsPipeRemoved"				text="Vodní hadice byla odstraněna" />
 		<text name="warning_spsPipeTooShort"			text="Hadice je příliš krátká (minimálně 2 m)" />
-		<text name="warning_spsPipeTooLong"				text="Hadice je příliš dlouhá (maximálně 20 m)" />
 		
 		<!-- Sprayer -->
 		<text name="input_SPS_TOGGLE_ANIMATION_SPRAYER"	text="Otevřít kryt | Zavřít kryt" />
@@ -120,10 +132,8 @@
 		<text name="action_sprayerFlowOn"				text="Průtok: BĚŽÍ" />
 		<text name="action_sprayerDirLoad"				text="Směr: PLNIT" />
 		<text name="action_sprayerDirUnload"			text="Směr: VYPRÁZDNIT" />
-		<text name="sps_warningCloseCoverBeforeTurnOn" 	text="Před zapnutím nejprve zavřete kryt"/>
 		
 		<!-- SPS spreader HUD -->
-		<text name="sps_hudTitle"            			text="Rozmetadlo" />
 		<text name="sps_hudSlurry"           			text="Kejda" />
 		<text name="sps_hudCrust"            			text="Krusta" />
 		<text name="sps_hudThickness"        			text="Hustota" />
@@ -183,6 +193,22 @@
 		<!-- IBCs -->
 		<text name="sps_settingsIbcPersist" 			text="Ponechat IBC kontejner i po vyprázdnění"/>
 		<text name="sps_settingsIbcPersistTooltip" 		text="Ano: Prázdné IBC kontejnery zůstanou na mapě (můžete je vrátit do obchodu nebo znovu naplnit). Ne: Po vyprázdnění zmizí (výchozí)."/>
+		<text name="sps_settingsPhysicalPipes" 			text="Fyzické hadice"/>
+		<text name="sps_settingsPhysicalPipesTooltip" 	text="Ne: původní systém - pokládání a připojování hadic u spojek, řetězů, postřikovačů a vedení vody/mléka; kupované hadice jsou v obchodě skryté. Ano: jen fyzické hadice - hadice koupíte v obchodě a nosíte je v rukou; všechny původní volby hadic jsou vypnuté. Oba systémy nikdy neběží současně."/>
+		<text name="sps_pipeModeTitle" 	text="Slurry Pipe System - vyberte systém hadic"/>
+		<text name="sps_pipeModeQuestion" 	text="Který systém hadic chcete v této hře používat?&#xA;&#xA;PŮVODNÍ: pokládání a připojování hadic u spojek, řetězů, postřikovačů a vedení vody/mléka jako dosud.&#xA;FYZICKÉ (nové): hadice koupíte v obchodě a nosíte je v rukou; původní systém pokládání/připojování je vypnutý.&#xA;&#xA;Oba systémy nikdy neběží současně. Později to můžete změnit v Nastavení > Fyzické hadice."/>
+		<text name="sps_pipeModeExisting" 	text="Tato hra už má %s."/>
+		<text name="sps_pipeModeCounts" 	text="%d položených řetězů hadic, %d připojených spojek, %d hadic postřikovače, %d hadic na vodu/mléko"/>
+		<text name="sps_pipeModeBtnPhysical" 	text="Fyzické hadice (nové)"/>
+		<text name="sps_pipeModeBtnOriginal" 	text="Původní systém"/>
+		<text name="sps_pipeModeWarnTitle" 	text="VAROVÁNÍ - přepnutí na fyzické hadice"/>
+		<text name="sps_pipeModeWarnText" 	text="Přepnutí na nové fyzické hadice ODSTRANÍ všechny hadice položené nebo připojené původním systémem v této hře (%s) a VYPNE původní systém připojování - i uprostřed hry. Odstraněné hadice nelze obnovit.&#xA;&#xA;Přepnout nyní na fyzické hadice?"/>
+		<text name="sps_pipeModeBtnSwitch" 	text="Přepnout a odstranit hadice"/>
+		<text name="sps_pipeModeBtnKeep" 	text="Ponechat původní"/>
+		<text name="sps_pipeModeWarnOrigTitle" 	text="VAROVÁNÍ - přepnutí na původní systém"/>
+		<text name="sps_pipeModeWarnOrigText" 	text="Návrat k původnímu systému ODSTRANÍ všechny fyzické hadice a přenosné dokovací stanice v této hře (%s) a VYPNE fyzické hadice - i uprostřed hry. Odstraněné hadice a stanice nelze obnovit.&#xA;&#xA;Přepnout nyní na původní systém?"/>
+		<text name="sps_pipeModePhysCounts" 	text="%d fyzických hadic, %d připojených konců, %d uložených na držácích, %d dokovacích stanic"/>
+		<text name="sps_pipeModeBtnKeepPhysical" 	text="Ponechat fyzické hadice"/>
 		<text name="action_spsAddIbc" 					text="Podržet: Přidat IBC kontejner" />
 
 		<!-- Separator -->
@@ -203,5 +229,95 @@
 
 		<!-- Buying station -->
 		<text name="action_spsBuyStationSwitch"			text="Nákup: %s - přepnout na %s" />
+		<text name="action_spsTankSwitch" text="Nádrž %s (%s) - přepnout na nádrž %s (%s)" />
+		<!-- Farm liquid lanes: animal water in / milk out (1.0.1.8) -->
+		<text name="sps_laneWater"						text="Voda" />
+		<text name="sps_laneMilk"						text="Mléko" />
+		<text name="action_spsWaterFlowOn"				text="Voda: BĚŽÍ" />
+		<text name="action_spsWaterFlowOff"				text="Voda: ZASTAVENA" />
+		<text name="action_spsMilkFlowOn"				text="Mléko: BĚŽÍ" />
+		<text name="action_spsMilkFlowOff"				text="Mléko: ZASTAVENO" />
+		<text name="warning_spsAnimalWaterOnly"			text="Ke zvířatům lze čerpat pouze vodu" />
+		<text name="warning_spsAnimalWaterEmpty"		text="Nádrž je prázdná" />
+		<text name="warning_spsMilkOnly"				text="Tímto přípojem prochází pouze mléko" />
+		<text name="warning_spsMilkBarnEmpty"			text="Ve stáji není mléko k odběru" />
+		<text name="warning_spsLiquidTankFull"			text="Nádrž je plná" />
+		<text name="warning_spsLiquidBarnFull"			text="Napájecí voda je plná" />
+		<text name="warning_spsLiquidDirectionFixed"	text="Směr je u tohoto přípoje pevně daný" />
+		<!-- [SPS 1.0.1.8] physical pipes: fitting valves + tanker-to-tanker transfer -->
+		<text name="action_spsFittingValveOpen"		text="Otevřít ventil" />
+		<text name="action_spsFittingValveClose"		text="Zavřít ventil" />
+		<text name="warning_spsFittingValveClosed"		text="Nejprve otevřete ventily na obou přípojkách" />
+		<text name="warning_spsCloseValveFirst"		text="Před odpojením trubky zavřete ventil" />
+		<text name="sps_laneTransfer"					text="Z cisterny do cisterny" />
+		<text name="warning_spsTransferOtherEmpty"		text="Druhá nádrž je prázdná" />
+		<text name="warning_spsTransferOtherFull"		text="Druhá nádrž je plná" />
+		<text name="warning_spsTransferType"			text="Nádrže obsahují různé kapaliny" />
+		<text name="warning_spsTransferPumping"		text="Druhá cisterna už čerpá" />
+		<text name="sps_laneSprayer"					text="Zdroj postřiku" />
+		<text name="shopItem_spsCowBarnMedium"		text="Střední kravín (SPS)" />
+		<text name="function_spsCowBarnMedium"		text="Střední kravín Rudolf Hörmann se třemi přípoji: kejda ven, mléko ven, napájecí voda dovnitř. Voda je zde skutečná zásoba 35 000 l – krávy je nutné napájet hadicí nebo cisternou." />
+		<!-- [SPS 1.0.1.8] bought pipe shop item -->
+		<text name="shopItem_spsHose"			text="SPS hadice" />
+		<text name="typeDesc_spsHose"			text="Hadice" />
+		<text name="function_spsHose"			text="Fyzické potrubí. V obchodě vyberte: kejda 140 mm, voda nebo mléko 80 mm, 4 m nebo 6 m a u kejdy konce (samice/samec, samice/samice nebo samec/samec). Zvedněte ho rukama (levé tlačítko myši), doneste konec ke spojce a stiskněte pravé tlačítko myši pro připojení. Pravé tlačítko na připojeném konci ho odpojí do rukou; levé tlačítko na připojeném potrubí ho upustí. Potrubí na kejdu lze obarvit. Po koupi pevně dané - pro změnu ho prodejte." />
+		<text name="spsHose_slurry"			text="SPS hadice na kejdu 140 mm" />
+		<text name="spsDockingStation_name"		text="Dokovací stanice SPS" />
+		<text name="function_spsDockingStation"	text="Přenosný dokovací sloupek. Noste jej v rukou (levé tlačítko myši), postavte kam je třeba, připojte trubku ke spojce a spusťte plnicí rameno cisterny do gumové boty pro plnění trubkou." />
+		<text name="typeDesc_spsDockingStation"	text="Dokovací stanice" />
+		<text name="configuration_spsRamp" text="Nájezdová rampa" />
+		<text name="spsHose_FM"				text="Slurry 140 mm - female / male" />
+		<text name="spsHose_FF"				text="Slurry 140 mm - female / female" />
+		<text name="spsHose_MM"				text="Slurry 140 mm - male / male" />
+		<text name="spsHose_WATER"			text="SPS hadice na vodu 80 mm" />
+		<text name="spsHose_MILK"			text="SPS hadice na mléko 80 mm" />
+		<text name="spsHose_slurry_long"		text="SPS hadice na kejdu 140 mm (6 m)" />
+		<text name="spsHose_WATER_long"		text="SPS hadice na vodu 80 mm (6 m)" />
+		<text name="spsHose_MILK_long"		text="SPS hadice na mléko 80 mm (6 m)" />
+		<text name="configuration_spsPipeType"	text="Potrubí" />
+		<text name="configuration_spsPipeLength"	text="Délka" />
+		<text name="configuration_spsPipeEnds"	text="Konce (hadice na kejdu)" />
+		<text name="spsPipe_typeSlurry"		text="Hadice na kejdu 140 mm" />
+		<text name="spsPipe_typeWater"		text="Hadice na vodu 80 mm" />
+		<text name="spsPipe_typeMilk"		text="Hadice na mléko 80 mm" />
+		<text name="spsPipe_length4"			text="4 m" />
+		<text name="spsPipe_length6"			text="6 m" />
+		<text name="spsColor_green"			text="Zelená" />
+		<text name="spsColor_blue"			text="Modrá" />
+		<text name="spsColor_brown"			text="Hnědá" />
+		<text name="spsColor_black"			text="Černá" />
+
+        <!-- [SPS 1.0.1.8] player-drawn water courses (building screen, Landscaping > SPS Water) -->
+        <text name="construction_tab_spsWater" text="SPS Voda" />
+        <text name="shopItem_spsWaterCourseDraw" text="Nakreslit vodní plochu" />
+        <text name="function_spsWaterCourseDraw" text="Nakreslete prstenec kolem jezera nebo řeky, aby z ní cisterny SPS mohly čerpat vodu. Nejprve klikněte na vodu (nastaví hladinu), pak pokládejte značky podél břehu a kliknutím na první prstenec uzavřete." />
+        <text name="shopItem_spsWaterCourseRemove" text="Odstranit vodní plochu" />
+        <text name="function_spsWaterCourseRemove" text="Odstraní dříve nakreslenou vodní plochu." />
+        <text name="sps_waterCourse_defaultName" text="Vodní plocha %d" />
+        <text name="sps_waterCourse_namePrompt" text="Název vodní plochy" />
+        <text name="sps_waterCourse_hintClickWater" text="Nejprve klikněte na vodu - tím se nastaví hladina" />
+        <text name="sps_waterCourse_clickWaterFirst" text="Tady není voda - nejprve klikněte na vodu" />
+        <text name="sps_waterCourse_levelSet" text="Hladina nastavena - teď pokládejte značky podél břehu" />
+        <text name="sps_waterCourse_complete" text="Vodní plocha hotova" />
+        <text name="sps_waterCourse_cancelled" text="Vodní plocha zrušena" />
+        <text name="sps_waterCourse_removed" text="Vodní plocha odstraněna" />
+        <text name="sps_waterCourse_removeConfirm" text="Odstranit vodní plochu '%s'?" />
+        <text name="sps_waterCourse_noneOnMap" text="Na této mapě nejsou nakreslené vodní plochy" />
+        <text name="sps_waterCourse_tooFewPoints" text="Jsou potřeba aspoň 3 značky" />
+        <text name="sps_waterCourse_tooManyPoints" text="Příliš mnoho značek (max. 256)" />
+        <text name="sps_waterCourse_edgeTooShort" text="Příliš blízko poslední značky" />
+        <text name="sps_waterCourse_tooSmall" text="Prstenec je příliš malý" />
+        <text name="sps_waterCourse_crossing" text="Čára by křížila prstenec" />
+        <text name="sps_waterCourse_actionClickWater" text="Kliknout na vodu (hladina)" />
+        <text name="sps_waterCourse_actionPlace" text="Položit značku" />
+        <text name="sps_waterCourse_actionClose" text="Uzavřít prstenec" />
+        <text name="sps_waterCourse_actionRemoveLast" text="Odebrat poslední značku" />
+        <text name="sps_waterCourse_actionRemoveLevel" text="Odebrat vodní bod" />
+        <text name="sps_waterCourse_actionRemove" text="Odstranit tuto vodní plochu" />
+        <text name="shopItem_spsPtoPump"		text="SPS čerpadlo kejdy na vývodový hřídel" />
+        <text name="shopItem_spsTowerMixer"		text="SPS věžové míchadlo" />
+        <text name="function_spsTowerMixer"		text="Traktorem poháněné míchadlo lagun na sklopné věži. Spusťte podpěry, sklopte rameno do jímky a míchejte kejdu vývodovým hřídelem; potrubí z jeho čerpadla dopraví promíchanou kejdu do cisterny." />
+        <text name="sps_hudPipeFlow"		text="Průtok potrubím" />
+        <text name="input_SPS_FREE_PIPE"		text="Uvolnit zaseknuté potrubí" />
 	</texts>
 </l10n>

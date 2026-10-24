@@ -63,7 +63,7 @@
 --   heal on next load/save cycle. Zero core edits.
 -- ---------------------------------------------------------------------------
 
-print("[SPS BUILD] SPSChainBondPersistence 1.0.0.9.24 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSChainBondPersistence 1.0.0.9.24 loaded") end
 
 SPSChainBondPersistence = {}
 

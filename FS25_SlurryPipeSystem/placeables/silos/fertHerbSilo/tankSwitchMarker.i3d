@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="tankSwitchMarker" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+
+  <Files>
+    <File fileId="2" filename="$data/shaders/glowShader.xml" />
+    <File fileId="1" filename="tankSwitchMarker_diffuse.dds" />
+  </Files>
+
+  <Materials>
+    <Material name="markerIcons_mat" materialId="1" specularColor="0 0 0" alphaBlending="true" customShaderId="2" customShaderVariation="additive_billboard_pulsating">
+      <CustomParameter name="lightControl" value="0.25"/>
+      <Emissivemap fileId="1"/>
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="tankSwitchMarker.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="tankSwitchMarker" nodeId="1">
+      <Shape name="iconTankSwitch" translation="0 1 0" shapeId="1" castsShadows="true" receiveShadows="true" materialIds="1" clipDistance="300" nodeId="2"/>
+      <Light name="pointLight" translation="0 1 0" type="point" color="0.417119 0.506314 0.0445976" emitDiffuse="true" emitSpecular="true" range="1.5" clipDistance="100" nodeId="3"/>
+    </TransformGroup>
+  </Scene>
+
+  <UserAttributes>
+  </UserAttributes>
+</i3D>

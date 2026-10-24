@@ -36,7 +36,7 @@
 -- rebuild the text every frame).
 -- ---------------------------------------------------------------------------
 
-print("[SPS BUILD] SPSBuyStationActivatable 1.0.1.3 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSBuyStationActivatable 1.0.1.3 loaded") end
 
 SPSBuyStationActivatable = {}
 SPSBuyStationActivatable.__index = SPSBuyStationActivatable

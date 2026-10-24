@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="pipe_FF.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="SPS build_pipes_orig_donors.py (from i3dio export)" version="2026-10-23"/>
+  </Asset>
+
+  <Files>
+    <File fileId="1" filename="$data/shared/white_diffuse.dds"/>
+    <File fileId="2" filename="$data/shared/default_normal.dds"/>
+    <File fileId="3" filename="$data/shared/connectionHoses/hosesAtlas_normal.dds"/>
+    <File fileId="4" filename="../vehicles/hoses/spsPipes_vmask.dds"/>
+    <File fileId="5" filename="$data/shaders/vehicleShader.xml"/>
+    <File fileId="6" filename="$data/shared/detailLibrary/metallic/zincGalvanized_specular.png"/>
+    <File fileId="7" filename="$data/shared/detailLibrary/metallic/zincGalvanized_normal.png"/>
+    <File fileId="8" filename="$data/shared/detailLibrary/metallic/zincGalvanized_diffuse.png"/>
+    <File fileId="9" filename="$data/shared/detailLibrary/metallic/silverScratched_specular.png"/>
+    <File fileId="10" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="11" filename="$data/shared/detailLibrary/metallic/silverScratched_diffuse.png"/>
+    <File fileId="12" filename="$data/shared/detailLibrary/metallic/scratched_specular.png"/>
+    <File fileId="13" filename="$data/shared/detailLibrary/metallic/scratched_diffuse.png"/>
+    <File fileId="14" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_specular.dds"/>
+    <File fileId="15" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_normal.dds"/>
+    <File fileId="16" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_diffuse.dds"/>
+  </Files>
+
+  <Materials>
+    <Material name="hose_mat" materialId="2" customShaderId="5" customShaderVariation="vmaskUV2">
+      <Texture fileId="1"/>
+      <Normalmap fileId="3"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="14"/>
+      <Custommap name="detailNormal" fileId="15"/>
+      <Custommap name="detailDiffuse" fileId="16"/>
+      <CustomParameter name="colorScale" value="0 0.05 0"/>
+    </Material>
+    <Material name="zincGalvanized_mat" materialId="3" customShaderId="5" customShaderVariation="vmaskUV2">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="6"/>
+      <Custommap name="detailNormal" fileId="7"/>
+      <Custommap name="detailDiffuse" fileId="8"/>
+    </Material>
+    <Material name="silverScratched_mat" materialId="4" customShaderId="5" customShaderVariation="vmaskUV2">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="9"/>
+      <Custommap name="detailNormal" fileId="10"/>
+      <Custommap name="detailDiffuse" fileId="11"/>
+    </Material>
+  </Materials>
+
+  <Shapes externalShapesFile="pipe_FF.i3d.shapes">
+  </Shapes>
+
+  <Dynamics>
+  </Dynamics>
+
+  <Scene>
+    <TransformGroup name="pipe_FF" nodeId="1">
+      <Shape name="pipe_F/F" shapeId="5" nodeId="2" castsShadows="true" receiveShadows="true" skinBindNodeIds="3 4 5 6 7 8 9 10 11 12 13 14 15" materialIds="2 3 4" clipDistance="300">
+        <TransformGroup name="Bone01" translation="0 0 0.171051" nodeId="3">
+          <TransformGroup name="Bone02" translation="0 0 0.333333" nodeId="4">
+            <TransformGroup name="Bone03" translation="0 0 0.333334" nodeId="5">
+              <TransformGroup name="Bone04" translation="0 0 0.333332" nodeId="6">
+                <TransformGroup name="Bone05" translation="0 0 0.33333" nodeId="7">
+                  <TransformGroup name="Bone06" translation="0 0 0.33334" nodeId="8">
+                    <TransformGroup name="Bone07" translation="0 0 0.33333" nodeId="9">
+                      <TransformGroup name="Bone08" translation="0 0 0.33333" nodeId="10">
+                        <TransformGroup name="Bone09" translation="0 0 0.33334" nodeId="11">
+                          <TransformGroup name="Bone10" translation="0 0 0.33333" nodeId="12">
+                            <TransformGroup name="Bone11" translation="0 0 0.33333" nodeId="13">
+                              <TransformGroup name="Bone12" translation="0 0 0.33334" nodeId="14">
+                                <TransformGroup name="Bone13" translation="0 0 0.33333" nodeId="15">
+                                </TransformGroup>
+                              </TransformGroup>
+                            </TransformGroup>
+                          </TransformGroup>
+                        </TransformGroup>
+                      </TransformGroup>
+                    </TransformGroup>
+                  </TransformGroup>
+                </TransformGroup>
+              </TransformGroup>
+            </TransformGroup>
+          </TransformGroup>
+        </TransformGroup>
+      </Shape>
+    </TransformGroup>
+  </Scene>
+
+</i3D>

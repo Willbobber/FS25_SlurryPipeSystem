@@ -44,7 +44,7 @@
 -- across the tip area over time and MP-syncs — ManureHeap.lua, verified).
 -- ---------------------------------------------------------------------------
 
-print("[SPS BUILD] SPSSeparator 1.0.0.9.35 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSSeparator 1.0.0.9.35 loaded") end
 
 SPSSeparator = {}
 

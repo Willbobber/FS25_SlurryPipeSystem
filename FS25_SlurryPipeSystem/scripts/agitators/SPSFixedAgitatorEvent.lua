@@ -68,7 +68,7 @@ function SPSFixedAgitatorEvent:run(connection)
 
     if self.reqType == SPSFixedAgitatorEvent.STATE then
         if not connection:getIsServer() then
-            g_server:broadcastEvent(self, false, connection, self.placeable)
+            g_server:broadcastEvent(self, false, connection, self.placeable, nil, nil, true)
         end
         SPSFixedAgitator.applyState(self.placeable, self.vehicle, self.running, self.engaged)
     elseif self.reqType == SPSFixedAgitatorEvent.REQ_CONNECT then
@@ -102,6 +102,6 @@ function SPSFixedAgitatorEvent.sendState(placeable, vehicle, running, engaged)
     if g_server ~= nil then
         g_server:broadcastEvent(
             SPSFixedAgitatorEvent.new(SPSFixedAgitatorEvent.STATE, placeable, vehicle, vehicle ~= nil, running, engaged),
-            nil, nil, placeable)
+            nil, nil, placeable, nil, nil, true)
     end
 end

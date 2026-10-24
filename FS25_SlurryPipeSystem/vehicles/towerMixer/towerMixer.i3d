@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="towerMixer.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.14"/>
+  </Asset>
+
+  <Files>
+    <File fileId="6" filename="$data/shaders/vehicleShader.xml"/>
+    <File fileId="4" filename="$data/shared/default_normal.dds"/>
+    <File fileId="27" filename="$data/shared/default_vmask.dds"/>
+    <File fileId="18" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="23" filename="$data/shared/detailLibrary/metallic/clear_diffuse.png"/>
+    <File fileId="22" filename="$data/shared/detailLibrary/metallic/clear_specular.png"/>
+    <File fileId="16" filename="$data/shared/detailLibrary/metallic/metalGalvanized_diffuse.png"/>
+    <File fileId="15" filename="$data/shared/detailLibrary/metallic/metalGalvanized_normal.png"/>
+    <File fileId="14" filename="$data/shared/detailLibrary/metallic/metalGalvanized_specular.png"/>
+    <File fileId="25" filename="$data/shared/detailLibrary/metallic/scratched_diffuse.png"/>
+    <File fileId="24" filename="$data/shared/detailLibrary/metallic/scratched_specular.png"/>
+    <File fileId="19" filename="$data/shared/detailLibrary/metallic/silverScratched_diffuse.png"/>
+    <File fileId="17" filename="$data/shared/detailLibrary/metallic/silverScratched_specular.png"/>
+    <File fileId="21" filename="$data/shared/detailLibrary/nonMetallic/metal/metalPainted_diffuse.png"/>
+    <File fileId="20" filename="$data/shared/detailLibrary/nonMetallic/metal/metalPainted_specular.png"/>
+    <File fileId="29" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_diffuse.png"/>
+    <File fileId="28" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_specular.png"/>
+    <File fileId="9" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubberBlack_diffuse.png"/>
+    <File fileId="8" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_normal.png"/>
+    <File fileId="7" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_specular.png"/>
+    <File fileId="3" filename="$data/shared/white_diffuse.dds"/>
+    <File fileId="26" filename="towerMixerParts_Vmask.dds"/>
+    <File fileId="5" filename="towerMixer_Vmask.dds"/>
+  </Files>
+
+
+  <Materials>
+    <Material name="brassScratched_mat" materialId="5" customShaderId="6" customShaderVariation="vmaskUV2">
+      <Texture fileId="3"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="5"/>
+      <Custommap name="detailSpecular" fileId="24"/>
+      <Custommap name="detailNormal" fileId="18"/>
+      <Custommap name="detailDiffuse" fileId="25"/>
+      <CustomParameter name="colorScale" value="0.9647 0.7913 0.3095"/>
+    </Material>
+    <Material name="chrome_mat" materialId="6" customShaderId="6" customShaderVariation="vmaskUV2">
+      <Texture fileId="3"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="5"/>
+      <Custommap name="detailSpecular" fileId="22"/>
+      <Custommap name="detailNormal" fileId="18"/>
+      <Custommap name="detailDiffuse" fileId="23"/>
+    </Material>
+    <Material name="i3d_default_material" materialId="7" diffuseColor="0.8 0.8 0.8 1" specularColor="0.501961 1 0">
+    </Material>
+    <Material name="metalGalvanized_mat" materialId="8" customShaderId="6">
+      <Texture fileId="3"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="27"/>
+      <Custommap name="detailSpecular" fileId="14"/>
+      <Custommap name="detailNormal" fileId="15"/>
+      <Custommap name="detailDiffuse" fileId="16"/>
+    </Material>
+    <Material name="metalGalvanized_mat" materialId="9" customShaderId="6" customShaderVariation="vmaskUV2">
+      <Texture fileId="3"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="5"/>
+      <Custommap name="detailSpecular" fileId="14"/>
+      <Custommap name="detailNormal" fileId="15"/>
+      <Custommap name="detailDiffuse" fileId="16"/>
+    </Material>
+    <Material name="metalGalvanized_mat" materialId="10" customShaderId="6" customShaderVariation="vmaskUV2">
+      <Texture fileId="3"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="26"/>
+      <Custommap name="detailSpecular" fileId="14"/>
+      <Custommap name="detailNormal" fileId="15"/>
+      <Custommap name="detailDiffuse" fileId="16"/>
+    </Material>
+    <Material name="metalPainted_mat_Black" materialId="11" customShaderId="6">
+      <Texture fileId="3"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="27"/>
+      <Custommap name="detailSpecular" fileId="20"/>
+      <Custommap name="detailNormal" fileId="18"/>
+      <Custommap name="detailDiffuse" fileId="21"/>
+      <CustomParameter name="colorScale" value="0.08 0.08 0.08"/>
+    </Material>
+    <Material name="metalPainted_mat_Black" materialId="12" customShaderId="6" customShaderVariation="vmaskUV2">
+      <Texture fileId="3"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="5"/>
+      <Custommap name="detailSpecular" fileId="20"/>
+      <Custommap name="detailNormal" fileId="18"/>
+      <Custommap name="detailDiffuse" fileId="21"/>
+      <CustomParameter name="colorScale" value="0.08 0.08 0.08"/>
+    </Material>
+    <Material name="metalPainted_mat_Blue" materialId="13" customShaderId="6" customShaderVariation="vmaskUV2">
+      <Texture fileId="3"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="5"/>
+      <Custommap name="detailSpecular" fileId="20"/>
+      <Custommap name="detailNormal" fileId="18"/>
+      <Custommap name="detailDiffuse" fileId="21"/>
+      <CustomParameter name="colorScale" value="0.015 0.045 0.22"/>
+    </Material>
+    <Material name="metalPainted_mat_Red" materialId="14" customShaderId="6" customShaderVariation="vmaskUV2">
+      <Texture fileId="3"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="5"/>
+      <Custommap name="detailSpecular" fileId="20"/>
+      <Custommap name="detailNormal" fileId="18"/>
+      <Custommap name="detailDiffuse" fileId="21"/>
+      <CustomParameter name="colorScale" value="0.359 0.033 0.035"/>
+    </Material>
+    <Material name="plasticPaintedShinyBlack_mat" materialId="15" customShaderId="6" customShaderVariation="vmaskUV2">
+      <Texture fileId="3"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="5"/>
+      <Custommap name="detailSpecular" fileId="28"/>
+      <Custommap name="detailNormal" fileId="18"/>
+      <Custommap name="detailDiffuse" fileId="29"/>
+      <CustomParameter name="colorScale" value="0.012 0.012 0.012"/>
+      <CustomParameter name="smoothnessScale" value="1.52"/>
+    </Material>
+    <Material name="rubberBlack_mat" materialId="16" customShaderId="6" customShaderVariation="vmaskUV2">
+      <Texture fileId="3"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="5"/>
+      <Custommap name="detailSpecular" fileId="7"/>
+      <Custommap name="detailNormal" fileId="8"/>
+      <Custommap name="detailDiffuse" fileId="9"/>
+      <CustomParameter name="porosity" value="0.5"/>
+    </Material>
+    <Material name="silverScratched_mat" materialId="17" customShaderId="6" customShaderVariation="vmaskUV2">
+      <Texture fileId="3"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="5"/>
+      <Custommap name="detailSpecular" fileId="17"/>
+      <Custommap name="detailNormal" fileId="18"/>
+      <Custommap name="detailDiffuse" fileId="19"/>
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="towerMixer.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <Shape name="tower_main_component1" shapeId="1" dynamic="true" compound="true" collisionFilterGroup="0x10004" collisionFilterMask="0xfe3ffb83" clipDistance="300" nodeId="56" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="7">
+      <TransformGroup name="attachable" nodeId="57">
+        <TransformGroup name="attacherJointImplement" translation="-5.57592e-08 0.0587696 0.316373" rotation="-0 90 0" nodeId="58"/>
+        <TransformGroup name="topReferenceNode" translation="-0.00889355 0.633824 0.316373" nodeId="59"/>
+        <TransformGroup name="connectionHoses" nodeId="60">
+          <TransformGroup name="hydraulicIn01" translation="-7.45058e-09 0.78452 0.2035" rotation="90 -0 0" nodeId="61">
+            <Shape name="hydraulicIn01_detached" translation="0 -2.30932e-09 0" rotation="5.00896e-06 90 0" shapeId="2" clipDistance="300" nodeId="62" castsShadows="true" receiveShadows="true" materialIds="16">
+              <TransformGroup name="hydraulicIn01_connector" translation="-0.18408 -0.08891 0.258891" rotation="0 -90 -2.08667e-13" nodeId="63"/>
+            </Shape>
+          </TransformGroup>
+          <TransformGroup name="hydraulicOut01" translation="-0.025 0.78452 0.2035" rotation="90 -0 0" nodeId="64">
+            <Shape name="hydraulicOut01_detached" translation="0.025 -2.30932e-09 0" rotation="5.00896e-06 90 0" shapeId="3" clipDistance="300" nodeId="65" castsShadows="true" receiveShadows="true" materialIds="16">
+              <TransformGroup name="hydraulicOut01_connector" translation="-0.18408 -0.075033 0.233891" rotation="0 -90 0" nodeId="66"/>
+            </Shape>
+          </TransformGroup>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="exitPoint" translation="1.03642 0 -0.805767" rotation="0 -54.7948 0" nodeId="67"/>
+      <TransformGroup name="dashboards" translation="1.03642 0 -0.805767" rotation="0 -54.7948 0" nodeId="68"/>
+      <Shape name="slurryMixer" shapeId="4" clipDistance="300" nodeId="69" castsShadows="true" receiveShadows="true" skinBindNodeIds="154 156 158 161 163 165 167 169 172 174 153 113 134 136 176 138 177 139 114 115 125 126 91 94 98 99 101 104 108 109 90 111 112" materialIds="9,16,17,12,6,14,13">
+        <TransformGroup name="config" nodeId="70">
+          <TransformGroup name="basicMixer" visibility="false" nodeId="71">
+            <Shape name="slurryMixerBlade" shapeId="5" clipDistance="300" nodeId="72" castsShadows="true" receiveShadows="true" skinBindNodeIds="117" materialIds="13,9,17,5"/>
+            <Shape name="frameBraceBasic" shapeId="6" clipDistance="300" nodeId="73" castsShadows="true" receiveShadows="true" skinBindNodeIds="113 115" materialIds="9"/>
+          </TransformGroup>
+          <TransformGroup name="pumpMixer" nodeId="74">
+            <Shape name="frameBraceExtra" shapeId="7" clipDistance="300" nodeId="75" castsShadows="true" receiveShadows="true" skinBindNodeIds="113 115 117 112" materialIds="9,5,17,12,16,13">
+              <Shape name="frameBraceExtraPipe01" shapeId="8" clipDistance="300" nodeId="76" castsShadows="true" receiveShadows="true" skinBindNodeIds="179 141" materialIds="16"/>
+              <Shape name="pipe01" shapeId="9" clipDistance="300" nodeId="77" castsShadows="true" receiveShadows="true" skinBindNodeIds="113" materialIds="16">
+                <Shape name="pipe02" shapeId="10" clipDistance="300" nodeId="78" castsShadows="true" receiveShadows="true" skinBindNodeIds="146 130 116" materialIds="16"/>
+              </Shape>
+              <Shape name="coupler" shapeId="11" clipDistance="300" nodeId="79" castsShadows="true" receiveShadows="true" skinBindNodeIds="197" materialIds="9,17,12,5,16"/>
+              <Shape name="dummyPipe01" shapeId="12" clipDistance="300" nodeId="80" castsShadows="true" receiveShadows="true" skinBindNodeIds="142 118" materialIds="16">
+                <Shape name="dummyPipe01Ends" shapeId="13" clipDistance="300" nodeId="81" castsShadows="true" receiveShadows="true" skinBindNodeIds="113 115 117 112" materialIds="9"/>
+              </Shape>
+            </Shape>
+            <TransformGroup name="pipeExtensionRotNode" translation="-1.56462e-07 0.282597 -0.517554" rotation="0 -0 135" nodeId="82">
+              <Shape name="pipeExtension" translation="1.56462e-07 -0.282597 0.517554" shapeId="14" clipDistance="300" nodeId="83" castsShadows="true" receiveShadows="true" materialIds="10">
+                <TransformGroup name="SPS_pipeCoupler02" translation="0.662459 -0.184561 -0.738364" rotation="-3.41509e-06 90 0" nodeId="84">
+                  <TransformGroup name="SPS_pipeCoupler01Arcs" rotation="0 -4.25679e-05 4.98425e-06" nodeId="85">
+                    <TransformGroup name="SPS_pipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="86"/>
+                    <TransformGroup name="SPS_pipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="87"/>
+                  </TransformGroup>
+                  <TransformGroup name="inNode" rotation="180 2.36783e-05 -180" nodeId="88"/>
+                  <TransformGroup name="outNode" rotation="0 -1.88504e-05 6.3435e-06" nodeId="89"/>
+                </TransformGroup>
+              </Shape>
+            </TransformGroup>
+          </TransformGroup>
+        </TransformGroup>
+      </Shape>
+      <TransformGroup name="root" nodeId="90">
+        <TransformGroup name="leftLegArm01" translation="-0.536917 0.0854207 -4.47035e-08" nodeId="91">
+          <TransformGroup name="leftFootFrame" translation="-1.56221 -0.405431 1.49012e-08" rotation="0 0 90" nodeId="92">
+            <TransformGroup name="leftFootPivot" rotation="-90 0 -90" nodeId="93">
+              <TransformGroup name="leftLegArm02" rotation="90 0 -4.19421" nodeId="94"/>
+            </TransformGroup>
+            <Shape name="leftLegArm02_col" rotation="0 -4.19421 -90" shapeId="15" compoundChild="true" collisionFilterGroup="0x10004" collisionFilterMask="0xfe3ffb83" nodeId="95" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="11"/>
+          </TransformGroup>
+          <TransformGroup name="legLeftHydrPunchRefNode" translation="-0.875233 0.0102951 3.19909e-07" nodeId="96"/>
+          <Shape name="leftLegArm01_col" translation="0 -9.68575e-08 -1.49011e-08" shapeId="16" compoundChild="true" collisionFilterGroup="0x10004" collisionFilterMask="0xfe3ffb83" nodeId="97" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="8"/>
+        </TransformGroup>
+        <TransformGroup name="leftLegHydrCylin" translation="-0.273241 0.296536 -2.98023e-08" rotation="10 -90 0" nodeId="98">
+          <TransformGroup name="leftLegHydrPunch" translation="3.9759e-07 3.27826e-07 1.15648" rotation="8.53774e-07 -4.07111e-13 0" nodeId="99"/>
+          <TransformGroup name="leftLegHydrPipes02" translation="0.0553814 0.0657614 0.103107" rotation="-90 80 -90" nodeId="100"/>
+        </TransformGroup>
+        <TransformGroup name="rightLegArm01" translation="0.536917 0.0854207 -4.47035e-08" nodeId="101">
+          <TransformGroup name="rightFootFrame" translation="1.56221 -0.405431 1.49012e-08" rotation="0 0 90" nodeId="102">
+            <TransformGroup name="rightFootPivot" rotation="-90 0 -90" nodeId="103">
+              <TransformGroup name="rightLegArm02" rotation="90 0 0" nodeId="104"/>
+            </TransformGroup>
+            <Shape name="rightLegArm02_col" rotation="0 0 -90" shapeId="15" compoundChild="true" collisionFilterGroup="0x10004" collisionFilterMask="0xfe3ffb83" nodeId="105" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="11"/>
+          </TransformGroup>
+          <TransformGroup name="legRightHydrPunchRefNode" translation="0.875233 0.0102953 3.01749e-07" nodeId="106"/>
+          <Shape name="rightLegArm01_col" translation="0 -9.68575e-08 -1.49011e-08" shapeId="17" compoundChild="true" collisionFilterGroup="0x10004" collisionFilterMask="0xfe3ffb83" nodeId="107" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="8"/>
+        </TransformGroup>
+        <TransformGroup name="rightLegHydrCylin" translation="0.273241 0.296536 -2.98023e-08" rotation="10 90 0" nodeId="108">
+          <TransformGroup name="rightLegHydrPunch" translation="-3.86414e-07 4.17233e-07 1.15648" rotation="8.53774e-07 4.07111e-13 0" nodeId="109"/>
+          <TransformGroup name="rightLegHydrPipes02" translation="-0.0553814 0.0657614 0.103107" rotation="-90 -80 90" nodeId="110"/>
+        </TransformGroup>
+        <TransformGroup name="towerExten" translation="0 0.347136 0" nodeId="111">
+          <TransformGroup name="towerRotator" translation="0 3.60885 -2.98023e-08" nodeId="112">
+            <TransformGroup name="ladder01" translation="-1.19209e-07 0.1075 -0.268532" nodeId="113">
+              <TransformGroup name="ladder02" translation="2.9802e-08 0 -6.08067" nodeId="114">
+                <TransformGroup name="ladder03" translation="0 0.08639 -0.19186" nodeId="115">
+                  <TransformGroup name="ladder01PipeBend03" translation="0.431616 0.0439501 -0.12557" nodeId="116"/>
+                  <TransformGroup name="slurryMixerBladeRotNode" translation="7.45058e-08 0.0630803 -5.68944" nodeId="117"/>
+                  <TransformGroup name="frameBracePipe04" translation="1.97589e-05 0.0631299 -0.40625" nodeId="118"/>
+                  <TransformGroup name="ladder03HydrPunchRefNode" translation="-1.11759e-07 0.42771 -0.87799" nodeId="119"/>
+                  <Shape name="ladder03_col" translation="2.98024e-08 0 1.00136e-05" shapeId="18" compoundChild="true" collisionFilterGroup="0x10004" collisionFilterMask="0xfe3ffb83" nodeId="120" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="7"/>
+                  <Shape name="ladder03_col" translation="2.98024e-08 0 1.00136e-05" shapeId="19" compoundChild="true" collisionFilterGroup="0x10004" collisionFilterMask="0xfe3ffb83" nodeId="121" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="7"/>
+                  <TransformGroup name="pumpMixerLadder03Parts" translation="7.10543e-15 3.8147e-06 2.38419e-06" nodeId="122">
+                    <Shape name="pipeCap02" shapeId="20" clipDistance="300" nodeId="123" castsShadows="true" receiveShadows="true" materialIds="10"/>
+                  </TransformGroup>
+                  <TransformGroup name="SPS_agitatorTip" translation="1.75023e-06 -0.137102 -5.68944" nodeId="124"/>
+                </TransformGroup>
+                <TransformGroup name="ladder03HydrCylin" translation="5.96047e-08 0.57506 -0.1974" rotation="-176.003 5.00896e-06 180" nodeId="125">
+                  <TransformGroup name="ladder03HydrPunch" translation="2.49499e-07 0 0.874588" rotation="4.26887e-07 -4.07111e-13 -2.54444e-14" nodeId="126"/>
+                  <TransformGroup name="ladder03HydrCylin01Pipes02" translation="-0.0531357 0.0620303 0.268139" rotation="-176.003 -4.99677e-06 180" nodeId="127"/>
+                </TransformGroup>
+                <TransformGroup name="ladder01Brace02RefNode" translation="-2.99886e-07 0.57506 0" nodeId="128"/>
+                <TransformGroup name="ladder03HydrCylin01Pipes01" translation="0.130067 0.5726 -0.11312" nodeId="129"/>
+                <TransformGroup name="ladder01PipeBend02" translation="0.479305 0.0935102 -0.01402" nodeId="130"/>
+                <TransformGroup name="ladder01PipeBend04" translation="0.392422 0.24729 -0.112" nodeId="131"/>
+                <TransformGroup name="ladder02BraceDirFrame" rotation="-90 0 0" nodeId="132"/>
+              </TransformGroup>
+              <TransformGroup name="ladder01Brace01Pivot" translation="-0.000249952 0 -5.50562" rotation="-90 0 0" nodeId="133">
+                <TransformGroup name="ladder01Brace01" rotation="90 0 0" nodeId="134">
+                  <TransformGroup name="ladder01Brace02Pivot" translation="0.00024962 0.57506 0" rotation="0 180 0" nodeId="135">
+                    <TransformGroup name="ladder01Brace02" rotation="180 0 180" nodeId="136"/>
+                  </TransformGroup>
+                  <TransformGroup name="ladder01HydrPunch02RefNode" translation="0.000249624 0.57506 0" nodeId="137"/>
+                </TransformGroup>
+              </TransformGroup>
+              <TransformGroup name="ladder01HydrCylin02" translation="1.06171e-07 0.57506 -4.61247" rotation="180 5.00896e-06 -180" nodeId="138">
+                <TransformGroup name="ladder01HydrPunch02" translation="5.15803e-07 0 0.89315" nodeId="139"/>
+                <TransformGroup name="ladder01HydrCylin02Pipes02" translation="-0.0531357 0.0620403 0.26814" rotation="180 -5.00896e-06 180" nodeId="140"/>
+              </TransformGroup>
+              <TransformGroup name="frameBracePipe02" translation="2.12788e-05 0.14952 -1.23264" nodeId="141"/>
+              <TransformGroup name="frameBracePipe03" translation="-2.7746e-05 0.14952 -5.25007" nodeId="142"/>
+              <TransformGroup name="ladder01HydrPunch01RefNode" translation="1.06171e-07 0.57506 -1.18132" nodeId="143"/>
+              <TransformGroup name="ladder01HydrCylin02Pipes01" translation="0.130055 0.57262 -4.5288" nodeId="144"/>
+              <TransformGroup name="ladder01JointPipe02" translation="0.362 0.0510101 -0.06774" nodeId="145"/>
+              <TransformGroup name="ladder01PipeBend01" translation="0.381081 0.03649 -5.91929" nodeId="146"/>
+              <Shape name="ladder01_col" translation="5.96044e-08 0 1.01328e-06" shapeId="21" compoundChild="true" collisionFilterGroup="0x10004" collisionFilterMask="0xfe3ffb83" nodeId="147" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="7"/>
+              <TransformGroup name="pumpMixerTransportPipe" translation="0 3.8147e-06 2.98023e-08" nodeId="148">
+                <Shape name="dummyPipeBrackets" shapeId="22" clipDistance="300" nodeId="149" castsShadows="true" receiveShadows="true" materialIds="9">
+                  <Shape name="dummyPipe" shapeId="23" clipDistance="300" nodeId="150" castsShadows="true" receiveShadows="true" materialIds="9,16"/>
+                </Shape>
+                <Shape name="pipeCap01" shapeId="24" clipDistance="300" nodeId="151" castsShadows="true" receiveShadows="true" materialIds="10"/>
+              </TransformGroup>
+              <TransformGroup name="ladder01LinkRefFrame" rotation="-90 0 0" nodeId="152"/>
+            </TransformGroup>
+            <TransformGroup name="hydrLeverRubberLower" translation="-1.71363e-06 0.41737 0.361324" nodeId="153">
+              <TransformGroup name="hydrLever01" translation="0.225 0.0315299 0" nodeId="154">
+                <TransformGroup name="playerRightHandTarget01" translation="-3.50687e-08 0.15 -2.03091e-09" rotation="90 -80 -180" nodeId="155"/>
+              </TransformGroup>
+              <TransformGroup name="hydrLever02" translation="0.175002 0.0315299 -1.01328e-06" nodeId="156">
+                <TransformGroup name="playerRightHandTarget02" translation="-3.50687e-08 0.15 -2.03091e-09" rotation="90 -80 -180" nodeId="157"/>
+              </TransformGroup>
+              <TransformGroup name="hydrLever03" translation="0.125002 0.0315299 -1.01328e-06" nodeId="158">
+                <TransformGroup name="playerRightHandTarget03" translation="0 0.15 0" rotation="-90 -90 0" nodeId="159"/>
+                <TransformGroup name="playerRightHandTarget" translation="0 0.15 0" rotation="-90 -90 0" nodeId="160"/>
+              </TransformGroup>
+              <TransformGroup name="hydrLever04" translation="0.0750022 0.0315299 -1.01328e-06" nodeId="161">
+                <TransformGroup name="playerRightHandTarget04" translation="-3.50687e-08 0.15 -2.03091e-09" rotation="-90 -76.3511 -2.55382e-05" nodeId="162"/>
+              </TransformGroup>
+              <TransformGroup name="hydrLever05" translation="0.0250026 0.0315299 -1.01328e-06" nodeId="163">
+                <TransformGroup name="playerRightHandTarget05" translation="-3.50687e-08 0.15 -2.03091e-09" rotation="-90 -70.6781 2.3248e-05" nodeId="164"/>
+              </TransformGroup>
+              <TransformGroup name="hydrLever06" translation="-0.024997 0.0315299 -1.01328e-06" nodeId="165">
+                <TransformGroup name="playerLeftHandTarget01" translation="0 0.15 0" rotation="-90 76.7511 2.18776e-05" nodeId="166"/>
+              </TransformGroup>
+              <TransformGroup name="hydrLever07" translation="-0.0749966 0.0315299 -1.01328e-06" nodeId="167">
+                <TransformGroup name="playerLeftHandTarget02" translation="0 0.15 0" rotation="-90 82.5868 -1.59466e-05" nodeId="168"/>
+              </TransformGroup>
+              <TransformGroup name="hydrLever08" translation="-0.124996 0.0315299 -1.01328e-06" nodeId="169">
+                <TransformGroup name="playerLeftHandTarget03" translation="0 0.15 0" rotation="-90 90 0" nodeId="170"/>
+                <TransformGroup name="playerLeftHandTarget" translation="0 0.15 0" rotation="-90 90 0" nodeId="171"/>
+              </TransformGroup>
+              <TransformGroup name="hydrLever09" translation="-0.174996 0.0315299 -1.01328e-06" nodeId="172">
+                <TransformGroup name="playerLeftHandTarget04" translation="0 0.15 0" rotation="90 80 -180" nodeId="173"/>
+              </TransformGroup>
+              <TransformGroup name="hydrLever10" translation="-0.224995 0.0315299 -1.01328e-06" nodeId="174">
+                <TransformGroup name="playerLeftHandTarget05" translation="0 0.15 0" rotation="90 80 -180" nodeId="175"/>
+              </TransformGroup>
+            </TransformGroup>
+            <TransformGroup name="ladder01HydrCylin01" translation="-1.49012e-08 0.68256 -0.283624" rotation="180 5.00896e-06 -180" nodeId="176">
+              <TransformGroup name="ladder01HydrPunch01" translation="2.65868e-07 -4.76837e-07 1.16623" rotation="1.62844e-12 -0 0" nodeId="177"/>
+              <TransformGroup name="ladder01HydrCylin01Pipes02" translation="-0.0531356 0.0620403 0.26731" rotation="180 -5.00896e-06 -180" nodeId="178"/>
+            </TransformGroup>
+            <TransformGroup name="frameBracePipe01" translation="2.12789e-05 0.39904 -0.419912" nodeId="179"/>
+            <TransformGroup name="ladder01HydrCylin01Pipes01" translation="0.0515248 0.73384 -0.236494" nodeId="180"/>
+            <TransformGroup name="cameras" translation="0 0 2.98023e-08" nodeId="181">
+              <TransformGroup name="outdoorCameraTarget" translation="0 1 -0.124855" nodeId="182">
+                <Camera name="outdoorCamera1" translation="0 1.4 4.5" rotation="-15 -0 1.49843e-06" nodeId="183" fov="60" nearClip="0.1" farClip="1000" orthographicHeight="1"/>
+              </TransformGroup>
+              <Camera name="indoorCamera1" translation="0 1.3 0.8" rotation="-15 0 3.33572e-08" nodeId="184" fov="60" nearClip="0.1" farClip="1000" orthographicHeight="1"/>
+              <TransformGroup name="cameraRaycastNode1" translation="0 0.264953 -12.5197" nodeId="185"/>
+              <TransformGroup name="cameraRaycastNode2" translation="0 1 -4.70474" nodeId="186"/>
+              <TransformGroup name="cameraRaycastNode3" translation="0 -3.95691 1.14302" nodeId="187"/>
+            </TransformGroup>
+            <Shape name="towerRotator_col" translation="-1.24176e-09 0 2.98023e-08" shapeId="25" compoundChild="true" collisionFilterGroup="0x10004" collisionFilterMask="0xfe3ffb83" nodeId="188" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="7"/>
+            <TransformGroup name="ladder01JointPipe01" translation="0.284502 0.137584 -0.0493904" nodeId="189"/>
+            <TransformGroup name="playerSkin" translation="-2.23517e-08 0.520508 0.694094" rotation="180 -5.00896e-06 180" nodeId="190"/>
+            <TransformGroup name="playerLeftFootTarget" translation="-0.088 -0.410492 0.712094" rotation="180 -5.00896e-06 180" nodeId="191"/>
+            <TransformGroup name="playerRightFootTarget" translation="0.088 -0.410492 0.711094" rotation="180 -5.00896e-06 180" nodeId="192"/>
+          </TransformGroup>
+          <TransformGroup name="towerExtenPipesUpper02" translation="6.80309e-08 3.22849 0.345203" nodeId="193"/>
+          <Shape name="towerExtension_col" translation="0 -0.347136 0" shapeId="26" compoundChild="true" collisionFilterGroup="0x10004" collisionFilterMask="0xfe3ffb83" nodeId="194" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="7"/>
+        </TransformGroup>
+        <TransformGroup name="leftLegHydrPipes01" translation="-0.202023 0.494147 0.0553814" nodeId="195"/>
+        <TransformGroup name="rightLegHydrPipes01" translation="0.202023 0.494147 0.0553814" nodeId="196"/>
+        <TransformGroup name="rootCoupler" translation="3.13036e-05 0.28269 -0.187525" nodeId="197"/>
+        <TransformGroup name="towerExtenPipesUpper01" translation="-3.72529e-09 3.57521 0.2305" nodeId="198">
+          <TransformGroup name="towerExtenPipesLower01" translation="-1.75621e-08 -2.61084 0" nodeId="199">
+            <Shape name="towerExtenPipesLower01Radius" translation="0 5.96046e-08 0" shapeId="27" nodeId="200" castsShadows="true" receiveShadows="true" materialIds="16">
+              <TransformGroup name="towerExtenPipesLower02" translation="-3.78738e-08 0 0.114703" nodeId="201"/>
+            </Shape>
+          </TransformGroup>
+        </TransformGroup>
+        <TransformGroup name="footRefFrame" rotation="-90 0 0" nodeId="202"/>
+      </TransformGroup>
+      <TransformGroup name="sknnedMesh" nodeId="203">
+        <Shape name="leverRubberBoots" shapeId="28" clipDistance="300" nodeId="204" castsShadows="true" receiveShadows="true" skinBindNodeIds="154 156 158 161 163 165 167 169 172 174 153" materialIds="16,15,17"/>
+        <Shape name="pipe" shapeId="29" clipDistance="300" nodeId="205" castsShadows="true" receiveShadows="true" skinBindNodeIds="195 100" materialIds="16"/>
+        <Shape name="pipe" shapeId="30" clipDistance="300" nodeId="206" castsShadows="true" receiveShadows="true" skinBindNodeIds="196 110" materialIds="16"/>
+        <Shape name="pipe" shapeId="31" clipDistance="300" nodeId="207" castsShadows="true" receiveShadows="true" skinBindNodeIds="189 145" materialIds="16"/>
+        <Shape name="pipe" shapeId="32" clipDistance="300" nodeId="208" castsShadows="true" receiveShadows="true" skinBindNodeIds="180 178" materialIds="16"/>
+        <Shape name="pipe" shapeId="33" clipDistance="300" nodeId="209" castsShadows="true" receiveShadows="true" skinBindNodeIds="144 140" materialIds="16"/>
+        <Shape name="pipe" shapeId="34" clipDistance="300" nodeId="210" castsShadows="true" receiveShadows="true" skinBindNodeIds="129 127" materialIds="16"/>
+        <Shape name="pipe" shapeId="35" clipDistance="300" nodeId="211" castsShadows="true" receiveShadows="true" skinBindNodeIds="146 130 116 131" materialIds="16"/>
+        <Shape name="pipe" translation="-2.12874e-08 0.964371 0.2305" shapeId="36" nodeId="212" castsShadows="true" receiveShadows="true" skinBindNodeIds="199 198" materialIds="16"/>
+        <Shape name="pipe" translation="-2.12874e-08 0.964371 0.2305" shapeId="37" nodeId="213" castsShadows="true" receiveShadows="true" skinBindNodeIds="201 193" materialIds="16"/>
+      </TransformGroup>
+      <TransformGroup name="SPS_towerMixer" nodeId="214">
+        <TransformGroup name="SPS_pipeCoupler01" translation="-1.63463e-07 0.282597 -0.487167" rotation="0 180 0" nodeId="215">
+          <TransformGroup name="SPS_pipeCoupler01Arcs" rotation="0 -4.25679e-05 4.98425e-06" nodeId="216">
+            <TransformGroup name="SPS_pipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="217"/>
+            <TransformGroup name="SPS_pipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="218"/>
+          </TransformGroup>
+          <TransformGroup name="inNode" rotation="180 2.36783e-05 -180" nodeId="219"/>
+          <TransformGroup name="outNode" rotation="0 -1.88504e-05 6.3435e-06" nodeId="220"/>
+        </TransformGroup>
+      </TransformGroup>
+    </Shape>
+  </Scene>
+
+</i3D>

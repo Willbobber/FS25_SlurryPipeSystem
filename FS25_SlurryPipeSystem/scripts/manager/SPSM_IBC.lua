@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_IBC 1.0.0.9 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSM_IBC 1.0.0.9 loaded") end
 
 
 -- ---------------------------------------------------------------------------

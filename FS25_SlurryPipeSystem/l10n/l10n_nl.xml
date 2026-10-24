@@ -5,9 +5,12 @@
     <texts>
 		<!-- Inputs -->
 		<text name="input_SPS_TOGGLE_PUMP"      		text="SPS-pomp Aan/Uit" />
+		<text name="input_SPS_STOW_NEXT"			text="SPS: volgende leidinghouder" />
+		<text name="input_SPS_STOW_PREV"			text="SPS: vorige leidinghouder" />
 		<text name="input_SPS_TOGGLE_AGITATOR"		text="Mixer koppelen/loskoppelen" />
 		<text name="input_SPS_ENGAGE_AGITATOR"		text="Mixer-aftakas Aan/Uit" />
 		<text name="input_SPS_TOGGLE_FLOW"      		text="SPS-stroom Openen/Sluiten" />
+		<text name="input_SPS_PUMPMIXER_VALVE"		text="SPS-pompmixerklep Openen/Sluiten" />
 		<text name="input_SPS_TOGGLE_DIRECTION" 		text="SPS-stroomrichting" />
         <text name="input_SPS_TOGGLE_SPREADER"          text="SPS-verdeelklep" />
         
@@ -48,6 +51,12 @@
 		<text name="action_spsRemovePipe"           	text="Slang verwijderen" />
 		<text name="action_spsRemoveDockingStation" 	text="Koppelstation verwijderen" />
 		<text name="action_spsDisconnectPipe" 			text="Slang loskoppelen" />
+		<text name="action_spsPhysConnect" 			text="Leidinguiteinde aansluiten"/>
+		<text name="action_spsPhysDisconnect" 		text="Leidinguiteinde loskoppelen en dragen"/>
+		<text name="action_spsPhysDrop" 				text="Leiding loskoppelen"/>
+		<text name="action_spsPhysStow" 				text="Leiding opbergen: houder %d (%s %d/%d vrij)"/>
+		<text name="action_spsPhysStowCycle" 			text="[muiswiel of ; '] andere houder"/>
+		<text name="action_spsDsStow" 				text="Dockingpaal op houder %d plaatsen"/>
 		<text name="action_spsFinalisePipe"  			text="Slang bevestigen [R] | Annuleren [R ingedrukt houden]" />
 		<text name="action_spsDeployCoupling" 			text="Slangkoppeling plaatsen [R ingedrukt houden]"/>
 		<text name="action_spsRemoveCoupling" 			text="Slangkoppeling verwijderen [R ingedrukt houden]"/>
@@ -55,9 +64,7 @@
 		<text name="action_spsRearValveClose"			text="Klep sluiten [R]" />
 		
         <!-- Warnings -->
-        <text name="warning_slurryNoConnection"    		text="Geen actieve mestverbinding" />
         <text name="warning_slurryCloseFlowFirst"  		text="Sluit eerst de klep voordat je de pomprichting wijzigt" />
-        <text name="warning_slurryNoPipeTarget"    		text="Geen Slangaansluitpunt binnen bereik" />
 		<text name="warning_slurryEngineOff" 			text="Start eerst de motor"/>
 		<text name="warning_spsConnectHydraulics"		text="Sluit eerst de hydrauliekslangen aan" />
 		<text name="warning_spsSetToPressure"			text="Zet de pomp eerst op druk" />
@@ -68,7 +75,27 @@
         <text name="typeDesc_manurePump"                text="Aftakas mestpomp" />
 
         <!-- Conduit pump HUD and direction -->
-        <text name="hud_spsConduitPumped"               text="Gepompt: %d L" />
+        <text name="hud_spsPumpMixerTitle" text="Pompmixer" />
+        <text name="hud_spsPumpStatus" text="Toestand: %s" />
+        <text name="hud_spsPumpPumping" text="POMPT" />
+        <text name="hud_spsPumpStopped" text="gestopt - %s" />
+        <text name="hud_spsPumpRate" text="Debiet: %d L/s   Gepompt: %d L" />
+        <text name="hud_spsPumpThickness" text="Dikte: %d%%   Doorstroming: %d%%" />
+        <text name="hud_spsPumpValveClosed" text="klep dicht" />
+        <text name="hud_spsPumpOff" text="pomp uit" />
+        <text name="hud_spsPumpBladesOff" text="schoepen uit" />
+        <text name="hud_spsPumpNotInSlurry" text="mixer niet in de mest" />
+        <text name="hud_spsPumpNoPipe" text="geen leiding aangesloten" />
+        <text name="hud_spsPumpRecvValve" text="klep aan ontvangende kant dicht" />
+        <text name="hud_spsPumpNoTank" text="niets om in te pompen" />
+        <text name="hud_spsPumpSameStore" text="leiding gaat terug naar dezelfde opslag" />
+        <text name="hud_spsPumpDrawOnly" text="ontvangende kant neemt geen mest aan" />
+        <text name="hud_spsPumpSourceEmpty" text="bron leeg" />
+        <text name="hud_spsPumpDestFull" text="bestemming vol" />
+        <text name="hud_spsPumpTooThick" text="te dik" />
+        <text name="hud_spsPumpBlades" text="Schoepen: %s" />
+        <text name="hud_spsPumpBladesSpinning" text="DRAAIEN" />
+        <text name="hud_spsPumpBladesStopped" text="uit" />
         <text name="action_spsConduitDirAtoB"           text="Stroom: Poort 1 → Poort 2" />
         <text name="action_spsConduitDirBtoA"           text="Stroom: Poort 2 → Poort 1" />
 		
@@ -76,14 +103,9 @@
         <text name="warning_spsSlurryThickening"  		text="Mest wordt dikker: %d%% — mengen aanbevolen" />
         <text name="warning_spsSlurryThickeningWater"  	text="Mest wordt dikker: %d%% — water toevoegen" />
         <text name="warning_spsSlurryTooThick"          text="Mest te dik — water vereist" />
-        <text name="sps_settingsAgitation"              text="Mest mengen" />
-        <text name="sps_settingsAgitationTooltip"       text="Schakel mestverdikking en mengsysteem in" />
+        <text name="warning_spsStoreNoAccess"           text="Geen toegang tot deze opslag (eigendom van een andere boerderij)" />
         <text name="sps_settingsRealism"                text="Mestrealisme" />
         <text name="sps_settingsRealismTooltip"         text="Hoofdschakelaar voor mestdikte, korstvorming, verstoppingen en slangverliezen" />
-        <text name="sps_settingsStoreThickening"        text="    Verdikking in opslag" />
-        <text name="sps_settingsStoreThickeningTooltip" text="Mest in opslag wordt na verloop van tijd dikker (altijd actief met Realisme)" />
-        <text name="sps_settingsCrust"                  text="    Korstvorming" />
-        <text name="sps_settingsCrustTooltip"           text="Zichtbare korst groeit op dikke mestoppervlakken (altijd actief met Realisme)" />
         <text name="sps_settingsThicknessFlow"          text="    Dikte beïnvloedt doorstroming" />
         <text name="sps_settingsThicknessFlowTooltip"   text="Dikke mest vertraagt vullen, lossen en uitrijden" />
         <text name="sps_settingsBlockages"              text="    Verstoppingen verdeler" />
@@ -91,26 +113,16 @@
         <text name="sps_settingsLengthFalloff"          text="    Verlies door slanglengte" />
         <text name="sps_settingsLengthFalloffTooltip"   text="De doorstroming neemt af naarmate de aangesloten mestslang langer wordt" />
         <text name="warning_spsBlockage"                text="Verdeler verstopt — verwijder de verstopping om verder te gaan" />
-        <text name="action_spsAgitatorOn"               text="Mixer: UIT — aftakas draait" />
-        <text name="action_spsAgitatorOff"              text="Mixer: AAN — aftakas draait" />
-        <text name="warning_spsAgitatorNotSubmerged"    text="Mixer niet ondergedompeld" />
         <text name="sps_infoThicknessTitle"             text="Mestdikte" />
 		<text name="sps_infoLiquidTitle"                text="Vloeistof" />
         <text name="sps_infoDryMatterTitle"             text="Droge stof" />
         <text name="sps_infoCrustTitle"                 text="Korst" />
         <text name="sps_infoTankEmpty"               text="Leeg" />
+        <text name="shopItem_spsSprayerSilo"        text="Spuitmiddelsilo (4 tanks, SPS)" />
+        <text name="function_spsSprayerSilo"        text="Vier aparte vloeistoftanks achter één SPS-leidingaansluiting. Stap in de schakelkast om de tank te kiezen; vloeibare kunstmest of herbicide, elke tank blijft vergrendeld op zijn inhoud tot hij leeg is. Alleen via leiding: geen laden door eronder te rijden." />
 		
 		<!-- Water -->
-		<text name="action_spsDeployWaterPipe"			text="R ingedrukt houden: Waterslang plaatsen" />
-		<text name="action_spsFinalizeWaterPipe"		text="R ingedrukt houden: Waterslang bevestigen" />
-		<text name="action_spsCancelWaterPipe"			text="R ingedrukt houden: Plaatsing annuleren" />
-		<text name="action_spsRemoveWaterPipe"			text="R ingedrukt houden: Waterslang verwijderen" />
-		<text name="info_spsPipeWalkToWater"			text="Loop richting water om de slang te plaatsen" />
-		<text name="info_spsPipeDeployed"				text="Waterslang geplaatst" />
-		<text name="info_spsPipeCancelled"				text="Plaatsing van slang geannuleerd" />
-		<text name="info_spsPipeRemoved"				text="Waterslang verwijderd" />
 		<text name="warning_spsPipeTooShort"			text="Slang te kort (minimaal 2 m)" />
-		<text name="warning_spsPipeTooLong"				text="Slang te lang (maximaal 20 m)" />
 		
 		<!-- Sprayer -->
 		<text name="input_SPS_TOGGLE_ANIMATION_SPRAYER"	text="Deksel openen | Deksel sluiten" />
@@ -122,10 +134,8 @@
 		<text name="action_sprayerFlowOn"				text="Stroom: ACTIEF" />
 		<text name="action_sprayerDirLoad"				text="Richting: LADEN" />
 		<text name="action_sprayerDirUnload"			text="Richting: LOSSEN" />
-		<text name="sps_warningCloseCoverBeforeTurnOn" 	text="Sluit het deksel voordat u het apparaat inschakelt"/>
 		
 		<!-- SPS spreader HUD -->
-		<text name="sps_hudTitle"            			text="Verdeler" />
 		<text name="sps_hudSlurry"           			text="Mest" />
 		<text name="sps_hudCrust"            			text="Korst" />
 		<text name="sps_hudThickness"        			text="Dikte" />
@@ -157,10 +167,10 @@
 		<text name="sps_hudSetHideHelpTooltip" 		text="Ja: de SPS-hud verdwijnt samen met het hulpmenu wanneer F1 wordt ingedrukt. Nee: hij blijft in beeld." />
 		<text name="sps_hudSetScale"         			text="HUD-schaal" />
 		<text name="sps_hudSetScaleTooltip"  			text="Grootte van de verdeler-HUD. Kan ook worden aangepast met het scrollwiel tijdens het verplaatsen van de HUD." />
-		<text name="sps_hudPressure" 					text="Pressure"/>
+		<text name="sps_hudPressure" 					text="Druk"/>
 		<text name="input_SPS_HUD_EDIT"          		text="Verdeler-HUD bewerken" />
 		<!-- SPS blockage clearing -->
-		<text name="sps_blockageMacerator"   			text="Macerator" />
+		<text name="sps_blockageMacerator"   			text="Versnijder" />
 		<text name="action_spsClearBlockage" 			text="Ingedrukt houden om vrij te maken: %s" />
 		<text name="action_spsClearBlockageWait" 		text="Stop de balk om vrij te maken: %s" />
 		<text name="warning_spsClearBlocked" 			text="Stop met uitrijden en laat de druk zakken voordat je de verstopping verwijdert." />
@@ -177,7 +187,7 @@
 		<text name="sps_settingsShearBoltTooltip" 		text="Schakel de aftakas-breekbout in."/>
 	
 		<!-- Agitator -->
-		<text name="action_spsAgitatorConnect" 			text="Connect PTO"/>
+		<text name="action_spsAgitatorConnect" 			text="Aftakas aansluiten"/>
 		<text name="action_spsAgitatorDisconnect" 		text="Aftakas loskoppelen"/>
 		<text name="action_spsAgitatorPtoOn"  			text="Aftakas inschakelen"/>
 		<text name="action_spsAgitatorPtoOff" 			text="Aftakas uitschakelen"/>
@@ -185,13 +195,29 @@
 		<!-- IBCs -->
 		<text name="sps_settingsIbcPersist" 			text="IBC blijft behouden in lege toestand"/>
 		<text name="sps_settingsIbcPersistTooltip" 		text="Ja: geleegde IBC's blijven op de kaart staan ​​(breng ze terug naar de winkel of vul ze opnieuw). Nee: ze verdwijnen zodra ze leeg zijn (standaardinstelling)."/>
+		<text name="sps_settingsPhysicalPipes" 			text="Fysieke leidingen"/>
+		<text name="sps_settingsPhysicalPipesTooltip" 	text="Nee: origineel systeem - leidingen leggen en aansluiten bij koppelingen, ketens, spuiten en water-/melkleidingen; de koopleidingen zijn verborgen in de winkel. Ja: alleen fysieke leidingen - leidingen kopen in de winkel en met je handen dragen; alle originele leidingopties staan uit. De twee systemen werken nooit samen."/>
+		<text name="sps_pipeModeTitle" 	text="Slurry Pipe System - kies je leidingsysteem"/>
+		<text name="sps_pipeModeQuestion" 	text="Welk leidingsysteem wil je in dit spel gebruiken?&#xA;&#xA;ORIGINEEL: leidingen leggen en aansluiten bij koppelingen, ketens, spuiten en water-/melkleidingen zoals voorheen.&#xA;FYSIEK (nieuw): leidingen kopen in de winkel en met je handen dragen; het originele leg-/aansluitsysteem staat uit.&#xA;&#xA;De twee werken nooit samen. Je kunt dit later wijzigen onder Instellingen > Fysieke leidingen."/>
+		<text name="sps_pipeModeExisting" 	text="Dit spel heeft al %s."/>
+		<text name="sps_pipeModeCounts" 	text="%d gelegde leidingketens, %d verbonden koppelingen, %d spuitleidingen, %d water-/melkleidingen"/>
+		<text name="sps_pipeModeBtnPhysical" 	text="Fysieke leidingen (nieuw)"/>
+		<text name="sps_pipeModeBtnOriginal" 	text="Origineel systeem"/>
+		<text name="sps_pipeModeWarnTitle" 	text="WAARSCHUWING - wisselen naar fysieke leidingen"/>
+		<text name="sps_pipeModeWarnText" 	text="Wisselen naar de nieuwe fysieke leidingen VERWIJDERT alle leidingen die met het originele systeem zijn gelegd of aangesloten in dit spel (%s) en zet het originele aansluitsysteem UIT - ook midden in het spel. Verwijderde leidingen kunnen niet worden hersteld.&#xA;&#xA;Nu naar fysieke leidingen wisselen?"/>
+		<text name="sps_pipeModeBtnSwitch" 	text="Wisselen en leidingen verwijderen"/>
+		<text name="sps_pipeModeBtnKeep" 	text="Origineel houden"/>
+		<text name="sps_pipeModeWarnOrigTitle" 	text="WAARSCHUWING - wisselen naar het originele systeem"/>
+		<text name="sps_pipeModeWarnOrigText" 	text="Teruggaan naar het originele systeem VERWIJDERT alle fysieke leidingen en draagbare dockingstations in dit spel (%s) en zet de fysieke leidingen UIT - ook midden in het spel. Verwijderde leidingen en stations kunnen niet worden hersteld.&#xA;&#xA;Nu naar het originele systeem wisselen?"/>
+		<text name="sps_pipeModePhysCounts" 	text="%d fysieke leidingen, %d aangesloten uiteinden, %d opgeborgen op houders, %d dockingstations"/>
+		<text name="sps_pipeModeBtnKeepPhysical" 	text="Fysieke leidingen houden"/>
 		<text name="action_spsAddIbc" 					text="Aanhouden: IBC toevoegen" />
 
 		<!-- Separator -->
 		<text name="input_SPS_TOGGLE_SEPARATOR"		text="Separator start/stop" />
 		<text name="input_SPS_SEPARATOR_TIGHTNESS"	text="Separator vijzelspanning" />
-		<text name="action_spsSeparatorOn"			text="Separator: START" />
-		<text name="action_spsSeparatorOff"			text="Separator: STOP" />
+		<text name="action_spsSeparatorOn"			text="Scheider: AAN" />
+		<text name="action_spsSeparatorOff"			text="Scheider: UIT" />
 		<text name="action_spsSeparatorTightness"	text="Vijzelspanning: %d%%" />
 		<text name="warning_spsSepNoPipes"			text="Separator: sluit de aanvoer- en afvoerslang aan" />
 		<text name="warning_spsSepNoInPipe"			text="Separator: sluit de aanvoerslang aan (mestbron)" />
@@ -205,5 +231,95 @@
 
 		<!-- Buying station -->
 		<text name="action_spsBuyStationSwitch"		text="Kopen: %s — wissel naar %s" />
+		<text name="action_spsTankSwitch"		text="Tank %s (%s) - wissel naar tank %s (%s)" />
+		<!-- Farm liquid lanes: animal water in / milk out (1.0.1.8) -->
+		<text name="sps_laneWater"						text="Water" />
+		<text name="sps_laneMilk"						text="Melk" />
+		<text name="action_spsWaterFlowOn"				text="Water: LOOPT" />
+		<text name="action_spsWaterFlowOff"				text="Water: GESTOPT" />
+		<text name="action_spsMilkFlowOn"				text="Melk: LOOPT" />
+		<text name="action_spsMilkFlowOff"				text="Melk: GESTOPT" />
+		<text name="warning_spsAnimalWaterOnly"			text="Alleen water kan naar de dieren worden gepompt" />
+		<text name="warning_spsAnimalWaterEmpty"		text="Tank is leeg" />
+		<text name="warning_spsMilkOnly"				text="Door deze aansluiting stroomt alleen melk" />
+		<text name="warning_spsMilkBarnEmpty"			text="De stal heeft geen melk om op te halen" />
+		<text name="warning_spsLiquidTankFull"			text="Tank is vol" />
+		<text name="warning_spsLiquidBarnFull"			text="Drinkwater is vol" />
+		<text name="warning_spsLiquidDirectionFixed"	text="De richting ligt vast bij deze aansluiting" />
+		<!-- [SPS 1.0.1.8] physical pipes: fitting valves + tanker-to-tanker transfer -->
+		<text name="action_spsFittingValveOpen"		text="Klep openen" />
+		<text name="action_spsFittingValveClose"		text="Klep sluiten" />
+		<text name="warning_spsFittingValveClosed"		text="Open eerst de kleppen op beide aansluitingen" />
+		<text name="warning_spsCloseValveFirst"		text="Sluit de klep voordat je de leiding loskoppelt" />
+		<text name="sps_laneTransfer"					text="Tank naar tank" />
+		<text name="warning_spsTransferOtherEmpty"		text="De andere tank is leeg" />
+		<text name="warning_spsTransferOtherFull"		text="De andere tank is vol" />
+		<text name="warning_spsTransferType"			text="De tanks bevatten verschillende vloeistoffen" />
+		<text name="warning_spsTransferPumping"		text="De andere tankwagen pompt al" />
+		<text name="sps_laneSprayer"					text="Spuitbron" />
+		<text name="shopItem_spsCowBarnMedium"		text="Koeienstal middel (SPS)" />
+		<text name="function_spsCowBarnMedium"		text="De middelgrote Rudolf Hörmann koeienstal met drie aansluitingen: mest eruit, melk eruit, drinkwater erin. Het drinkwater is hier een echte voorraad van 35.000 l: de koeien moeten via slang of tank van water worden voorzien." />
+		<!-- [SPS 1.0.1.8] bought pipe shop item -->
+		<text name="shopItem_spsHose"			text="SPS-leiding" />
+		<text name="typeDesc_spsHose"			text="Leiding" />
+		<text name="function_spsHose"			text="Een fysieke leiding. Kies in de winkel: mest 140 mm, water of melk 80 mm, 4 m of 6 m en bij mest de uiteinden (vrouw/man, vrouw/vrouw of man/man). Pak hem op met je handen (linkermuisknop), breng een uiteinde naar een koppeling en druk op de rechtermuisknop om aan te sluiten. De rechtermuisknop op een aangesloten uiteinde haalt het los in je handen; de linkermuisknop op een aangesloten leiding laat hem vallen. Mestleidingen krijgen een kleur. Vast na aankoop - verkoop hem om te wijzigen." />
+		<text name="spsHose_slurry"			text="SPS mestleiding 140 mm" />
+		<text name="spsDockingStation_name"		text="SPS Dockingstation" />
+		<text name="function_spsDockingStation"	text="Draagbare dockingpaal. Draag hem met je handen (linkermuisknop) en zet hem neer waar nodig, sluit een leiding aan op de koppeling en laat de vularm van een tank in de rubberen laars zakken om via de leiding te laden." />
+		<text name="typeDesc_spsDockingStation"	text="Dockingstation" />
+		<text name="configuration_spsRamp" text="Oprit" />
+		<text name="spsHose_FM"				text="Slurry 140 mm - female / male" />
+		<text name="spsHose_FF"				text="Slurry 140 mm - female / female" />
+		<text name="spsHose_MM"				text="Slurry 140 mm - male / male" />
+		<text name="spsHose_WATER"			text="SPS waterslang 80 mm" />
+		<text name="spsHose_MILK"			text="SPS melkslang 80 mm" />
+		<text name="spsHose_slurry_long"		text="SPS mestleiding 140 mm (6 m)" />
+		<text name="spsHose_WATER_long"		text="SPS waterslang 80 mm (6 m)" />
+		<text name="spsHose_MILK_long"		text="SPS melkslang 80 mm (6 m)" />
+		<text name="configuration_spsPipeType"	text="Leiding" />
+		<text name="configuration_spsPipeLength"	text="Lengte" />
+		<text name="configuration_spsPipeEnds"	text="Uiteinden (mestleiding)" />
+		<text name="spsPipe_typeSlurry"		text="Mestleiding 140 mm" />
+		<text name="spsPipe_typeWater"		text="Waterslang 80 mm" />
+		<text name="spsPipe_typeMilk"		text="Melkslang 80 mm" />
+		<text name="spsPipe_length4"			text="4 m" />
+		<text name="spsPipe_length6"			text="6 m" />
+		<text name="spsColor_green"			text="Groen" />
+		<text name="spsColor_blue"			text="Blauw" />
+		<text name="spsColor_brown"			text="Bruin" />
+		<text name="spsColor_black"			text="Zwart" />
+
+        <!-- [SPS 1.0.1.8] player-drawn water courses (building screen, Landscaping > SPS Water) -->
+        <text name="construction_tab_spsWater" text="SPS-water" />
+        <text name="shopItem_spsWaterCourseDraw" text="Wateroppervlak tekenen" />
+        <text name="function_spsWaterCourseDraw" text="Teken een ring om een meer of rivier zodat SPS-tanks er water uit kunnen halen. Klik eerst op het water (zet het peil), zet dan markers langs de oever en klik op de eerste om te sluiten." />
+        <text name="shopItem_spsWaterCourseRemove" text="Wateroppervlak verwijderen" />
+        <text name="function_spsWaterCourseRemove" text="Een eerder getekend wateroppervlak verwijderen." />
+        <text name="sps_waterCourse_defaultName" text="Wateroppervlak %d" />
+        <text name="sps_waterCourse_namePrompt" text="Naam van het wateroppervlak" />
+        <text name="sps_waterCourse_hintClickWater" text="Klik eerst op het water - dat zet het waterpeil" />
+        <text name="sps_waterCourse_clickWaterFirst" text="Hier is geen water - klik eerst op het water" />
+        <text name="sps_waterCourse_levelSet" text="Waterpeil gezet - zet nu markers langs de oever" />
+        <text name="sps_waterCourse_complete" text="Wateroppervlak klaar" />
+        <text name="sps_waterCourse_cancelled" text="Wateroppervlak geannuleerd" />
+        <text name="sps_waterCourse_removed" text="Wateroppervlak verwijderd" />
+        <text name="sps_waterCourse_removeConfirm" text="Wateroppervlak '%s' verwijderen?" />
+        <text name="sps_waterCourse_noneOnMap" text="Geen getekende wateroppervlakken op deze kaart" />
+        <text name="sps_waterCourse_tooFewPoints" text="Minstens 3 markers nodig" />
+        <text name="sps_waterCourse_tooManyPoints" text="Te veel markers (max. 256)" />
+        <text name="sps_waterCourse_edgeTooShort" text="Te dicht bij de laatste marker" />
+        <text name="sps_waterCourse_tooSmall" text="De ring is te klein" />
+        <text name="sps_waterCourse_crossing" text="De lijn zou de ring kruisen" />
+        <text name="sps_waterCourse_actionClickWater" text="Klik op het water (peil)" />
+        <text name="sps_waterCourse_actionPlace" text="Marker zetten" />
+        <text name="sps_waterCourse_actionClose" text="Ring sluiten" />
+        <text name="sps_waterCourse_actionRemoveLast" text="Laatste marker weghalen" />
+        <text name="sps_waterCourse_actionRemoveLevel" text="Waterpunt weghalen" />
+        <text name="sps_waterCourse_actionRemove" text="Dit wateroppervlak verwijderen" />
+        <text name="shopItem_spsPtoPump"		text="SPS aftakas-mestpomp" />
+        <text name="shopItem_spsTowerMixer"		text="SPS torenmixer" />
+        <text name="function_spsTowerMixer"		text="Een door de trekker aangedreven lagunemixer op een opvouwbare toren. Laat de steunen zakken, vouw de arm in de opslag en meng de mest met de aftakas; een leiding van de pomp brengt de gemengde mest naar een tank." />
+        <text name="sps_hudPipeFlow"		text="Leidingstroom" />
+        <text name="input_SPS_FREE_PIPE"		text="Vastzittende leiding losmaken" />
 	</texts>
 </l10n>

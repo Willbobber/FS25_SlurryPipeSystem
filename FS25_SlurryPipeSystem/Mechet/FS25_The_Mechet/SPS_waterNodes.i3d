@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="SPS_waterNodes.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
+  </Asset>
+
+  <Files>
+  </Files>
+
+
+  <Materials>
+  </Materials>
+
+
+  <Shapes externalShapesFile="SPS_waterNodes.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="SPS_waterNodes" nodeId="163420">
+      <TransformGroup name="waterPlane" translation="541.583 32.2372 777.542" rotation="0 -23.6986 0" nodeId="163421">
+        <Shape name="waterPlane01" shapeId="1" visibility="false" nodeId="163422" castsShadows="false" receiveShadows="false" distanceBlending="false"/>
+      </TransformGroup>
+      <TransformGroup name="waterPlane.001" translation="-323.727 70.5004 -415.534" rotation="0 21.6641 0" nodeId="163423">
+        <TransformGroup name="waterPlane.001_01" translation="0 0 7.62939e-06" rotation="0 1.70755e-06 0" nodeId="163424">
+          <TransformGroup name="node1" nodeId="163425"/>
+          <TransformGroup name="node2" translation="-0.0700989 0 -23.6984" nodeId="163426"/>
+          <TransformGroup name="node3" translation="14.3129 0 -23.659" nodeId="163427"/>
+          <TransformGroup name="node4" translation="12.9046 0 4.36951" nodeId="163428"/>
+        </TransformGroup>
+        <TransformGroup name="waterPlane.001_02" translation="13.1409 0 4.38337" rotation="0 1.70755e-06 0" nodeId="163429">
+          <TransformGroup name="node1" nodeId="163430"/>
+          <TransformGroup name="node2" translation="0.98137 0 -28.0707" nodeId="163431"/>
+          <TransformGroup name="node3" translation="16.6256 0 -27.2332" nodeId="163432"/>
+          <TransformGroup name="node4" translation="16.5325 0 -11.4035" nodeId="163433"/>
+        </TransformGroup>
+        <TransformGroup name="waterPlane.001_03" translation="29.6798 0 -23.4521" rotation="0 1.70755e-06 0" nodeId="163434">
+          <TransformGroup name="node1" nodeId="163435"/>
+          <TransformGroup name="node2" translation="-29.6403 0 -0.549347" nodeId="163436"/>
+          <TransformGroup name="node3" translation="-39.3257 0 -17.6027" nodeId="163437"/>
+          <TransformGroup name="node4" translation="-10.8012 0 -16.1597" nodeId="163438"/>
+        </TransformGroup>
+        <TransformGroup name="waterPlane.001_04" translation="18.5666 0 -39.6327" rotation="0 1.70755e-06 0" nodeId="163439">
+          <TransformGroup name="node1" nodeId="163440"/>
+          <TransformGroup name="node2" translation="-29.6403 0 -1.36084" nodeId="163441"/>
+          <TransformGroup name="node3" translation="-39.3257 0 -10.2202" nodeId="163442"/>
+          <TransformGroup name="node4" translation="-6.76108 0 -6.35932" nodeId="163443"/>
+        </TransformGroup>
+      </TransformGroup>
+    </TransformGroup>
+  </Scene>
+
+</i3D>

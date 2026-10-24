@@ -3,9 +3,12 @@
     <texts>
 		<!-- Inputs -->
 		<text name="input_SPS_TOGGLE_PUMP"      		text="SPS Pompe Marche/Arrêt" />
+		<text name="input_SPS_STOW_NEXT"			text="SPS : support de tuyau suivant" />
+		<text name="input_SPS_STOW_PREV"			text="SPS : support de tuyau précédent" />
 		<text name="input_SPS_TOGGLE_AGITATOR"		text="Connecter/Déconnecter l'agitateur" />
 		<text name="input_SPS_ENGAGE_AGITATOR"		text="Prise de force agitateur Marche/Arrêt" />
 		<text name="input_SPS_TOGGLE_FLOW"      		text="SPS Débit Ouvrir/Fermer" />
+		<text name="input_SPS_PUMPMIXER_VALVE"		text="SPS Vanne pompe mélangeuse Ouvrir/Fermer" />
 		<text name="input_SPS_TOGGLE_DIRECTION" 		text="SPS Sens du débit" />
         <text name="input_SPS_TOGGLE_SPREADER"          text="SPS Vanne d'épandage" />
         
@@ -46,6 +49,12 @@
 		<text name="action_spsRemovePipe"           	text="Retirer le tuyau" />
 		<text name="action_spsRemoveDockingStation" 	text="Retirer la station d'accueil" />
 		<text name="action_spsDisconnectPipe" 			text="Déconnecter le tuyau" />
+		<text name="action_spsPhysConnect" 			text="Raccorder l'extrémité du tuyau"/>
+		<text name="action_spsPhysDisconnect" 		text="Débrancher l'extrémité et la porter"/>
+		<text name="action_spsPhysDrop" 				text="Débrancher le tuyau"/>
+		<text name="action_spsPhysStow" 				text="Ranger le tuyau : support %d (%s %d/%d libres)"/>
+		<text name="action_spsPhysStowCycle" 			text="[molette ou ; '] autre support"/>
+		<text name="action_spsDsStow" 				text="Poser la station d&apos;accostage sur le support %d"/>
 		<text name="action_spsFinalisePipe"  			text="Valider le tuyau [R] | Annuler [R maintenu]" />
 		<text name="action_spsDeployCoupling" 			text="Déployer le raccord [R maintenu]"/>
 		<text name="action_spsRemoveCoupling" 			text="Retirer le raccord [R maintenu]"/>
@@ -53,9 +62,7 @@
 		<text name="action_spsRearValveClose"			text="Fermer la vanne [R]" />
 		
         <!-- Warnings -->
-        <text name="warning_slurryNoConnection"    		text="Aucune connexion de lisier active" />
         <text name="warning_slurryCloseFlowFirst"  		text="Fermer la vanne avant de changer le sens de la pompe" />
-        <text name="warning_slurryNoPipeTarget"    		text="Aucun point de connexion de tuyau à portée" />
 		<text name="warning_slurryEngineOff" 			text="Démarrer le moteur d'abord"/>
 		<text name="warning_spsConnectHydraulics"		text="Connecter d'abord les flexibles hydrauliques" />
 		<text name="warning_spsSetToPressure"			text="Régler d'abord la pompe sur Refoulement" />
@@ -66,7 +73,27 @@
         <text name="typeDesc_manurePump"                text="Pompe à lisier PdF" />
 
         <!-- Conduit pump HUD and direction -->
-        <text name="hud_spsConduitPumped"               text="Pompé : %d L" />
+        <text name="hud_spsPumpMixerTitle" text="Pompe mélangeuse" />
+        <text name="hud_spsPumpStatus" text="État : %s" />
+        <text name="hud_spsPumpPumping" text="POMPAGE" />
+        <text name="hud_spsPumpStopped" text="arrêté - %s" />
+        <text name="hud_spsPumpRate" text="Débit : %d L/s   Pompé : %d L" />
+        <text name="hud_spsPumpThickness" text="Épaisseur : %d%%   Vitesse : %d%%" />
+        <text name="hud_spsPumpValveClosed" text="vanne fermée" />
+        <text name="hud_spsPumpOff" text="pompe arrêtée" />
+        <text name="hud_spsPumpBladesOff" text="pales arrêtées" />
+        <text name="hud_spsPumpNotInSlurry" text="mélangeur hors du lisier" />
+        <text name="hud_spsPumpNoPipe" text="aucun tuyau connecté" />
+        <text name="hud_spsPumpRecvValve" text="vanne de réception fermée" />
+        <text name="hud_spsPumpNoTank" text="rien à remplir" />
+        <text name="hud_spsPumpSameStore" text="le tuyau revient dans la même fosse" />
+        <text name="hud_spsPumpDrawOnly" text="le côté récepteur ne prend pas de lisier" />
+        <text name="hud_spsPumpSourceEmpty" text="source vide" />
+        <text name="hud_spsPumpDestFull" text="destination pleine" />
+        <text name="hud_spsPumpTooThick" text="trop épais" />
+        <text name="hud_spsPumpBlades" text="Pales : %s" />
+        <text name="hud_spsPumpBladesSpinning" text="EN ROTATION" />
+        <text name="hud_spsPumpBladesStopped" text="arrêtées" />
         <text name="action_spsConduitDirAtoB"           text="Débit : Port 1 → Port 2" />
         <text name="action_spsConduitDirBtoA"           text="Débit : Port 2 → Port 1" />
 		
@@ -74,14 +101,9 @@
         <text name="warning_spsSlurryThickening"  		text="Épaississement du lisier : %d%% — agitation conseillée" />
         <text name="warning_spsSlurryThickeningWater"  	text="Épaississement du lisier : %d%% — ajouter de l&apos;eau" />
         <text name="warning_spsSlurryTooThick"          text="Lisier trop épais — eau nécessaire" />
-        <text name="sps_settingsAgitation"              text="Agitation du lisier" />
-        <text name="sps_settingsAgitationTooltip"       text="Active le système d'épaississement et d'agitation du lisier" />
+        <text name="warning_spsStoreNoAccess"           text="Pas d'accès à ce stockage (il appartient à une autre ferme)" />
         <text name="sps_settingsRealism"                text="Réalisme du lisier" />
         <text name="sps_settingsRealismTooltip"         text="Interrupteur principal pour l'épaisseur, la croûte, les bouchons et la perte de débit sur longueur" />
-        <text name="sps_settingsStoreThickening"        text="    Épaississement en cuve" />
-        <text name="sps_settingsStoreThickeningTooltip" text="Le lisier en cuve s'épaissit avec le temps (toujours actif avec Réalisme)" />
-        <text name="sps_settingsCrust"                  text="    Croûte végétale" />
-        <text name="sps_settingsCrustTooltip"           text="Une croûte visible se forme sur le lisier épais (toujours actif avec Réalisme)" />
         <text name="sps_settingsThicknessFlow"          text="    L'épaisseur affecte le débit" />
         <text name="sps_settingsThicknessFlowTooltip"   text="Le lisier épais ralentit le remplissage, la vidange et l'épandage" />
         <text name="sps_settingsBlockages"              text="    Bouchons d'épandage" />
@@ -89,26 +111,16 @@
         <text name="sps_settingsLengthFalloff"          text="    Perte de débit sur longueur" />
         <text name="sps_settingsLengthFalloffTooltip"   text="Le débit baisse sur la longueur d'un tuyau à lisier connecté" />
         <text name="warning_spsBlockage"                text="Épandeur bouché — dégagez le bouchon pour continuer" />
-        <text name="action_spsAgitatorOn"               text="Agitateur : ARRÊTÉ — PdF en marche" />
-        <text name="action_spsAgitatorOff"              text="Agitateur : EN MARCHE — PdF en marche" />
-        <text name="warning_spsAgitatorNotSubmerged"    text="Agitateur non immergé" />
         <text name="sps_infoThicknessTitle"             text="Épaisseur du lisier" />
 		<text name="sps_infoLiquidTitle"                text="Liquide" />
         <text name="sps_infoDryMatterTitle"             text="Matière sèche" />
         <text name="sps_infoCrustTitle"                 text="Croûte" />
         <text name="sps_infoTankEmpty"               text="Vide" />
+        <text name="shopItem_spsSprayerSilo"        text="Silo pulvérisateur (4 cuves, SPS)" />
+        <text name="function_spsSprayerSilo"        text="Quatre cuves séparées derrière un seul raccord SPS. Entrez dans le boîtier pour choisir la cuve ; engrais liquide ou herbicide, chaque cuve reste verrouillée sur son contenu jusqu'à vidange. Tuyau uniquement : pas de remplissage en passant dessous." />
 		
 		<!-- Water -->
-		<text name="action_spsDeployWaterPipe"			text="Maintenir R : Déployer le tuyau d'eau" />
-		<text name="action_spsFinalizeWaterPipe"		text="Maintenir R : Valider le tuyau d'eau" />
-		<text name="action_spsCancelWaterPipe"			text="Maintenir R : Annuler le placement" />
-		<text name="action_spsRemoveWaterPipe"			text="Maintenir R : Retirer le tuyau d'eau" />
-		<text name="info_spsPipeWalkToWater"			text="Approchez-vous de l'eau pour poser le tuyau" />
-		<text name="info_spsPipeDeployed"				text="Tuyau d'eau déployé" />
-		<text name="info_spsPipeCancelled"				text="Placement du tuyau annulé" />
-		<text name="info_spsPipeRemoved"				text="Tuyau d'eau retiré" />
 		<text name="warning_spsPipeTooShort"			text="Tuyau trop court (minimum 2 m)" />
-		<text name="warning_spsPipeTooLong"				text="Tuyau trop long (maximum 20 m)" />
 		
 		<!-- Sprayer -->
 		<text name="input_SPS_TOGGLE_ANIMATION_SPRAYER"	text="Ouvrir le couvercle | Fermer le couvercle" />
@@ -120,10 +132,8 @@
 		<text name="action_sprayerFlowOn"				text="Débit : EN MARCHE" />
 		<text name="action_sprayerDirLoad"				text="Sens : CHARGEMENT" />
 		<text name="action_sprayerDirUnload"			text="Sens : DÉCHARGEMENT" />
-		<text name="sps_warningCloseCoverBeforeTurnOn" 	text="Fermez le couvercle avant de mettre l'appareil en marche"/>
 		
 		<!-- SPS spreader HUD -->
-		<text name="sps_hudTitle"            			text="Épandeur" />
 		<text name="sps_hudSlurry"           			text="Lisier" />
 		<text name="sps_hudCrust"            			text="Croûte" />
 		<text name="sps_hudThickness"        			text="Épaisseur" />
@@ -155,7 +165,7 @@
 		<text name="sps_hudSetHideHelpTooltip" 		text="Oui : le HUD SPS se masque avec le menu d'aide quand F1 est pressé. Non : il reste affiché." />
 		<text name="sps_hudSetScale"         			text="Échelle du HUD" />
 		<text name="sps_hudSetScaleTooltip"  			text="Taille du HUD de l'épandeur. Modifiable aussi avec la molette pendant le déplacement du HUD." />
-		<text name="sps_hudPressure" 					text="Pressure"/>
+		<text name="sps_hudPressure" 					text="Pression"/>
 		<text name="input_SPS_HUD_EDIT"          		text="Éditer le HUD de l'épandeur" />
 		<!-- SPS blockage clearing -->
 		<text name="sps_blockageMacerator"   			text="Broyeur" />
@@ -175,7 +185,7 @@
 		<text name="sps_settingsShearBoltTooltip" 		text="Active le boulon de cisaillement de la prise de force."/>
 	
 		<!-- Agitator -->
-		<text name="action_spsAgitatorConnect" 			text="Connect PTO"/>
+		<text name="action_spsAgitatorConnect" 			text="Brancher la prise de force"/>
 		<text name="action_spsAgitatorDisconnect" 		text="Déconnecter la PdF"/>
 		<text name="action_spsAgitatorPtoOn"  			text="Engager la PdF"/>
 		<text name="action_spsAgitatorPtoOff" 			text="Désengager la PdF"/>
@@ -183,6 +193,22 @@
 		<!-- IBCs -->
 		<text name="sps_settingsIbcPersist" 			text="Le GRV reste en place lorsqu'il est vide"/>
 		<text name="sps_settingsIbcPersistTooltip" 		text="Oui : les cuves IBC vides restent sur la carte (rapportez-les au magasin ou remplissez-les). Non : elles disparaissent une fois vides (paramètre par défaut)."/>
+		<text name="sps_settingsPhysicalPipes" 			text="Tuyaux physiques"/>
+		<text name="sps_settingsPhysicalPipesTooltip" 	text="Non : système d'origine - poser et raccorder les tuyaux aux raccords, chaînes, pulvérisateurs et lignes eau/lait ; les tuyaux achetables sont masqués au magasin. Oui : tuyaux physiques uniquement - acheter les tuyaux au magasin et les porter à la main ; toutes les commandes de tuyaux d'origine sont désactivées. Les deux systèmes ne fonctionnent jamais ensemble."/>
+		<text name="sps_pipeModeTitle" 	text="Slurry Pipe System - choisissez votre système de tuyaux"/>
+		<text name="sps_pipeModeQuestion" 	text="Quel système de tuyaux voulez-vous utiliser dans cette partie ?&#xA;&#xA;ORIGINAL : poser et raccorder les tuyaux aux raccords, chaînes, pulvérisateurs et lignes eau/lait comme avant.&#xA;PHYSIQUE (nouveau) : acheter les tuyaux au magasin et les porter à la main ; le système de pose/raccordement d'origine est désactivé.&#xA;&#xA;Les deux ne fonctionnent jamais ensemble. Vous pourrez changer cela plus tard dans Paramètres > Tuyaux physiques."/>
+		<text name="sps_pipeModeExisting" 	text="Cette partie contient déjà %s."/>
+		<text name="sps_pipeModeCounts" 	text="%d chaînes de tuyaux posées, %d raccords connectés, %d tuyaux de pulvérisateur, %d tuyaux eau/lait"/>
+		<text name="sps_pipeModeBtnPhysical" 	text="Tuyaux physiques (nouveau)"/>
+		<text name="sps_pipeModeBtnOriginal" 	text="Système d'origine"/>
+		<text name="sps_pipeModeWarnTitle" 	text="ATTENTION - passage aux tuyaux physiques"/>
+		<text name="sps_pipeModeWarnText" 	text="Passer aux nouveaux tuyaux physiques SUPPRIME tous les tuyaux posés ou raccordés avec le système d'origine dans cette partie (%s) et DÉSACTIVE le système de raccordement d'origine - même en cours de partie. Les tuyaux supprimés ne peuvent pas être restaurés.&#xA;&#xA;Passer aux tuyaux physiques maintenant ?"/>
+		<text name="sps_pipeModeBtnSwitch" 	text="Changer et retirer les tuyaux"/>
+		<text name="sps_pipeModeBtnKeep" 	text="Garder l'original"/>
+		<text name="sps_pipeModeWarnOrigTitle" 	text="ATTENTION - passage au système d'origine"/>
+		<text name="sps_pipeModeWarnOrigText" 	text="Revenir au système d'origine SUPPRIME tous les tuyaux physiques et toutes les stations d'accostage portables de cette partie (%s) et DÉSACTIVE les tuyaux physiques - même en cours de partie. Les tuyaux et stations supprimés ne peuvent pas être restaurés.&#xA;&#xA;Passer au système d'origine maintenant ?"/>
+		<text name="sps_pipeModePhysCounts" 	text="%d tuyaux physiques, %d extrémités branchées, %d rangés sur supports, %d stations d'accostage"/>
+		<text name="sps_pipeModeBtnKeepPhysical" 	text="Garder les tuyaux physiques"/>
 		<text name="action_spsAddIbc" 					text="Maintien : ajouter IBC" />
 
 		<!-- Separator -->
@@ -203,5 +229,95 @@
 
 		<!-- Buying station -->
 		<text name="action_spsBuyStationSwitch"		text="Achat : %s — passer à %s" />
+		<text name="action_spsTankSwitch"		text="Cuve %s (%s) - passer à la cuve %s (%s)" />
+		<!-- Farm liquid lanes: animal water in / milk out (1.0.1.8) -->
+		<text name="sps_laneWater"						text="Eau" />
+		<text name="sps_laneMilk"						text="Lait" />
+		<text name="action_spsWaterFlowOn"				text="Eau : EN COURS" />
+		<text name="action_spsWaterFlowOff"				text="Eau : ARRÊTÉE" />
+		<text name="action_spsMilkFlowOn"				text="Lait : EN COURS" />
+		<text name="action_spsMilkFlowOff"				text="Lait : ARRÊTÉ" />
+		<text name="warning_spsAnimalWaterOnly"			text="Seule de l'eau peut être pompée vers les animaux" />
+		<text name="warning_spsAnimalWaterEmpty"		text="La citerne est vide" />
+		<text name="warning_spsMilkOnly"				text="Seul le lait passe par ce raccord" />
+		<text name="warning_spsMilkBarnEmpty"			text="L'étable n'a pas de lait à collecter" />
+		<text name="warning_spsLiquidTankFull"			text="La citerne est pleine" />
+		<text name="warning_spsLiquidBarnFull"			text="L'eau d'abreuvement est pleine" />
+		<text name="warning_spsLiquidDirectionFixed"	text="Le sens est fixe sur ce raccord" />
+		<!-- [SPS 1.0.1.8] physical pipes: fitting valves + tanker-to-tanker transfer -->
+		<text name="action_spsFittingValveOpen"		text="Ouvrir la vanne" />
+		<text name="action_spsFittingValveClose"		text="Fermer la vanne" />
+		<text name="warning_spsFittingValveClosed"		text="Ouvrez d'abord les vannes des deux raccords" />
+		<text name="warning_spsCloseValveFirst"		text="Fermez la vanne avant de débrancher le tuyau" />
+		<text name="sps_laneTransfer"					text="Citerne à citerne" />
+		<text name="warning_spsTransferOtherEmpty"		text="L'autre citerne est vide" />
+		<text name="warning_spsTransferOtherFull"		text="L'autre citerne est pleine" />
+		<text name="warning_spsTransferType"			text="Les citernes contiennent des liquides différents" />
+		<text name="warning_spsTransferPumping"		text="L'autre citerne pompe déjà" />
+		<text name="sps_laneSprayer"					text="Source pulvérisateur" />
+		<text name="shopItem_spsCowBarnMedium"		text="Étable à vaches moyenne (SPS)" />
+		<text name="function_spsCowBarnMedium"		text="L'étable Rudolf Hörmann moyenne avec trois raccords : lisier en sortie, lait en sortie, eau d'abreuvement en entrée. L'eau est ici une vraie réserve de 35 000 l : il faut abreuver les vaches par tuyau ou par citerne." />
+		<!-- [SPS 1.0.1.8] bought pipe shop item -->
+		<text name="shopItem_spsHose"			text="Tuyau SPS" />
+		<text name="typeDesc_spsHose"			text="Tuyau" />
+		<text name="function_spsHose"			text="Un tuyau physique. À choisir dans la boutique : lisier 140 mm, eau ou lait 80 mm, 4 m ou 6 m, et pour le lisier les extrémités (femelle/mâle, femelle/femelle ou mâle/mâle). Prenez-le avec les mains (clic gauche), portez une extrémité jusqu&apos;à un raccord et faites un clic droit pour le brancher. Un clic droit sur une extrémité branchée la débranche dans vos mains ; un clic gauche sur un tuyau branché le lâche. Les tuyaux à lisier prennent une couleur. Fixé après l&apos;achat - vendez-le pour changer." />
+		<text name="spsHose_slurry"			text="Tuyau à lisier SPS 140 mm" />
+		<text name="spsDockingStation_name"		text="Station d'accostage SPS" />
+		<text name="function_spsDockingStation"	text="Poteau d&apos;accostage portable. Portez-le à la main (clic gauche) et posez-le où il faut, branchez un tuyau sur son raccord, puis descendez le bras de remplissage d&apos;une tonne dans la botte en caoutchouc pour charger par le tuyau." />
+		<text name="typeDesc_spsDockingStation"	text="Station d'accostage" />
+		<text name="configuration_spsRamp" text="Rampe" />
+		<text name="spsHose_FM"				text="Slurry 140 mm - female / male" />
+		<text name="spsHose_FF"				text="Slurry 140 mm - female / female" />
+		<text name="spsHose_MM"				text="Slurry 140 mm - male / male" />
+		<text name="spsHose_WATER"			text="Tuyau à eau SPS 80 mm" />
+		<text name="spsHose_MILK"			text="Tuyau à lait SPS 80 mm" />
+		<text name="spsHose_slurry_long"		text="Tuyau à lisier SPS 140 mm (6 m)" />
+		<text name="spsHose_WATER_long"		text="Tuyau à eau SPS 80 mm (6 m)" />
+		<text name="spsHose_MILK_long"		text="Tuyau à lait SPS 80 mm (6 m)" />
+		<text name="configuration_spsPipeType"	text="Tuyau" />
+		<text name="configuration_spsPipeLength"	text="Longueur" />
+		<text name="configuration_spsPipeEnds"	text="Extrémités (tuyau à lisier)" />
+		<text name="spsPipe_typeSlurry"		text="Tuyau à lisier 140 mm" />
+		<text name="spsPipe_typeWater"		text="Tuyau à eau 80 mm" />
+		<text name="spsPipe_typeMilk"		text="Tuyau à lait 80 mm" />
+		<text name="spsPipe_length4"			text="4 m" />
+		<text name="spsPipe_length6"			text="6 m" />
+		<text name="spsColor_green"			text="Vert" />
+		<text name="spsColor_blue"			text="Bleu" />
+		<text name="spsColor_brown"			text="Marron" />
+		<text name="spsColor_black"			text="Noir" />
+
+        <!-- [SPS 1.0.1.8] player-drawn water courses (building screen, Landscaping > SPS Water) -->
+        <text name="construction_tab_spsWater" text="SPS Eau" />
+        <text name="shopItem_spsWaterCourseDraw" text="Tracer un plan d'eau" />
+        <text name="function_spsWaterCourseDraw" text="Tracer un anneau autour d'un lac ou d'une rivière pour que les tonnes SPS y puisent de l'eau. Cliquez d'abord sur l'eau (fixe le niveau), puis posez des marqueurs le long de la rive et cliquez sur le premier pour fermer." />
+        <text name="shopItem_spsWaterCourseRemove" text="Supprimer un plan d'eau" />
+        <text name="function_spsWaterCourseRemove" text="Supprimer un plan d'eau tracé auparavant." />
+        <text name="sps_waterCourse_defaultName" text="Plan d'eau %d" />
+        <text name="sps_waterCourse_namePrompt" text="Nom du plan d'eau" />
+        <text name="sps_waterCourse_hintClickWater" text="Cliquez d'abord sur l'eau - cela fixe le niveau" />
+        <text name="sps_waterCourse_clickWaterFirst" text="Pas d'eau ici - cliquez d'abord sur l'eau" />
+        <text name="sps_waterCourse_levelSet" text="Niveau fixé - posez maintenant les marqueurs le long de la rive" />
+        <text name="sps_waterCourse_complete" text="Plan d'eau terminé" />
+        <text name="sps_waterCourse_cancelled" text="Plan d'eau annulé" />
+        <text name="sps_waterCourse_removed" text="Plan d'eau supprimé" />
+        <text name="sps_waterCourse_removeConfirm" text="Supprimer le plan d'eau '%s' ?" />
+        <text name="sps_waterCourse_noneOnMap" text="Aucun plan d'eau tracé sur cette carte" />
+        <text name="sps_waterCourse_tooFewPoints" text="Il faut au moins 3 marqueurs" />
+        <text name="sps_waterCourse_tooManyPoints" text="Trop de marqueurs (256 max)" />
+        <text name="sps_waterCourse_edgeTooShort" text="Trop près du dernier marqueur" />
+        <text name="sps_waterCourse_tooSmall" text="L'anneau est trop petit" />
+        <text name="sps_waterCourse_crossing" text="La ligne croiserait l'anneau" />
+        <text name="sps_waterCourse_actionClickWater" text="Cliquer sur l'eau (niveau)" />
+        <text name="sps_waterCourse_actionPlace" text="Poser un marqueur" />
+        <text name="sps_waterCourse_actionClose" text="Fermer l'anneau" />
+        <text name="sps_waterCourse_actionRemoveLast" text="Retirer le dernier marqueur" />
+        <text name="sps_waterCourse_actionRemoveLevel" text="Retirer le point d'eau" />
+        <text name="sps_waterCourse_actionRemove" text="Supprimer ce plan d'eau" />
+        <text name="shopItem_spsPtoPump"		text="Pompe à lisier SPS sur prise de force" />
+        <text name="shopItem_spsTowerMixer"		text="Mélangeur à tour SPS" />
+        <text name="function_spsTowerMixer"		text="Un mélangeur de lagune entraîné par tracteur sur une tour repliable. Abaissez les béquilles, dépliez le bras dans la fosse et mélangez le lisier avec la prise de force ; un tuyau depuis sa pompe envoie le lisier mélangé vers une tonne." />
+        <text name="sps_hudPipeFlow"		text="Débit du tuyau" />
+        <text name="input_SPS_FREE_PIPE"		text="Dégager le tuyau coincé" />
 	</texts>
 </l10n>

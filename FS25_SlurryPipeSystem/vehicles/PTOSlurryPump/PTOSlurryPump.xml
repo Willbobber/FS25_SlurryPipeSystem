@@ -3,27 +3,28 @@
     <annotation>Copyright (C) GIANTS Software GmbH, All Rights Reserved.</annotation>
 
     <storeData>
-        <name>PTO Slurry pump</name>
+        <name>$l10n_shopItem_spsPtoPump</name>
         <specs>
             <neededPower>120</neededPower>
         </specs>
         <functions>
             <function>$l10n_function_slurryPump</function>
         </functions>
-        <image>vehicles/PTOSlurryPump/store_pump.png</image>
+        <image>vehicles/PTOSlurryPump/store_PTOpump.png</image>
         <price>1200</price>
         <lifetime>600</lifetime>
         <rotation>0</rotation>
         <brand>SPS</brand>
-        <category>slurryTanks</category>
+        <category>slurryTools</category>
         <shopTranslationOffset>0 0 0</shopTranslationOffset>
         <shopRotationOffset>0 0 0</shopRotationOffset>
+        <shopHeight>1.6</shopHeight>
     </storeData>
 
     <base>
         <typeDesc>$l10n_typeDesc_manurePump</typeDesc>
         <filename>vehicles/PTOSlurryPump/PTOSlurryPump.i3d</filename>
-        <size width="1" length="1" height="1"/>
+        <size width="1.6" length="1.9" height="1.3" lengthOffset="0.3"/>
 		<components>
 			<component centerOfMass="0 0.5 0" mass="150"/>
 		</components>

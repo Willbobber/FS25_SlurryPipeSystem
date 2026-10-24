@@ -41,7 +41,7 @@
 --
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Stores 1.0.0.10.3 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSM_Stores 1.0.0.10.3 loaded") end
 
 
 -- ---------------------------------------------------------------------------
@@ -181,7 +181,17 @@ function SlurryPipeManager:parseSlurryStores(placeable, xmlFile, kp, findLinkedN
     -- A production point never has an engine-driven fill plane: nothing in vanilla
     -- links its Storage levels to a plane node, so SPS drives the plane itself.
     -- A silo DOES have one, so leave the engine in charge there and do not fight it.
-    local mustDrivePlane = placeable.spec_productionPoint ~= nil and placeable.spec_silo == nil
+    -- [SPS 1.0.1.8] Per-store rule instead of per-placeable-type: ask the Storage.
+    -- Vanilla keeps every plane it will move in storage.fillPlanes[fillType]
+    -- (Storage.lua:119-137, verified). No entry for this store's type = nothing in
+    -- vanilla ever moves the node, so SPS must (husbandry barns with a decorative
+    -- or purely virtual surface, e.g. The Mechet fattening shed). An entry = the
+    -- engine owns it, exactly as before. Production points stay always-driven.
+    local function spsMustDrivePlane(ft)
+        if placeable.spec_productionPoint ~= nil and placeable.spec_silo == nil then return true end
+        local planes = storage.fillPlanes
+        return planes == nil or ft == nil or planes[ft] == nil
+    end
 
     local stores = {}
     local idx    = 0
@@ -293,7 +303,7 @@ function SlurryPipeManager:parseSlurryStores(placeable, xmlFile, kp, findLinkedN
                 storeIndex    = #stores + 1,
                 poolFillTypes = poolSet,
                 hideWhenEmpty = xmlFile:getBool(sKey .. "#hideWhenEmpty", true),
-                drivePlane    = mustDrivePlane and planeNode ~= nil and planeNode ~= 0,
+                drivePlane    = spsMustDrivePlane(fillType) and planeNode ~= nil and planeNode ~= 0,
                 -- Per-store, NOT per-placeable: a slurry lagoon crusts and takes an
                 -- agitator; a digestate lagoon beside it need not.
                 thickeningEnabled = xmlFile:getBool(sKey .. "#agitator", false),
@@ -335,15 +345,28 @@ end
 -- The single accessor every per-tick store loop uses. Returns the full store list
 -- for a multi-store placeable, or a one-element list holding the legacy primary
 -- sourceEntry for everything else. Never returns nil.
+-- [SPS PERF] Called from 6+ per-tick loops per placeable; the legacy single-entry
+-- list is memoised on the pEntry (rebuilt if sourceEntry is ever swapped) and the
+-- empty result is a shared constant, so this no longer allocates per call. Callers
+-- only iterate the result — never mutate it.
+local SPS_EMPTY_SOURCES = {}
+
 function SlurryPipeManager:getStoreSources(pEntry)
-    if pEntry == nil then return {} end
+    if pEntry == nil then return SPS_EMPTY_SOURCES end
     if pEntry.storeSources ~= nil and #pEntry.storeSources > 0 then
         return pEntry.storeSources
     end
-    if pEntry.sourceEntry ~= nil then
-        return { pEntry.sourceEntry }
+    local se = pEntry.sourceEntry
+    if se ~= nil then
+        local cached = pEntry._singleSourceList
+        if cached ~= nil and cached[1] == se then
+            return cached
+        end
+        cached = { se }
+        pEntry._singleSourceList = cached
+        return cached
     end
-    return {}
+    return SPS_EMPTY_SOURCES
 end
 
 
@@ -459,7 +482,7 @@ function SlurryPipeManager:initStoreCrust(pEntry)
                         SPSM_Stores.log("re-parented crust plane '%s' onto store %s fill plane",
                             tostring(cc.planeNodeName), tostring(se.storeId))
                     end
-                    se.crustPlaneNode = crustPlaneNode
+                    se.crustPlaneNode = crustPlaneNode; se._crustPlaneY = nil
                     se.crustMaxRise   = cc.maxRise or 0.1
                     local settle0 = se.settle or se._migratedSettle or 0
                     setTranslation(crustPlaneNode, 0, settle0 * se.crustMaxRise, 0)

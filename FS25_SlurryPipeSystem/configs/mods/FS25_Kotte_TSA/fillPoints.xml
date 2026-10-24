@@ -82,4 +82,19 @@
 
     </pumpControls>
 
+    <!-- [SPS 1.0.1.8] Farm-liquid connector, WATER lane only: this tanker can deliver the water it
+         carries into a barn's drinking-water coupler (<animalWaterSystem>) through the sprayer-style
+         hose. Its nodes (SPS_liquidPipeCoupler01 + Arcs/inNode/outNode, SPS_liquidControlNode) are
+         EMPTY transforms in nodeTree.i3d at the "tsa_vis" origin: position them and add the
+         sprayerConnector mesh in GIANTS Editor. See SPS_README_05_Animal_Water.md. -->
+    <liquidPipeSystem>
+        <liquidPipeCouplings>
+            <liquidPipeCoupling id="1" mountNodeName="SPS_liquidPipeCoupler01" fillUnitIndex="1" lanes="WATER"
+                                maxPipeLength="7.5" connectorAnimation="3"/>
+        </liquidPipeCouplings>
+        <liquidPumpControls>
+            <liquidPumpControl id="1" nodeName="SPS_liquidControlNode" radius="1.5"/>
+        </liquidPumpControls>
+    </liquidPipeSystem>
+
 </slurryPipeSystem>

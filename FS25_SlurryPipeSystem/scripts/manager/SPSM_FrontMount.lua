@@ -48,7 +48,7 @@
 -- only when the resolution RESULT CHANGES, never per tick.
 -- ============================================================================
 
-print("[SPS BUILD] SPSM_FrontMount 1.0.0.7 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSM_FrontMount 1.0.0.7 loaded") end
 
 -- Fill types a receiver tank must plausibly accept for detection to call it a
 -- receiver. Kept local + name-resolved at first use (FillType indices are not
@@ -182,7 +182,7 @@ end
 -- endpoint (boot vehicle, store, or water plane). Water (type 3) is an
 -- infinite source and never a destination.
 -- ---------------------------------------------------------------------------
-function SlurryPipeManager:spsFMExternalLevelAndFree(extEntry, fillType)
+function SlurryPipeManager:spsFMExternalLevelAndFree(extEntry, fillType, farmVehicle)
     if extEntry == nil then return 0, 0 end
     if extEntry.type == 3 then   -- SPSWaterPlaneManager.SOURCE_TYPE_WATER
         return math.huge, 0
@@ -195,9 +195,13 @@ function SlurryPipeManager:spsFMExternalLevelAndFree(extEntry, fillType)
         end
     elseif extEntry.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
         if extEntry.storage ~= nil then
+            -- [SPS 1.0.1.8] Game rules: a store the farm may not draw from reads as
+            -- empty; a deposit is a sale (unlimited) or denied (0) when not accessible.
             local lvl  = fillType ~= nil and (extEntry.storage:getFillLevel(fillType) or 0) or 0
+            if lvl > 0 and not self:canFarmDrawFromStore(extEntry, farmVehicle) then lvl = 0 end
             local free = fillType ~= nil
-                and (extEntry.storage:getFreeCapacity(self:resolveStoreDepositFillType(extEntry, fillType)) or 0) or 0
+                and (self:getStoreAccessCapacityOverride(extEntry, fillType, farmVehicle)
+                     or extEntry.storage:getFreeCapacity(self:resolveStoreDepositFillType(extEntry, fillType)) or 0) or 0
             return lvl, free
         end
     end
@@ -263,6 +267,29 @@ function SlurryPipeManager:tickFrontMountArmCascade(session, state, pumpRunning,
         local fillType = self:_resolveSourceFillType(extSrc) or preFillType
         if extSrc.type == 3 then fillType = FillType.WATER end
         if fillType == nil then fmTrace("fill_no_filltype") return end
+        -- [SPS 1.0.1.8] Buying-station external source (coupler, or the arm in a paid
+        -- pool): every litre is a purchase, so it must go through
+        -- transferFillFromBuyingStation, never the unpaid transferFill /
+        -- removeFromSource pair below. The purchase lands on the RECEIVER tank and its
+        -- farm pays; a cascade onto a coupler target has no tank to charge, so it is
+        -- not offered from a paid source.
+        if extSrc.type == SPS_SOURCE_TYPE_BUYING_STATION then
+            for _, t in ipairs(targets) do
+                if t.canDeposit and t.kind == "receiver" then
+                    local oldLevel = t.vehicle:getFillUnitFillLevel(t.fillUnitIndex) or 0
+                    local cap      = t.vehicle:getFillUnitCapacity(t.fillUnitIndex) or 0
+                    if cap - oldLevel > 0 then
+                        session.tankVehicle     = t.vehicle
+                        session.vehicleFillUnit = t.fillUnitIndex
+                        self:transferFillFromBuyingStation(vehicle, session, rate, fillType, extSrc)
+                        fmTrace("fill->receiver(buyStation)")
+                        return
+                    end
+                end
+            end
+            fmTrace("fill_buyStation_no_receiver")
+            return
+        end
         local mult = self:getFlowRateMultiplier(extSrc)
         if mult <= 0 then
             if self:_warningIsRelevant(vehicle) then
@@ -290,10 +317,10 @@ function SlurryPipeManager:tickFrontMountArmCascade(session, state, pumpRunning,
                         return
                     end
                 else
-                    if self:_destAcceptsFillType(t.srcEntry, fillType) then
+                    if self:_destAcceptsFillType(t.srcEntry, fillType, vehicle) then
                         local _, free = self:spsFMTargetLevelAndFree(t, fillType)
                         if (free or 0) > 0 then
-                            local srcLevel = self:spsFMExternalLevelAndFree(extSrc, fillType)
+                            local srcLevel = self:spsFMExternalLevelAndFree(extSrc, fillType, vehicle)
                             local amount = math.min(rate, srcLevel or 0, free)
                             if amount > 0 then
                                 -- Water is an infinite source: nothing to remove.
@@ -338,7 +365,7 @@ function SlurryPipeManager:tickFrontMountArmCascade(session, state, pumpRunning,
                     local ft = self:_resolveSourceFillType(t.srcEntry)
                     if ft ~= nil then
                         local lvl = self:spsFMTargetLevelAndFree(t, ft)
-                        if (lvl or 0) > 0 and self:_destAcceptsFillType(extDst, ft) then
+                        if (lvl or 0) > 0 and self:_destAcceptsFillType(extDst, ft, vehicle) then
                             local mult
                             if t.srcEntry.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then
                                 mult = self:getFlowRateMultiplier(t.srcEntry)
@@ -353,7 +380,7 @@ function SlurryPipeManager:tickFrontMountArmCascade(session, state, pumpRunning,
                                 end
                                 return
                             end
-                            local _, dstFree = self:spsFMExternalLevelAndFree(extDst, ft)
+                            local _, dstFree = self:spsFMExternalLevelAndFree(extDst, ft, vehicle)
                             local amount = math.min(rate * mult, lvl, dstFree or 0)
                             if amount > 0 then
                                 self:removeFromSource(t.srcEntry, amount, ft, vehicle)
@@ -754,7 +781,7 @@ function SlurryPipeManager:spsInjectConfiguredHoses(vehicle, entry)
         if hoseEntry ~= nil then
             entry.receiverHose             = hoseEntry
             entry.receiverHoseObjectChange = spsMakeObjectChangeState(entry.receiverHoseDef, hoseEntry)
-            print(string.format("[SPS] tractorMountFillArms receiver hose injected on '%s' (node='%s' type=%s)",
+            spsInfo(string.format("[SPS] tractorMountFillArms receiver hose injected on '%s' (node='%s' type=%s)",
                 tostring(vehicle.configFileName), tostring(entry.receiverHoseDef.nodeName),
                 tostring(hoseEntry.type)))
             -- Already attached when SPS registered (savegame ordering): vanilla

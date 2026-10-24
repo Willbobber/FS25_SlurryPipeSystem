@@ -74,6 +74,20 @@ function SPSShearBolt.update(manager, vEntry, dt)
     local state   = vEntry.state
     if vehicle == nil or state == nil then return end
 
+    -- [SPS 1.0.1.8] saved wear / snapped state (SPSShearBoltPersistence, server only): apply once per vehicle
+    if SPSShearBolt.pendingByUid ~= nil and g_server ~= nil and vehicle.getUniqueId ~= nil then
+        local uid = vehicle:getUniqueId()
+        local saved = uid ~= nil and SPSShearBolt.pendingByUid[uid] or nil
+        if saved ~= nil then
+            SPSShearBolt.pendingByUid[uid] = nil
+            if saved.snapped then
+                SPSShearBolt.snap(manager, vehicle)
+            else
+                state.shearWear = math.max(state.shearWear or 0, math.min(saved.wear or 0, 0.99))
+            end
+        end
+    end
+
     -- Already snapped: re-assert the freeze on all peers (cheap; guards against
     -- vanilla restarting the nodes after a PTO edge). No logging on the re-assert.
     if state.shearSnapped == true then
@@ -152,7 +166,9 @@ function SPSShearBolt.applyState(manager, vehicle, snapped)
     if snapped then
         state.shearWear = 1.0
         SPSShearBolt.setVisualFrozen(vehicle, true, true)   -- verbose freeze log
-        if g_currentMission ~= nil then
+        -- [SPS 1.0.1.8] warn only the farm that owns the machine (was shown to every player on the server)
+        if g_currentMission ~= nil and vehicle.getOwnerFarmId ~= nil
+           and vehicle:getOwnerFarmId() == g_currentMission:getFarmId() then
             g_currentMission:showBlinkingWarning(g_i18n:getText("warning_spsShearBoltSnapped"), 4000)
         end
     else

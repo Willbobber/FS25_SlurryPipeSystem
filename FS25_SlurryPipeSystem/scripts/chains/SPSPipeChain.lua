@@ -10,8 +10,16 @@ SPSPipeChain.__index = SPSPipeChain
 
 SPSPipeChain.PIPE_LENGTH   = 4.0
 SPSPipeChain.PLAYER_OFFSET = 0.75
-SPSPipeChain.NUM_BONES         = 14
-SPSPipeChain.PIPE_FLOOR_RADIUS = 0.08    -- measured: bone centre to pipe bottom
+SPSPipeChain.NUM_BONES         = 14      -- old mesh only
+SPSPipeChain.PIPE_FLOOR_RADIUS = 0.08    -- old mesh only: bone centre to pipe bottom
+-- [SPS HOSE step 3] New-hose segments: the segment's two control transforms are plain
+-- proxy groups with the OLD mesh's conventions (start "pipeRoot": chain runs along -Z;
+-- end "endConnectors": child of the start, yaw 180, +Z back toward the start), carrying the
+-- old startFloorLevel / endFloorLevel markers at the same -0.11204 m so saved chains restore
+-- in exactly the same place. The physical hose (SPSHoseVisual, F/M laid from the end) hangs
+-- under the end proxy and follows both. Everything that moved pipeRoot / endConnectors
+-- before (laying, locking, docking, save, restore, MP preview, prompts) is unchanged.
+SPSPipeChain.END_FLOOR_OFFSET  = 0.11204
 
 -- ---------------------------------------------------------------------------
 -- [SPS FLOOR] _stripFloorBitsRec
@@ -65,6 +73,50 @@ end
 -- ---------------------------------------------------------------------------
 SPSPipeChain.FLOOR_RAY_UP   = 0.5
 SPSPipeChain.FLOOR_RAY_DOWN = 2.0
+
+-- [SPS FLOOR 1.0.1.8] Segment floor re-clamp window. _terrainClampBones runs once
+-- per segment (at lock, and at restoreFromSaveData). A chain restored during
+-- load probes the floor before every placeable's collision is in physics, so a
+-- segment laid on a concrete pad came back sunk to the terrain. For
+-- FLOOR_RECHECK_WINDOW ms after a segment is (re)built, and again whenever
+-- floorEpoch is bumped (a placeable finalising placement), every locked segment
+-- is re-shaped (bezier recompute + clamp, the same idempotent pair restore uses)
+-- every FLOOR_RECHECK_INTERVAL ms. Live segments are untouched.
+SPSPipeChain.FLOOR_RECHECK_WINDOW   = 15000
+SPSPipeChain.FLOOR_RECHECK_INTERVAL = 1000
+SPSPipeChain.floorEpoch             = 0
+
+function SPSPipeChain.bumpFloorEpoch()
+    SPSPipeChain.floorEpoch = SPSPipeChain.floorEpoch + 1
+end
+
+function SPSPipeChain:_recheckSegmentFloors()
+    local segs = self.segments
+    if segs == nil or #segs == 0 then return end
+    local now   = g_time or 0
+    local epoch = SPSPipeChain.floorEpoch
+    for _, seg in ipairs(segs) do
+        if seg ~= self.liveSegment and seg.hose == nil and seg.pipeRoot ~= nil and seg.endConnectors ~= nil then
+            if seg._floorEpoch ~= epoch then
+                seg._floorEpoch        = epoch
+                seg._floorRecheckUntil = now + SPSPipeChain.FLOOR_RECHECK_WINDOW
+                seg._floorNextRecheck  = now + SPSPipeChain.FLOOR_RECHECK_INTERVAL
+            end
+            local untilT = seg._floorRecheckUntil
+            if untilT ~= nil then
+                if now >= untilT then
+                    seg._floorRecheckUntil = nil
+                elseif now >= (seg._floorNextRecheck or 0) then
+                    seg._floorNextRecheck = now + SPSPipeChain.FLOOR_RECHECK_INTERVAL
+                    if entityExists(seg.pipeRoot) and entityExists(seg.endConnectors) then
+                        self:_updateBezierBones(seg)
+                        self:_terrainClampBones(seg)
+                    end
+                end
+            end
+        end
+    end
+end
 SPSPipeChain._floorRayMask  = nil
 
 function SPSPipeChain.getFloorWorldY(px, py, pz, terrainY)
@@ -104,7 +156,7 @@ end
 -- loop body itself is skipped entirely when logging is off.
 -- ---------------------------------------------------------------------------
 SPSPipeChain.DEBUG = false
-print("[SPS BUILD] SPSPipeChain 1.0.0.9.26 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSPipeChain 1.0.0.9.26 loaded") end
 
 function SPSPipeChain.log(fmt, ...)
     if not SPSPipeChain.DEBUG then return end
@@ -250,6 +302,9 @@ function SPSPipeChain:lockLivePipe()
                 sourceEntry              = self.anchorCoupling.sourceEntry,
                 placeable                = self.anchorCoupling.placeable,
                 isChainStart             = true,
+                -- D7: a new-hose segment carries the MALE end at its start, so a hose
+                -- connecting here brings a FEMALE end. Old mesh: nil = old defaults.
+                connectorType            = (seg.hose ~= nil) and "female" or nil,
             }
             seg.chainStartCoupling = startCoupling
             table.insert(g_slurryPipeManager.chainTerminusEntries, startCoupling)
@@ -377,10 +432,117 @@ end
 --   detNode04 = detection node at END   of pipe (female side, where next segment plugs in)
 -- ---------------------------------------------------------------------------
 function SPSPipeChain:_loadPipe(startX, startY, startZ, startRY, colorR, colorG, colorB, localStartNode, skipFloorOffset)
+    if not (SPSHoseVisual ~= nil and SPSHoseVisual.LIVE and g_spsHoseVisual ~= nil and g_spsHoseVisual:isReady()) then
+        print("[SPS HOSE] OLD pipe used for a chain segment: " .. ((SPSHoseVisual ~= nil and not SPSHoseVisual.LIVE) and "spsHoseLive is OFF" or "hose class not ready"))
+        return self:_loadPipeOld(startX, startY, startZ, startRY, colorR, colorG, colorB, localStartNode, skipFloorOffset)
+    end
+    SPSPipeChain.log("_loadPipe(new hose): enter - pos=(%.2f,%.2f,%.2f) ry=%.3f localStart=%s restore=%s",
+        startX, startY, startZ, startRY,
+        tostring(localStartNode ~= nil and localStartNode ~= 0), tostring(skipFloorOffset == true))
+
+    local FLOOR = SPSPipeChain.END_FLOOR_OFFSET
+    local pipeRoot = createTransformGroup("spsChainSegStart")
+    local startFloorLevel = createTransformGroup("startFloorLevel")
+    link(pipeRoot, startFloorLevel)
+    setTranslation(startFloorLevel, 0, -FLOOR, 0)
+    local endConnectors = createTransformGroup("spsChainSegEnd")
+    link(pipeRoot, endConnectors)
+    setTranslation(endConnectors, 0, 0, -SPSPipeChain.PIPE_LENGTH)
+    setRotation(endConnectors, 0, math.pi, 0)
+    local endFloorLevel = createTransformGroup("endFloorLevel")
+    link(endConnectors, endFloorLevel)
+    setTranslation(endFloorLevel, 0, -FLOOR, 0)
+
+    -- Place the start exactly as the old loader did.
+    if localStartNode ~= nil and localStartNode ~= 0
+    and (entityExists == nil or entityExists(localStartNode)) then
+        link(localStartNode, pipeRoot)
+        setTranslation(pipeRoot, 0, 0, 0)
+        setRotation(pipeRoot, 0, 0, 0)
+    else
+        link(getRootNode(), pipeRoot)
+        local adjustedY = startY
+        if not skipFloorOffset then adjustedY = startY + FLOOR end   -- old: startY - startFloorLevel.y
+        setWorldTranslation(pipeRoot, startX, adjustedY, startZ)
+        setWorldRotation(pipeRoot, 0, startRY, 0)
+    end
+
+    local cr = colorR or (g_slurryPipeManager and g_slurryPipeManager.currentPipeColor.r or 0)
+    local cg = colorG or (g_slurryPipeManager and g_slurryPipeManager.currentPipeColor.g or 0.05)
+    local cb = colorB or (g_slurryPipeManager and g_slurryPipeManager.currentPipeColor.b or 0)
+
+    local hose = g_spsHoseVisual:createChainSegmentHose(pipeRoot, endConnectors, { cr, cg, cb })
+    if hose == nil then
+        SPSPipeChain.log("_loadPipe(new hose): ERROR createChainSegmentHose failed")
+        delete(pipeRoot)
+        return nil
+    end
+    -- Hose laid from the end: its START detection triangle is at the chain END, its far-end
+    -- triangle at the chain START (old names kept: detNode04 = chain end, detNode01 = chain start).
+    local detNode04 = hose.detStart
+    local detNode01 = hose.detEnd
+    if detNode04 == nil or detNode01 == nil then
+        SPSPipeChain.log("_loadPipe(new hose): WARNING detection node missing (start=%s end=%s)", tostring(detNode01), tostring(detNode04))
+    end
+
+    local anchorSourceEntry = (self.anchorCoupling ~= nil) and self.anchorCoupling.sourceEntry or nil
+    local anchorPlaceable   = (self.anchorCoupling ~= nil) and self.anchorCoupling.placeable   or nil
+
+    local chainCoupling = {
+        id                       = #self.segments + 1,
+        mountNode                = detNode04,
+        arcNode                  = nil,
+        isConnected              = false,
+        valveOpen                = false,
+        connectedTarget          = nil,
+        connectedPartnerCoupling = nil,
+        pipeId                   = nil,
+        isChainTerminus          = true,
+        chain                    = self,
+        segmentIndex             = #self.segments + 1,
+        sourceEntry              = anchorSourceEntry,
+        placeable                = anchorPlaceable,
+        -- End-gender rule (D7): the free chain end carries the hose's FEMALE end, so a hose
+        -- connecting here must bring a MALE end.
+        connectorType            = "male",
+    }
+
+    return {
+        pipeRoot         = pipeRoot,
+        startConnectors  = nil,
+        endConnectors    = endConnectors,
+        bone1            = nil,
+        bone16           = nil,
+        detNode01        = detNode01,
+        detNode04        = detNode04,
+        startFloorLevel  = startFloorLevel,
+        endFloorLevel    = endFloorLevel,
+        allBones         = nil,
+        hose             = hose,
+        chainCoupling    = chainCoupling,
+        activatable      = nil,
+        startX           = startX,
+        startY           = startY,
+        startZ           = startZ,
+        startRY         = startRY,
+        colorR          = cr,
+        colorG          = cg,
+        colorB          = cb,
+        _hasLogged      = false,
+    }
+end
+
+-- Old mesh loader (slurryPipe.i3d), used only when the new hoses are switched off.
+function SPSPipeChain:_loadPipeOld(startX, startY, startZ, startRY, colorR, colorG, colorB, localStartNode, skipFloorOffset)
     SPSPipeChain.log("_loadPipe: enter — pos=(%.2f,%.2f,%.2f) ry=%.3f localStart=%s restore=%s",
         startX, startY, startZ, startRY,
         tostring(localStartNode ~= nil and localStartNode ~= 0), tostring(skipFloorOffset == true))
     local pipePath = self.modDirectory .. "i3d/pipes/slurryPipe.i3d"
+    if not fileExists(pipePath) then
+        -- [SPS 1.0.1.8] old bezier pipe mesh RETIRED 2026-10-18 (parked in i3d/newPipe) - chains need the live hoses
+        print("[SPS HOSE] chain segment: old bezier pipe mesh absent (retired) and the live hoses were not available - no segment")
+        return nil
+    end
     local i3dRoot  = loadI3DFile(pipePath)
     if i3dRoot == nil or i3dRoot == 0 then
         SPSPipeChain.log("_loadPipe: ERROR failed to load slurryPipe.i3d")
@@ -512,6 +674,8 @@ end
 -- Update — called each tick from manager
 -- ---------------------------------------------------------------------------
 function SPSPipeChain:update(dt)
+    -- [SPS FLOOR 1.0.1.8] Locked-segment floor re-clamp (see _recheckSegmentFloors).
+    self:_recheckSegmentFloors()
     if self.liveSegment == nil then return end
     -- [SPS MP] Remote preview chains are driven by SPSChainLiveEvent POS updates,
     -- not by this peer's local player. Interpolate toward the last target instead.
@@ -632,6 +796,12 @@ end
 -- positions. 7 terrain queries total — negligible CPU cost.
 -- ---------------------------------------------------------------------------
 function SPSPipeChain:_terrainClampBones(seg)
+    -- [SPS HOSE step 3] new-hose segment: the hose clamps every bone to the exact floor on each
+    -- reshape itself (and re-probes after placements); just force one reshape.
+    if seg ~= nil and seg.hose ~= nil then
+        if g_spsHoseVisual ~= nil then g_spsHoseVisual:updateHose(seg.hose, true) end
+        return
+    end
     local terrain = g_currentMission and g_currentMission.terrainRootNode or nil
     if terrain == nil then
         SPSPipeChain.log("_terrainClampBones: skipped — no terrain root node")
@@ -749,6 +919,12 @@ end
 -- P2 uses chord direction so it arrives at P3 from the correct side.
 -- ---------------------------------------------------------------------------
 function SPSPipeChain:_updateBezierBones(seg)
+    -- [SPS HOSE step 3] new-hose segment: the hose follows its two proxies; force a reshape now
+    -- (the class also reshapes pose-gated from its own update loop).
+    if seg ~= nil and seg.hose ~= nil then
+        if g_spsHoseVisual ~= nil then g_spsHoseVisual:updateHose(seg.hose, true) end
+        return
+    end
     if seg == nil or seg.bone1 == nil or seg.bone16 == nil
     or seg.bone1 == 0 or seg.bone16 == 0 then
         return
@@ -868,7 +1044,13 @@ function SPSPipeChain:_destroySegmentNodes(seg)
         seg.endActivatable = nil
     end
 
-    if seg.pipeRoot ~= nil and seg.pipeRoot ~= 0 then
+    -- [SPS HOSE step 3] the hose shape hangs under the end proxy: take it out of physics and
+    -- the class's list BEFORE the proxies go.
+    if seg.hose ~= nil then
+        if g_spsHoseVisual ~= nil then g_spsHoseVisual:destroyHose(seg.hose) end
+        seg.hose = nil
+    end
+    if seg.pipeRoot ~= nil and seg.pipeRoot ~= 0 and (entityExists == nil or entityExists(seg.pipeRoot)) then
         delete(seg.pipeRoot)
         seg.pipeRoot         = nil
         seg.startConnectors  = nil
@@ -884,6 +1066,54 @@ end
 -- ---------------------------------------------------------------------------
 -- Docking station
 -- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.8] ONE docking station mesh for both pipe modes (William 2026-10-18: "we now have the vehicle
+-- DS"). The chain loads the buyable station's own i3d (skinned rubber boot, no Col1) and finds its nodes
+-- by NAME - the old static i3d/dockingStation/dockingStation.i3d (nodes by child index) is gone. That root
+-- is a DYNAMIC vehicle body, so the chain's free-standing copy is made KINEMATIC: immovable, exactly what
+-- the bought station does once it is set down (SPSDockingStation.spsDsSetFrozen).
+SPSPipeChain.DS_FILE        = "vehicles/dockingStation/dockingStation.i3d"
+SPSPipeChain.DS_LOWER_NODE  = "SPS_rubberBootLower01"
+SPSPipeChain.DS_UPPER_NODE  = "SPS_rubberBootUpper01"
+SPSPipeChain.DS_TARGET_NODE = "SPS_pipeCoupler01"      -- the pipe inlet (was dockingStationTarget)
+SPSPipeChain.DS_FOLLOW_NODE = "fillarmConnectNode"     -- skinned boot: node (holding the rim bone) that locks onto the arm tip
+SPSPipeChain.DS_BASE_BONE   = "Bone01"                 -- skinned boot: base bone (SPSBootDeform)
+
+local function dsFindByName(node, name)
+    if node == nil or node == 0 then return nil end
+    if getName(node) == name then return node end
+    for i = 0, getNumOfChildren(node) - 1 do
+        local hit = dsFindByName(getChildAt(node, i), name)
+        if hit ~= nil then return hit end
+    end
+    return nil
+end
+
+-- Loads the station i3d. Returns i3dRoot, dsNode (the station root, still under i3dRoot), lowerNode,
+-- upperNode, dockingTarget - or nil (logged) when the file or a node is missing. The caller links
+-- dsNode away and deletes i3dRoot, as before.
+function SPSPipeChain:_loadDockingStationNodes(who)
+    local dsPath  = self.modDirectory .. SPSPipeChain.DS_FILE
+    local i3dRoot = loadI3DFile(dsPath)
+    if i3dRoot == nil or i3dRoot == 0 then
+        SPSPipeChain.log("%s: ERROR failed to load %s", who, SPSPipeChain.DS_FILE)
+        return nil
+    end
+    local dsNode        = getChildAt(i3dRoot, 0)
+    local lowerNode     = dsFindByName(dsNode, SPSPipeChain.DS_LOWER_NODE)
+    local upperNode     = dsFindByName(dsNode, SPSPipeChain.DS_UPPER_NODE)
+    local dockingTarget = dsFindByName(dsNode, SPSPipeChain.DS_TARGET_NODE)
+    if dsNode == nil or dsNode == 0 or lowerNode == nil or upperNode == nil or dockingTarget == nil then
+        SPSPipeChain.log("%s: ERROR %s lacks %s / %s / %s", who, SPSPipeChain.DS_FILE,
+            SPSPipeChain.DS_LOWER_NODE, SPSPipeChain.DS_UPPER_NODE, SPSPipeChain.DS_TARGET_NODE)
+        delete(i3dRoot)
+        return nil
+    end
+    if getRigidBodyType(dsNode) ~= RigidBodyType.NONE then
+        setRigidBodyType(dsNode, RigidBodyType.KINEMATIC)
+    end
+    return i3dRoot, dsNode, lowerNode, upperNode, dockingTarget
+end
+
 function SPSPipeChain:addDockingStation()
     if #self.segments == 0 then
         SPSPipeChain.log("addDockingStation: ignored — no segments")
@@ -898,18 +1128,8 @@ function SPSPipeChain:addDockingStation()
 
     local lastSeg = self.segments[#self.segments]
 
-    local dsPath  = self.modDirectory .. "i3d/dockingStation/dockingStation.i3d"
-    local i3dRoot = loadI3DFile(dsPath)
-    if i3dRoot == nil or i3dRoot == 0 then
-        SPSPipeChain.log("addDockingStation: ERROR failed to load dockingStation.i3d")
-        return
-    end
-
-    local dsNode        = getChildAt(i3dRoot, 0)
-    local visShape      = getChildAt(dsNode, 0)
-    local lowerNode     = getChildAt(visShape, 0)
-    local upperNode     = getChildAt(visShape, 1)
-    local dockingTarget = getChildAt(dsNode, 2)
+    local i3dRoot, dsNode, lowerNode, upperNode, dockingTarget = self:_loadDockingStationNodes("addDockingStation")
+    if i3dRoot == nil then return end
 
     local ex, ey, ez = getWorldTranslation(lastSeg.endConnectors)
     local rx, ry, rz = getWorldRotation(lastSeg.endConnectors)
@@ -947,6 +1167,10 @@ function SPSPipeChain:addDockingStation()
     }
     if g_slurryPipeManager ~= nil then
         table.insert(g_slurryPipeManager.rubberBootPortEntries, rbpEntry)
+    end
+    -- [SPS 1.0.1.8] skinned boot: same bones as the bought station (vehicles/dockingStation/dockingStation.xml)
+    if SPSBootDeform ~= nil then
+        SPSBootDeform.attach(rbpEntry, dsNode, SPSPipeChain.DS_FOLLOW_NODE, SPSPipeChain.DS_BASE_BONE, "chain docking station")
     end
 
     self._dsSaveX  = ex      ; self._dsSaveY  = terrainY ; self._dsSaveZ  = ez
@@ -1208,6 +1432,7 @@ function SPSPipeChain:restoreFromSaveData(data)
                     sourceEntry              = self.anchorCoupling and self.anchorCoupling.sourceEntry or nil,
                     placeable                = self.anchorCoupling and self.anchorCoupling.placeable or nil,
                     isChainStart             = true,
+                    connectorType            = (seg.hose ~= nil) and "female" or nil,
                 }
                 seg.chainStartCoupling = startCoupling
                 table.insert(g_slurryPipeManager.chainTerminusEntries, startCoupling)
@@ -1253,18 +1478,8 @@ function SPSPipeChain:_restoreDockingStation(data)
     SPSPipeChain.log("_restoreDockingStation: enter — restoring DS at (%.2f,%.2f,%.2f)",
         data.dsSaveX or 0, data.dsSaveY or 0, data.dsSaveZ or 0)
 
-    local dsPath  = self.modDirectory .. "i3d/dockingStation/dockingStation.i3d"
-    local i3dRoot = loadI3DFile(dsPath)
-    if i3dRoot == nil or i3dRoot == 0 then
-        SPSPipeChain.log("_restoreDockingStation: ERROR failed to load dockingStation.i3d")
-        return
-    end
-
-    local dsNode        = getChildAt(i3dRoot, 0)
-    local visShape      = getChildAt(dsNode, 0)
-    local lowerNode     = getChildAt(visShape, 0)
-    local upperNode     = getChildAt(visShape, 1)
-    local dockingTarget = getChildAt(dsNode, 2)
+    local i3dRoot, dsNode, lowerNode, upperNode, dockingTarget = self:_loadDockingStationNodes("_restoreDockingStation")
+    if i3dRoot == nil then return end
 
     removeFromPhysics(dsNode)
     link(getRootNode(), dsNode)
@@ -1293,6 +1508,10 @@ function SPSPipeChain:_restoreDockingStation(data)
     }
     if g_slurryPipeManager ~= nil then
         table.insert(g_slurryPipeManager.rubberBootPortEntries, rbpEntry)
+    end
+    -- [SPS 1.0.1.8] skinned boot: same bones as the bought station (vehicles/dockingStation/dockingStation.xml)
+    if SPSBootDeform ~= nil then
+        SPSBootDeform.attach(rbpEntry, dsNode, SPSPipeChain.DS_FOLLOW_NODE, SPSPipeChain.DS_BASE_BONE, "chain docking station")
     end
 
     self._dsSaveX  = data.dsSaveX  ; self._dsSaveY  = data.dsSaveY  ; self._dsSaveZ  = data.dsSaveZ

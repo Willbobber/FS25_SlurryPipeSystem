@@ -42,6 +42,7 @@ end
 -- ActivatableObjectsSystem interface
 -- ---------------------------------------------------------------------------
 function SPSShearBoltActivatable:getIsActivatable()
+    if SPSAccess ~= nil and not SPSAccess.localCanUse(self.vehicle) then return false end   -- [SPS 1.0.1.8] farm permission
     local result, reason = self:_evalActivatable()
     if SPSShearBolt ~= nil and SPSShearBolt.DEBUG and SPSShearBolt.dbg ~= nil and result ~= self._lastEval then
         SPSShearBolt.dbg("repair activatable -> " .. tostring(result) .. " (" .. tostring(reason) .. ")")

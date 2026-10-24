@@ -5,7 +5,7 @@
 -- SPSSprayerPipeActivatable.lua
 -- FS25_SlurryPipeSystem
 
-print("[SPS BUILD] SPSSprayerPipeActivatable 1.0.0.9 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSSprayerPipeActivatable 1.0.0.9 loaded") end
 
 SPSSprayerPipeActivatable = {}
 SPSSprayerPipeActivatable.__index = SPSSprayerPipeActivatable
@@ -46,7 +46,9 @@ end
 -- ActivatableObjectsSystem interface
 -- ---------------------------------------------------------------------------
 function SPSSprayerPipeActivatable:getIsActivatable()
+    if SPSAccess ~= nil and not SPSAccess.localCanUse(self.object) then return false end   -- [SPS 1.0.1.8] farm permission
     if g_localPlayer == nil then return false end
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.physicalPipesEnabled == true then return false end   -- [SPS 1.0.1.8] pipe mode: physical pipes only
     if self.coupling.mountNode == nil or not entityExists(self.coupling.mountNode) then return false end
 
     local px, py, pz = getWorldTranslation(g_localPlayer.rootNode)

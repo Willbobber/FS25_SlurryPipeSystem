@@ -41,6 +41,7 @@ end
 -- ActivatableObjectsSystem interface
 -- ---------------------------------------------------------------------------
 function SPSBlockageActivatable:getIsActivatable(dirX, dirY, dirZ)
+    if SPSAccess ~= nil and not SPSAccess.localCanUse(self.vehicle) then return false end   -- [SPS 1.0.1.8] farm permission
     if g_localPlayer == nil then return false end
     local b = self.blockageEntry
     if b == nil or b.blocked ~= true then return false end                 -- only when blocked

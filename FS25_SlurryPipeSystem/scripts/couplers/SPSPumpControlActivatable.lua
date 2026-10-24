@@ -28,6 +28,7 @@ end
 -- ActivatableObjectsSystem interface
 -- ---------------------------------------------------------------------------
 function SPSPumpControlActivatable:getIsActivatable()
+    if SPSAccess ~= nil and not SPSAccess.localCanUse(self.vehicle) then return false end   -- [SPS 1.0.1.8] farm permission
     if g_localPlayer == nil then return false end
     if self.node == nil or self.node == 0 or not entityExists(self.node) then return false end
     if g_slurryPipeManager == nil or not g_slurryPipeManager:isRegistered(self.vehicle) then return false end
@@ -148,7 +149,14 @@ function SPSPumpControlActivatable:_onValve()
         SlurryFlowStateEvent.sendEvent(self.vehicle, newOpen)
         g_slurryPipeManager:updateActionEventTexts(self.vehicle)
     else
+        -- MP CLIENT: apply locally (server rebroadcast of SlurryFlowStateEvent excludes
+        -- the sender), else every later press recomputes from the stale valveOpen,
+        -- re-sends "open" and the coupling valve can never be closed from this node —
+        -- disconnect then fails with "Close valve before disconnecting". Mirrors
+        -- onActionToggleFlow / onSelfPumpToggle / onActionToggleDirection.
+        vState.valveOpen = newOpen
         SlurryFlowStateEvent.sendEvent(self.vehicle, newOpen)
+        g_slurryPipeManager:updateActionEventTexts(self.vehicle)
     end
     -- Sync to all connected couplings marked valveFromRearControl so
     -- hasActiveCouplingConnection returns true and flow can start.

@@ -91,6 +91,26 @@ function SPSSpreaderHUD:_hasSprayerWorkArea(vehicle)
     return false
 end
 
+-- [SPS 1.0.1.8] Issue #37 (Vredo injector): a registered tanker towing a spreading
+-- tool that has NO SPS config of its own (so no blockage entries and no entry of its
+-- own) showed no panel at all. Such a tool is still a spreader — it carries a sprayer
+-- work area — so the tanker's entry is shown (details + icon, no outlet strip, exactly
+-- like a built-in spreader). Only non-motorized, unregistered children count: a
+-- registered dribble bar keeps its own entry (and its strip), and the pulling tractor
+-- is never a spreader. Same child-vehicle rule as SlurryPipeManager:vehicleHasSpreader.
+function SPSSpreaderHUD:_hasUnregisteredSpreaderChild(vehicle)
+    local root = (vehicle ~= nil and vehicle.getRootVehicle ~= nil) and vehicle:getRootVehicle() or nil
+    if root == nil or root.getChildVehicles == nil then return false end
+    for _, c in ipairs(root:getChildVehicles() or {}) do
+        if c ~= vehicle and c.spec_motorized == nil
+        and not g_slurryPipeManager:isRegistered(c)
+        and self:_hasSprayerWorkArea(c) then
+            return true
+        end
+    end
+    return false
+end
+
 -- The spreader to display: a registered vehicle the player is currently in
 -- (getIsActiveForInput(true) ignores implement selection) that is a spreader — either it
 -- carries blockage nodes (shows the section strip) OR it has a sprayer work area (built-in
@@ -109,7 +129,8 @@ function SPSSpreaderHUD:_getActiveSpreader()
             local isFertHerb = g_slurryPipeManager.isFertExemptVehicle ~= nil
                 and g_slurryPipeManager:isFertExemptVehicle(v)
             local hasBlock = entry.blockageEntries ~= nil and #entry.blockageEntries > 0
-            if not isFertHerb and (hasBlock or self:_hasSprayerWorkArea(v)) then
+            if not isFertHerb and (hasBlock or self:_hasSprayerWorkArea(v)
+                                   or self:_hasUnregisteredSpreaderChild(v)) then
                 local root = (v.getRootVehicle ~= nil) and v:getRootVehicle() or v
                 if root ~= nil and root.getIsActiveForInput ~= nil and root:getIsActiveForInput(true) then
                     return entry
@@ -186,6 +207,17 @@ function SPSSpreaderHUD:_buildRows(controller, blockEntry)
             val   = string.format("%d L/s", MathUtil.round(rate))
         end
         rows[#rows+1] = { l = label, v = val }
+    end
+    -- [SPS 1.0.1.8] a running pump feeding / drawing this tanker: show why it is not moving slurry
+    if SPSConduitHUDExtension ~= nil and SPSConduitHUDExtension.getStopReasonFor ~= nil then
+        local stop, involved = SPSConduitHUDExtension.getStopReasonFor(controller)
+        if involved then
+            if stop ~= nil then
+                rows[#rows+1] = { l = g_i18n:getText("sps_hudPipeFlow"), v = g_i18n:getText(stop), red = true }
+            else
+                rows[#rows+1] = { l = g_i18n:getText("sps_hudPipeFlow"), v = g_i18n:getText("hud_spsPumpPumping") }
+            end
+        end
     end
     return rows
 end

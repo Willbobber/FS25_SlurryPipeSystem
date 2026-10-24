@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<vehicle type="spsDockingStation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../shared/xml/schema/vehicle.xsd">
+
+    <storeData>
+        <name>$l10n_spsDockingStation_name</name>
+        <functions>
+            <function>$l10n_function_spsDockingStation</function>
+        </functions>
+        <image>vehicles/dockingStation/icon_dockingStation.png</image>
+        <price>1250</price>
+        <lifetime>600</lifetime>
+        <rotation>0</rotation>
+        <brand>SPS</brand>
+        <allowLeasing>false</allowLeasing>
+        <category>slurryTools</category>
+        <shopTranslationOffset>0 0 0</shopTranslationOffset>
+        <shopRotationOffset>0 0 0</shopRotationOffset>
+        <shopHeight>1.5</shopHeight>
+    </storeData>
+
+    <base>
+        <typeDesc>$l10n_typeDesc_spsDockingStation</typeDesc>
+        <filename>vehicles/dockingStation/dockingStation.i3d</filename>
+        <size width="1.0" length="1.0" height="1.2"/>
+        <input allowed="false"/>
+        <canBeReset>false</canBeReset>
+        <supportsPickUp>true</supportsPickUp>
+        <components>
+            <component centerOfMass="0 0.15 0" mass="30" solverIterationCount="10"/>
+        </components>
+        <showInVehicleMenu>true</showInVehicleMenu>
+        <mapHotspot type="TOOL"/>
+    </base>
+
+    <slurryPipeSystem>
+        <flow litersPerSecond="1000"/>
+        <pump selfPowered="false" pumpType="conduit"/>
+        <pipeCouplings>
+            <pipeCoupling id="1" mountNodeName="SPS_pipeCoupler01" valveType="HYDRAULIC" maxPipeLength="4.0" connector="female"/>
+        </pipeCouplings>
+        <rubberBootPorts>
+            <rubberBootPort id="1" lowerNodeName="SPS_rubberBootLower01" upperNodeName="SPS_rubberBootUpper01" valveType="NONE"
+                            bootFollowNodeName="fillarmConnectNode" bootBaseBoneName="Bone01"/>
+        </rubberBootPorts>
+    </slurryPipeSystem>
+
+    <i3dMappings>
+        <i3dMapping id="SPS_DockingStation_mainComponent1" node="0>"/>
+    </i3dMappings>
+</vehicle>

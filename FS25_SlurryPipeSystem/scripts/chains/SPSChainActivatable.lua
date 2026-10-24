@@ -23,7 +23,7 @@ SPSChainActivatable.HOLD_THRESHOLD  = 0.8
 -- update, _getState) are intentionally NOT logged to avoid frame spam.
 -- ---------------------------------------------------------------------------
 SPSChainActivatable.DEBUG = false
-print("[SPS BUILD] SPSChainActivatable 1.0.0.9.30 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSChainActivatable 1.0.0.9.30 loaded") end
 
 function SPSChainActivatable.log(fmt, ...)
     if not SPSChainActivatable.DEBUG then return end
@@ -59,6 +59,7 @@ end
 
 function SPSChainActivatable:getIsActivatable()
     if g_localPlayer == nil then return false end
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.physicalPipesEnabled == true then return false end   -- [SPS 1.0.1.8] pipe mode: physical pipes only
     local node = self:_getNode()
     if node == nil or node == 0 or not entityExists(node) then return false end
     -- AI guard: hide activatable if either end of this chain (anchor coupling,

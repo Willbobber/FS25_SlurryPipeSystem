@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="dockingStationFrame.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.14"/>
+  </Asset>
+
+  <Files>
+    <File fileId="4" filename="$data/shaders/vehicleShader.xml"/>
+    <File fileId="2" filename="$data/shared/default_normal.dds"/>
+    <File fileId="7" filename="$data/shared/detailLibrary/metallic/metalGalvanized_diffuse.dds"/>
+    <File fileId="6" filename="$data/shared/detailLibrary/metallic/metalGalvanized_normal.dds"/>
+    <File fileId="5" filename="$data/shared/detailLibrary/metallic/metalGalvanized_specular.dds"/>
+    <File fileId="14" filename="$data/shared/detailLibrary/metallic/silverScratched_diffuse.dds"/>
+    <File fileId="12" filename="$data/shared/detailLibrary/metallic/silverScratched_specular.dds"/>
+    <File fileId="1" filename="$data/shared/white_diffuse.dds"/>
+    <File fileId="3" filename="dockingStationFrame_Vmask.dds"/>
+  </Files>
+
+
+  <Materials>
+    <Material name="metalGalvanized_mat" materialId="5" customShaderId="4" customShaderVariation="vmaskUV2">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="5"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="7"/>
+    </Material>
+    <Material name="silverScratched_mat" materialId="6" customShaderId="4" customShaderVariation="vmaskUV2">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="12"/>
+      <Custommap name="detailDiffuse" fileId="14"/>
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="dockingStationFrame.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <Shape name="dockingStationFrame" shapeId="1" clipDistance="300" nodeId="9" castsShadows="true" receiveShadows="true" materialIds="5,6">
+      <TransformGroup name="dockingStationPosition" translation="-1.08325 0.807673 2.76989" rotation="0 90 0" nodeId="10"/>
+    </Shape>
+  </Scene>
+
+</i3D>

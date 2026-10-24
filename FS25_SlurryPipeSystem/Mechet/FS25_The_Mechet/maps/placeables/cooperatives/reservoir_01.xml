@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<placeable type="buyingStation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../../shared/xml/schema/placeable.xsd">
+    <storeData>
+        <name>$l10n_Reservoir</name>
+        <image>$data/store/store_empty.png</image>
+        <functions>
+            <function>$l10n_function_waterTower</function>
+        </functions>
+        <price>0</price>
+        <dailyUpkeep>5</dailyUpkeep>
+        <canBeSold>false</canBeSold>
+        <showInStore>false</showInStore>
+        <lifetime>1000</lifetime>
+        <rotation>0</rotation>
+        <brand>NONE</brand>
+        <species>PLACEABLE</species>
+        <category>waterTanks</category>
+        <brush>
+            <type>placeable</type>
+            <category>buildings</category>
+            <tab>containers</tab>
+        </brush>
+    </storeData>
+
+    <base>
+        <filename>maps/placeables/cooperatives/reservoir_01.i3d</filename>
+        <canBeRenamed>false</canBeRenamed>
+        <boughtWithFarmland>false</boughtWithFarmland>
+    </base>
+
+    <placement useRandomYRotation="false" useManualYRotation="true">
+        <testAreas>
+            <testArea startNode="testAreaStart01" endNode="testAreaEnd01" />
+        </testAreas>
+
+        <sounds>
+            <place template="smallImp"/>
+        </sounds>
+    </placement>
+
+    <clearAreas>
+        <clearArea startNode="clearAreaStart01" widthNode="clearAreaWidth01" heightNode="clearAreaHeight01"/>
+    </clearAreas>
+
+    <leveling requireLeveling="true" maxSmoothDistance="3" maxSlope="75" maxEdgeAngle="30">
+        <levelAreas>
+            <levelArea startNode="levelAreaStart01" widthNode="levelAreaWidth01" heightNode="levelAreaHeight01" groundType="asphalt"/>
+        </levelAreas>
+    </leveling>
+
+    <indoorAreas>
+        <indoorArea startNode="indoorAreaStart01" widthNode="indoorAreaWidth01" heightNode="indoorAreaHeight01"/>
+        <indoorArea startNode="indoorAreaStart02" widthNode="indoorAreaWidth02" heightNode="indoorAreaHeight02"/>
+    </indoorAreas>
+
+    <tipOcclusionUpdateAreas>
+        <tipOcclusionUpdateArea startNode="tipOcclusionUpdateAreaStart01" endNode="tipOcclusionUpdateAreaEnd01" />
+    </tipOcclusionUpdateAreas>
+
+    <ai>
+        <updateAreas>
+            <updateArea startNode="tipOcclusionUpdateAreaStart01" endNode="tipOcclusionUpdateAreaEnd01" />
+        </updateAreas>
+    </ai>
+
+    <triggerMarkers>
+        <triggerMarker node="loadingMarker" filename="$data/shared/assets/marker/markerIconLoad.i3d" />
+    </triggerMarkers>
+
+    <hotspots>
+        <hotspot type="LOADING" linkNode="mapPosition" teleportNode="teleportNode" />
+    </hotspots>
+
+    <buyingStation node="fillTrigger" supportsExtension="false" >
+        <loadTrigger triggerNode="fillTrigger" aiNode="aiNode" fillTypes="WATER" fillLitersPerSecond="700" autoStart="true" />
+        <fillType name="water" priceScale="1" statsName="purchaseWater" />
+    </buyingStation>
+	
+	<slurryPipeSystem>
+		<nodeTree filename="nodeTree.i3d"/>
+		<buyingStation fillType="WATER"/>
+		<fillPlane node="0>5|2" fillType="WATER" shape="rectangle" centreNodeName="poolCentre" corner1NodeName="poolCorner1" corner2NodeName="poolCorner2"/>
+		<pipeCouplings>
+			<pipeCoupling id="1" mountNodeName="SPS_pipeCoupler01" flowDirection="FILL" valveType="NONE" deployable="false" maxPipeLength="4.0" connector="male" headHeightNodeName="headHeight01"/>
+		</pipeCouplings>
+    </slurryPipeSystem>
+	
+    <i3dMappings>
+        <i3dMapping id="clearAreaStart01" node="0>0|0" />
+        <i3dMapping id="clearAreaWidth01" node="0>0|0|0" />
+        <i3dMapping id="clearAreaHeight01" node="0>0|0|1" />
+        <i3dMapping id="levelAreaStart01" node="0>1|0" />
+        <i3dMapping id="levelAreaWidth01" node="0>1|0|0" />
+        <i3dMapping id="levelAreaHeight01" node="0>1|0|1" />
+        <i3dMapping id="indoorAreaStart01" node="0>2|0" />
+        <i3dMapping id="indoorAreaWidth01" node="0>2|0|0" />
+        <i3dMapping id="indoorAreaHeight01" node="0>2|0|1" />
+        <i3dMapping id="indoorAreaStart02" node="0>2|1"/>
+        <i3dMapping id="indoorAreaWidth02" node="0>2|1|0"/>
+        <i3dMapping id="indoorAreaHeight02" node="0>2|1|1"/>
+        <i3dMapping id="testAreaStart01" node="0>3|0" />
+        <i3dMapping id="testAreaEnd01" node="0>3|0|0" />
+        <i3dMapping id="tipOcclusionUpdateAreaStart01" node="0>4|0" />
+        <i3dMapping id="tipOcclusionUpdateAreaEnd01" node="0>4|0|0" />
+        <i3dMapping id="fillTrigger" node="0>7|0"/>
+        <i3dMapping id="aiNode" node="0>7|1"/>
+        <i3dMapping id="loadingMarker" node="0>7|2"/>
+        <i3dMapping id="teleportNode" node="0>7|3"/>
+        <i3dMapping id="mapPosition" node="0>7|4"/>
+    </i3dMappings>
+</placeable>

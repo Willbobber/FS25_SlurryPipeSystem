@@ -14,7 +14,7 @@
 -- Also sent per-separator in the JIP join dump (wrap in SPSSeparator.lua).
 -- ---------------------------------------------------------------------------
 
-print("[SPS BUILD] SPSSeparatorEvent 1.0.0.9.21 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSSeparatorEvent 1.0.0.9.21 loaded") end
 
 SPSSeparatorEvent = {}
 
@@ -135,6 +135,6 @@ function SPSSeparatorEvent.sendState(sep)
     if g_server ~= nil and sep ~= nil and sep.placeable ~= nil then
         log("sendState: isOn=%s tightness=%.2f reason=%d lifetime=%.0f",
             tostring(sep.isOn), sep.tightness, sep.blockReason, sep.lifetimeManure)
-        g_server:broadcastEvent(SPSSeparatorEvent.newState(sep), nil, nil, sep.placeable)
+        g_server:broadcastEvent(SPSSeparatorEvent.newState(sep), nil, nil, sep.placeable, nil, nil, true)
     end
 end

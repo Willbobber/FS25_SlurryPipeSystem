@@ -65,6 +65,7 @@ end
 -- ActivatableObjectsSystem interface
 -- ---------------------------------------------------------------------------
 function SPSOutsideControlActivatable:getIsActivatable()
+    if SPSAccess ~= nil and not SPSAccess.localCanUse(self.vehicle) then return false end   -- [SPS 1.0.1.8] farm permission
     if g_localPlayer == nil then return false end
     if self.node == nil or self.node == 0 or not entityExists(self.node) then return false end
     if g_slurryPipeManager == nil or not g_slurryPipeManager:isRegistered(self.vehicle) then return false end

@@ -42,10 +42,14 @@ end
 
 function SPSBlockageEvent:run(connection)
     if self.object ~= nil and g_slurryPipeManager ~= nil then
-        g_slurryPipeManager:applyBlockageByIndex(self.object, self.nodeIndex, self.blocked)
+        -- [SPS MP 1.0.1.8] Apply now, or (client) defer until the vehicle registers.
+        local object, nodeIndex, blocked = self.object, self.nodeIndex, self.blocked
+        g_slurryPipeManager:applyOrDeferVehicleState(object, "BlockageEvent", function(entry, state)
+            g_slurryPipeManager:applyBlockageByIndex(object, nodeIndex, blocked)
+        end)
         -- Relay from a client to the rest via the server.
         if not connection:getIsServer() then
-            g_server:broadcastEvent(SPSBlockageEvent.new(self.object, self.nodeIndex, self.blocked), nil, connection, self.object)
+            g_server:broadcastEvent(SPSBlockageEvent.new(self.object, self.nodeIndex, self.blocked), nil, connection, self.object, nil, nil, true)
         end
     end
 end
@@ -53,7 +57,7 @@ end
 function SPSBlockageEvent.sendEvent(object, nodeIndex, blocked, noEventSend)
     if noEventSend == nil or not noEventSend then
         if g_server ~= nil then
-            g_server:broadcastEvent(SPSBlockageEvent.new(object, nodeIndex, blocked), nil, nil, object)
+            g_server:broadcastEvent(SPSBlockageEvent.new(object, nodeIndex, blocked), nil, nil, object, nil, nil, true)
         else
             g_client:getServerConnection():sendEvent(SPSBlockageEvent.new(object, nodeIndex, blocked))
         end
@@ -101,7 +105,7 @@ function SPSBlockageClearAnimEvent:run(connection)
     if self.object ~= nil and g_slurryPipeManager ~= nil then
         g_slurryPipeManager:playBlockageClearAnimByIndex(self.object, self.nodeIndex, self.forward)
         if not connection:getIsServer() then
-            g_server:broadcastEvent(SPSBlockageClearAnimEvent.new(self.object, self.nodeIndex, self.forward), nil, connection, self.object)
+            g_server:broadcastEvent(SPSBlockageClearAnimEvent.new(self.object, self.nodeIndex, self.forward), nil, connection, self.object, nil, nil, true)
         end
     end
 end
@@ -109,7 +113,7 @@ end
 function SPSBlockageClearAnimEvent.sendEvent(object, nodeIndex, forward, noEventSend)
     if noEventSend == nil or not noEventSend then
         if g_server ~= nil then
-            g_server:broadcastEvent(SPSBlockageClearAnimEvent.new(object, nodeIndex, forward), nil, nil, object)
+            g_server:broadcastEvent(SPSBlockageClearAnimEvent.new(object, nodeIndex, forward), nil, nil, object, nil, nil, true)
         else
             g_client:getServerConnection():sendEvent(SPSBlockageClearAnimEvent.new(object, nodeIndex, forward))
         end

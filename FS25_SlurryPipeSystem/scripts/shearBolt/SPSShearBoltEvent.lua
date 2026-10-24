@@ -41,10 +41,14 @@ function SPSShearBoltEvent:run(connection)
         if SPSShearBolt ~= nil and SPSShearBolt.DEBUG and SPSShearBolt.dbg ~= nil then
             SPSShearBolt.dbg("event received: snapped=" .. tostring(self.snapped))
         end
-        g_slurryPipeManager:applyShearBoltState(self.object, self.snapped)
+        -- [SPS MP 1.0.1.8] Apply now, or (client) defer until the vehicle registers.
+        local object, snapped = self.object, self.snapped
+        g_slurryPipeManager:applyOrDeferVehicleState(object, "ShearBoltEvent", function(entry, state)
+            g_slurryPipeManager:applyShearBoltState(object, snapped)
+        end)
         -- Relay from a client to the rest via the server.
         if not connection:getIsServer() then
-            g_server:broadcastEvent(SPSShearBoltEvent.new(self.object, self.snapped), nil, connection, self.object)
+            g_server:broadcastEvent(SPSShearBoltEvent.new(self.object, self.snapped), nil, connection, self.object, nil, nil, true)
         end
     end
 end
@@ -52,7 +56,7 @@ end
 function SPSShearBoltEvent.sendEvent(object, snapped, noEventSend)
     if noEventSend == nil or not noEventSend then
         if g_server ~= nil then
-            g_server:broadcastEvent(SPSShearBoltEvent.new(object, snapped), nil, nil, object)
+            g_server:broadcastEvent(SPSShearBoltEvent.new(object, snapped), nil, nil, object, nil, nil, true)
         else
             g_client:getServerConnection():sendEvent(SPSShearBoltEvent.new(object, snapped))
         end

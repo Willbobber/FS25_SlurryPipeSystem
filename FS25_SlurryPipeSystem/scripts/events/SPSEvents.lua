@@ -1,4 +1,4 @@
-print("[SPS BUILD] SPSEvents 1.0.0.9.31 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSEvents 1.0.0.9.31 loaded") end
 -- FS25_SlurryPipeSystem 
 -- Author: Oscar Mods 
 -- Version: 1.0.0.9.2
@@ -69,23 +69,23 @@ function SlurryFlowStateEvent:run(connection)
         tostring(self.vehicle ~= nil and self.vehicle:getIsSynchronized())))
         end
     if not connection:getIsServer() then
-        g_server:broadcastEvent(self, false, connection, self.vehicle)
+        g_server:broadcastEvent(self, false, connection, self.vehicle, nil, nil, true)
     end
-    if self.vehicle ~= nil and self.vehicle:getIsSynchronized() then
-        if g_slurryPipeManager ~= nil then
-            local state = g_slurryPipeManager:getVehicleState(self.vehicle)
-            if state ~= nil then
-                state.valveOpen = self.isFlowOpen
-                g_slurryPipeManager:updateActionEventTexts(self.vehicle)
-            end
-        end
+    -- [SPS MP 1.0.1.8] Apply now, or (client) defer until the vehicle registers:
+    -- the join dump lands before delayed-loaded vehicles exist on the joiner.
+    if self.vehicle ~= nil and g_slurryPipeManager ~= nil then
+        local vehicle, isFlowOpen = self.vehicle, self.isFlowOpen
+        g_slurryPipeManager:applyOrDeferVehicleState(vehicle, "FlowStateEvent", function(entry, state)
+            state.valveOpen = isFlowOpen
+            g_slurryPipeManager:updateActionEventTexts(vehicle)
+        end)
     end
 end
 
 function SlurryFlowStateEvent.sendEvent(vehicle, isFlowOpen, noEventSend)
     if noEventSend == nil or noEventSend == false then
         if g_server ~= nil then
-            g_server:broadcastEvent(SlurryFlowStateEvent.new(vehicle, isFlowOpen), nil, nil, vehicle)
+            g_server:broadcastEvent(SlurryFlowStateEvent.new(vehicle, isFlowOpen), nil, nil, vehicle, nil, nil, true)
             return
         end
         spsSendEventToServer(SlurryFlowStateEvent.new(vehicle, isFlowOpen))
@@ -129,23 +129,21 @@ function SlurryFlowDirectionEvent:run(connection)
         tostring(self.vehicle ~= nil and self.vehicle:getIsSynchronized())))
         end
     if not connection:getIsServer() then
-        g_server:broadcastEvent(self, false, connection, self.vehicle)
+        g_server:broadcastEvent(self, false, connection, self.vehicle, nil, nil, true)
     end
-    if self.vehicle ~= nil and self.vehicle:getIsSynchronized() then
-        if g_slurryPipeManager ~= nil then
-            local state = g_slurryPipeManager:getVehicleState(self.vehicle)
-            if state ~= nil then
-                g_slurryPipeManager:applyDirectionAndPurge(self.vehicle, self.direction)
-                g_slurryPipeManager:updateActionEventTexts(self.vehicle)
-            end
-        end
+    if self.vehicle ~= nil and g_slurryPipeManager ~= nil then
+        local vehicle, direction = self.vehicle, self.direction
+        g_slurryPipeManager:applyOrDeferVehicleState(vehicle, "FlowDirectionEvent", function(entry, state)
+            g_slurryPipeManager:applyDirectionAndPurge(vehicle, direction)
+            g_slurryPipeManager:updateActionEventTexts(vehicle)
+        end)
     end
 end
 
 function SlurryFlowDirectionEvent.sendEvent(vehicle, direction, noEventSend)
     if noEventSend == nil or noEventSend == false then
         if g_server ~= nil then
-            g_server:broadcastEvent(SlurryFlowDirectionEvent.new(vehicle, direction), nil, nil, vehicle)
+            g_server:broadcastEvent(SlurryFlowDirectionEvent.new(vehicle, direction), nil, nil, vehicle, nil, nil, true)
             return
         end
         spsSendEventToServer(SlurryFlowDirectionEvent.new(vehicle, direction))
@@ -210,7 +208,7 @@ function SlurryPipeConnectEvent:run(connection)
         -- Include the originating client (ignoreConnection = nil): the partner coupling
         -- is resolved server-side, so the sender cannot apply optimistically and must
         -- receive the echo to render the pipe locally.
-        g_server:broadcastEvent(self, false, nil, self.vehicleA)
+        g_server:broadcastEvent(self, false, nil, self.vehicleA, nil, nil, true)
     end
     if g_slurryPipeManager ~= nil then
         g_slurryPipeManager:applyConnect(self.vehicleA, self.targetObject, self.targetType, self.couplingIdA, self.couplingIdB)
@@ -222,7 +220,7 @@ end
 function SlurryPipeConnectEvent.sendEvent(vehicleA, targetObject, targetType, couplingIdA, couplingIdB, noEventSend)
     if noEventSend == nil or noEventSend == false then
         if g_server ~= nil then
-            g_server:broadcastEvent(SlurryPipeConnectEvent.new(vehicleA, targetObject, targetType, couplingIdA, couplingIdB), nil, nil, vehicleA)
+            g_server:broadcastEvent(SlurryPipeConnectEvent.new(vehicleA, targetObject, targetType, couplingIdA, couplingIdB), nil, nil, vehicleA, nil, nil, true)
             return
         end
         spsSendEventToServer(SlurryPipeConnectEvent.new(vehicleA, targetObject, targetType, couplingIdA, couplingIdB))
@@ -316,7 +314,7 @@ end
 function SlurryPipeDisconnectEvent:run(connection)
     if not connection:getIsServer() then
         -- Include the originating client so it removes the pipe locally.
-        g_server:broadcastEvent(self, false, nil, self.vehicleA)
+        g_server:broadcastEvent(self, false, nil, self.vehicleA, nil, nil, true)
     end
     if g_slurryPipeManager ~= nil then
         -- [SPS MP] Resolve the exact chain-terminus coupling from (netId + role)
@@ -355,7 +353,7 @@ function SlurryPipeDisconnectEvent.sendEvent(vehicleA, couplingIdA, noEventSend,
     if noEventSend == true then return end
 
     if g_server ~= nil then
-        g_server:broadcastEvent(SlurryPipeDisconnectEvent.new(vehicleA, couplingIdA, couplingObj), nil, nil, vehicleA)
+        g_server:broadcastEvent(SlurryPipeDisconnectEvent.new(vehicleA, couplingIdA, couplingObj), nil, nil, vehicleA, nil, nil, true)
         return
     end
 
@@ -462,7 +460,7 @@ end
 function SlurryValveStateEvent:run(connection)
     if not connection:getIsServer() then
         -- Include the originating client so it applies the coupling valve state locally.
-        g_server:broadcastEvent(self, false, nil, self.vehicleA)
+        g_server:broadcastEvent(self, false, nil, self.vehicleA, nil, nil, true)
     end
     if g_slurryPipeManager ~= nil then
         -- If a placeable owner was transmitted, narrow the lookup to that
@@ -514,7 +512,7 @@ end
 function SlurryValveStateEvent.sendEvent(vehicleA, couplingArg, isOpen, noEventSend)
     if noEventSend == nil or noEventSend == false then
         if g_server ~= nil then
-            g_server:broadcastEvent(SlurryValveStateEvent.new(vehicleA, couplingArg, isOpen), nil, nil, vehicleA)
+            g_server:broadcastEvent(SlurryValveStateEvent.new(vehicleA, couplingArg, isOpen), nil, nil, vehicleA, nil, nil, true)
             return
         end
         spsSendEventToServer(SlurryValveStateEvent.new(vehicleA, couplingArg, isOpen))
@@ -556,7 +554,7 @@ end
 
 function SPSCouplingDeployEvent:run(connection)
     if not connection:getIsServer() then
-        g_server:broadcastEvent(self, false, connection, self.placeable)
+        g_server:broadcastEvent(self, false, connection, self.placeable, nil, nil, true)
     end
     if g_slurryPipeManager ~= nil then
         g_slurryPipeManager:applyCouplingDeployState(self.placeable, self.couplingId, self.isDeployed)
@@ -566,7 +564,7 @@ end
 function SPSCouplingDeployEvent.sendEvent(placeable, couplingId, isDeployed, noEventSend)
     if noEventSend == nil or noEventSend == false then
         if g_server ~= nil then
-            g_server:broadcastEvent(SPSCouplingDeployEvent.new(placeable, couplingId, isDeployed), nil, nil, placeable)
+            g_server:broadcastEvent(SPSCouplingDeployEvent.new(placeable, couplingId, isDeployed), nil, nil, placeable, nil, nil, true)
             return
         end
         spsSendEventToServer(SPSCouplingDeployEvent.new(placeable, couplingId, isDeployed))
@@ -611,18 +609,18 @@ function SPSSelfPumpStateEvent:run(connection)
         tostring(self.vehicle ~= nil and self.vehicle:getIsSynchronized())))
         end
     if not connection:getIsServer() then
-        g_server:broadcastEvent(self, false, connection, self.vehicle)
+        g_server:broadcastEvent(self, false, connection, self.vehicle, nil, nil, true)
     end
-    if self.vehicle ~= nil and self.vehicle:getIsSynchronized() then
-        if g_slurryPipeManager ~= nil then
-            local state = g_slurryPipeManager:getVehicleState(self.vehicle)
-            if state ~= nil then
-                state.pumpRunning = self.pumpRunning
+    if self.vehicle ~= nil and g_slurryPipeManager ~= nil then
+        local vehicle, pumpRunning = self.vehicle, self.pumpRunning
+        g_slurryPipeManager:applyOrDeferVehicleState(vehicle, "SelfPumpStateEvent", function(entry, state)
+            do
+                state.pumpRunning = pumpRunning
                 -- [SPS MP] Drive the pump engine loop on receiving machines. The
                 -- toggle only plays/stops it on the initiator, so remote peers
                 -- (host included, for guest toggles) stayed silent.
                 if g_slurryPipeManager.applyPumpSound ~= nil then
-                    g_slurryPipeManager:applyPumpSound(self.vehicle, self.pumpRunning)
+                    g_slurryPipeManager:applyPumpSound(vehicle, pumpRunning)
                 end
                 -- [SPS MP] When the SERVER applies a CLIENT's spreader-pump request it
                 -- must also drive the vanilla turned-on state (PTO engage / engine load).
@@ -632,21 +630,21 @@ function SPSSelfPumpStateEvent:run(connection)
                 -- client. Non-spreader pumps use vanilla TurnOnVehicleEvent directly and
                 -- need nothing here. run() only executes on the server for client-sent
                 -- events, so this never double-fires a server-originated toggle.
-                if g_server ~= nil and self.vehicle.setIsTurnedOn ~= nil
+                if g_server ~= nil and vehicle.setIsTurnedOn ~= nil
                 and g_slurryPipeManager.vehicleHasSpreader ~= nil
-                and g_slurryPipeManager:vehicleHasSpreader(self.vehicle) then
-                    self.vehicle:setIsTurnedOn(self.pumpRunning == true)
+                and g_slurryPipeManager:vehicleHasSpreader(vehicle) then
+                    vehicle:setIsTurnedOn(pumpRunning == true)
                 end
-                g_slurryPipeManager:updateActionEventTexts(self.vehicle)
+                g_slurryPipeManager:updateActionEventTexts(vehicle)
             end
-        end
+        end)
     end
 end
 
 function SPSSelfPumpStateEvent.sendEvent(vehicle, pumpRunning, noEventSend)
     if noEventSend == nil or noEventSend == false then
         if g_server ~= nil then
-            g_server:broadcastEvent(SPSSelfPumpStateEvent.new(vehicle, pumpRunning), nil, nil, vehicle)
+            g_server:broadcastEvent(SPSSelfPumpStateEvent.new(vehicle, pumpRunning), nil, nil, vehicle, nil, nil, true)
             return
         end
         spsSendEventToServer(SPSSelfPumpStateEvent.new(vehicle, pumpRunning))
@@ -690,13 +688,11 @@ end
 
 function SPSPressureStateEvent:run(connection)
     -- server -> client only; no rebroadcast (clients never originate pressure).
-    if self.vehicle ~= nil and self.vehicle:getIsSynchronized() then
-        if g_slurryPipeManager ~= nil then
-            local state = g_slurryPipeManager:getVehicleState(self.vehicle)
-            if state ~= nil then
-                state.pressure = self.pressure
-            end
-        end
+    if self.vehicle ~= nil and g_slurryPipeManager ~= nil then
+        local pressure = self.pressure
+        g_slurryPipeManager:applyOrDeferVehicleState(self.vehicle, "PressureStateEvent", function(entry, state)
+            state.pressure = pressure
+        end)
     end
 end
 
@@ -704,7 +700,7 @@ function SPSPressureStateEvent.sendEvent(vehicle, pressure)
     -- Server only. Scoped to the vehicle ghost so only connections that already
     -- know the vehicle receive it.
     if g_server ~= nil then
-        g_server:broadcastEvent(SPSPressureStateEvent.new(vehicle, pressure), nil, nil, vehicle)
+        g_server:broadcastEvent(SPSPressureStateEvent.new(vehicle, pressure), nil, nil, vehicle, nil, nil, true)
     end
 end
 -- ---------------------------------------------------------------------------
@@ -740,27 +736,25 @@ end
 
 function SPSSpreaderValveEvent:run(connection)
     if not connection:getIsServer() then
-        g_server:broadcastEvent(self, false, connection, self.vehicle)
+        g_server:broadcastEvent(self, false, connection, self.vehicle, nil, nil, true)
     end
-    if self.vehicle ~= nil and self.vehicle:getIsSynchronized() then
-        if g_slurryPipeManager ~= nil then
-            local state = g_slurryPipeManager:getVehicleState(self.vehicle)
-            if state ~= nil then
-                state.spreaderValveOpen = self.isOpen
-                g_slurryPipeManager:updateActionEventTexts(self.vehicle)
-                -- [SPS 1.0.1.6] Rear-valve animation on remote peers (this run()
-                -- also carries the JIP full-state resend, so late joiners see
-                -- an already-open valve animate to its open pose).
-                g_slurryPipeManager:updateSpreaderValveAnimation(self.vehicle, false)
-            end
-        end
+    if self.vehicle ~= nil and g_slurryPipeManager ~= nil then
+        local vehicle, isOpen = self.vehicle, self.isOpen
+        g_slurryPipeManager:applyOrDeferVehicleState(vehicle, "SpreaderValveEvent", function(entry, state)
+            state.spreaderValveOpen = isOpen
+            g_slurryPipeManager:updateActionEventTexts(vehicle)
+            -- [SPS 1.0.1.6] Rear-valve animation on remote peers (this run()
+            -- also carries the JIP full-state resend, so late joiners see
+            -- an already-open valve animate to its open pose).
+            g_slurryPipeManager:updateSpreaderValveAnimation(vehicle, false)
+        end)
     end
 end
 
 function SPSSpreaderValveEvent.sendEvent(vehicle, isOpen, noEventSend)
     if noEventSend == nil or noEventSend == false then
         if g_server ~= nil then
-            g_server:broadcastEvent(SPSSpreaderValveEvent.new(vehicle, isOpen), nil, nil, vehicle)
+            g_server:broadcastEvent(SPSSpreaderValveEvent.new(vehicle, isOpen), nil, nil, vehicle, nil, nil, true)
             return
         end
         spsSendEventToServer(SPSSpreaderValveEvent.new(vehicle, isOpen))
@@ -948,7 +942,7 @@ function SPSChainStateEvent:run(connection)
     -- not include the sender, who is the authority for nothing here).
     if not connection:getIsServer() then
         if g_server ~= nil then
-            g_server:broadcastEvent(self, false, connection, self.anchorObject)
+            g_server:broadcastEvent(self, false, connection, self.anchorObject, nil, nil, true)
         end
     end
 
@@ -967,7 +961,7 @@ function SPSChainStateEvent.sendEvent(netId, removed, anchorObject, couplingId, 
     end
     g_server:broadcastEvent(
         SPSChainStateEvent.new(netId, removed, anchorObject, couplingId, isPlaceable, payload),
-        nil, nil, anchorObject)
+        nil, nil, anchorObject, nil, nil, true)
 end
 
 
@@ -1223,7 +1217,7 @@ function SPSChainConnectEvent:run(connection)
     -- (excluding the sender, who applied optimistically).
     if not connection:getIsServer() then
         if g_server ~= nil then
-            g_server:broadcastEvent(self, false, connection, self.anchorObject)
+            g_server:broadcastEvent(self, false, connection, self.anchorObject, nil, nil, true)
         end
     end
     if g_slurryPipeManager ~= nil and g_slurryPipeManager.applyChainConnect ~= nil then
@@ -1236,7 +1230,7 @@ end
 function SPSChainConnectEvent.sendEvent(anchorObject, isPlaceable, vehicleCouplingId, chainNetId, terminusSegIndex, connected)
     local ev = SPSChainConnectEvent.new(anchorObject, isPlaceable, vehicleCouplingId, chainNetId, terminusSegIndex, connected)
     if g_server ~= nil then
-        g_server:broadcastEvent(ev, nil, nil, anchorObject)
+        g_server:broadcastEvent(ev, nil, nil, anchorObject, nil, nil, true)
         return
     end
     spsSendEventToServer(ev)
@@ -1363,7 +1357,7 @@ end
 
 function SPSStoreCrustEvent.sendEvent(placeable, solids, settle, storeIndex)
     if g_server == nil then return end
-    g_server:broadcastEvent(SPSStoreCrustEvent.new(placeable, solids, settle, storeIndex), nil, nil, placeable)
+    g_server:broadcastEvent(SPSStoreCrustEvent.new(placeable, solids, settle, storeIndex), nil, nil, placeable, nil, nil, true)
 end
 
 
@@ -1462,9 +1456,9 @@ function SPSChainLiveEvent:run(connection)
         -- START must reach everyone (incl the originator, to learn the netId);
         -- POS/CANCEL exclude the sender (who already shows it locally).
         if self.action == SPSChainLiveEvent.ACTION_START then
-            g_server:broadcastEvent(self, false, nil, self.anchorObject)
+            g_server:broadcastEvent(self, false, nil, self.anchorObject, nil, nil, true)
         else
-            g_server:broadcastEvent(self, false, connection, self.anchorObject)
+            g_server:broadcastEvent(self, false, connection, self.anchorObject, nil, nil, true)
         end
     end
 
@@ -1488,7 +1482,7 @@ end
 function SPSChainLiveEvent.sendStart(netId, anchorObject, couplingId, isPlaceable, sx, sy, sz, sry)
     local ev = SPSChainLiveEvent.new(SPSChainLiveEvent.ACTION_START, netId, anchorObject, couplingId, isPlaceable, sx, sy, sz, sry)
     if g_server ~= nil then
-        g_server:broadcastEvent(ev, false, nil, anchorObject)
+        g_server:broadcastEvent(ev, false, nil, anchorObject, nil, nil, true)
         return
     end
     spsSendEventToServer(ev)
@@ -1535,7 +1529,7 @@ function SPSSettingsSyncEvent.emptyNew()
     return self
 end
 
-function SPSSettingsSyncEvent.new(realismEnabled, thicknessFlow, blockages, lengthFalloff, shearBoltEnabled, ibcPersistWhenEmpty)
+function SPSSettingsSyncEvent.new(realismEnabled, thicknessFlow, blockages, lengthFalloff, shearBoltEnabled, ibcPersistWhenEmpty, physicalPipesEnabled)
     local self = SPSSettingsSyncEvent.emptyNew()
     self.realismEnabled      = realismEnabled ~= false
     self.thicknessFlow       = thicknessFlow ~= false
@@ -1543,6 +1537,7 @@ function SPSSettingsSyncEvent.new(realismEnabled, thicknessFlow, blockages, leng
     self.lengthFalloff       = lengthFalloff ~= false
     self.shearBoltEnabled    = shearBoltEnabled ~= false
     self.ibcPersistWhenEmpty = ibcPersistWhenEmpty == true
+    self.physicalPipesEnabled = physicalPipesEnabled == true   -- [SPS 1.0.1.8] pipe mode
     return self
 end
 
@@ -1553,6 +1548,7 @@ function SPSSettingsSyncEvent:readStream(streamId, connection)
     self.lengthFalloff       = streamReadBool(streamId)
     self.shearBoltEnabled    = streamReadBool(streamId)
     self.ibcPersistWhenEmpty = streamReadBool(streamId)
+    self.physicalPipesEnabled = streamReadBool(streamId)
     self:run(connection)
 end
 
@@ -1563,10 +1559,22 @@ function SPSSettingsSyncEvent:writeStream(streamId, connection)
     streamWriteBool(streamId, self.lengthFalloff)
     streamWriteBool(streamId, self.shearBoltEnabled)
     streamWriteBool(streamId, self.ibcPersistWhenEmpty)
+    streamWriteBool(streamId, self.physicalPipesEnabled)
 end
 
 function SPSSettingsSyncEvent:run(connection)
     if not connection:getIsServer() then
+        -- [SPS 1.0.1.8] Server: only an admin (master user) may change the gameplay settings - switching the pipe mode
+        -- deletes every farm's pipes and docking stations (removeAllPhysicalPipes / removeAllOriginalPipes). The menu
+        -- was admin-gated, the event was not (any client's console could send it). Same check as the game's own
+        -- admin events (SaveEvent, KickBanEvent). A refused client gets the real settings back: it applied its
+        -- request optimistically on send.
+        local um = g_currentMission ~= nil and g_currentMission.userManager or nil
+        if um == nil or not um:getIsConnectionMasterUser(connection) then
+            print("[SPS] settings change refused: the request did not come from an admin")
+            SPSSettingsSyncEvent.sendCurrent(connection)
+            return
+        end
         -- Server received an admin client's request: rebroadcast to the other
         -- clients (sender excluded — it applied optimistically on send).
         g_server:broadcastEvent(self, false, connection)
@@ -1579,6 +1587,7 @@ function SPSSettingsSyncEvent:run(connection)
             lengthFalloff       = self.lengthFalloff,
             shearBoltEnabled    = self.shearBoltEnabled,
             ibcPersistWhenEmpty = self.ibcPersistWhenEmpty,
+            physicalPipesEnabled = self.physicalPipesEnabled,
         })
     end
 end
@@ -1591,7 +1600,7 @@ function SPSSettingsSyncEvent.sendCurrent(connection)
     local ft = mgr.featureToggles or {}
     connection:sendEvent(SPSSettingsSyncEvent.new(
         mgr.realismEnabled, ft.thicknessFlow, ft.blockages, ft.lengthFalloff,
-        mgr.shearBoltEnabled, mgr.ibcPersistWhenEmpty))
+        mgr.shearBoltEnabled, mgr.ibcPersistWhenEmpty, mgr.physicalPipesEnabled))
 end
 
 function SPSSettingsSyncEvent.sendRequest()
@@ -1603,5 +1612,336 @@ function SPSSettingsSyncEvent.sendRequest()
     local ft = mgr.featureToggles or {}
     spsSendEventToServer(SPSSettingsSyncEvent.new(
         mgr.realismEnabled, ft.thicknessFlow, ft.blockages, ft.lengthFalloff,
-        mgr.shearBoltEnabled, mgr.ibcPersistWhenEmpty))
+        mgr.shearBoltEnabled, mgr.ibcPersistWhenEmpty, mgr.physicalPipesEnabled))
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.8] Physical pipe (bought pipe) connect / disconnect. Server-authoritative:
+-- a client sends its request, the server applies and echoes to EVERY peer (sender included -
+-- the coupling is resolved server-side). Mirrors SlurryPipeConnectEvent.
+-- ---------------------------------------------------------------------------
+SPSPhysPipeConnectEvent = {}
+local SPSPhysPipeConnectEvent_mt = Class(SPSPhysPipeConnectEvent, Event)
+InitEventClass(SPSPhysPipeConnectEvent, "SPSPhysPipeConnectEvent")
+
+function SPSPhysPipeConnectEvent.emptyNew()
+    return Event.new(SPSPhysPipeConnectEvent_mt)
+end
+
+function SPSPhysPipeConnectEvent.new(pipe, endIdx, object, isPlaceable, couplingId, isLane)
+    local self = SPSPhysPipeConnectEvent.emptyNew()
+    self.pipe        = pipe
+    self.endIdx      = endIdx
+    self.object      = object
+    self.isPlaceable = isPlaceable == true
+    self.couplingId  = couplingId
+    self.isLane      = isLane == true      -- [SPS 1.0.1.8] 80 mm lane coupler (liquid-lane registry) vs slurry coupling
+    return self
+end
+
+function SPSPhysPipeConnectEvent:readStream(streamId, connection)
+    self.pipe        = NetworkUtil.readNodeObject(streamId)
+    self.endIdx      = streamReadUIntN(streamId, 2)
+    self.object      = NetworkUtil.readNodeObject(streamId)
+    self.isPlaceable = streamReadBool(streamId)
+    self.couplingId  = streamReadUIntN(streamId, 8)
+    self.isLane      = streamReadBool(streamId)
+    self:run(connection)
+end
+
+function SPSPhysPipeConnectEvent:writeStream(streamId, connection)
+    NetworkUtil.writeNodeObject(streamId, self.pipe)
+    streamWriteUIntN(streamId, self.endIdx or 1, 2)
+    NetworkUtil.writeNodeObject(streamId, self.object)
+    streamWriteBool(streamId, self.isPlaceable == true)
+    streamWriteUIntN(streamId, self.couplingId or 0, 8)
+    streamWriteBool(streamId, self.isLane == true)
+end
+
+function SPSPhysPipeConnectEvent:run(connection)
+    -- [SPS 1.0.1.8 MP] a client's request is APPLIED on the server first and rebroadcast only when it took; a
+    -- refused request (busy coupling, taken slot, stale client) never reaches the other clients
+    local ok = false
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.applyPhysPipeConnect ~= nil then
+        ok = g_slurryPipeManager:applyPhysPipeConnect(self.pipe, self.endIdx, self.object, self.isPlaceable, self.couplingId, self.isLane)
+    end
+    if not connection:getIsServer() and ok then
+        g_server:broadcastEvent(self, false, nil, self.pipe, nil, nil, true)
+    end
+end
+
+function SPSPhysPipeConnectEvent.sendEvent(pipe, endIdx, object, isPlaceable, couplingId, isLane, noEventSend)
+    if noEventSend == true then return end
+    if g_server ~= nil then
+        g_server:broadcastEvent(SPSPhysPipeConnectEvent.new(pipe, endIdx, object, isPlaceable, couplingId, isLane), nil, nil, pipe, nil, nil, true)
+        return
+    end
+    spsSendEventToServer(SPSPhysPipeConnectEvent.new(pipe, endIdx, object, isPlaceable, couplingId, isLane))
+end
+
+SPSPhysPipeDisconnectEvent = {}
+local SPSPhysPipeDisconnectEvent_mt = Class(SPSPhysPipeDisconnectEvent, Event)
+InitEventClass(SPSPhysPipeDisconnectEvent, "SPSPhysPipeDisconnectEvent")
+
+function SPSPhysPipeDisconnectEvent.emptyNew()
+    return Event.new(SPSPhysPipeDisconnectEvent_mt)
+end
+
+function SPSPhysPipeDisconnectEvent.new(pipe, endIdx)
+    local self = SPSPhysPipeDisconnectEvent.emptyNew()
+    self.pipe   = pipe
+    self.endIdx = endIdx
+    return self
+end
+
+function SPSPhysPipeDisconnectEvent:readStream(streamId, connection)
+    self.pipe   = NetworkUtil.readNodeObject(streamId)
+    self.endIdx = streamReadUIntN(streamId, 2)
+    self:run(connection)
+end
+
+function SPSPhysPipeDisconnectEvent:writeStream(streamId, connection)
+    NetworkUtil.writeNodeObject(streamId, self.pipe)
+    streamWriteUIntN(streamId, self.endIdx or 1, 2)
+end
+
+function SPSPhysPipeDisconnectEvent:run(connection)
+    -- [SPS 1.0.1.8 MP] a client's request is APPLIED on the server first and rebroadcast only when it took; a
+    -- refused request (busy coupling, taken slot, stale client) never reaches the other clients
+    local ok = false
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.applyPhysPipeDisconnect ~= nil then
+        ok = g_slurryPipeManager:applyPhysPipeDisconnect(self.pipe, self.endIdx)
+    end
+    if not connection:getIsServer() and ok then
+        g_server:broadcastEvent(self, false, nil, self.pipe, nil, nil, true)
+    end
+end
+
+function SPSPhysPipeDisconnectEvent.sendEvent(pipe, endIdx, noEventSend)
+    if noEventSend == true then return end
+    if g_server ~= nil then
+        g_server:broadcastEvent(SPSPhysPipeDisconnectEvent.new(pipe, endIdx), nil, nil, pipe, nil, nil, true)
+        return
+    end
+    spsSendEventToServer(SPSPhysPipeDisconnectEvent.new(pipe, endIdx))
+end
+
+-- [SPS 1.0.1.8] pipe-to-pipe join (physical pipes). Same shape as SPSPhysPipeConnectEvent.
+SPSPhysPipeJoinEvent = {}
+local SPSPhysPipeJoinEvent_mt = Class(SPSPhysPipeJoinEvent, Event)
+InitEventClass(SPSPhysPipeJoinEvent, "SPSPhysPipeJoinEvent")
+
+function SPSPhysPipeJoinEvent.emptyNew()
+    return Event.new(SPSPhysPipeJoinEvent_mt)
+end
+
+function SPSPhysPipeJoinEvent.new(pipe, endIdx, otherPipe, otherIdx)
+    local self = SPSPhysPipeJoinEvent.emptyNew()
+    self.pipe, self.endIdx, self.otherPipe, self.otherIdx = pipe, endIdx, otherPipe, otherIdx
+    return self
+end
+
+function SPSPhysPipeJoinEvent:readStream(streamId, connection)
+    self.pipe      = NetworkUtil.readNodeObject(streamId)
+    self.endIdx    = streamReadUIntN(streamId, 2)
+    self.otherPipe = NetworkUtil.readNodeObject(streamId)
+    self.otherIdx  = streamReadUIntN(streamId, 2)
+    self:run(connection)
+end
+
+function SPSPhysPipeJoinEvent:writeStream(streamId, connection)
+    NetworkUtil.writeNodeObject(streamId, self.pipe)
+    streamWriteUIntN(streamId, self.endIdx or 1, 2)
+    NetworkUtil.writeNodeObject(streamId, self.otherPipe)
+    streamWriteUIntN(streamId, self.otherIdx or 1, 2)
+end
+
+function SPSPhysPipeJoinEvent:run(connection)
+    -- [SPS 1.0.1.8 MP] a client's request is APPLIED on the server first and rebroadcast only when it took; a
+    -- refused request (busy coupling, taken slot, stale client) never reaches the other clients
+    local ok = false
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.applyPhysPipeJoin ~= nil then
+        ok = g_slurryPipeManager:applyPhysPipeJoin(self.pipe, self.endIdx, self.otherPipe, self.otherIdx)
+    end
+    if not connection:getIsServer() and ok then
+        g_server:broadcastEvent(self, false, nil, self.pipe, nil, nil, true)
+    end
+end
+
+function SPSPhysPipeJoinEvent.sendEvent(pipe, endIdx, otherPipe, otherIdx, noEventSend)
+    if noEventSend == true then return end
+    if g_server ~= nil then
+        g_server:broadcastEvent(SPSPhysPipeJoinEvent.new(pipe, endIdx, otherPipe, otherIdx), nil, nil, pipe, nil, nil, true)
+        return
+    end
+    spsSendEventToServer(SPSPhysPipeJoinEvent.new(pipe, endIdx, otherPipe, otherIdx))
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.8] Physical pipe STOWED on / taken off a vehicle's pipe holder (SPSM_PhysPipes physPipeStow / Unstow).
+-- stow=true: vehicle + holderId + slotName; stow=false: unstow (vehicle nil, holderId 0, slot "").
+-- ---------------------------------------------------------------------------
+SPSPhysPipeStowEvent = {}
+local SPSPhysPipeStowEvent_mt = Class(SPSPhysPipeStowEvent, Event)
+InitEventClass(SPSPhysPipeStowEvent, "SPSPhysPipeStowEvent")
+
+function SPSPhysPipeStowEvent.emptyNew()
+    return Event.new(SPSPhysPipeStowEvent_mt)
+end
+
+function SPSPhysPipeStowEvent.new(pipe, vehicle, holderId, slotName, stow)
+    local self = SPSPhysPipeStowEvent.emptyNew()
+    self.pipe     = pipe
+    self.vehicle  = vehicle
+    self.holderId = holderId or 0
+    self.slotName = slotName or ""
+    self.stow     = stow == true
+    return self
+end
+
+function SPSPhysPipeStowEvent:readStream(streamId, connection)
+    self.pipe     = NetworkUtil.readNodeObject(streamId)
+    self.vehicle  = NetworkUtil.readNodeObject(streamId)
+    self.holderId = streamReadUIntN(streamId, 8)
+    self.slotName = streamReadString(streamId)
+    self.stow     = streamReadBool(streamId)
+    self:run(connection)
+end
+
+function SPSPhysPipeStowEvent:writeStream(streamId, connection)
+    NetworkUtil.writeNodeObject(streamId, self.pipe)
+    NetworkUtil.writeNodeObject(streamId, self.vehicle)
+    streamWriteUIntN(streamId, self.holderId or 0, 8)
+    streamWriteString(streamId, self.slotName or "")
+    streamWriteBool(streamId, self.stow == true)
+end
+
+function SPSPhysPipeStowEvent:run(connection)
+    -- [SPS 1.0.1.8 MP] a client's request is APPLIED on the server first and rebroadcast only when it took; a
+    -- refused request (busy coupling, taken slot, stale client) never reaches the other clients
+    local ok = false
+    if g_slurryPipeManager ~= nil then
+        if self.stow then
+            if g_slurryPipeManager.applyPhysPipeStow ~= nil then
+                ok = g_slurryPipeManager:applyPhysPipeStow(self.pipe, self.vehicle, self.holderId, self.slotName)
+            end
+        elseif g_slurryPipeManager.applyPhysPipeUnstow ~= nil then
+            ok = g_slurryPipeManager:applyPhysPipeUnstow(self.pipe)
+        end
+    end
+    if not connection:getIsServer() and ok then
+        g_server:broadcastEvent(self, false, nil, self.pipe, nil, nil, true)
+    end
+end
+
+function SPSPhysPipeStowEvent.sendEvent(pipe, vehicle, holderId, slotName, stow, noEventSend)
+    if noEventSend == true then return end
+    if g_server ~= nil then
+        g_server:broadcastEvent(SPSPhysPipeStowEvent.new(pipe, vehicle, holderId, slotName, stow), nil, nil, pipe, nil, nil, true)
+        return
+    end
+    spsSendEventToServer(SPSPhysPipeStowEvent.new(pipe, vehicle, holderId, slotName, stow))
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.8] "Free stuck pipe": client -> server only. The server lets the held pipe ignore vehicles until it is
+-- let go (SPSHoseItem.spsFreeHeldPipe); collision lives on the server, so nothing is rebroadcast.
+-- ---------------------------------------------------------------------------
+SPSPhysPipeFreeEvent = {}
+local SPSPhysPipeFreeEvent_mt = Class(SPSPhysPipeFreeEvent, Event)
+InitEventClass(SPSPhysPipeFreeEvent, "SPSPhysPipeFreeEvent")
+
+function SPSPhysPipeFreeEvent.emptyNew()
+    return Event.new(SPSPhysPipeFreeEvent_mt)
+end
+
+function SPSPhysPipeFreeEvent.new(pipe)
+    local self = SPSPhysPipeFreeEvent.emptyNew()
+    self.pipe = pipe
+    return self
+end
+
+function SPSPhysPipeFreeEvent:readStream(streamId, connection)
+    self.pipe = NetworkUtil.readNodeObject(streamId)
+    self:run(connection)
+end
+
+function SPSPhysPipeFreeEvent:writeStream(streamId, connection)
+    NetworkUtil.writeNodeObject(streamId, self.pipe)
+end
+
+function SPSPhysPipeFreeEvent:run(connection)
+    if connection:getIsServer() or self.pipe == nil or g_currentMission == nil then return end   -- server-bound only
+    local mission = g_currentMission
+    if mission.accessHandler ~= nil and not mission.accessHandler:canFarmAccess(mission:getFarmId(connection), self.pipe) then
+        return
+    end
+    SPSHoseItem.spsFreeHeldPipe(self.pipe)
+end
+
+function SPSPhysPipeFreeEvent.sendEvent(pipe)
+    spsSendEventToServer(SPSPhysPipeFreeEvent.new(pipe))
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.8] SPS Docking Station placed on / taken off a vehicle's docking station holder (SPSM_PhysPipes
+-- dsStow / dsUnstow). stow=true: vehicle + holderId; stow=false: off (vehicle nil, holderId 0).
+-- ---------------------------------------------------------------------------
+SPSDsStowEvent = {}
+local SPSDsStowEvent_mt = Class(SPSDsStowEvent, Event)
+InitEventClass(SPSDsStowEvent, "SPSDsStowEvent")
+
+function SPSDsStowEvent.emptyNew()
+    return Event.new(SPSDsStowEvent_mt)
+end
+
+function SPSDsStowEvent.new(station, vehicle, holderId, stow)
+    local self = SPSDsStowEvent.emptyNew()
+    self.station  = station
+    self.vehicle  = vehicle
+    self.holderId = holderId or 0
+    self.stow     = stow == true
+    return self
+end
+
+function SPSDsStowEvent:readStream(streamId, connection)
+    self.station  = NetworkUtil.readNodeObject(streamId)
+    self.vehicle  = NetworkUtil.readNodeObject(streamId)
+    self.holderId = streamReadUIntN(streamId, 8)
+    self.stow     = streamReadBool(streamId)
+    self:run(connection)
+end
+
+function SPSDsStowEvent:writeStream(streamId, connection)
+    NetworkUtil.writeNodeObject(streamId, self.station)
+    NetworkUtil.writeNodeObject(streamId, self.vehicle)
+    streamWriteUIntN(streamId, self.holderId or 0, 8)
+    streamWriteBool(streamId, self.stow == true)
+end
+
+function SPSDsStowEvent:run(connection)
+    -- [SPS 1.0.1.8 MP] a client's request is APPLIED on the server first and rebroadcast only when it took; a
+    -- refused request (busy coupling, taken slot, stale client) never reaches the other clients
+    local ok = false
+    if g_slurryPipeManager ~= nil then
+        if self.stow then
+            if g_slurryPipeManager.applyDsStow ~= nil then
+                ok = g_slurryPipeManager:applyDsStow(self.station, self.vehicle, self.holderId)
+            end
+        elseif g_slurryPipeManager.applyDsUnstow ~= nil then
+            ok = g_slurryPipeManager:applyDsUnstow(self.station)
+        end
+    end
+    if not connection:getIsServer() and ok then
+        g_server:broadcastEvent(self, false, nil, self.station, nil, nil, true)
+    end
+end
+
+function SPSDsStowEvent.sendEvent(station, vehicle, holderId, stow, noEventSend)
+    if noEventSend == true then return end
+    if g_server ~= nil then
+        g_server:broadcastEvent(SPSDsStowEvent.new(station, vehicle, holderId, stow), nil, nil, station, nil, nil, true)
+        return
+    end
+    spsSendEventToServer(SPSDsStowEvent.new(station, vehicle, holderId, stow))
 end

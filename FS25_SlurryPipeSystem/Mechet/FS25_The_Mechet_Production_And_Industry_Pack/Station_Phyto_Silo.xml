@@ -1,0 +1,147 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<placeable type="silo" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../shared/xml/schema/placeable.xsd">
+    <storeData>
+        <name>$l10n_StationPhyto</name>
+        <functions>
+            <function>$l10n_function_fillableLiquidFertilizerTank</function>
+        </functions>
+        <image>store/store_Station_Phyto.png</image>
+        <price>38750</price>
+        <canBeSold>true</canBeSold>
+        <showInStore>true</showInStore>
+        <lifetime>1000</lifetime>
+        <dailyUpkeep>25</dailyUpkeep>
+        <rotation>0</rotation>
+        <brand>NONE</brand>
+        <species>PLACEABLE</species>
+        <category>fillableTanks</category>
+        <brush>
+            <type>placeable</type>
+            <category>buildings</category>
+            <tab>containers</tab>
+        </brush>
+        <vertexBufferMemoryUsage>922880</vertexBufferMemoryUsage>
+        <indexBufferMemoryUsage>139776</indexBufferMemoryUsage>
+        <textureMemoryUsage>5177344</textureMemoryUsage>
+        <audioMemoryUsage>0</audioMemoryUsage>
+        <instanceVertexBufferMemoryUsage>0</instanceVertexBufferMemoryUsage>
+        <instanceIndexBufferMemoryUsage>0</instanceIndexBufferMemoryUsage>
+    </storeData>
+
+    <base>
+        <filename>i3d/Station_Phyto.i3d</filename>
+        <boughtWithFarmland>true</boughtWithFarmland>
+        <canBeRenamed>true</canBeRenamed>
+    </base>
+
+    <placement useRandomYRotation="false" useManualYRotation="true" placementPositionSnapSize="0.5">
+        <testAreas>
+            <testArea startNode="testArea1Start" endNode="testArea1End" />
+        </testAreas>
+        <sounds>
+            <place template="medImp" />
+        </sounds>
+    </placement>
+
+    <clearAreas>
+        <clearArea startNode="clearArea1Start" widthNode="clearArea1Width" heightNode="clearArea1Height"/>
+    </clearAreas>
+
+    <leveling requireLeveling="true" maxSmoothDistance="10" maxSlope="75" maxEdgeAngle="30">
+        <levelAreas>
+            <levelArea startNode="levelArea1Start" widthNode="levelArea1Width" heightNode="levelArea1Height" groundType="asphalt"/>
+        </levelAreas>
+    </leveling>
+
+    <indoorAreas>
+        <indoorArea startNode="indoorArea1Start" widthNode="indoorArea1Width" heightNode="indoorArea1Height" />
+    </indoorAreas>
+
+    <ai>
+        <updateAreas>
+            <updateArea startNode="tipOcclusionUpdateArea1Start" endNode="tipOcclusionUpdateArea1End" />
+        </updateAreas>
+    </ai>
+
+    <tipOcclusionUpdateAreas>
+        <tipOcclusionUpdateArea startNode="tipOcclusionUpdateArea1Start" endNode="tipOcclusionUpdateArea1End" />
+    </tipOcclusionUpdateAreas>
+
+    <triggerMarkers>
+        <triggerMarker node="markerLoading"  filename="$data/shared/assets/marker/markerIconLoad.i3d" />
+        <triggerMarker node="refillMarker"   filename="$data/shared/assets/marker/markerIconWrench.i3d" />
+    </triggerMarkers>
+
+    <infoTrigger triggerNode="infoTrigger"/>
+
+    <silo playerActionTrigger="refillPlayerTrigger">
+        <loadingStation node="loadingTrigger" supportsExtension="false" >
+            <loadTrigger triggerNode="loadingTrigger" aiNode="TriggerAINode" fillLitersPerSecond="800" fillTypes="LIQUIDFERTILIZER HERBICIDE"/>
+        </loadingStation>
+
+        <unloadingStation supportsExtension="false" >
+            <unloadTrigger exactFillRootNode="exactFillRootNode" aiNode="TriggerAINode" fillTypes="LIQUIDFERTILIZER HERBICIDE"/>
+        </unloadingStation>
+
+        <storages>
+            <storage node="storage" fillTypes="LIQUIDFERTILIZER HERBICIDE" capacity="173200" isExtension="false">
+                <startFillLevel fillType="LIQUIDFERTILIZER" fillLevel="0"/>
+                <startFillLevel fillType="HERBICIDE"        fillLevel="0"/>
+            </storage>
+        </storages>
+    </silo>
+
+    <hotspots>
+        <hotspot type="LOADING" linkNode="mapPosition" teleportNode="teleportNode" />
+    </hotspots>
+
+    <deletedNodes>
+        <deletedNode node="0>7" />
+    </deletedNodes>
+	
+	<sprayerPipeSystem>
+        <nodeTree filename="SPS_nodeTree_Station_Phyto_Silo.i3d"/>
+        <sprayerPipeCouplings>
+            <!-- One connection, TWO physical tanks (half the vanilla 173,200 l storage each). The player
+                 walks into SPS_playerTrigger (nodeTree) and cycles the tank the coupler routes to
+                 (R / Shift+R). Each tank is ANY: locks to the first liquid pumped in, frees itself when
+                 empty. Marker icon is the SPS mod's own tank-switch marker, linked onto
+                 SPS_tankSwitchMarker (nodeTree). Vanilla load/unload triggers stay, so the silo works
+                 without SPS too. See SPS README 03 §9C. -->
+            <sprayerPipeCoupling id="1" mountNodeName="SPS_sprayerPipeCoupler01" flowDirection="BOTH" maxPipeLength="7.5"
+                                 connectorAnimation="3"
+                                 switchTriggerNode="SPS_playerTrigger"
+                                 switchMarkerNode="SPS_tankSwitchMarker"
+                                 switchMarkerIcon="placeables/silos/fertHerbSilo/tankSwitchMarker.i3d">
+                <tank id="1" fillTypeCategories="ANY" capacity="86600"/>
+                <tank id="2" fillTypeCategories="ANY" capacity="86600"/>
+            </sprayerPipeCoupling>
+        </sprayerPipeCouplings>
+    </sprayerPipeSystem>
+	
+    <i3dMappings>
+        <i3dMapping id="clearArea1Start" node="0>0|0"/>
+        <i3dMapping id="clearArea1Width" node="0>0|0|0"/>
+        <i3dMapping id="clearArea1Height" node="0>0|0|1"/>
+        <i3dMapping id="levelArea1Start" node="0>1|0"/>
+        <i3dMapping id="levelArea1Width" node="0>1|0|0"/>
+        <i3dMapping id="levelArea1Height" node="0>1|0|1"/>
+        <i3dMapping id="indoorArea1Start" node="0>2|0"/>
+        <i3dMapping id="indoorArea1Width" node="0>2|0|0"/>
+        <i3dMapping id="indoorArea1Height" node="0>2|0|1"/>
+        <i3dMapping id="testArea1Start" node="0>3|0"/>
+        <i3dMapping id="testArea1End" node="0>3|0|0"/>
+        <i3dMapping id="tipOcclusionUpdateArea1Start" node="0>4|0"/>
+        <i3dMapping id="tipOcclusionUpdateArea1End" node="0>4|0|0"/>
+        <i3dMapping id="exactFillRootNode" node="0>8|0|0"/>
+        <i3dMapping id="loadingTrigger" node="0>8|1|0"/>
+        <i3dMapping id="refillPlayerTrigger" node="0>8|2"/>
+        <i3dMapping id="refillMarker" node="0>8|3"/>
+        <i3dMapping id="storage" node="0>8|4"/>
+        <i3dMapping id="infoTrigger" node="0>8|5"/>
+        <i3dMapping id="markerLoading" node="0>10"/>
+        <i3dMapping id="teleportNode" node="0>11"/>
+        <i3dMapping id="TriggerAINode" node="0>12"/>
+        <i3dMapping id="mapPosition" node="0>9"/>
+    </i3dMappings>
+</placeable>

@@ -1,0 +1,113 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<placeable type="buyingStation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../shared/xml/schema/placeable.xsd">
+    <storeData>
+        <name>$l10n_StationPhyto</name>
+        <image>store/store_Station_Phyto.png</image>
+        <price>38750</price>
+        <canBeSold>false</canBeSold>
+        <showInStore>false</showInStore>
+        <lifetime>1000</lifetime>
+        <dailyUpkeep>25</dailyUpkeep>
+        <rotation>0</rotation>
+        <brand>NONE</brand>
+        <species>PLACEABLE</species>
+        <category>placeableMisc</category>
+        <brush>
+            <type>placeable</type>
+            <category>buildings</category>
+            <tab>containers</tab>
+        </brush>
+        <vertexBufferMemoryUsage>922880</vertexBufferMemoryUsage>
+        <indexBufferMemoryUsage>139776</indexBufferMemoryUsage>
+        <textureMemoryUsage>5177344</textureMemoryUsage>
+        <audioMemoryUsage>0</audioMemoryUsage>
+        <instanceVertexBufferMemoryUsage>0</instanceVertexBufferMemoryUsage>
+        <instanceIndexBufferMemoryUsage>0</instanceIndexBufferMemoryUsage>
+    </storeData>
+
+    <base>
+        <filename>i3d/Station_Phyto.i3d</filename>
+        <boughtWithFarmland>true</boughtWithFarmland>
+        <canBeRenamed>true</canBeRenamed>
+    </base>
+
+    <placement useRandomYRotation="false" useManualYRotation="true" placementPositionSnapSize="0.5">
+        <testAreas>
+            <testArea startNode="testArea1Start" endNode="testArea1End" />
+        </testAreas>
+        <sounds>
+            <place template="medImp" />
+        </sounds>
+    </placement>
+
+    <clearAreas>
+        <clearArea startNode="clearArea1Start" widthNode="clearArea1Width" heightNode="clearArea1Height"/>
+    </clearAreas>
+
+    <leveling requireLeveling="true" maxSmoothDistance="10" maxSlope="75" maxEdgeAngle="30">
+        <levelAreas>
+            <levelArea startNode="levelArea1Start" widthNode="levelArea1Width" heightNode="levelArea1Height" groundType="asphalt"/>
+        </levelAreas>
+    </leveling>
+
+    <indoorAreas>
+        <indoorArea startNode="indoorArea1Start" widthNode="indoorArea1Width" heightNode="indoorArea1Height" />
+    </indoorAreas>
+
+    <ai>
+        <updateAreas>
+            <updateArea startNode="tipOcclusionUpdateArea1Start" endNode="tipOcclusionUpdateArea1End" />
+        </updateAreas>
+    </ai>
+
+    <tipOcclusionUpdateAreas>
+        <tipOcclusionUpdateArea startNode="tipOcclusionUpdateArea1Start" endNode="tipOcclusionUpdateArea1End" />
+    </tipOcclusionUpdateAreas>
+
+    <buyingStation node="0>7" supportsExtension="false">
+        <loadTrigger triggerNode="loadingTrigger" fillTypes="LIQUIDFERTILIZER HERBICIDE" fillLitersPerSecond="800" infiniteCapacity="true" aiNode="TriggerAINode"/>
+        <fillType name="LIQUIDFERTILIZER"       priceScale="0.9"/>
+        <fillType name="HERBICIDE"              priceScale="0.9"/>
+    </buyingStation>
+
+    <triggerMarkers>
+        <triggerMarker node="markerLoading"  filename="$data/shared/assets/marker/markerIconLoad.i3d" />
+    </triggerMarkers>
+
+    <hotspots>
+        <hotspot type="LOADING" linkNode="mapPosition" teleportNode="teleportNode" />
+    </hotspots>
+
+    <deletedNodes>
+        <deletedNode node="0>8" />
+    </deletedNodes>
+	
+	<sprayerPipeSystem>
+        <nodeTree filename="SPS_nodeTree_Station_Phyto_BuyingStation.i3d"/>
+        <buyingStation fillTypes="LIQUIDFERTILIZER HERBICIDE" default="LIQUIDFERTILIZER" switchNodeName="SPS_buyTypeSwitch" switchRadius="3.0"/>
+        <sprayerPipeCouplings>
+            <sprayerPipeCoupling id="1" mountNodeName="SPS_sprayerPipeCoupler01" flowDirection="FILL" maxPipeLength="7.5" connectorAnimation="3"/>
+        </sprayerPipeCouplings>
+    </sprayerPipeSystem>
+	
+    <i3dMappings>
+        <i3dMapping id="clearArea1Start" node="0>0|0"/>
+        <i3dMapping id="clearArea1Width" node="0>0|0|0"/>
+        <i3dMapping id="clearArea1Height" node="0>0|0|1"/>
+        <i3dMapping id="levelArea1Start" node="0>1|0"/>
+        <i3dMapping id="levelArea1Width" node="0>1|0|0"/>
+        <i3dMapping id="levelArea1Height" node="0>1|0|1"/>
+        <i3dMapping id="indoorArea1Start" node="0>2|0"/>
+        <i3dMapping id="indoorArea1Width" node="0>2|0|0"/>
+        <i3dMapping id="indoorArea1Height" node="0>2|0|1"/>
+        <i3dMapping id="testArea1Start" node="0>3|0"/>
+        <i3dMapping id="testArea1End" node="0>3|0|0"/>
+        <i3dMapping id="tipOcclusionUpdateArea1Start" node="0>4|0"/>
+        <i3dMapping id="tipOcclusionUpdateArea1End" node="0>4|0|0"/>
+        <i3dMapping id="loadingTrigger" node="0>7|0"/>
+        <i3dMapping id="markerLoading" node="0>10"/>
+        <i3dMapping id="teleportNode" node="0>11"/>
+        <i3dMapping id="TriggerAINode" node="0>12"/>
+        <i3dMapping id="mapPosition" node="0>9"/>
+    </i3dMappings>
+</placeable>

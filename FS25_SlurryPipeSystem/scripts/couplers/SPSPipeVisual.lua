@@ -5,7 +5,7 @@
 -- SPSPipeVisual.lua
 -- FS25_SlurryPipeSystem
 
-print("[SPS BUILD] SPSPipeVisual 1.0.0.9.25 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSPipeVisual 1.0.0.9.25 loaded") end
 
 SPSPipeVisual = {}
 SPSPipeVisual.__index = SPSPipeVisual
@@ -81,6 +81,44 @@ end
 -- ---------------------------------------------------------------------------
 SPSPipeVisual.FLOOR_RAY_UP   = 0.5
 SPSPipeVisual.FLOOR_RAY_DOWN = 2.0
+
+-- [SPS FLOOR 1.0.1.8] Floor re-probe window. The per-bone floor cache below is
+-- keyed on XZ only, so a floor probed BEFORE a static surface existed in physics
+-- (saved hoses are rebuilt during load, before every placeable's collision is
+-- in; a concrete pad can also be placed under a parked hose later) was kept for
+-- ever and the hose sat sunk in the concrete. For FLOOR_RECHECK_WINDOW ms after
+-- a pipe's first update, and again whenever floorEpoch is bumped (any placeable
+-- finalising placement), the cache is dropped and the floor re-probed every
+-- FLOOR_RECHECK_INTERVAL ms, bypassing the endpoint-pose gate. Cost while the
+-- window is open: one raycast per bone per second per hose.
+SPSPipeVisual.FLOOR_RECHECK_WINDOW   = 15000
+SPSPipeVisual.FLOOR_RECHECK_INTERVAL = 1000
+SPSPipeVisual.floorEpoch             = 0
+
+function SPSPipeVisual.bumpFloorEpoch()
+    SPSPipeVisual.floorEpoch = SPSPipeVisual.floorEpoch + 1
+end
+
+-- Returns true when this update must re-probe the floor (cache already cleared).
+function SPSPipeVisual._floorRecheckDue(inst)
+    local now   = g_time or 0
+    local epoch = SPSPipeVisual.floorEpoch
+    if inst._floorEpoch ~= epoch then
+        inst._floorEpoch        = epoch
+        inst._floorRecheckUntil = now + SPSPipeVisual.FLOOR_RECHECK_WINDOW
+        inst._floorNextRecheck  = now
+    end
+    local untilT = inst._floorRecheckUntil
+    if untilT == nil then return false end
+    if now >= untilT then
+        inst._floorRecheckUntil = nil
+        return false
+    end
+    if now < (inst._floorNextRecheck or 0) then return false end
+    inst._floorNextRecheck = now + SPSPipeVisual.FLOOR_RECHECK_INTERVAL
+    inst._floorCache = nil
+    return true
+end
 SPSPipeVisual._floorRayMask  = nil
 
 function SPSPipeVisual.getFloorWorldY(px, py, pz, terrainY)
@@ -120,7 +158,9 @@ function SPSPipeVisual:load()
         self._isLoaded = true
         print("[SPS SPPV] load: OK " .. pipePath)
     else
-        print("[SPS SPPV] load: ERROR not found " .. pipePath)
+        -- [SPS 1.0.1.8] the old bezier pipe mesh was RETIRED on 2026-10-18 (parked outside the mod in i3d/newPipe):
+        -- every connection draws with SPSHoseVisual. This class stays only as the spsHoseLive-off fallback.
+        spsInfo("[SPS SPPV] load: old bezier pipe mesh absent (retired) - new hoses only")
     end
 end
 
@@ -282,8 +322,59 @@ end
 -- respective nodes in local space (done in createPipe) so they follow
 -- automatically. Only the bezier bones need updating each tick.
 -- ---------------------------------------------------------------------------
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.8] Arc-length spacing for the bezier bones.
+-- The hose skin is bound with its bones 0.25 m apart along the rest hose, so the
+-- bones must sit at EQUAL DISTANCES along the curve. Evaluating the cubic bezier
+-- at uniform t does not do that: the curve's speed is 3*|P1-P0| at the ends and
+-- differs in the middle, and whenever a coupler faces away from the far end the
+-- curve doubles back near that end, so several bones land within centimetres of
+-- each other — the "bunched up at the ends" hose (William, 2026-09-28).
+-- Fix: sample the curve, accumulate chord lengths, and return for each interior
+-- bone the t at which the cumulative length equals its share of the total.
+-- Cost: SAMPLES bezier evaluations per reshape; reshapes only run when an end
+-- moved (pose gate above), so a parked hose pays nothing.
+-- ---------------------------------------------------------------------------
+local ARC_SAMPLES = 96
+local function bezierArcLengthParams(out, numBones,
+        p0x, p0y, p0z, p1x, p1y, p1z, p2x, p2y, p2z, p3x, p3y, p3z)
+    local cum = out._cum
+    if cum == nil then cum = {}; out._cum = cum end
+    local lx, ly, lz = p0x, p0y, p0z
+    cum[0] = 0
+    local total = 0
+    for s = 1, ARC_SAMPLES do
+        local t   = s / ARC_SAMPLES
+        local mt  = 1 - t
+        local mt2 = mt * mt
+        local t2  = t * t
+        local a, b, c, d = mt2 * mt, 3 * mt2 * t, 3 * mt * t2, t2 * t
+        local x = a*p0x + b*p1x + c*p2x + d*p3x
+        local y = a*p0y + b*p1y + c*p2y + d*p3y
+        local z = a*p0z + b*p1z + c*p2z + d*p3z
+        local dx, dy, dz = x - lx, y - ly, z - lz
+        total = total + math.sqrt(dx*dx + dy*dy + dz*dz)
+        cum[s] = total
+        lx, ly, lz = x, y, z
+    end
+    local seg = 1
+    for i = 1, numBones do
+        local target = total * i / (numBones + 1)
+        while seg < ARC_SAMPLES and cum[seg] < target do seg = seg + 1 end
+        local c0, c1 = cum[seg - 1], cum[seg]
+        local f = (c1 > c0) and ((target - c0) / (c1 - c0)) or 0
+        out[i] = ((seg - 1) + f) / ARC_SAMPLES
+    end
+    return out
+end
+
 function SPSPipeVisual:updatePipe(inst)
     if inst == nil then return end
+    -- [SPS HOSE step 2b] instances born in SPSHoseVisual (new physical hoses) delegate.
+    if inst.isHose then
+        if g_spsHoseVisual ~= nil then g_spsHoseVisual:updateHose(inst, false) end
+        return
+    end
 
     local nodeA = inst.nodeA
     local nodeB = inst.nodeB
@@ -296,6 +387,32 @@ function SPSPipeVisual:updatePipe(inst)
     local brx, bry, brz = getWorldRotation(nodeB)
 
     if ax == nil or bx == nil or arx == nil or brx == nil then return end
+
+    -- [SPS PERF] Reshape only when an endpoint actually moved. The bezier, the
+    -- floor probes and the 28 bone transforms below are all pure functions of the
+    -- two endpoint poses (terrain and static surfaces do not move), so when both
+    -- ends are still — parked tanker, store-to-store hose — the whole reshape is
+    -- skipped. Thresholds: 1 mm position, ~0.06° rotation (1e-3 rad). An angle
+    -- wrap at ±pi reads as a huge delta and merely forces one extra reshape.
+    local floorRecheck = SPSPipeVisual._floorRecheckDue(inst)
+    local lp = inst._lastPose
+    if lp ~= nil then
+        local d1x, d1y, d1z = ax - lp[1], ay - lp[2], az - lp[3]
+        local d2x, d2y, d2z = bx - lp[4], by - lp[5], bz - lp[6]
+        local r1x, r1y, r1z = arx - lp[7], ary - lp[8], arz - lp[9]
+        local r2x, r2y, r2z = brx - lp[10], bry - lp[11], brz - lp[12]
+        if  d1x*d1x + d1y*d1y + d1z*d1z < 1e-6
+        and d2x*d2x + d2y*d2y + d2z*d2z < 1e-6
+        and r1x*r1x + r1y*r1y + r1z*r1z < 1e-6
+        and r2x*r2x + r2y*r2y + r2z*r2z < 1e-6
+        and not floorRecheck then
+            return
+        end
+        lp[1], lp[2], lp[3], lp[4],  lp[5],  lp[6]  = ax,  ay,  az,  bx,  by,  bz
+        lp[7], lp[8], lp[9], lp[10], lp[11], lp[12] = arx, ary, arz, brx, bry, brz
+    else
+        inst._lastPose = { ax, ay, az, bx, by, bz, arx, ary, arz, brx, bry, brz }
+    end
 
     -- 3) Read Bone1 and Bone16 world positions — these are the true bezier
     --    endpoints and match the skin bind positions exactly.
@@ -327,8 +444,12 @@ function SPSPipeVisual:updatePipe(inst)
 
     local NUM   = SPSPipeVisual.NUM_INTERIOR_BONES
     local TOTAL = NUM + 1
+    -- [SPS 1.0.1.8] equal arc-length spacing (see bezierArcLengthParams above)
+    local tAt = inst._tAt
+    if tAt == nil then tAt = {}; inst._tAt = tAt end
+    bezierArcLengthParams(tAt, NUM, p0x, p0y, p0z, p1x, p1y, p1z, p2x, p2y, p2z, p3x, p3y, p3z)
     for i = 1, NUM do
-        local t   = i / TOTAL
+        local t   = tAt[i]
         local mt  = 1 - t
         local mt2 = mt * mt
         local mt3 = mt2 * mt
@@ -352,9 +473,34 @@ function SPSPipeVisual:updatePipe(inst)
 
         -- Terrain clamp: lift bone if below terrain + pipe radius offset
         if g_currentMission ~= nil and g_currentMission.terrainRootNode ~= nil then
-            local ty = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, px, 0, pz)
-            -- [SPS FLOOR] also rest on static surfaces (concrete/buildings/bridges/roads)
-            ty = SPSPipeVisual.getFloorWorldY(px, py, pz, ty)
+            -- [SPS PERF] The floor under a bone (terrain heightmap combined with the
+            -- static-surface raycast) is a property of its XZ position, so the
+            -- resolved floor Y is cached per bone and only re-probed after the bone
+            -- has travelled > 0.25 m in XZ. A moving hose costs ~1 raycast per bone
+            -- per 0.25 m instead of one per bone per frame.
+            local fc = inst._floorCache
+            if fc == nil then
+                fc = {}
+                inst._floorCache = fc
+            end
+            local c  = fc[i]
+            local ty
+            if c ~= nil then
+                local cdx, cdz = px - c[1], pz - c[2]
+                if cdx*cdx + cdz*cdz < 0.0625 then
+                    ty = c[3]
+                end
+            end
+            if ty == nil then
+                ty = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, px, 0, pz)
+                -- [SPS FLOOR] also rest on static surfaces (concrete/buildings/bridges/roads)
+                ty = SPSPipeVisual.getFloorWorldY(px, py, pz, ty)
+                if c == nil then
+                    fc[i] = { px, pz, ty }
+                else
+                    c[1], c[2], c[3] = px, pz, ty
+                end
+            end
             local minY = ty + SPSPipeVisual.SAG_FACTOR
             if py < minY then
                 py = minY
@@ -373,6 +519,11 @@ end
 -- applyColor
 -- ---------------------------------------------------------------------------
 function SPSPipeVisual:applyColor(inst, r, g, b)
+    -- [SPS HOSE step 2b] new physical hoses colour themselves (rubber only, tintable flag).
+    if inst ~= nil and inst.isHose then
+        if g_spsHoseVisual ~= nil then g_spsHoseVisual:applyColor(inst, r, g, b) end
+        return
+    end
     if inst == nil or inst.pipeRoot == nil then
         print("[SPS SPPV] applyColor: ERROR inst or pipeRoot nil")
         return
@@ -390,6 +541,11 @@ end
 -- ---------------------------------------------------------------------------
 function SPSPipeVisual:destroyPipe(inst)
     if inst == nil then return end
+    -- [SPS HOSE step 2b] new physical hoses are removed by their own class.
+    if inst.isHose then
+        if g_spsHoseVisual ~= nil then g_spsHoseVisual:destroyHose(inst) end
+        return
+    end
 
     -- During savegame quit/delete, FS25 may already have deleted linked parent
     -- nodes. Never link/delete a node unless the entity still exists.
@@ -414,4 +570,7 @@ function SPSPipeVisual:destroyPipe(inst)
     inst.bone1 = nil
     inst.bone16 = nil
     inst.bones = nil
+    inst._lastPose = nil
+    inst._floorCache = nil
+    inst._floorRecheckUntil = nil
 end

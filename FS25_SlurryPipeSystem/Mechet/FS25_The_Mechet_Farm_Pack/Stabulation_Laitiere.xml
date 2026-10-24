@@ -1,0 +1,999 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<placeable type="cowHusbandryBarnMilkManure" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../shared/xml/schema/placeable.xsd">
+    <storeData>
+        <name>$l10n_Stabulation_Laitiere</name>
+        <image>store/store_Stabulation_Laitiere.png</image>
+        <price>165000</price>
+        <functions>
+            <function>$l10n_function_animalPenCow</function>
+            <function>$l10n_function_adjustableMeadow</function>
+        </functions>
+        <lifetime>1000</lifetime>
+        <canBeSold>true</canBeSold>
+        <dailyUpkeep>110</dailyUpkeep>
+        <rotation>0</rotation>
+        <brand>NONE</brand>
+        <species>PLACEABLE</species>
+        <category>animalpens</category>
+        <brush>
+            <type>husbandry</type>
+            <category>animals</category>
+            <tab>cows</tab>
+        </brush>
+        <vertexBufferMemoryUsage>9428224</vertexBufferMemoryUsage>
+        <indexBufferMemoryUsage>2713344</indexBufferMemoryUsage>
+        <textureMemoryUsage>13107200</textureMemoryUsage>
+        <audioMemoryUsage>0</audioMemoryUsage>
+        <instanceVertexBufferMemoryUsage>0</instanceVertexBufferMemoryUsage>
+        <instanceIndexBufferMemoryUsage>0</instanceIndexBufferMemoryUsage>
+    </storeData>
+
+    <base>
+        <filename>i3d/VACQ/Stabulation_Laitiere.i3d</filename>
+        <boughtWithFarmland>true</boughtWithFarmland>
+        <canBeRenamed>true</canBeRenamed>
+    </base>
+
+    <placement useRandomYRotation="false" useManualYRotation="true" >
+        <testAreas>
+            <testArea startNode="testArea1Start" endNode="testArea1End" />
+        </testAreas>
+
+        <sounds>
+            <place template="medImp" />
+            <placeLayered template="cowLayer" />
+        </sounds>
+    </placement>
+
+    <clearAreas>
+        <clearArea startNode="clearArea1Start" widthNode="clearArea1Width" heightNode="clearArea1Height"/>
+    </clearAreas>
+
+    <leveling requireLeveling="true" maxSmoothDistance="10" maxSlope="75" maxEdgeAngle="30">
+        <levelAreas>
+            <levelArea startNode="levelArea1Start" widthNode="levelArea1Width" heightNode="levelArea1Height" groundType="gravel"/>
+            <levelArea startNode="levelArea2Start" widthNode="levelArea2Width" heightNode="levelArea2Height" groundType="gravel"/>
+            <levelArea startNode="levelArea3Start" widthNode="levelArea3Width" heightNode="levelArea3Height" groundType="grass"/>
+        </levelAreas>
+    </leveling>
+
+    <indoorAreas>
+        <indoorArea startNode="indoorArea1Start" widthNode="indoorArea1Width" heightNode="indoorArea1Height"/>
+        <indoorArea startNode="indoorArea2Start" widthNode="indoorArea2Width" heightNode="indoorArea2Height"/>
+        <indoorArea startNode="indoorArea3Start" widthNode="indoorArea3Width" heightNode="indoorArea3Height"/>
+    </indoorAreas>
+
+    <triggerMarkers>
+        <triggerMarker node="markerMilk"            filename="$data/shared/assets/marker/markerIconMilk.i3d" />
+        <triggerMarker node="markerFood"            filename="$data/shared/assets/marker/markerIconFood.i3d" />
+        <triggerMarker node="markerAnimals"         filename="$data/shared/assets/marker/markerIconAnimals.i3d" />
+        <triggerMarker node="markerLiquidManure"    filename="$data/shared/assets/marker/markerIconSlurry.i3d" />
+        <triggerMarker node="loadingTriggerMarker"  filename="textures/custom_marker/markerIconManure.i3d"/>
+        <triggerMarker node="markerFan"             filename="textures/custom_marker/markerIconFan.i3d"/>
+        <triggerMarker node="markerSdt"             filename="textures/custom_marker/markerIconSdt.i3d"/>
+    </triggerMarkers>
+
+    <tipOcclusionUpdateAreas>
+        <tipOcclusionUpdateArea startNode="tipOcclusionUpdateArea1Start" endNode="tipOcclusionUpdateArea1End" />
+    </tipOcclusionUpdateAreas>
+
+    <ai>
+        <updateAreas>
+            <updateArea startNode="tipOcclusionUpdateArea1Start" endNode="tipOcclusionUpdateArea1End" />
+        </updateAreas>
+    </ai>
+
+    <hotspots>
+        <hotspot type="COW" teleportNode="teleportNode" />
+    </hotspots>
+
+    <animatedObjects>
+        <animatedObject saveId="lightbureauetsdt" >
+            <animation duration="0.1">
+                <part node="lightsbureau">
+                    <keyFrame time="0.2" visibility="false"/>
+                    <keyFrame time="0.6" visibility="true"/>
+                </part>
+                <part node="lightssdt">
+                    <keyFrame time="0.6" visibility="false"/>
+                    <keyFrame time="1.0" visibility="true"/>
+                </part>
+                <shader node="neonBureaux" parameterName="lightControl">
+                    <keyFrame time="0.0" values="0" />
+                    <keyFrame time="0.6" values="10" />
+                </shader>
+                <shader node="neonsdt" parameterName="lightControl">
+                    <keyFrame time="0.4" values="0" />
+                    <keyFrame time="1.0" values="10" />
+                </shader>
+            </animation>
+            <controls triggerNode="lightTrigger01" posAction="ACTIVATE_HANDTOOL" posText="On" negText="Off" />
+        </animatedObject>
+        <animatedObject saveId="lightstab" >
+            <animation duration="0.1">
+                <part node="realLightsLowStab">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.3" visibility="true"/>
+                </part>
+                <part node="realLightsHighStab">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.6" visibility="true"/>
+                </part>
+                <part node="lightsSpot">
+                    <keyFrame time="0.3" visibility="false"/>
+                    <keyFrame time="1.0" visibility="true"/>
+                </part>
+                <shader node="neonstab" parameterName="lightControl">
+                    <keyFrame time="0.0" values="0" />
+                    <keyFrame time="1.0" values="10" />
+                </shader>
+                <shader node="shdSpot" parameterName="lightControl">
+                    <keyFrame time="0.0" values="0" />
+                    <keyFrame time="1.0" values="10" />
+                </shader>
+            </animation>
+            <controls triggerNode="lightTrigger02" posAction="ACTIVATE_HANDTOOL" posText="On" negText="Off" />
+        </animatedObject>
+        <animatedObject saveId="porte_01" >
+            <animation duration="1.5">
+                <part node="porte_01">
+                    <keyFrame time="0.0" rotation="0 0 0"/>
+                    <keyFrame time="1.0" rotation="0 -115 0"/>
+                </part>
+            </animation>
+            <controls triggerNode="trigger01" posAction="ACTIVATE_HANDTOOL" posText="action_openDoor" negText="action_closeDoor" />
+            <sounds>
+                <moving linkNode="porte_01" template="glassDoorLoop" />
+                <posEnd linkNode="porte_01" template="plasticDoorOpen" />
+                <negEnd linkNode="porte_01" template="plasticDoorClose" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="porte_02" >
+            <animation duration="1.5">
+                <part node="porte_02">
+                    <keyFrame time="0.0" rotation="0 0 0"/>
+                    <keyFrame time="1.0" rotation="0 -115 0"/>
+                </part>
+            </animation>
+            <controls triggerNode="trigger02" posAction="ACTIVATE_HANDTOOL" posText="action_openDoor" negText="action_closeDoor" />
+            <sounds>
+                <moving linkNode="porte_02" template="glassDoorLoop" />
+                <posEnd linkNode="porte_02" template="plasticDoorOpen" />
+                <negEnd linkNode="porte_02" template="plasticDoorClose" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="porte_03" >
+            <animation duration="1.5">
+                <part node="porte_03">
+                    <keyFrame time="0.0" rotation="0 0 0"/>
+                    <keyFrame time="1.0" rotation="0 -115 0"/>
+                </part>
+            </animation>
+            <controls triggerNode="trigger03" posAction="ACTIVATE_HANDTOOL" posText="action_openDoor" negText="action_closeDoor" />
+            <sounds>
+                <moving linkNode="porte_03" template="glassDoorLoop" />
+                <posEnd linkNode="porte_03" template="plasticDoorOpen" />
+                <negEnd linkNode="porte_03" template="plasticDoorClose" />
+            </sounds>
+        </animatedObject>
+
+        <animatedObject saveId="Barriere_porte01" >
+            <animation duration="1.5">
+                <part node="Barriere_porte01">
+                    <keyFrame time="0.0" rotation="0 0 0"/>
+                    <keyFrame time="1.0" rotation="0 -95 0"/>
+                </part>
+            </animation>
+            <controls triggerNode="trigger04" posAction="ACTIVATE_HANDTOOL" posText="action_openDoor" negText="action_closeDoor" />
+            <sounds>
+                <moving linkNode="Barriere_porte01" template="fenceMetalLoop" />
+                <posEnd linkNode="Barriere_porte01" template="fenceMetalOpen" />
+                <negEnd linkNode="Barriere_porte01" template="fenceMetalClose" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="Barriere_porte02" >
+            <animation duration="1.5">
+                <part node="Barriere_porte02">
+                    <keyFrame time="0.0" rotation="0 0 0"/>
+                    <keyFrame time="1.0" rotation="0 -90 0"/>
+                </part>
+            </animation>
+            <controls triggerNode="trigger05" posAction="ACTIVATE_HANDTOOL" posText="action_openDoor" negText="action_closeDoor" />
+            <sounds>
+                <moving linkNode="Barriere_porte02" template="fenceMetalLoop" />
+                <posEnd linkNode="Barriere_porte02" template="fenceMetalOpen" />
+                <negEnd linkNode="Barriere_porte02" template="fenceMetalClose" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="Barriere_porte03" >
+            <animation duration="1.5">
+                <part node="Barriere_porte03">
+                    <keyFrame time="0.0" rotation="0 0 0"/>
+                    <keyFrame time="1.0" rotation="0 90 0"/>
+                </part>
+            </animation>
+            <controls triggerNode="trigger06" posAction="ACTIVATE_HANDTOOL" posText="action_openDoor" negText="action_closeDoor" />
+            <sounds>
+                <moving linkNode="Barriere_porte03" template="fenceMetalLoop" />
+                <posEnd linkNode="Barriere_porte03" template="fenceMetalOpen" />
+                <negEnd linkNode="Barriere_porte03" template="fenceMetalClose" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="Barriere_porte04" >
+            <animation duration="1.5">
+                <part node="Barriere_porte04">
+                    <keyFrame time="0.0" rotation="0 0 0"/>
+                    <keyFrame time="1.0" rotation="0 90 0"/>
+                </part>
+            </animation>
+            <controls triggerNode="trigger07" posAction="ACTIVATE_HANDTOOL" posText="action_openDoor" negText="action_closeDoor" />
+            <sounds>
+                <moving linkNode="Barriere_porte04" template="fenceMetalLoop" />
+                <posEnd linkNode="Barriere_porte04" template="fenceMetalOpen" />
+                <negEnd linkNode="Barriere_porte04" template="fenceMetalClose" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="Barriere_porte05" >
+            <animation duration="1.5">
+                <part node="Barriere_porte05">
+                    <keyFrame time="0.0" rotation="0 0 0"/>
+                    <keyFrame time="1.0" rotation="0 90 0"/>
+                </part>
+            </animation>
+            <controls triggerNode="trigger08" posAction="ACTIVATE_HANDTOOL" posText="action_openDoor" negText="action_closeDoor" />
+            <sounds>
+                <moving linkNode="Barriere_porte05" template="fenceMetalLoop" />
+                <posEnd linkNode="Barriere_porte05" template="fenceMetalOpen" />
+                <negEnd linkNode="Barriere_porte05" template="fenceMetalClose" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="Barriere_porte06" >
+            <animation duration="1.5">
+                <part node="Barriere_porte06">
+                    <keyFrame time="0.0" rotation="0 0 0"/>
+                    <keyFrame time="1.0" rotation="0 -91 0"/>
+                </part>
+            </animation>
+            <controls triggerNode="trigger09" posAction="ACTIVATE_HANDTOOL" posText="action_openDoor" negText="action_closeDoor" />
+            <sounds>
+                <moving linkNode="Barriere_porte06" template="fenceMetalLoop" />
+                <posEnd linkNode="Barriere_porte06" template="fenceMetalOpen" />
+                <negEnd linkNode="Barriere_porte06" template="fenceMetalClose" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="Barriere_porte07" >
+            <animation duration="1.5">
+                <part node="Barriere_porte07">
+                    <keyFrame time="0.0" rotation="0 0 0"/>
+                    <keyFrame time="1.0" rotation="0 -90 0"/>
+                </part>
+            </animation>
+            <controls triggerNode="trigger10" posAction="ACTIVATE_HANDTOOL" posText="action_openDoor" negText="action_closeDoor" />
+            <sounds>
+                <moving linkNode="Barriere_porte07" template="fenceMetalLoop" />
+                <posEnd linkNode="Barriere_porte07" template="fenceMetalOpen" />
+                <negEnd linkNode="Barriere_porte07" template="fenceMetalClose" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="Barriere_porte08" >
+            <animation duration="1.5">
+                <part node="Barriere_porte08">
+                    <keyFrame time="0.0" rotation="0 0 0"/>
+                    <keyFrame time="1.0" rotation="0 90 0"/>
+                </part>
+            </animation>
+            <controls triggerNode="trigger11" posAction="ACTIVATE_HANDTOOL" posText="action_openDoor" negText="action_closeDoor" />
+            <sounds>
+                <moving linkNode="Barriere_porte08" template="fenceMetalLoop" />
+                <posEnd linkNode="Barriere_porte08" template="fenceMetalOpen" />
+                <negEnd linkNode="Barriere_porte08" template="fenceMetalClose" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="ventilateurs" >
+            <animation duration="600">
+                <part node="ventilateurs_anim">
+                    <keyFrame time="0.0" rotation="0 0 0"/>
+                    <keyFrame time="1.0" rotation="0 0 150000"/>
+                </part>
+            </animation>
+            <controls triggerNode="trigger12" posAction="ACTIVATE_HANDTOOL" posText="On_ventilation" negText="Off_ventilation" />
+            <sounds>
+                <moving linkNode="trigger12" template="windWheelLoop" />
+            </sounds>
+        </animatedObject>
+        <!--Salle de traite -->
+        <animatedObject saveId="poste01" >
+            <animation duration="60">
+                <part node="0>21|1|1">
+                    <keyFrame time="0.0" visibility="true"/>
+                    <keyFrame time="0.01" visibility="false"/>
+                    <keyFrame time="0.94" visibility="false"/>
+                    <keyFrame time="0.95" visibility="true"/>
+                    <keyFrame time="1" visibility="true"/>
+                </part>
+                <part node="0>21|1|2">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.05" visibility="false"/>
+                    <keyFrame time="0.89" visibility="false"/>
+                    <keyFrame time="0.90" visibility="true"/>
+                    <keyFrame time="0.94" visibility="true"/>
+                    <keyFrame time="0.95" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|1|3">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|1|4">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|1|5">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.99" visibility="true"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+            </animation>
+            <controls triggerNode="0>21|1|0" posAction="ACTIVATE_HANDTOOL" posText="SDT" negText="SDT" />
+            <sounds>
+                <moving linkNode="0>21|1|5" template="vectorLoop" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="poste02" >
+            <animation duration="60">
+                <part node="0>21|2|1">
+                    <keyFrame time="0.0" visibility="true"/>
+                    <keyFrame time="0.01" visibility="false"/>
+                    <keyFrame time="0.94" visibility="false"/>
+                    <keyFrame time="0.95" visibility="true"/>
+                    <keyFrame time="1" visibility="true"/>
+                </part>
+                <part node="0>21|2|2">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.05" visibility="false"/>
+                    <keyFrame time="0.89" visibility="false"/>
+                    <keyFrame time="0.90" visibility="true"/>
+                    <keyFrame time="0.94" visibility="true"/>
+                    <keyFrame time="0.95" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|2|3">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|2|4">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|2|5">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.99" visibility="true"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+            </animation>
+            <controls triggerNode="0>21|2|0" posAction="ACTIVATE_HANDTOOL" posText="SDT" negText="SDT" />
+            <sounds>
+                <moving linkNode="0>21|2|5" template="vectorLoop" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="poste03" >
+            <animation duration="60">
+                <part node="0>21|3|1">
+                    <keyFrame time="0.0" visibility="true"/>
+                    <keyFrame time="0.01" visibility="false"/>
+                    <keyFrame time="0.94" visibility="false"/>
+                    <keyFrame time="0.95" visibility="true"/>
+                    <keyFrame time="1" visibility="true"/>
+                </part>
+                <part node="0>21|3|2">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.05" visibility="false"/>
+                    <keyFrame time="0.89" visibility="false"/>
+                    <keyFrame time="0.90" visibility="true"/>
+                    <keyFrame time="0.94" visibility="true"/>
+                    <keyFrame time="0.95" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|3|3">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|3|4">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|3|5">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.99" visibility="true"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+            </animation>
+            <controls triggerNode="0>21|3|0" posAction="ACTIVATE_HANDTOOL" posText="SDT" negText="SDT" />
+            <sounds>
+                <moving linkNode="0>21|3|5" template="vectorLoop" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="poste04" >
+            <animation duration="60">
+                <part node="0>21|4|1">
+                    <keyFrame time="0.0" visibility="true"/>
+                    <keyFrame time="0.01" visibility="false"/>
+                    <keyFrame time="0.94" visibility="false"/>
+                    <keyFrame time="0.95" visibility="true"/>
+                    <keyFrame time="1" visibility="true"/>
+                </part>
+                <part node="0>21|4|2">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.05" visibility="false"/>
+                    <keyFrame time="0.89" visibility="false"/>
+                    <keyFrame time="0.90" visibility="true"/>
+                    <keyFrame time="0.94" visibility="true"/>
+                    <keyFrame time="0.95" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|4|3">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|4|4">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|4|5">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.99" visibility="true"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+            </animation>
+            <controls triggerNode="0>21|4|0" posAction="ACTIVATE_HANDTOOL" posText="SDT" negText="SDT" />
+            <sounds>
+                <moving linkNode="0>21|4|5" template="vectorLoop" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="poste05" >
+            <animation duration="60">
+                <part node="0>21|5|1">
+                    <keyFrame time="0.0" visibility="true"/>
+                    <keyFrame time="0.01" visibility="false"/>
+                    <keyFrame time="0.94" visibility="false"/>
+                    <keyFrame time="0.95" visibility="true"/>
+                    <keyFrame time="1" visibility="true"/>
+                </part>
+                <part node="0>21|5|2">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.05" visibility="false"/>
+                    <keyFrame time="0.89" visibility="false"/>
+                    <keyFrame time="0.90" visibility="true"/>
+                    <keyFrame time="0.94" visibility="true"/>
+                    <keyFrame time="0.95" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|5|3">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|5|4">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|5|5">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.99" visibility="true"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+            </animation>
+            <controls triggerNode="0>21|5|0" posAction="ACTIVATE_HANDTOOL" posText="SDT" negText="SDT" />
+            <sounds>
+                <moving linkNode="0>21|5|5" template="vectorLoop" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="poste06" >
+            <animation duration="60">
+                <part node="0>21|6|1">
+                    <keyFrame time="0.0" visibility="true"/>
+                    <keyFrame time="0.01" visibility="false"/>
+                    <keyFrame time="0.94" visibility="false"/>
+                    <keyFrame time="0.95" visibility="true"/>
+                    <keyFrame time="1" visibility="true"/>
+                </part>
+                <part node="0>21|6|2">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.05" visibility="false"/>
+                    <keyFrame time="0.89" visibility="false"/>
+                    <keyFrame time="0.90" visibility="true"/>
+                    <keyFrame time="0.94" visibility="true"/>
+                    <keyFrame time="0.95" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|6|3">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|6|4">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|6|5">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.99" visibility="true"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+            </animation>
+            <controls triggerNode="0>21|6|0" posAction="ACTIVATE_HANDTOOL" posText="SDT" negText="SDT" />
+            <sounds>
+                <moving linkNode="0>21|6|5" template="vectorLoop" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="poste07" >
+            <animation duration="60">
+                <part node="0>21|7|1">
+                    <keyFrame time="0.0" visibility="true"/>
+                    <keyFrame time="0.01" visibility="false"/>
+                    <keyFrame time="0.94" visibility="false"/>
+                    <keyFrame time="0.95" visibility="true"/>
+                    <keyFrame time="1" visibility="true"/>
+                </part>
+                <part node="0>21|7|2">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.05" visibility="false"/>
+                    <keyFrame time="0.89" visibility="false"/>
+                    <keyFrame time="0.90" visibility="true"/>
+                    <keyFrame time="0.94" visibility="true"/>
+                    <keyFrame time="0.95" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|7|3">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|7|4">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|7|5">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.99" visibility="true"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+            </animation>
+            <controls triggerNode="0>21|7|0" posAction="ACTIVATE_HANDTOOL" posText="SDT" negText="SDT" />
+            <sounds>
+                <moving linkNode="0>21|7|5" template="vectorLoop" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="poste08" >
+            <animation duration="60">
+                <part node="0>21|8|1">
+                    <keyFrame time="0.0" visibility="true"/>
+                    <keyFrame time="0.01" visibility="false"/>
+                    <keyFrame time="0.94" visibility="false"/>
+                    <keyFrame time="0.95" visibility="true"/>
+                    <keyFrame time="1" visibility="true"/>
+                </part>
+                <part node="0>21|8|2">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.05" visibility="false"/>
+                    <keyFrame time="0.89" visibility="false"/>
+                    <keyFrame time="0.90" visibility="true"/>
+                    <keyFrame time="0.94" visibility="true"/>
+                    <keyFrame time="0.95" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|8|3">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|8|4">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|8|5">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.99" visibility="true"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+            </animation>
+            <controls triggerNode="0>21|8|0" posAction="ACTIVATE_HANDTOOL" posText="SDT" negText="SDT" />
+            <sounds>
+                <moving linkNode="0>21|8|5" template="vectorLoop" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="poste09" >
+            <animation duration="60">
+                <part node="0>21|9|1">
+                    <keyFrame time="0.0" visibility="true"/>
+                    <keyFrame time="0.01" visibility="false"/>
+                    <keyFrame time="0.94" visibility="false"/>
+                    <keyFrame time="0.95" visibility="true"/>
+                    <keyFrame time="1" visibility="true"/>
+                </part>
+                <part node="0>21|9|2">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.05" visibility="false"/>
+                    <keyFrame time="0.89" visibility="false"/>
+                    <keyFrame time="0.90" visibility="true"/>
+                    <keyFrame time="0.94" visibility="true"/>
+                    <keyFrame time="0.95" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|9|3">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|9|4">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|9|5">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.99" visibility="true"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+            </animation>
+            <controls triggerNode="0>21|9|0" posAction="ACTIVATE_HANDTOOL" posText="SDT" negText="SDT" />
+            <sounds>
+                <moving linkNode="0>21|9|5" template="vectorLoop" />
+            </sounds>
+        </animatedObject>
+        <animatedObject saveId="poste10" >
+            <animation duration="60">
+                <part node="0>21|10|1">
+                    <keyFrame time="0.0" visibility="true"/>
+                    <keyFrame time="0.01" visibility="false"/>
+                    <keyFrame time="0.94" visibility="false"/>
+                    <keyFrame time="0.95" visibility="true"/>
+                    <keyFrame time="1" visibility="true"/>
+                </part>
+                <part node="0>21|10|2">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.05" visibility="false"/>
+                    <keyFrame time="0.89" visibility="false"/>
+                    <keyFrame time="0.90" visibility="true"/>
+                    <keyFrame time="0.94" visibility="true"/>
+                    <keyFrame time="0.95" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|10|3">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.04" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|10|4">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.89" visibility="true"/>
+                    <keyFrame time="0.9" visibility="false"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+                <part node="0>21|10|5">
+                    <keyFrame time="0.0" visibility="false"/>
+                    <keyFrame time="0.01" visibility="true"/>
+                    <keyFrame time="0.99" visibility="true"/>
+                    <keyFrame time="1" visibility="false"/>
+                </part>
+            </animation>
+            <controls triggerNode="0>21|10|0" posAction="ACTIVATE_HANDTOOL" posText="SDT" negText="SDT" />
+            <sounds>
+                <moving linkNode="0>21|10|5" template="vectorLoop" />
+            </sounds>
+        </animatedObject>
+    </animatedObjects>
+
+    <dynamicallyLoadedParts>
+        <dynamicallyLoadedPart node="0" linkNode="milkContainer" filename="$data/placeables/lely/nautilus/nautilus.i3d"/>
+        <dynamicallyLoadedPart node="0" linkNode="0>5|0" filename="i3d/VACQ/Stabulation_Laitiere_props.i3d"/>
+    </dynamicallyLoadedParts>
+
+    <lights>
+    </lights>
+
+    <infoTrigger triggerNode="infoTrigger" />
+
+    <husbandry saveId="Animals_COW" hasStatistics="false">
+        <storage node="storage" fillTypes="LIQUIDMANURE STRAW MANURE BUFFALOMILK MILK" isExtension="false">
+            <capacity fillType="LIQUIDMANURE" capacity="200000" />
+            <capacity fillType="MILK"         capacity="60000" />
+            <capacity fillType="BUFFALOMILK"  capacity="60000" />
+            <capacity fillType="STRAW"        capacity="40000" />
+            <capacity fillType="MANURE"       capacity="0" />
+        </storage>
+
+        <unloadingStation supportsExtension="true" storageRadius="50" hideFromPricesMenu="true">
+            <unloadTrigger exactFillRootNode="exactFillRootNodeStraw" fillTypes="STRAW" />
+            <baleTrigger triggerNode="baleTriggerStraw" fillTypes="STRAW"/>
+            <unloadTrigger fillTypes="MANURE LIQUIDMANURE MILK BUFFALOMILK" />
+        </unloadingStation>
+
+        <loadingStation supportsExtension="true" storageRadius="50">
+            <loadTrigger triggerNode="lqiuidManureTrigger" fillTypes="LIQUIDMANURE" fillLitersPerSecond="2000" aiNode="aiLoadingNodeLiquidManure" />
+            <loadTrigger triggerNode="milkTrigger"         fillTypes="MILK BUFFALOMILK" fillLitersPerSecond="2000" aiNode="aiLoadingNodeMilk"/>
+        </loadingStation>
+
+        <animals type="COW" baseMaxNumAnimals="75" maxNumAnimals="75" maxNumVisualAnimals="30">
+            <navigation shape="navMeshShape" />
+            <loadingTrigger node="loadingTrigger" />
+        </animals>
+
+        <food capacity="80000" >
+            <foodPlaces>
+                <foodPlace node="foodPlace1" />
+                <foodPlace node="foodPlace2" />
+                <foodPlace node="foodPlace3" />
+                <foodPlace node="foodPlace4" />
+                <foodPlace node="foodPlace5" />
+                <foodPlace node="foodPlace6" />
+                <foodPlace node="foodPlace7" />
+                <foodPlace node="foodPlace8" />
+                <foodPlace node="foodPlace9" />
+                <foodPlace node="foodPlace10" />
+            </foodPlaces>
+            <dynamicFoodPlane node="fillVolumeFood" defaultFillType="forage" maxAllowedHeapAngle="60" maxSubDivEdgeLength="0.5" capacity="80000"/>
+            <unloadTrigger exactFillRootNode="exactFillRootNodeFood" />
+            <baleTrigger triggerNode="baleTrigger"/>
+        </food>
+
+        <liquidManure />
+
+        <milk />
+
+        <water automaticWaterSupply="true">
+            <waterPlaces>
+                <waterPlace node="waterPlace1" />
+                <waterPlace node="waterPlace2" />
+                <waterPlace node="waterPlace3" />
+            </waterPlaces>
+        </water>
+
+        <straw>
+            <manure factor="1.5" />
+            <strawPlane node="strawPlane" minY="-0.06" maxY="0.01" colorChange="false" />
+        </straw>
+
+        <fence xmlFilename="Fences_cow.xml">
+            <sections>
+                <section segmentId="SEGMENT" customizable="true">
+                    <node node="fence1Node1" />
+                    <node node="fence1Node2" />
+                    <node node="fence1Node3" />
+                    <node node="fence1Node4" />
+                </section>
+            </sections>
+        </fence>
+        <meadow>
+            <fruitType name="GRASS" eatableStartGrowthState="greenMiddle" eatableEndGrowthState="harvestReady" eatenGrowthState="greenSmall" />
+            <fruitType name="MEADOW" eatableStartGrowthState="greenMiddle" eatableEndGrowthState="harvestReady" eatenGrowthState="greenSmall" />
+
+            <createTask weedState="0">
+                <fruit type="MEADOW" growthState="greenSmall" />
+                <ground type="NONE" />
+                <terrainGroundType name="grass" />
+            </createTask>
+        </meadow>
+    </husbandry>
+
+    <manureHeap node="manureHeap" capacity="300000" isExtension="true" >
+        <area startNode="tipAreaStart" widthNode="tipAreaWidth" heightNode="tipAreaHeight" activationTriggerNode="manureInfoTrigger" />
+        <clearArea startNode="clearAreaManureStart" widthNode="clearAreaManureWidth" heightNode="clearAreaManureHeight" />
+
+        <loadingStation storageRadius="10" supportsExtension="true">
+            <loadTrigger triggerNode="loadingTriggerManure" aiNode="loadingTriggerAINode" fillTypes="MANURE" fillLitersPerSecond="2000" />
+        </loadingStation>
+    </manureHeap>
+	
+	<slurryPipeSystem agitator="false">
+        <nodeTree filename="SPS_nodeTree_Stabulation_Laitiere.i3d"/>
+        <!-- Virtual surface: the shed has no arm-reachable slurry plane, so store 1 drives an
+             EMPTY transform (virtualSurface, in the nodeTree under liquidManure/slurryStore01)
+             from the shed's own 200 000 L LIQUIDMANURE storage. Nothing to see, nothing for a
+             fill arm to detect (no shape), but head-height equalisation through the coupler
+             gets a real surface: minY = pit floor, maxY = pit full, both local to the node. -->
+        <slurryStores>
+            <slurryStore id="1" node="slurryStore01" fillPlaneNode="virtualSurface" minY="0" maxY="0.763" fillType="LIQUIDMANURE" agitator="false" hideWhenEmpty="false"/>
+        </slurryStores>
+		<pipeCouplings>
+            <pipeCoupling id="1" mountNodeName="SPS_pipeCoupler01" flowDirection="BOTH" valveType="NONE" deployable="false" maxPipeLength="4.0" connector="male" headHeightNodeName="headHeight01"/>
+        </pipeCouplings>
+    </slurryPipeSystem>
+	
+    <i3dMappings>
+        <i3dMapping id="clearArea1Start" node="0>0|0"/>
+        <i3dMapping id="clearArea1Width" node="0>0|0|0"/>
+        <i3dMapping id="clearArea1Height" node="0>0|0|1"/>
+        <i3dMapping id="markerAnimals" node="0>12|0"/>
+        <i3dMapping id="markerFood" node="0>12|1"/>
+        <i3dMapping id="markerLiquidManure" node="0>12|2"/>
+        <i3dMapping id="markerMilk" node="0>12|3"/>
+        <i3dMapping id="markerManure" node="0>12|4"/>
+        <i3dMapping id="markerFan" node="0>12|5"/>
+        <i3dMapping id="levelArea1Start" node="0>1|0"/>
+        <i3dMapping id="levelArea1Width" node="0>1|0|0"/>
+        <i3dMapping id="levelArea1Height" node="0>1|0|1"/>
+        <i3dMapping id="indoorArea1Start" node="0>2|0"/>
+        <i3dMapping id="indoorArea1Width" node="0>2|0|0"/>
+        <i3dMapping id="indoorArea1Height" node="0>2|0|1"/>
+        <i3dMapping id="indoorArea2Start" node="0>2|1"/>
+        <i3dMapping id="indoorArea2Width" node="0>2|1|0"/>
+        <i3dMapping id="indoorArea2Height" node="0>2|1|1"/>
+        <i3dMapping id="indoorArea3Start" node="0>2|2"/>
+        <i3dMapping id="indoorArea3Width" node="0>2|2|0"/>
+        <i3dMapping id="indoorArea3Height" node="0>2|2|1"/>
+        <i3dMapping id="levelArea2Start" node="0>1|1"/>
+        <i3dMapping id="levelArea2Width" node="0>1|1|0"/>
+        <i3dMapping id="levelArea2Height" node="0>1|1|1"/>
+        <i3dMapping id="levelArea3Start" node="0>1|2"/>
+        <i3dMapping id="levelArea3Width" node="0>1|2|0"/>
+        <i3dMapping id="levelArea3Height" node="0>1|2|1"/>
+        <i3dMapping id="testArea1Start" node="0>3|0"/>
+        <i3dMapping id="testArea1End" node="0>3|0|0"/>
+        <i3dMapping id="tipOcclusionUpdateArea1Start" node="0>4|0"/>
+        <i3dMapping id="tipOcclusionUpdateArea1End" node="0>4|0|0"/>
+        <!--function-->
+        <i3dMapping id="waterPlace1" node="0>10|0"/>
+        <i3dMapping id="waterPlace2" node="0>10|1"/>
+        <i3dMapping id="waterPlace3" node="0>10|2"/>
+        <i3dMapping id="navMeshShape" node="0>11|0"/>
+        <i3dMapping id="fence1Node1" node="0>13|0|0"/>
+        <i3dMapping id="fence1Node2" node="0>13|0|1"/>
+        <i3dMapping id="fence1Node3" node="0>13|0|2"/>
+        <i3dMapping id="fence1Node4" node="0>13|0|3"/>
+        <i3dMapping id="teleportNode" node="0>14"/>
+        <i3dMapping id="storage" node="0>15"/>
+        <i3dMapping id="infoTrigger" node="0>16"/>
+        <i3dMapping id="loadingTrigger" node="0>17"/>
+        <i3dMapping id="slurryPit_fillPlane" node="0>18|0"/>
+        <i3dMapping id="lqiuidManureTrigger" node="0>18|1"/>
+        <i3dMapping id="aiLoadingNodeLiquidManure" node="0>18|2"/>
+        <i3dMapping id="manureHeap" node="0>19"/>
+        <i3dMapping id="loadingTriggerManure" node="0>19|0|0"/>
+        <i3dMapping id="loadingTriggerAINode" node="0>19|0|1"/>
+        <i3dMapping id="loadingTriggerMarker" node="0>19|0|2"/>
+        <i3dMapping id="tipAreaStart" node="0>19|0|3|0"/>
+        <i3dMapping id="tipAreaWidth" node="0>19|0|3|0|0"/>
+        <i3dMapping id="tipAreaHeight" node="0>19|0|3|0|1"/>
+        <i3dMapping id="manureInfoTrigger" node="0>19|0|4"/>
+        <i3dMapping id="clearAreaManureStart" node="0>19|0|5"/>
+        <i3dMapping id="clearAreaManureWidth" node="0>19|0|5|0"/>
+        <i3dMapping id="clearAreaManureHeight" node="0>19|0|5|1"/>
+        <i3dMapping id="milkTrigger" node="0>20|0"/>
+        <i3dMapping id="aiLoadingNodeMilk" node="0>20|1"/>
+        <i3dMapping id="milkContainer" node="0>20|2"/>
+        <i3dMapping id="foodPlace1" node="0>8|2|0"/>
+        <i3dMapping id="foodPlace2" node="0>8|2|1"/>
+        <i3dMapping id="foodPlace3" node="0>8|2|2"/>
+        <i3dMapping id="foodPlace4" node="0>8|2|3"/>
+        <i3dMapping id="foodPlace5" node="0>8|2|4"/>
+        <i3dMapping id="foodPlace6" node="0>8|2|5"/>
+        <i3dMapping id="foodPlace7" node="0>8|2|6"/>
+        <i3dMapping id="foodPlace8" node="0>8|2|7"/>
+        <i3dMapping id="foodPlace9" node="0>8|2|8"/>
+        <i3dMapping id="foodPlace10" node="0>8|2|9"/>
+        <i3dMapping id="baleTrigger" node="0>8|3"/>
+        <i3dMapping id="strawPlane" node="0>9|0"/>
+        <i3dMapping id="exactFillRootNodeStraw" node="0>9|1"/>
+        <i3dMapping id="baleTriggerStraw" node="0>9|2"/>
+        <i3dMapping id="fillVolumeFood" node="0>8|0"/>
+        <i3dMapping id="exactFillRootNodeFood" node="0>8|1"/>
+        <!--animation-->
+        <i3dMapping id="lightTrigger01" node="0>6|0|0|0"/>
+        <i3dMapping id="neonBureaux" node="0>6|0|0|1"/>
+        <i3dMapping id="lightsbureau" node="0>6|0|0|2"/>
+        <i3dMapping id="neonsdt" node="0>6|0|1|0"/>
+        <i3dMapping id="lightssdt" node="0>6|0|1|1"/>
+        <i3dMapping id="shdSpot" node="0>6|0|2|0"/>
+        <i3dMapping id="lightsSpot" node="0>6|0|2|1"/>
+        <i3dMapping id="lightTrigger02" node="0>6|0|3|0"/>
+        <i3dMapping id="neonstab" node="0>6|0|3|1"/>
+        <i3dMapping id="realLightsLowStab" node="0>6|0|3|2"/>
+        <i3dMapping id="realLightsHighStab" node="0>6|0|3|3"/>
+        <i3dMapping id="Barriere_porte07" node="0>6|10|0"/>
+        <i3dMapping id="trigger10" node="0>6|10|1"/>
+        <i3dMapping id="Barriere_porte08" node="0>6|11|0"/>
+        <i3dMapping id="trigger11" node="0>6|11|1"/>
+        <i3dMapping id="ventilateurs_anim" node="0>6|12|0|0"/>
+        <i3dMapping id="trigger12" node="0>6|12|1"/>
+        <i3dMapping id="porte_01" node="0>6|1|0"/>
+        <i3dMapping id="trigger01" node="0>6|1|1"/>
+        <i3dMapping id="porte_02" node="0>6|2|0"/>
+        <i3dMapping id="trigger02" node="0>6|2|1"/>
+        <i3dMapping id="porte_03" node="0>6|3|0"/>
+        <i3dMapping id="trigger03" node="0>6|3|1"/>
+        <i3dMapping id="Barriere_porte01" node="0>6|4|0"/>
+        <i3dMapping id="trigger04" node="0>6|4|1"/>
+        <i3dMapping id="Barriere_porte02" node="0>6|5|0"/>
+        <i3dMapping id="trigger05" node="0>6|5|1"/>
+        <i3dMapping id="Barriere_porte03" node="0>6|6|0"/>
+        <i3dMapping id="trigger06" node="0>6|6|1"/>
+        <i3dMapping id="Barriere_porte04" node="0>6|7|0"/>
+        <i3dMapping id="trigger07" node="0>6|7|1"/>
+        <i3dMapping id="Barriere_porte05" node="0>6|8|0"/>
+        <i3dMapping id="trigger08" node="0>6|8|1"/>
+        <i3dMapping id="Barriere_porte06" node="0>6|9|0"/>
+        <i3dMapping id="trigger09" node="0>6|9|1"/>
+        <i3dMapping id="markerSdt" node="0>12|6"/>
+    </i3dMappings>
+</placeable>

@@ -210,6 +210,17 @@ tipType notes:
 - `RUBBER_BOOT` — needs `tipNodeName`; skipped if missing.
 - `RUBBER_BOOT_PIT` — uses both; loads if at least one node resolves.
 
+What an open-pit arm can reach: an SPS store's fill plane, another tanker's receiver,
+map water marked in `SPS_waterNodes` (see the map-water guide), and — since 1.0.1.8 — a
+buying station's pool when its author declared a `<fillPlane>` (paid at the station's
+price, placeables guide §9B). Fill needs the centre node **below** the surface, discharge
+needs it **above**.
+
+**Arm stream effect (1.0.1.8).** The liquid stream on the arm plays only while the tanker is
+**unloading** through it and still has liquid; it stops the moment the tank is empty and
+never plays while filling, whatever the source. The effect nodes come from the
+`<effects>` block of the arm (or the legacy single effect on the vehicle).
+
 ---
 
 ## 7. Pipe couplings — `<pipeCouplings>`
@@ -237,18 +248,21 @@ The strap-pipe coupling point on the tanker (walk-up connect).
 | `maxPipeLength`        | 6.0      | Max metres a connection may span from this coupler. |
 | `fillUnitIndex`        | 1        | Fill unit fed/drained by this coupler. |
 | `valveFromRearControl` | false    | If true the valve is driven from the rear/outside control node. |
-| `connector`            | `male`   | `male` / `female` — matched against the partner end. |
+| `connector`            | `male`   | `male` / `female` — matched against the partner end. With physical pipes it is the pipe **end** this coupler takes (README 06 §8). |
 | `connectorAnimation`   | —        | Coupler animation id. |
 | `valveAnimation`       | —        | Valve animation id. |
 | `headHeightNodeName`   | —        | Opt-in gravity head gate — see below. |
 | `cylinderedConfigIndex`| —        | Optional config gate, see §13. |
 | `configType`           | `cylindered` | Config type for the gate. |
+| `configType2` / `configIndex2` / `configMode2` | — | Optional second config gate, see §13. |
 
 The coupler mount node must contain two child nodes named exactly `inNode` and `outNode`;
 SPS finds them automatically as the in/out flow points.
 
 A coupling automatically gets a walk-up **connect** activatable and a **lay chain**
-activatable.
+activatable. In **physical pipe** mode those prompts are replaced by the store-bought pipes
+(plug in with the mouse) and a MANUAL coupler's valve is opened with R at the coupler;
+see `SPS_README_06_Physical_Pipes.md`.
 
 Pipe visuals from a coupling rest on hard surfaces automatically — laid chains and
 connection pipes settle onto concrete pads, floors, bridge decks and roads as well as the
@@ -312,6 +326,97 @@ from a `<couplerAnimations>` block you define inside your own `<slurryPipeSystem
 format as the shared file; local ids win). See the placeable guide §7 for the block format.
 
 ---
+
+## 7A. Pipe holders — `<pipeHolders>` (1.0.1.8, physical pipes)
+
+A stow rack for the store-bought physical pipes. Pose a real pipe on the rack once in GIANTS Editor and the
+game lays every stowed pipe exactly there.
+
+```xml
+<pipeHolders>
+    <pipeHolder id="1" nodeName="SPS_pipeHolder01" radius="1.0"/>
+    <pipeHolder id="2" nodeName="SPS_pipeHolder02" radius="1.0"/>
+</pipeHolders>
+```
+
+**Node tree.** The script's **Create pipe set** button builds the structure for you: type the vehicle node the set links onto in *Attach to*, select a node where the rack is (optional) and click it - it adds `pipeHolders > <attach node> > pipeHolder > SPS_pipeHolderNN` (next free number) to the SPS root and prints the `<pipeHolder>` XML line. `SPS_pipeHolderNN` is a transform at the rack (its position is what the pipe's middle must be
+within `radius` of). Its CHILDREN are the slots, made with `placementPipes/SPS_PipePlacement.lua` in GIANTS
+Editor: import a donor pipe from that folder (or pull in any SPS pipe), position its root and pose its BONES,
+pick the holder and the pipe in the script window, name the slot and Create nodes - the script writes
+`<holder>/<name>/p01..pNN` (every bone's position and rotation), then delete the posed pipe. Name slots by
+family: `slurry01`, `water01`, `water02` ... One slurry slot serves F/M, F/F and M/M (pose with pipe_FF, the
+longest), one water slot serves the water and the milk hose. Body count and point count need not match: the
+pipe is laid along the points by arc length, centred.
+
+**Rules.** A holder with a slurry pipe in it closes its water slots and the other way round. **Length:** a slot
+only takes a pipe its chain is long enough for (chain ≥ 0.8 × the pipe's rest length; a chain runs through the
+body centres, so a slot captured with the 4 m pipe is about 3.8 m and never takes a 6 m pipe). Of the free slots
+that fit, the shortest chain fills first, so a 4 m pipe goes to a 4 m slot while one is free and only then to a
+6 m slot; a 6 m pipe only ever goes to a slot captured with a 6 m pipe. Capture 6 m slots with the long pipe
+posed on the holder (same script, p01..p19). **Position:** the number a slot name ends in is its place on the
+rail, and one pipe sits per place: `slurry01` and `slurryLong01` are the same place in two lengths, so a holder
+with a 4 m slurry pipe in `slurry01` refuses a 6 m pipe for `slurryLong01` (and the other way round);
+`water01` / `waterLong01` and `water02` / `waterLong02` are the two places of the thinner water rail. Name the
+long slot with the same number as the short slot it shares the rail with. The log line `[SPS] pipeHolder id=..` lists every slot with its
+point count and chain length. Several holders in reach: the mouse wheel or `'` `;`
+(SPS_STOW_NEXT / PREV, rebindable) step through them, the prompt names the holder and the free slots. Grab a
+stowed pipe to take it off. Stowed pipes save, restore and sync in multiplayer. An explicit
+`<placement node="water01" pipes="WATER MILK"/>` child of `<pipeHolder>` overrides the discovery when needed.
+
+### 7A.1 Docking station holder — `<dockingStationHolders>` (1.0.1.8)
+
+A vehicle can carry the **SPS Docking Station** (the portable docking post from the shop) on a frame, the way a
+pipe rides a holder. Model the frame in the node tree and put one empty transform where the station's **root**
+goes (its base on the frame; the node's +Z is the station's coupling side, +Y up), then name that node:
+
+```xml
+<dockingStationHolders>
+    <dockingStationHolder id="1" nodeName="dockingStationPosition" radius="1.5"/>
+</dockingStationHolders>
+```
+
+- `nodeName` — the position node in the node tree. `radius` — how close the held station's base must be to the
+  node for the prompt to appear (default 1.5 m).
+- The frame mesh needs **no collision**: the station is placed by the script, not dropped onto the frame. One
+  station per holder.
+- In game: carry the station (hands, left mouse), walk to the frame — the prompt *Place docking station on holder
+  N* appears on the right mouse (several frames in reach: mouse wheel or `;` `'` cycle them). Placed, it rides the
+  vehicle with its vehicle collision off (it cannot shove the tanker), and its coupling and rubber boot are out of
+  service until it is taken off. Aim at it and pick it up to take it off; set it down anywhere as usual.
+- Saved and restored with the game (the station is put back on the frame once the vehicle has loaded).
+
+## 7B. Parts hidden in physical pipe mode — `<physicalModeHide>` (1.0.1.8)
+
+Some tankers carry a pipe of their own (a side pipe on a rack, a stowed hose) that belongs to the
+original system. In **physical pipe** mode the player stows store-bought pipes on that rack instead,
+so the model's own pipe should go. Name the nodes and SPS hides them while physical pipes are in
+use and shows them again in the original system:
+
+```xml
+<physicalModeHide>
+    <node name="Embout"/>
+</physicalModeHide>
+```
+
+- Inside `<slurryPipeSystem>`, bundled (`fillPoints.xml`) or embedded in the vehicle's own XML.
+  Placeables take the same block.
+- `name` is any node of the vehicle's **own i3d** or of the **SPS nodeTree** linked into it; every
+  node with that name is hidden. Several `<node>` lines may be given. A name that matches nothing
+  logs `[SPS] WARNING: physicalModeHide node '...' not found`.
+- Visual by default. Each node's own visibility when the vehicle loads is what the original mode restores.
+- `collision="true"` also switches **collision** off while the part is hidden: every shape at or under
+  that node stops colliding, and gets its own collision back in the original system. List a separate
+  collision node by its name the same way:
+
+  ```xml
+  <physicalModeHide>
+      <node name="Embout" collision="true"/>
+      <node name="EmboutCol" collision="true"/>
+  </physicalModeHide>
+  ```
+- Follows the mode live: switching the pipe system in the settings shows / hides the parts at once,
+  on every machine (single player, host, joined players and dedicated server).
+- Shipped on: Joskin Cobra (its side pipe, `Embout`).
 
 ## 8. Spreader / dribble bar — `<blockageNodes>`
 
@@ -466,6 +571,17 @@ A two-node port (upper/lower) used for boot-tip submersion fills.
 Both `lowerNodeName` and `upperNodeName` must resolve or the port is skipped. `valveType`
 defaults to `NONE`.
 
+Skinned boot (optional, 1.0.1.8 - the SPS Docking Station uses it): `bootFollowNodeName` names a
+transform that holds the boot's rim bone. While a fill arm's tip is in the boot the node locks onto
+the tip - same position, and the node's Y axis follows the tip node's Y axis - so the rubber bends
+and compresses with the arm; it releases 0.3 m above the lower node and eases back to rest.
+`bootBaseBoneName` (optional) names the base bone; it is held at rest (a share of the rim's sideways
+movement can be enabled in SPSBootDeform.BASE_FOLLOW, off by default). The lower / upper nodes must stay at the rest pose - they are the docking window.
+
+**Fill-arm tip node convention:** a `tipNodeName` node's **Y (green) axis points UP the suction
+head**, away from the flange face. Position alone drives docking; the axis is what a skinned boot
+tilts to (Samson pgII28: the flange is not square to the floor and the boot follows it).
+
 ---
 
 ## 10. Outside controls — `<outsideControls>`
@@ -533,10 +649,19 @@ The log prints one line when the cab variant is active.
 ```
 
 - `agitator#tipNode` — optional node used as the agitator tip. Works on any vehicle type.
+  Accepts a **node name** (searched through every component of the vehicle), an
+  **i3dMapping id** from your vehicle XML, or an **index path** such as `0>0|4`. A node that
+  cannot be found is logged as a `[SPS] WARNING` and the tip is disabled.
+- An agitator-only mod does **not** need a `nodeTree` — author the tip node in your own i3d
+  and reference it by name, mapping id or index path.
 - `agitator#crustMix` — optional mixing-speed multiplier, default `1.0`, clamped 0.1–10.
   `1.0` clears a full crust in the baseline 2 game hours of continuous stirring; `2.0`
   does it in one. Lets a big PTO mixer be rated above a small one.
-- `agitatorOnly="true"` (root attribute) — marks the vehicle as agitator-only.
+- `agitator#requiresTurnedOn` (1.0.1.8) — default `false`. `true` = the agitator mixes only while
+  the vehicle is turned on (TurnOnVehicle), for a mixer not driven through a PTO shaft.
+- `agitatorOnly="true"` (root attribute) — marks the vehicle as agitator-only (no SPS cab keys).
+- `<pumpMixer enabled="true"/>` (1.0.1.8) — the agitator vehicle also pumps slurry out of the store
+  its tip stands in, through its connected coupler. See `SPS_README_07_Tower_Mixer.md`.
 
 Mixing runs on absolute game time via the shared monotonic clock, so it means the same
 thing on every save regardless of season length, and it is timescale-correct through
@@ -601,7 +726,9 @@ Filling sends liquid to the first target with free capacity; unloading draws fro
 with content. So a coupler-connected tanker fills first, overflow goes to the rear
 receiver, and the flow switches back automatically as levels change — with the full mirror
 when unloading. Water sources are valid infinite fill sources and refused as unload
-destinations. Thickness/crust blends apply to receiver transfers as on any tanker.
+destinations. A buying-station source (hose on a buying-station coupler, or the arm in a
+paid pool) charges the player exactly as a direct coupler fill would (1.0.1.8; it was free
+before). Thickness/crust blends apply to receiver transfers as on any tanker.
 Front-mount units never show the spreader valve keybind.
 
 ### Front mount config (on the front unit)
@@ -670,7 +797,20 @@ transitions):
 ## 13. Config gating (multi-config vehicles)
 
 Fill arms, couplings and blockage nodes can be restricted to a specific vehicle
-configuration so the right parts load for the right design/work-area selection.
+configuration so the right parts load for the right design/work-area selection. Since 1.0.1.8
+the same attributes (and the second gate below) also work on `<pipeHolder>`,
+`<dockingStationHolder>` and each `<physicalModeHide><node>`: a rack on an optional hose carrier
+only exists when that carrier was bought, and only its own parts are hidden. Example, a tanker
+whose shop option `design12` is No / Left / Right / Both carriers:
+
+```xml
+<pipeHolder id="1" nodeName="SPS_pipeHolder01" configType="design12" cylinderedConfigIndex="1,3"/>
+<pipeHolder id="2" nodeName="SPS_pipeHolder02" configType="design12" cylinderedConfigIndex="2,3"/>
+<physicalModeHide>
+    <node name="hoseLeft"  configType="design12" cylinderedConfigIndex="1,3"/>
+    <node name="hoseRight" configType="design12" cylinderedConfigIndex="2,3"/>
+</physicalModeHide>
+```
 
 - Arms / couplings use `cylinderedConfigIndex` with `configType` (default `cylindered`).
 - Blockage nodes use `workAreaConfigIndex` with `configType` (default `workArea`).
@@ -682,6 +822,18 @@ part that should load on several configs:
 <fillArm id="1" cylinderedConfigIndex="0,2" centreNodeName="arm" tipType="OPEN_PIT"/>
 <blockageNode mountNodeName="outlet" workAreaConfigIndex="1"/>
 ```
+
+**Second gate (1.0.1.8)** — fill arms and pipe couplings may carry a second condition on
+another configuration, for a part that depends on two shop rows:
+
+```xml
+<!-- only with design 1 (pump mixer) AND design2 0 (no pipe extension) -->
+<pipeCoupling id="1" mountNodeName="SPS_pipeCoupler01" configType="design" cylinderedConfigIndex="1"
+              configType2="design2" configIndex2="0"/>
+```
+
+`configType2` (default `cylindered`), `configIndex2` (0-based, comma list allowed), `configMode2`
+`require` (default: keep only when it matches) or `exclude` (drop when it matches).
 
 When the vehicle's active config index does not match, that element is skipped. If SPS
 cannot resolve the active config index at all, the element loads (and duplicate couplings on

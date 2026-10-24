@@ -84,7 +84,9 @@
 	     The clock only runs while the unit is actually mixing - engine on, PTO
 	     engaged, and slurry at or above the level node below. Idle time is never
 	     banked and cashed in later. -->
-	<fixedAgitator turnOffIfNotAllowed="true" crustMix="1.0">
+	<!-- neededPtoPower / ptoRpm: load put on the connected tractor, same units as a
+	     vanilla <powerConsumer> (kW at that PTO speed). 0 = no load. -->
+	<fixedAgitator turnOffIfNotAllowed="true" crustMix="1.0" neededPtoPower="75" ptoRpm="540">
 		<input inputNode="ptoNodeAttached" detachNode="ptoNodeDetached" filename="$data/shared/assets/powerTakeOffs/walterscheidW.xml" materialTemplateName="SHARED_BLACK1" decalMaterialTemplateName="WALTERSCHEID_YELLOW1"/>
 		<level node="agitatorLevelNode"/>
 		<animationNodes>

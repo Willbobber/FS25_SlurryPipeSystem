@@ -6,6 +6,13 @@
 <!-- Version: 1.0.0.0 -->
 
 <slurryPipeSystem agitator="false">
+    <!-- [SPS 1.0.1.8] Virtual slurry surface: vanilla declares no liquid-manure plane for this
+         barn, so SPS drives an empty transform (virtualSurface) between minY and maxY relative to
+         slurryStore01, which sits at the EMPTY pit level (0 -2 0 in the storage container).
+         Gives the coupler gravity head levelling; no shape bounds => not arm-detectable. -->
+    <slurryStores>
+        <slurryStore id="1" node="slurryStore01" fillPlaneNode="virtualSurface" minY="0" maxY="2" fillType="LIQUIDMANURE" agitator="false" hideWhenEmpty="false"/>
+    </slurryStores>
 
     <nodeTree filename="nodeTree.i3d"/>
 	
@@ -35,5 +42,16 @@
         <node name="col" index="0>20|0|0|9|3"/>
         <node name="col" index="0>20|0|0|9|2|0"/>
     </hideCollisions>
+
+    <!-- [SPS 1.0.1.8] MILK lane: barn -> tanker (MILK or BUFFALOMILK, whichever the barn holds).
+         SPS_milkPipeCoupler01 (+ Arcs, inNode/outNode) sits in nodeTree.i3d next to
+         SPS_pipeCoupler01 as EMPTY transforms at the storage origin: position it and add the
+         sprayerConnector mesh in GIANTS Editor. See SPS_README_05_Animal_Water.md. -->
+    <milkPipeSystem>
+        <milkPipeCouplings>
+            <milkPipeCoupling id="1" mountNodeName="SPS_milkPipeCoupler01"
+                              maxPipeLength="7.5" />
+        </milkPipeCouplings>
+    </milkPipeSystem>
 
 </slurryPipeSystem>

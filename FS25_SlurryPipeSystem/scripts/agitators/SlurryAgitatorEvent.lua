@@ -33,20 +33,21 @@ end
 
 function SlurryAgitatorEvent:run(connection)
     if not connection:getIsServer() then
-        g_server:broadcastEvent(self, false, connection, self.vehicle)
+        g_server:broadcastEvent(self, false, connection, self.vehicle, nil, nil, true)
     end
-    if self.vehicle ~= nil and self.vehicle:getIsSynchronized() then
-        local vEntry = g_slurryPipeManager ~= nil and g_slurryPipeManager:getVehicleEntry(self.vehicle) or nil
-        if vEntry ~= nil then
-            vEntry.agitatorIsActive = self.isRunning
-        end
+    -- [SPS MP 1.0.1.8] Apply now, or (client) defer until the vehicle registers.
+    if self.vehicle ~= nil and g_slurryPipeManager ~= nil then
+        local isRunning = self.isRunning
+        g_slurryPipeManager:applyOrDeferVehicleState(self.vehicle, "AgitatorEvent", function(entry, state)
+            entry.agitatorIsActive = isRunning
+        end)
     end
 end
 
 function SlurryAgitatorEvent.sendEvent(vehicle, isRunning, noEventSend)
     if noEventSend == nil or noEventSend == false then
         if g_server ~= nil then
-            g_server:broadcastEvent(SlurryAgitatorEvent.new(vehicle, isRunning), nil, nil, vehicle)
+            g_server:broadcastEvent(SlurryAgitatorEvent.new(vehicle, isRunning), nil, nil, vehicle, nil, nil, true)
             return
         end
         g_client:getServerConnection():sendEvent(SlurryAgitatorEvent.new(vehicle, isRunning))

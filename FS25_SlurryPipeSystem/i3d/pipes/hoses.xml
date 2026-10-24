@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!--
+    SPS hose definitions (1.0.1.8, i3d/pipes/hoses.xml) - the ONE place that says what each physical hose is.
+    Read by scripts/hoses/SPSHoseVisual.lua at mod load. Both the automatic coupler-to-coupler
+    system and the store-bought, player-handled hoses use these entries.
+
+    End-gender rule (William 2026-10-12): every connection point has a gender and a hose end only
+    mates with the OPPOSITE one. A coupling's XML attribute connector="male|female" says which hose
+    end it ACCEPTS (tanker: male, store: male -> M/M hose). A laid hose's free end accepts the
+    opposite of its own gender.
+
+    Fluid rule (William 2026-10-13): the water and milk hoses share the same 80 mm ends, so the
+    FLUID of the connection picks between them - a milk source always gets the MILK hose.
+
+    hose:
+      key          - name used in code and by the store item
+      shape        - the skinned Shape in hoses.i3d (its 13 bones are direct children, named Bone..)
+      fluid        - slurry | water | milk
+      startEnd     - gender of the end at the shape origin (Bone01 side) = FIRST letter of the shape name
+      farEnd       - gender of the end at <shape>_endConnector         = SECOND letter
+      radius       - tube radius in metres (floor rest height)
+      hoseMatIndex - 0-based index of hose_mat in the shape's material list (fallback when the
+                     material slot on hose_mat has no name set in GE)
+      tintable     - true (default): the settings-menu pipe colour is applied to hose_mat;
+                     false: the rubber keeps the colorScale set on its material in GE (water = blue, milk = white;
+                     William 2026-10-13 - only the slurry hoses follow the pipe-colour menu)
+
+    connector (static fittings in i3d/connectors/connections.i3d, placed at couplers that have no fitting of their own):
+      name     - <name>Node pivot -> <name> shape in connections.i3d
+      fluid    - the fluids this fitting serves, space-separated: slurry | water | milk
+                 (the 80 mm fittings serve water AND milk - one line, "water milk", never two lines
+                 with the same name: the table is keyed by name and the second would replace the first)
+      gender   - the fitting's own gender
+      accepts  - the hose end it takes = the opposite of gender (= the coupling's connector= value)
+-->
+<hoses i3d="hoses.i3d" connectorsI3d="../connectors/connections.i3d">
+    <hose key="FM"    shape="pipe_F/M"  fluid="slurry" startEnd="female" farEnd="male"   radius="0.07" hoseMatIndex="0"/>
+    <hose key="FF"    shape="pipe_F/F"  fluid="slurry" startEnd="female" farEnd="female" radius="0.07" hoseMatIndex="0"/>
+    <hose key="MM"    shape="pipe_M/M"  fluid="slurry" startEnd="male"   farEnd="male"   radius="0.07" hoseMatIndex="0"/>
+    <hose key="WATER" shape="waterHose" fluid="water"  startEnd="water"  farEnd="water"  radius="0.04" hoseMatIndex="0" tintable="false"/>
+    <hose key="MILK"  shape="milkHose"  fluid="milk"   startEnd="water"  farEnd="water"  radius="0.04" hoseMatIndex="0" tintable="false"/>
+
+    <connectors>
+        <connector name="slurryFemaleConnector01" fluid="slurry" 	 gender="female" accepts="male"/>
+        <connector name="slurryFemaleConnector02" fluid="slurry" 	 gender="female" accepts="male"/>
+        <connector name="slurryFemaleConnector03" fluid="slurry" 	 gender="female" accepts="male"/>
+        <connector name="slurryMaleConnector01"   fluid="slurry" 	 gender="male"   accepts="female"/>
+        <connector name="slurryMaleConnector02"   fluid="slurry" 	 gender="male"   accepts="female"/>
+        <connector name="slurryMaleConnector03"   fluid="slurry" 	 gender="male"   accepts="female"/>
+        <connector name="waterHoseConnector01"    fluid="water milk" gender="water"  accepts="water"/>
+        <connector name="waterHoseConnector02"    fluid="water milk" gender="water"  accepts="water"/>
+        <connector name="waterHoseConnector03"    fluid="water milk" gender="water"  accepts="water"/>
+    </connectors>
+</hoses>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<placeable type="buyingStationManure" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../../shared/xml/schema/placeable.xsd">
+    <storeData>
+        <name>$l10n_station_liquidmanure_negociant</name>
+        <image>$data/store/store_empty.png</image>
+        <price>0</price>
+        <showInStore>false</showInStore>
+        <lifetime>1000</lifetime>
+        <dailyUpkeep>0</dailyUpkeep>
+        <rotation>0</rotation>
+        <brand>NONE</brand>
+        <species>PLACEABLE</species>
+        <category>placeableMisc</category>
+    </storeData>
+
+    <base>
+        <filename>maps/placeables/negociant/buyingStationLiquidManure.i3d</filename>
+    </base>
+
+    <placement useRandomYRotation="false" useManualYRotation="true" />
+
+    <clearAreas></clearAreas>
+
+    <leveling></leveling>
+
+    <indoorAreas></indoorAreas>
+
+    <ai>
+        <updateAreas>
+            <updateArea startNode="tipOcclusionUpdateArea1Start" endNode="tipOcclusionUpdateArea1End" />
+        </updateAreas>
+    </ai>
+
+    <tipOcclusionUpdateAreas>
+        <tipOcclusionUpdateArea startNode="tipOcclusionUpdateArea1Start" endNode="tipOcclusionUpdateArea1End" />
+    </tipOcclusionUpdateAreas>
+
+    <hotspots>
+        <hotspot type="UNLOADING" linkNode="maureHeapNode" teleportNode="teleportNode"/>
+    </hotspots>
+
+    <triggerMarkers>
+        <triggerMarker node="TriggerMarker" filename="$data/shared/assets/marker/markerIconSlurry.i3d" />
+    </triggerMarkers>
+
+    <buyingStation node="maureHeapNode" supportsExtension="false">
+        <loadTrigger triggerNode="loadingTriggerManure" fillTypes="LIQUIDMANURE" fillLitersPerSecond="2000" infiniteCapacity="true" aiNode="loadingTriggerAINodeManure"/>
+        <fillType name="LIQUIDMANURE" priceScale="1.1" />
+    </buyingStation>
+
+    <sellingStation supportsExtension="false" litersForFullPriceDrop="200000" fullPriceRecoverHours="48">
+        <unloadTrigger exactFillRootNode="exactFillRootNodeManure" fillTypes="LIQUIDMANURE" priceScale="1" aiNode="loadingTriggerAINodeManure"/>
+    </sellingStation>
+	
+	<slurryPipeSystem>
+        <nodeTree filename="nodeTree.i3d"/>
+        <buyingStation fillType="LIQUIDMANURE"/>
+        <fillPlane node="fillplane" fillType="LIQUIDMANURE" shape="round" centreNodeName="slurryPlaneCentre" edgeNodeName="slurryPlaneEdge"/>
+        <pipeCouplings>
+            <pipeCoupling id="1" mountNodeName="SPS_pipeCoupler01" flowDirection="FILL" valveType="NONE" deployable="false" maxPipeLength="4.0" connector="female" headHeightNodeName="headHeight01"/>
+        </pipeCouplings>
+    </slurryPipeSystem>
+	
+    <i3dMappings>
+        <i3dMapping id="maureHeapNode" node="0>" />
+        <i3dMapping id="manureHeap" node="0>0" />
+        <i3dMapping id="loadingTriggerManure" node="0>0|0" />
+        <i3dMapping id="loadingTriggerAINodeManure" node="0>0|1" />
+        <i3dMapping id="fillplane" node="0>0|3" />
+        <i3dMapping id="exactFillRootNodeManure" node="0>0|4" />
+        <i3dMapping id="tipOcclusionUpdateArea1Start" node="0>2|0"/>
+        <i3dMapping id="tipOcclusionUpdateArea1End" node="0>2|0|0"/>
+        <i3dMapping id="TriggerMarker" node="0>0|2"/>
+        <i3dMapping id="teleportNode" node="0>0|5"/>
+    </i3dMappings>
+</placeable>

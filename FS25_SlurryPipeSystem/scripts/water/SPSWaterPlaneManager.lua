@@ -7,24 +7,25 @@
   Water planes are defined in map i3d:
     /SPS_waterNodes/
       ├─ waterPlaneLake01/        ← Parent node (Y = water surface)
-      │   ├─ waterPlaneLake01_01  ← Edge nodes (perimeter markers)
+      │   ├─ waterPlaneLake01_01  ← Quad group: node1..node4 corners
       │   ├─ waterPlaneLake01_02
+      │   ├─ shoreline            ← OR a closed spline traced round the water (1.0.1.8)
       │   └─ ...
       └─ mainWaterPlane/
           └─ ...
-  
+
   System:
   - Load all water planes on map load
-  - Auto-order edge nodes by angle around parent (forms perimeter ring)
-  - Runtime: triangle validation to check if point is in water
+  - Quads: four corner nodes; spline loops: sampled ~1 vertex/m into one polygon
+  - Runtime: XZ bounds pre-filter, then ray-cast point-in-polygon (any polygon = in water)
   - Infinite water sources (no depletion)
-  
+
   Author: Oscar Mods
   -- Version: 1.0.0.8
 ================================================================================
 ]]
 
-print("[SPS BUILD] SPSWaterPlaneManager 1.0.0.10.3 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSWaterPlaneManager 1.0.1.8 loaded (quads + spline loops)") end
 
 SPSWaterPlaneManager = {}
 local SPSWaterPlaneManager_mt = Class(SPSWaterPlaneManager)
@@ -72,7 +73,7 @@ function SPSWaterPlaneManager:loadWaterPlanes()
         return
     end
     
-    print("[SPS WPM] Starting water plane load, terrainRootNode available")
+    spsInfo("[SPS WPM] Starting water plane load, terrainRootNode available")
     
     local rootNode = getChild(g_currentMission.terrainRootNode, "SPS_waterNodes")
     local loadedFromExternal = false
@@ -389,24 +390,33 @@ function SPSWaterPlaneManager:_loadSingleWaterPlane(planeNode, planeName)
     -- Get parent world position (water surface level)
     local centreX, centreY, centreZ = getWorldTranslation(planeNode)
     
-    -- Find all quad groups (children matching pattern waterPlaneLake_01, etc.)
-    local quadGroups = {}
-    
+    -- Find all footprints under the plane node. Two authoring routes, mixable:
+    --   * spline loop  — any spline shape (class test, name is free); a closed spline traced
+    --                    round the shoreline is sampled into one polygon at load
+    --   * quad group   — transform group whose name ends with underscore + digits, holding
+    --                    node1..node4 (the original route)
+    -- The spline test runs first so a spline named e.g. "lake_01" is not mistaken for a quad.
+    local quadGroups  = {}
+    local splineNodes = {}
+
     I3DUtil.iterateRecursively(planeNode, function(node)
         local nodeName = getName(node)
-        -- Match quad pattern: name ends with underscore + digits
-        if nodeName:match("_(%d+)$") then
+        if self:_getIsSplineNode(node) then
+            table.insert(splineNodes, {node = node, name = nodeName})
+        elseif nodeName:match("_(%d+)$") then
+            -- Match quad pattern: name ends with underscore + digits
             table.insert(quadGroups, {node = node, name = nodeName})
         end
         return true  -- Continue iteration
     end)
-    
-    if #quadGroups == 0 then
-        print(string.format("[SPS WPM] WARNING: Water plane '%s' has no quad groups", planeName))
+
+    if #quadGroups == 0 and #splineNodes == 0 then
+        print(string.format("[SPS WPM] WARNING: Water plane '%s' has no quad groups or spline loops", planeName))
         return nil
     end
-    
-    -- Load each quad's 4 corner nodes
+
+    -- Load each quad's 4 corner nodes, then each spline loop. Both produce the same
+    -- {name, vertices, bounds} polygon entry, so the runtime test does not care which it was.
     local quads = {}
     for _, quadGroup in ipairs(quadGroups) do
         local quad = self:_loadQuadVertices(quadGroup.node, quadGroup.name)
@@ -414,24 +424,121 @@ function SPSWaterPlaneManager:_loadSingleWaterPlane(planeNode, planeName)
             table.insert(quads, quad)
         end
     end
-    
+    local numQuads = #quads
+    for _, splineEntry in ipairs(splineNodes) do
+        local loop = self:_loadSplineLoop(splineEntry.node, splineEntry.name)
+        if loop ~= nil then
+            table.insert(quads, loop)
+        end
+    end
+    local numLoops = #quads - numQuads
+
     if #quads == 0 then
-        print(string.format("[SPS WPM] WARNING: Water plane '%s' loaded no valid quads", planeName))
+        print(string.format("[SPS WPM] WARNING: Water plane '%s' loaded no valid quads or spline loops", planeName))
         return nil
     end
-    
+
     -- Store water plane data
     local waterPlane = {
         node = planeNode,
         name = planeName,
         waterY = centreY,      -- Water surface height = parent node Y
-        quads = quads
+        quads = quads          -- polygons: quads and sampled spline loops alike
     }
-    
-    SlurryDebug.log(string.format("[SPS WPM] Loaded water plane '%s' with %d quad(s) at Y=%.2f",
-        planeName, #quads, centreY))
-    
+
+    SlurryDebug.log(string.format("[SPS WPM] Loaded water plane '%s' with %d quad(s) and %d spline loop(s) at Y=%.2f",
+        planeName, numQuads, numLoops, centreY))
+
     return waterPlane
+end
+
+--[[
+  True when the node is a spline shape. Mirrors the guard vanilla uses before every
+  getSpline* call (PlaceableTrainSystem.lua:110, ShipSystem.lua:55):
+  a SHAPE whose geometry carries ClassIds.SPLINE. (I3DUtil.getIsSpline is not used —
+  the shipped version drops its return value and always answers false.)
+]]
+function SPSWaterPlaneManager:_getIsSplineNode(node)
+    if node == nil or node == 0 or not entityExists(node) then
+        return false
+    end
+    if not getHasClassId(node, ClassIds.SHAPE) then
+        return false
+    end
+    local geometry = getGeometry(node)
+    return geometry ~= 0 and getHasClassId(geometry, ClassIds.SPLINE)
+end
+
+--[[
+  Axis-aligned XZ bounds of a flat vertex array, precomputed once at load so the
+  runtime test can reject a far-away point without walking the polygon.
+]]
+function SPSWaterPlaneManager:_computeBounds(vertices)
+    local minX, maxX = math.huge, -math.huge
+    local minZ, maxZ = math.huge, -math.huge
+    for i = 1, #vertices, 2 do
+        minX = math.min(minX, vertices[i])
+        maxX = math.max(maxX, vertices[i])
+        minZ = math.min(minZ, vertices[i + 1])
+        maxZ = math.max(maxZ, vertices[i + 1])
+    end
+    return {minX = minX, maxX = maxX, minZ = minZ, maxZ = maxZ}
+end
+
+-- Spline sampling: one vertex per SPLINE_SAMPLE_STEP metres of spline, clamped to
+-- [SPLINE_MIN_SAMPLES, SPLINE_MAX_SAMPLES] vertices per loop.
+SPSWaterPlaneManager.SPLINE_SAMPLE_STEP = 1.0
+SPSWaterPlaneManager.SPLINE_MIN_SAMPLES = 8
+SPSWaterPlaneManager.SPLINE_MAX_SAMPLES = 512
+SPSWaterPlaneManager.SPLINE_MIN_LENGTH  = 3.0
+
+--[[
+  Sample a spline into a closed XZ polygon. The spline should be closed (a loop round the
+  shoreline); an open spline is accepted with a warning and its two ends are joined by a
+  straight edge. Only the XZ of each sample is used — the surface height comes from the
+  plane node, exactly as for quads.
+
+  Engine facts (02_FS25_GAME_REFERENCE): getSplineLength returns metres, getSplinePosition
+  takes a normalised time 0..1 (data/maps/proceduralPlacements/paintTerrainBySplines.lua:40-47),
+  getIsSplineClosed reports closure (SplineUtil.lua:54).
+  Returns {name, vertices, bounds, isSpline} or nil if unusable.
+]]
+function SPSWaterPlaneManager:_loadSplineLoop(splineNode, splineName)
+    local length = getSplineLength(splineNode)
+    if length == nil or length < SPSWaterPlaneManager.SPLINE_MIN_LENGTH then
+        print(string.format("[SPS WPM] WARNING: Spline '%s' is too short (%.2f m) - skipped",
+            splineName, length or 0))
+        return nil
+    end
+
+    if not getIsSplineClosed(splineNode) then
+        print(string.format("[SPS WPM] WARNING: Spline '%s' is not closed - its ends are joined by a straight line. Close the spline in the editor to trace the shoreline exactly.",
+            splineName))
+    end
+
+    local numSamples = math.floor(length / SPSWaterPlaneManager.SPLINE_SAMPLE_STEP)
+    numSamples = math.max(SPSWaterPlaneManager.SPLINE_MIN_SAMPLES,
+                 math.min(SPSWaterPlaneManager.SPLINE_MAX_SAMPLES, numSamples))
+
+    -- Sample t in [0, 1) — t = 1 coincides with t = 0 on a closed spline and would only add
+    -- a zero-length edge; on an open spline the final edge back to t = 0 is the implicit join.
+    local vertices = {}
+    for i = 0, numSamples - 1 do
+        local t = i / numSamples
+        local x, _, z = getSplinePosition(splineNode, t)
+        vertices[#vertices + 1] = x
+        vertices[#vertices + 1] = z
+    end
+
+    SlurryDebug.log(string.format("[SPS WPM] Spline loop '%s': %.1f m sampled into %d vertices",
+        splineName, length, numSamples))
+
+    return {
+        name = splineName,
+        vertices = vertices,
+        bounds = self:_computeBounds(vertices),
+        isSpline = true
+    }
 end
 
 --[[
@@ -467,7 +574,8 @@ function SPSWaterPlaneManager:_loadQuadVertices(quadNode, quadName)
     
     return {
         name = quadName,
-        vertices = vertices
+        vertices = vertices,
+        bounds = self:_computeBounds(vertices)
     }
 end
 
@@ -512,33 +620,39 @@ end
   - Odd crossings = inside quad
 ]]
 function SPSWaterPlaneManager:_isPointInWaterPlane(px, pz, waterPlane)
-    -- Test against all quads (OR logic - inside any quad = inside water plane)
+    -- Test against all polygons (OR logic - inside any quad / spline loop = inside water plane)
     for _, quad in ipairs(waterPlane.quads) do
-        if self:_isPointInQuad(px, pz, quad.vertices) then
-            return true
+        local b = quad.bounds
+        -- Precomputed bounds reject a far point before the polygon walk — matters for a
+        -- spline loop with hundreds of vertices, free for a quad.
+        if b == nil or (px >= b.minX and px <= b.maxX and pz >= b.minZ and pz <= b.maxZ) then
+            if self:_isPointInQuad(px, pz, quad.vertices) then
+                return true
+            end
         end
     end
-    
+
     return false
 end
 
 --[[
-  Test if point is inside a 4-vertex quad using ray casting.
-  Vertices stored as flat array: [x1, z1, x2, z2, x3, z3, x4, z4]
+  Test if point is inside a polygon using ray casting.
+  Vertices stored as flat array: [x1, z1, x2, z2, ..., xn, zn] — 4 for a quad, up to
+  SPLINE_MAX_SAMPLES for a spline loop; the edge loop wraps to the first vertex.
   Uses Giants' MathUtil.getLineSegmentsIntersection() like vanilla FS25.
 ]]
 function SPSWaterPlaneManager:_isPointInQuad(px, pz, vertices)
     -- Quick bounding box check (cheap pre-filter)
     local minX, maxX = math.huge, -math.huge
     local minZ, maxZ = math.huge, -math.huge
-    
+
     for i = 1, #vertices, 2 do
         minX = math.min(minX, vertices[i])
         maxX = math.max(maxX, vertices[i])
         minZ = math.min(minZ, vertices[i + 1])
         maxZ = math.max(maxZ, vertices[i + 1])
     end
-    
+
     if px < minX or px > maxX or pz < minZ or pz > maxZ then
         return false
     end

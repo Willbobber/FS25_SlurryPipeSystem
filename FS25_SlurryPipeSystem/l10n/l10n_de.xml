@@ -3,9 +3,12 @@
     <texts>
 		<!-- Inputs -->
 		<text name="input_SPS_TOGGLE_PUMP"      		text="SPS Pumpe Ein/Aus" />
+		<text name="input_SPS_STOW_NEXT"			text="SPS: nächster Rohrhalter" />
+		<text name="input_SPS_STOW_PREV"			text="SPS: vorheriger Rohrhalter" />
 		<text name="input_SPS_TOGGLE_AGITATOR"		text="Rührwerk verbinden/trennen" />
 		<text name="input_SPS_ENGAGE_AGITATOR"		text="Rührwerk-Zapfwelle Ein/Aus" />
 		<text name="input_SPS_TOGGLE_FLOW"      		text="SPS Durchfluss Öffnen/Schließen" />
+		<text name="input_SPS_PUMPMIXER_VALVE"		text="SPS Pumpmixer-Ventil Öffnen/Schließen" />
 		<text name="input_SPS_TOGGLE_DIRECTION" 		text="SPS Durchflussrichtung" />
         <text name="input_SPS_TOGGLE_SPREADER"          text="SPS Streuventil" />
         
@@ -46,6 +49,12 @@
 		<text name="action_spsRemovePipe"           	text="Rohr entfernen" />
 		<text name="action_spsRemoveDockingStation" 	text="Dockingstation entfernen" />
 		<text name="action_spsDisconnectPipe" 			text="Rohr trennen" />
+		<text name="action_spsPhysConnect" 			text="Rohrende anschließen"/>
+		<text name="action_spsPhysDisconnect" 		text="Rohrende abziehen und tragen"/>
+		<text name="action_spsPhysDrop" 				text="Rohr abziehen"/>
+		<text name="action_spsPhysStow" 				text="Rohr ablegen: Halter %d (%s %d/%d frei)"/>
+		<text name="action_spsPhysStowCycle" 			text="[Mausrad oder ; '] anderer Halter"/>
+		<text name="action_spsDsStow" 				text="Dockingstation auf Halter %d ablegen"/>
 		<text name="action_spsFinalisePipe"  			text="Rohr abschließen [R] | Abbrechen [R halten]" />
 		<text name="action_spsDeployCoupling" 			text="Rohrkupplung ausfahren [R halten]"/>
 		<text name="action_spsRemoveCoupling" 			text="Rohrkupplung entfernen [R halten]"/>
@@ -53,9 +62,7 @@
 		<text name="action_spsRearValveClose"			text="Ventil schließen [R]" />
 		
         <!-- Warnings -->
-        <text name="warning_slurryNoConnection"    		text="Keine aktive Gülleleitung" />
         <text name="warning_slurryCloseFlowFirst"  		text="Ventil schließen vor Richtungswechsel" />
-        <text name="warning_slurryNoPipeTarget"    		text="Kein Rohranschlusspunkt in Reichweite" />
 		<text name="warning_slurryEngineOff" 			text="Zuerst den Motor starten"/>
 		<text name="warning_spsConnectHydraulics"		text="Zuerst Hydraulikschläuche anschließen" />
 		<text name="warning_spsSetToPressure"			text="Pumpe zuerst auf Druck stellen" />
@@ -66,7 +73,27 @@
         <text name="typeDesc_manurePump"                text="Zapfwellen-Güllepumpe" />
 
         <!-- Conduit pump HUD and direction -->
-        <text name="hud_spsConduitPumped"               text="Gepumpt: %d L" />
+        <text name="hud_spsPumpMixerTitle" text="Pumpmixer" />
+        <text name="hud_spsPumpStatus" text="Zustand: %s" />
+        <text name="hud_spsPumpPumping" text="PUMPT" />
+        <text name="hud_spsPumpStopped" text="gestoppt - %s" />
+        <text name="hud_spsPumpRate" text="Leistung: %d L/s   Gepumpt: %d L" />
+        <text name="hud_spsPumpThickness" text="Dicke: %d%%   Durchfluss: %d%%" />
+        <text name="hud_spsPumpValveClosed" text="Ventil geschlossen" />
+        <text name="hud_spsPumpOff" text="Pumpe aus" />
+        <text name="hud_spsPumpBladesOff" text="Rührflügel aus" />
+        <text name="hud_spsPumpNotInSlurry" text="Mixer nicht in der Gülle" />
+        <text name="hud_spsPumpNoPipe" text="kein Rohr angeschlossen" />
+        <text name="hud_spsPumpRecvValve" text="Ventil der Gegenseite geschlossen" />
+        <text name="hud_spsPumpNoTank" text="kein Ziel zum Pumpen" />
+        <text name="hud_spsPumpSameStore" text="Rohr führt in denselben Behälter" />
+        <text name="hud_spsPumpDrawOnly" text="Gegenseite nimmt keine Gülle an" />
+        <text name="hud_spsPumpSourceEmpty" text="Quelle leer" />
+        <text name="hud_spsPumpDestFull" text="Ziel voll" />
+        <text name="hud_spsPumpTooThick" text="zu dick" />
+        <text name="hud_spsPumpBlades" text="Rührflügel: %s" />
+        <text name="hud_spsPumpBladesSpinning" text="DREHEN" />
+        <text name="hud_spsPumpBladesStopped" text="aus" />
         <text name="action_spsConduitDirAtoB"           text="Fluss: Anschluss 1 → Anschluss 2" />
         <text name="action_spsConduitDirBtoA"           text="Fluss: Anschluss 2 → Anschluss 1" />
 		
@@ -74,14 +101,9 @@
         <text name="warning_spsSlurryThickening"  		text="Gülle dickt ein: %d%% — Aufrühren empfohlen" />
         <text name="warning_spsSlurryThickeningWater"  	text="Gülle dickt ein: %d%% — Wasser zugeben" />
         <text name="warning_spsSlurryTooThick"          text="Gülle zu dick — Wasser erforderlich" />
-        <text name="sps_settingsAgitation"              text="Gülle-Aufrührung" />
-        <text name="sps_settingsAgitationTooltip"       text="Aktiviert das System für Eindickung und Aufrührung der Gülle" />
+        <text name="warning_spsStoreNoAccess"           text="Kein Zugriff auf dieses Lager (gehört einem anderen Betrieb)" />
         <text name="sps_settingsRealism"                text="Gülle-Realismus" />
         <text name="sps_settingsRealismTooltip"         text="Hauptschalter für Dicke, Kruste, Verstopfungen und Längen-Durchflussabfall" />
-        <text name="sps_settingsStoreThickening"        text="    Eindickung im Lager" />
-        <text name="sps_settingsStoreThickeningTooltip" text="Gülle in Lagern dickt mit der Zeit ein (mit Realismus immer an)" />
-        <text name="sps_settingsCrust"                  text="    Krustenbewuchs" />
-        <text name="sps_settingsCrustTooltip"           text="Eine sichtbare Kruste bildet sich auf dicker Gülle (mit Realismus immer an)" />
         <text name="sps_settingsThicknessFlow"          text="    Dicke beeinflusst Durchfluss" />
         <text name="sps_settingsThicknessFlowTooltip"   text="Dicke Gülle verlangsamt Befüllen, Entleeren und Ausbringen" />
         <text name="sps_settingsBlockages"              text="    Streuverstopfungen" />
@@ -89,26 +111,16 @@
         <text name="sps_settingsLengthFalloff"          text="    Längen-Durchflussabfall" />
         <text name="sps_settingsLengthFalloffTooltip"   text="Die Durchflussrate sinkt über die Länge eines angeschlossenen Güllerohrs" />
         <text name="warning_spsBlockage"                text="Streuer verstopft — Verstopfung beseitigen, um fortzufahren" />
-        <text name="action_spsAgitatorOn"               text="Rührwerk: AUS — Zapfwelle läuft" />
-        <text name="action_spsAgitatorOff"              text="Rührwerk: EIN — Zapfwelle läuft" />
-        <text name="warning_spsAgitatorNotSubmerged"    text="Rührwerk nicht eingetaucht" />
         <text name="sps_infoThicknessTitle"             text="Güllendicke" />
 		<text name="sps_infoLiquidTitle"                text="Flüssig" />
         <text name="sps_infoDryMatterTitle"             text="Trockenmasse" />
         <text name="sps_infoCrustTitle"                 text="Kruste" />
         <text name="sps_infoTankEmpty"               text="Leer" />
+        <text name="shopItem_spsSprayerSilo"        text="Spritzmittel-Silo (4 Tanks, SPS)" />
+        <text name="function_spsSprayerSilo"        text="Vier getrennte Flüssigtanks hinter einem SPS-Rohranschluss. In den Schaltkasten treten, um den Tank zu wählen; jeder Tank hält Flüssigdünger oder Herbizid und bleibt bis zur Entleerung darauf festgelegt. Nur per Rohr: kein Befüllen durch Unterfahren." />
 		
 		<!-- Water -->
-		<text name="action_spsDeployWaterPipe"			text="R halten: Wasserrohr ausbringen" />
-		<text name="action_spsFinalizeWaterPipe"		text="R halten: Wasserrohr abschließen" />
-		<text name="action_spsCancelWaterPipe"			text="R halten: Platzierung abbrechen" />
-		<text name="action_spsRemoveWaterPipe"			text="R halten: Wasserrohr entfernen" />
-		<text name="info_spsPipeWalkToWater"			text="Zum Wasser gehen, um das Rohr zu platzieren" />
-		<text name="info_spsPipeDeployed"				text="Wasserrohr ausgebracht" />
-		<text name="info_spsPipeCancelled"				text="Rohrplatzierung abgebrochen" />
-		<text name="info_spsPipeRemoved"				text="Wasserrohr entfernt" />
 		<text name="warning_spsPipeTooShort"			text="Rohr zu kurz (mindestens 2 m)" />
-		<text name="warning_spsPipeTooLong"				text="Rohr zu lang (maximal 20 m)" />
 		
 		<!-- Sprayer -->
 		<text name="input_SPS_TOGGLE_ANIMATION_SPRAYER"	text="Abdeckung öffnen | Abdeckung schließen" />
@@ -120,10 +132,8 @@
 		<text name="action_sprayerFlowOn"				text="Fluss: LÄUFT" />
 		<text name="action_sprayerDirLoad"				text="Richtung: LADEN" />
 		<text name="action_sprayerDirUnload"			text="Richtung: ENTLADEN" />
-		<text name="sps_warningCloseCoverBeforeTurnOn" 	text="Schließen Sie die Abdeckung, bevor Sie das Gerät einschalten"/>
 		
 		<!-- SPS spreader HUD -->
-		<text name="sps_hudTitle"            			text="Streuer" />
 		<text name="sps_hudSlurry"           			text="Gülle" />
 		<text name="sps_hudCrust"            			text="Kruste" />
 		<text name="sps_hudThickness"        			text="Dicke" />
@@ -155,7 +165,7 @@
 		<text name="sps_hudSetHideHelpTooltip" 		text="Ja: Das SPS-HUD wird zusammen mit dem Hilfemenü ausgeblendet, wenn F1 gedrückt wird. Nein: Es bleibt sichtbar." />
 		<text name="sps_hudSetScale"         			text="HUD-Größe" />
 		<text name="sps_hudSetScaleTooltip"  			text="Größe des Streuer-HUDs. Kann auch mit dem Mausrad beim Verschieben des HUDs geändert werden." />
-		<text name="sps_hudPressure" 					text="Pressure"/>
+		<text name="sps_hudPressure" 					text="Druck"/>
 		<text name="input_SPS_HUD_EDIT"          		text="Streuer-HUD bearbeiten" />
 		<!-- SPS blockage clearing -->
 		<text name="sps_blockageMacerator"   			text="Zerkleinerer" />
@@ -175,7 +185,7 @@
 		<text name="sps_settingsShearBoltTooltip" 		text="Aktiviert den Zapfwellen-Scherbolzen."/>
 	
 		<!-- Agitator -->
-		<text name="action_spsAgitatorConnect" 			text="Connect PTO"/>
+		<text name="action_spsAgitatorConnect" 			text="Zapfwelle anschließen"/>
 		<text name="action_spsAgitatorDisconnect" 		text="Zapfwelle trennen"/>
 		<text name="action_spsAgitatorPtoOn"  			text="Zapfwelle einschalten"/>
 		<text name="action_spsAgitatorPtoOff" 			text="Zapfwelle ausschalten"/>
@@ -183,12 +193,28 @@
 		<!-- IBCs -->
 		<text name="sps_settingsIbcPersist" 			text="IBC bleibt im leeren Zustand formstabil."/>
 		<text name="sps_settingsIbcPersistTooltip" 		text="Ja: Entleerte IBCs bleiben auf der Karte (zurück zum Händler bringen oder neu befüllen). Nein: Sie verschwinden, sobald sie leer sind (Standardeinstellung)."/>
+		<text name="sps_settingsPhysicalPipes" 			text="Physische Rohre"/>
+		<text name="sps_settingsPhysicalPipesTooltip" 	text="Nein: originales System - Rohre an Kupplungen, Ketten, Spritzen und Wasser-/Milchleitungen verlegen und anschließen; die Kaufrohre sind im Shop ausgeblendet. Ja: nur physische Rohre - Rohre im Shop kaufen und mit den Händen tragen; alle originalen Rohr-Eingaben sind abgeschaltet. Beide Systeme laufen nie gleichzeitig."/>
+		<text name="sps_pipeModeTitle" 	text="Slurry Pipe System - Rohrsystem wählen"/>
+		<text name="sps_pipeModeQuestion" 	text="Welches Rohrsystem möchtest du in diesem Spiel verwenden?&#xA;&#xA;ORIGINAL: Rohre wie bisher an Kupplungen, Ketten, Spritzen und Wasser-/Milchleitungen verlegen und anschließen.&#xA;PHYSISCH (neu): Rohre im Shop kaufen und mit den Händen tragen; das originale Verlege-/Anschlusssystem ist abgeschaltet.&#xA;&#xA;Beide laufen nie gleichzeitig. Du kannst das später unter Einstellungen > Physische Rohre ändern."/>
+		<text name="sps_pipeModeExisting" 	text="Dieses Spiel hat bereits %s."/>
+		<text name="sps_pipeModeCounts" 	text="%d verlegte Rohrketten, %d verbundene Kupplungen, %d Spritzenleitungen, %d Wasser-/Milchleitungen"/>
+		<text name="sps_pipeModeBtnPhysical" 	text="Physische Rohre (neu)"/>
+		<text name="sps_pipeModeBtnOriginal" 	text="Originales System"/>
+		<text name="sps_pipeModeWarnTitle" 	text="WARNUNG - Wechsel zu physischen Rohren"/>
+		<text name="sps_pipeModeWarnText" 	text="Der Wechsel zu den neuen physischen Rohren ENTFERNT alle mit dem originalen System verlegten oder angeschlossenen Rohre in diesem Spiel (%s) und schaltet das originale Anschlusssystem AUS - auch mitten im Spiel. Die entfernten Rohre können nicht wiederhergestellt werden.&#xA;&#xA;Jetzt zu physischen Rohren wechseln?"/>
+		<text name="sps_pipeModeBtnSwitch" 	text="Wechseln und Rohre entfernen"/>
+		<text name="sps_pipeModeBtnKeep" 	text="Original behalten"/>
+		<text name="sps_pipeModeWarnOrigTitle" 	text="WARNUNG - Wechsel zum originalen System"/>
+		<text name="sps_pipeModeWarnOrigText" 	text="Der Wechsel zurück zum originalen System ENTFERNT alle physischen Rohre und tragbaren Andockstationen in diesem Spiel (%s) und schaltet die physischen Rohre AUS - auch mitten im Spiel. Die entfernten Rohre und Stationen können nicht wiederhergestellt werden.&#xA;&#xA;Jetzt zum originalen System wechseln?"/>
+		<text name="sps_pipeModePhysCounts" 	text="%d physische Rohre, %d angeschlossene Enden, %d auf Haltern abgelegt, %d Andockstationen"/>
+		<text name="sps_pipeModeBtnKeepPhysical" 	text="Physische Rohre behalten"/>
 		<text name="action_spsAddIbc" 					text="Halten: IBC hinzufügen" />
 
 		<!-- Separator -->
 		<text name="input_SPS_TOGGLE_SEPARATOR"		text="Separator Start/Stopp" />
 		<text name="input_SPS_SEPARATOR_TIGHTNESS"	text="Separator Schneckenspannung" />
-		<text name="action_spsSeparatorOn"			text="Separator: START" />
+		<text name="action_spsSeparatorOn"			text="Separator: EIN" />
 		<text name="action_spsSeparatorOff"			text="Separator: STOPP" />
 		<text name="action_spsSeparatorTightness"	text="Schneckenspannung: %d%%" />
 		<text name="warning_spsSepNoPipes"			text="Separator: Zulauf- und Rücklaufleitung anschließen" />
@@ -203,5 +229,95 @@
 
 		<!-- Buying station -->
 		<text name="action_spsBuyStationSwitch"		text="Kauf: %s — wechseln zu %s" />
+		<text name="action_spsTankSwitch"		text="Tank %s (%s) - wechseln zu Tank %s (%s)" />
+		<!-- Farm liquid lanes: animal water in / milk out (1.0.1.8) -->
+		<text name="sps_laneWater"						text="Wasser" />
+		<text name="sps_laneMilk"						text="Milch" />
+		<text name="action_spsWaterFlowOn"				text="Wasser: LÄUFT" />
+		<text name="action_spsWaterFlowOff"				text="Wasser: GESTOPPT" />
+		<text name="action_spsMilkFlowOn"				text="Milch: LÄUFT" />
+		<text name="action_spsMilkFlowOff"				text="Milch: GESTOPPT" />
+		<text name="warning_spsAnimalWaterOnly"			text="Nur Wasser kann zu den Tieren gepumpt werden" />
+		<text name="warning_spsAnimalWaterEmpty"		text="Tank ist leer" />
+		<text name="warning_spsMilkOnly"				text="Durch diesen Anschluss fließt nur Milch" />
+		<text name="warning_spsMilkBarnEmpty"			text="Im Stall ist keine Milch zum Abholen" />
+		<text name="warning_spsLiquidTankFull"			text="Tank ist voll" />
+		<text name="warning_spsLiquidBarnFull"			text="Tränkwasser ist voll" />
+		<text name="warning_spsLiquidDirectionFixed"	text="Die Richtung ist an diesem Anschluss festgelegt" />
+		<!-- [SPS 1.0.1.8] physical pipes: fitting valves + tanker-to-tanker transfer -->
+		<text name="action_spsFittingValveOpen"		text="Ventil öffnen" />
+		<text name="action_spsFittingValveClose"		text="Ventil schließen" />
+		<text name="warning_spsFittingValveClosed"		text="Zuerst die Ventile an beiden Anschlüssen öffnen" />
+		<text name="warning_spsCloseValveFirst"		text="Ventil schließen, bevor das Rohr abgezogen wird" />
+		<text name="sps_laneTransfer"					text="Tankwagen zu Tankwagen" />
+		<text name="warning_spsTransferOtherEmpty"		text="Der andere Tank ist leer" />
+		<text name="warning_spsTransferOtherFull"		text="Der andere Tank ist voll" />
+		<text name="warning_spsTransferType"			text="Die Tanks enthalten unterschiedliche Flüssigkeiten" />
+		<text name="warning_spsTransferPumping"		text="Der andere Tankwagen pumpt bereits" />
+		<text name="sps_laneSprayer"					text="Spritzmittel-Quelle" />
+		<text name="shopItem_spsCowBarnMedium"		text="Kuhstall mittel (SPS)" />
+		<text name="function_spsCowBarnMedium"		text="Der mittlere Rudolf-Hörmann-Kuhstall mit drei Rohranschlüssen: Gülle raus, Milch raus, Tränkwasser rein. Das Tränkwasser ist hier ein echter 35.000-l-Vorrat – die Kühe müssen per Rohr oder Anhänger versorgt werden." />
+		<!-- [SPS 1.0.1.8] bought pipe shop item -->
+		<text name="shopItem_spsHose"			text="SPS Rohr" />
+		<text name="typeDesc_spsHose"			text="Rohr" />
+		<text name="function_spsHose"			text="Eine physische Leitung. Im Shop wählen: Gülle 140 mm, Wasser oder Milch 80 mm, 4 m oder 6 m, bei Gülle dazu die Enden (Mutter/Vater, Mutter/Mutter oder Vater/Vater). Mit den Händen aufnehmen (linke Maustaste), ein Ende zu einer Kupplung tragen und mit der rechten Maustaste anschließen. Rechte Maustaste an einem angeschlossenen Ende löst es in die Hände; linke Maustaste auf eine angeschlossene Leitung lässt sie fallen. Gülleleitungen können eingefärbt werden. Nach dem Kauf fest - zum Ändern verkaufen." />
+		<text name="spsHose_slurry"			text="SPS Gülleleitung 140 mm" />
+		<text name="spsDockingStation_name"		text="SPS Andockstation" />
+		<text name="function_spsDockingStation"	text="Tragbarer Andockpfosten. Mit den Händen tragen (linke Maustaste) und abstellen, ein Rohr an die Kupplung stecken, dann den Füllarm eines Fasses in den Gummistiefel senken, um über das Rohr zu laden." />
+		<text name="typeDesc_spsDockingStation"	text="Andockstation" />
+		<text name="configuration_spsRamp" text="Rampe" />
+		<text name="spsHose_FM"				text="Slurry 140 mm - female / male" />
+		<text name="spsHose_FF"				text="Slurry 140 mm - female / female" />
+		<text name="spsHose_MM"				text="Slurry 140 mm - male / male" />
+		<text name="spsHose_WATER"			text="SPS Wasserschlauch 80 mm" />
+		<text name="spsHose_MILK"			text="SPS Milchschlauch 80 mm" />
+		<text name="spsHose_slurry_long"		text="SPS Gülleleitung 140 mm (6 m)" />
+		<text name="spsHose_WATER_long"		text="SPS Wasserschlauch 80 mm (6 m)" />
+		<text name="spsHose_MILK_long"		text="SPS Milchschlauch 80 mm (6 m)" />
+		<text name="configuration_spsPipeType"	text="Leitung" />
+		<text name="configuration_spsPipeLength"	text="Länge" />
+		<text name="configuration_spsPipeEnds"	text="Enden (Gülleleitung)" />
+		<text name="spsPipe_typeSlurry"		text="Gülleleitung 140 mm" />
+		<text name="spsPipe_typeWater"		text="Wasserschlauch 80 mm" />
+		<text name="spsPipe_typeMilk"		text="Milchschlauch 80 mm" />
+		<text name="spsPipe_length4"			text="4 m" />
+		<text name="spsPipe_length6"			text="6 m" />
+		<text name="spsColor_green"			text="Grün" />
+		<text name="spsColor_blue"			text="Blau" />
+		<text name="spsColor_brown"			text="Braun" />
+		<text name="spsColor_black"			text="Schwarz" />
+
+        <!-- [SPS 1.0.1.8] player-drawn water courses (building screen, Landscaping > SPS Water) -->
+        <text name="construction_tab_spsWater" text="SPS Wasser" />
+        <text name="shopItem_spsWaterCourseDraw" text="Wasserfläche zeichnen" />
+        <text name="function_spsWaterCourseDraw" text="Einen Ring um einen See oder Fluss zeichnen, damit SPS-Fässer dort Wasser ziehen können. Zuerst aufs Wasser klicken (setzt die Höhe), dann Marker ums Ufer setzen, zum Schließen den ersten Marker anklicken." />
+        <text name="shopItem_spsWaterCourseRemove" text="Wasserfläche entfernen" />
+        <text name="function_spsWaterCourseRemove" text="Eine zuvor gezeichnete Wasserfläche entfernen." />
+        <text name="sps_waterCourse_defaultName" text="Wasserfläche %d" />
+        <text name="sps_waterCourse_namePrompt" text="Name der Wasserfläche" />
+        <text name="sps_waterCourse_hintClickWater" text="Zuerst aufs Wasser klicken - das setzt den Wasserstand" />
+        <text name="sps_waterCourse_clickWaterFirst" text="Hier ist kein Wasser - zuerst aufs Wasser klicken" />
+        <text name="sps_waterCourse_levelSet" text="Wasserstand gesetzt - jetzt Marker ums Ufer setzen" />
+        <text name="sps_waterCourse_complete" text="Wasserfläche fertig" />
+        <text name="sps_waterCourse_cancelled" text="Wasserfläche abgebrochen" />
+        <text name="sps_waterCourse_removed" text="Wasserfläche entfernt" />
+        <text name="sps_waterCourse_removeConfirm" text="Wasserfläche '%s' entfernen?" />
+        <text name="sps_waterCourse_noneOnMap" text="Keine gezeichneten Wasserflächen auf dieser Karte" />
+        <text name="sps_waterCourse_tooFewPoints" text="Mindestens 3 Marker nötig" />
+        <text name="sps_waterCourse_tooManyPoints" text="Zu viele Marker (max. 256)" />
+        <text name="sps_waterCourse_edgeTooShort" text="Zu nah am letzten Marker" />
+        <text name="sps_waterCourse_tooSmall" text="Der Ring ist zu klein" />
+        <text name="sps_waterCourse_crossing" text="Die Linie würde den Ring kreuzen" />
+        <text name="sps_waterCourse_actionClickWater" text="Aufs Wasser klicken (Höhe)" />
+        <text name="sps_waterCourse_actionPlace" text="Marker setzen" />
+        <text name="sps_waterCourse_actionClose" text="Ring schließen" />
+        <text name="sps_waterCourse_actionRemoveLast" text="Letzten Marker entfernen" />
+        <text name="sps_waterCourse_actionRemoveLevel" text="Wasserpunkt entfernen" />
+        <text name="sps_waterCourse_actionRemove" text="Diese Wasserfläche entfernen" />
+        <text name="shopItem_spsPtoPump"		text="SPS Zapfwellen-Güllepumpe" />
+        <text name="shopItem_spsTowerMixer"		text="SPS Turmrührwerk" />
+        <text name="function_spsTowerMixer"		text="Ein zapfwellengetriebenes Rührwerk für Lagunen auf einem klappbaren Turm. Stützen absenken, Ausleger in den Behälter klappen und die Gülle über die Zapfwelle rühren; eine Leitung von der Pumpe fördert die gerührte Gülle in ein Fass." />
+        <text name="sps_hudPipeFlow"		text="Leitungsfluss" />
+        <text name="input_SPS_FREE_PIPE"		text="Festsitzende Leitung lösen" />
 	</texts>
 </l10n>

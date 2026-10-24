@@ -5,7 +5,7 @@
 -- SPSSettingsMenuExtension.lua
 -- FS25_SlurryPipeSystem
 
-print("[SPS BUILD] SPSSettingsMenuExtension 1.0.0.9.30 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSSettingsMenuExtension 1.0.0.9.30 loaded") end
 
 SPSSettingsMenuExtension = {}
 
@@ -13,6 +13,7 @@ SPSSettingsMenuExtension = {}
 -- onFrameOpen — called once to build UI elements, guarded by initDone flag
 -- ---------------------------------------------------------------------------
 function SPSSettingsMenuExtension:onFrameOpen()
+    SPSSettingsMenuExtension._page = self   -- [SPS 1.0.1.8] the frame, for callbacks that must reset a row
     if self.sps_initDone then
         return
     end
@@ -127,6 +128,16 @@ function SPSSettingsMenuExtension:onFrameOpen()
         g_i18n:getText("sps_settingsIbcPersistTooltip")
     )
 
+    -- [SPS 1.0.1.8] Pipe mode: No = original system (lay / connect / chains; physical pipes hidden in
+    -- the shop), Yes = physical pipes only (every original pipe prompt off). Admin-gated like the rest.
+    self.sps_physicalPipesElement = SPSSettingsMenuExtension:_addMultiTextOption(
+        self,
+        "onSPSPhysicalPipesChanged",
+        onOff,
+        g_i18n:getText("sps_settingsPhysicalPipes"),
+        g_i18n:getText("sps_settingsPhysicalPipesTooltip")
+    )
+
     -- Spreader HUD section — per-player, generalSettingsLayout
     local hudHeader = TextElement.new()
     hudHeader.name = "sectionHeader"
@@ -234,6 +245,9 @@ function SPSSettingsMenuExtension:_updateState(page)
     if page.sps_ibcPersistElement ~= nil then
         page.sps_ibcPersistElement:setState((mgr.ibcPersistWhenEmpty == true) and 2 or 1, false)
     end
+    if page.sps_physicalPipesElement ~= nil then
+        page.sps_physicalPipesElement:setState((mgr.physicalPipesEnabled == true) and 2 or 1, false)
+    end
 
     local hs = mgr.hudSettings or {}
     local hudOn = hs.enabled ~= false
@@ -301,6 +315,34 @@ function SPSSettingsMenuExtension:onSPSIbcPersistChanged(state)
     if g_slurryPipeManager == nil then return end
     -- requestGameplaySettings runs applyIbcPersistSetting inside the apply.
     g_slurryPipeManager:requestGameplaySettings({ ibcPersistWhenEmpty = (state == 2) })
+end
+
+function SPSSettingsMenuExtension:onSPSPhysicalPipesChanged(state)
+    local mgr = g_slurryPipeManager
+    if mgr == nil then return end
+    if state == 2 and mgr.physicalPipesEnabled ~= true and SPSPipeModeDialog ~= nil then
+        -- ORIGINAL -> PHYSICAL removes every original pipe: warn first, reset the row if declined.
+        SPSPipeModeDialog.confirmSwitchToPhysical(function(ok)
+            local page = SPSSettingsMenuExtension._page
+            if not ok and page ~= nil and page.sps_physicalPipesElement ~= nil then
+                page.sps_physicalPipesElement:setState(1, false)
+            end
+        end)
+        return
+    end
+    if state == 1 and mgr.physicalPipesEnabled == true and SPSPipeModeDialog ~= nil
+       and SPSPipeModeDialog.confirmSwitchToOriginal ~= nil then
+        -- [SPS 1.0.1.8] PHYSICAL -> ORIGINAL removes every physical pipe: warn first, reset the row if declined.
+        SPSPipeModeDialog.confirmSwitchToOriginal(function(ok)
+            local page = SPSSettingsMenuExtension._page
+            if not ok and page ~= nil and page.sps_physicalPipesElement ~= nil then
+                page.sps_physicalPipesElement:setState(2, false)
+            end
+        end)
+        return
+    end
+    -- requestGameplaySettings runs applyPhysicalPipesSetting (shop items) inside the apply.
+    mgr:requestGameplaySettings({ physicalPipesEnabled = (state == 2) })
 end
 
 -- [SPS 1.0.0.9.30] HUD callbacks are per-player: apply locally and persist to

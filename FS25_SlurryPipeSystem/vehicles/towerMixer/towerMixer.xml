@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<vehicle type="spsTowerMixer" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../shared/xml/schema/vehicle.xsd">
+    <annotation>Oscar Mods - FS25_SlurryPipeSystem</annotation>
+
+    <storeData>
+        <name>$l10n_shopItem_spsTowerMixer</name>
+        <specs>
+            <neededPower>250</neededPower>
+        </specs>
+        <functions>
+            <function>$l10n_function_spsTowerMixer</function>
+        </functions>
+        <image>vehicles/towerMixer/store_towerMixer.png</image>
+        <price>18500</price>
+        <lifetime>600</lifetime>
+        <rotation>0</rotation>
+        <brand>SPS</brand>
+        <category>slurryTools</category>
+        <shopTranslationOffset>0 0.36 0</shopTranslationOffset>   <!-- legs down (parkPose plays in the shop): foot pivots are 0.32 m below the root -->
+        <shopRotationOffset>0 0 0</shopRotationOffset>
+        <shopHeight>5.0</shopHeight>
+    </storeData>
+
+    <base>
+        <typeDesc>$l10n_typeDesc_manurePump</typeDesc>
+        <filename>vehicles/towerMixer/towerMixer.i3d</filename>
+        <size width="3.2" length="12.4" height="5.0" lengthOffset="-5.7"/>
+        <components>
+            <component centerOfMass="0 0.9 -0.1" mass="1600" solverIterationCount="10"/>
+        </components>
+        <schemaOverlay attacherJointPosition="0 0" name="IMPLEMENT"/>
+        <mapHotspot type="TOOL"/>
+    </base>
+
+    <attachable>
+        <inputAttacherJoints>
+            <inputAttacherJoint node="attacherJointImplement" jointType="implement" topReferenceNode="topReferenceNode"
+                                upperRotationOffset="0" lowerRotLimitScale="0 0 0" upperRotLimitScale="0 0 0"
+                                lowerTransLimitScale="0 0 0" upperTransLimitScale="0 0 0" allowsLowering="true">
+                <distanceToGround lower="0.0" upper="0.6"/>
+                <bottomArm categories="2 3" ballType="1"/>
+            </inputAttacherJoint>
+        </inputAttacherJoints>
+        <support animationName="parkPose" delayedOnLoad="true"/>
+    </attachable>
+
+    <configurationSets title="$l10n_configuration_design">
+        <configurationSet name="Basic mixer" isDefault="true">
+            <configuration name="design"  index="1"/>
+            <configuration name="design2" index="1"/>
+        </configurationSet>
+        <configurationSet name="Pump mixer">
+            <configuration name="design"  index="2"/>
+        </configurationSet>
+    </configurationSets>
+
+    <designConfigurations>
+        <designConfiguration name="Basic mixer" price="0">
+            <objectChange node="basicMixer"             visibilityActive="true"  visibilityInactive="false"/>
+            <objectChange node="pumpMixer"              visibilityActive="false" visibilityInactive="true"/>
+            <objectChange node="pumpMixerTransportPipe" visibilityActive="false" visibilityInactive="true"/>
+            <objectChange node="pumpMixerLadder03Parts" visibilityActive="false" visibilityInactive="true"/>
+        </designConfiguration>
+        <designConfiguration name="Pump mixer" price="4500"/>
+    </designConfigurations>
+
+    <design2Configurations title="Pipe extension">
+        <design2Configuration name="$l10n_configuration_valueNo" price="0"/>
+        <design2Configuration name="$l10n_configuration_valueYes" price="250">
+            <objectChange node="pipeExtensionRotNode" visibilityActive="true" visibilityInactive="false"/>
+        </design2Configuration>
+    </design2Configurations>
+
+    <wheels>
+    </wheels>
+
+    <connectionHoses>
+        <hose inputAttacherJointIndices="1" type="hydraulicIn"  node="hydraulicIn01"  adapterNode="hydraulicIn01_detached"  length="1.4" diameter="0.016" straighteningFactor="0.5">
+            <objectChange node="hydraulicIn01_detached" visibilityActive="false" visibilityInactive="true"/>
+        </hose>
+        <hose inputAttacherJointIndices="1" type="hydraulicOut" node="hydraulicOut01" adapterNode="hydraulicOut01_detached" length="1.4" diameter="0.016" straighteningFactor="0.5">
+            <objectChange node="hydraulicOut01_detached" visibilityActive="false" visibilityInactive="true"/>
+        </hose>
+    </connectionHoses>
+
+    <foldable>
+        <foldingConfigurations>
+            <foldingConfiguration>
+                <foldingParts startAnimTime="1" startMoveDirection="1" allowUnfoldingByAI="false" detachingMinLimit="1">
+                    <foldingPart animationName="foldTower" speedScale="0.5"/>
+                </foldingParts>
+            </foldingConfiguration>
+        </foldingConfigurations>
+    </foldable>
+
+    <animations>
+        <animation name="foldTower">
+            <part node="dummyPipe01"       startTime="0.00" endTime="0.01" visibility="true"/>
+            <part node="dummyPipe01"       startTime="0.01" endTime="0.02" visibility="false"/>
+            <part node="dummyPipe01Ends"   startTime="0.00" endTime="0.01" visibility="true"/>
+            <part node="dummyPipe01Ends"   startTime="0.01" endTime="0.02" visibility="false"/>
+            <part node="dummyPipeBrackets" startTime="0.00" endTime="0.01" visibility="false"/>
+            <part node="dummyPipeBrackets" startTime="0.01" endTime="0.02" visibility="true"/>
+            <part node="dummyPipe"         startTime="0.00" endTime="0.01" visibility="false"/>
+            <part node="dummyPipe"         startTime="0.01" endTime="0.02" visibility="true"/>
+            <part node="pipeCap01"         startTime="0.00" endTime="0.01" visibility="false"/>
+            <part node="pipeCap01"         startTime="0.01" endTime="0.02" visibility="true"/>
+            <part node="pipeCap02"         startTime="0.00" endTime="0.01" visibility="false"/>
+            <part node="pipeCap02"         startTime="0.01" endTime="0.02" visibility="true"/>
+            <part node="pipeExtensionRotNode" startTime="0.02" endTime="1.5" startRot="0 0 0" endRot="0 0 135"/>
+            <part node="towerExten"   startTime="0.0" endTime="2.0" startTrans="0 0.347136 0" endTrans="0 0.347136 0"/>
+            <part node="towerExtenPipesLower01" startTime="0.0" endTime="2.0" startTrans="0 -2.61084 0" endTrans="0 -2.61084 0"/>
+            <part node="ladder01"     startTime="0.0" endTime="1.0" startRot="0 0 0"    endRot="50 0 0"/>
+            <part node="ladder02"     startTime="1.0" endTime="4.0" startRot="0 0 0"    endRot="-90 0 0"/>
+            <part node="ladder03"     startTime="1.0" endTime="4.0" startRot="0 0 0"    endRot="-90 0 0"/>
+            <part node="towerRotator" startTime="4.0" endTime="6.0" startRot="0 0 0"    endRot="0 180 0"/>
+            <part node="ladder01"     startTime="6.0" endTime="7.0" startRot="50 0 0"   endRot="0 0 0"/>
+        </animation>
+
+        <animation name="parkPose">
+            <part node="towerExten"    startTime="0.0"  endTime="2.0"  startTrans="0 0.347136 0" endTrans="0 0.347136 0"/>
+            <part node="towerExtenPipesLower01" startTime="0.0" endTime="2.0" startTrans="0 -2.61084 0" endTrans="0 -2.61084 0"/>
+            <part node="ladder01"      startTime="0.0"  endTime="2.0"  startRot="0 0 0"   endRot="50 0 0"/>
+            <part node="towerRotator"  startTime="2.0"  endTime="6.0"  startRot="0 180 0" endRot="0 0 0"/>
+            <part node="ladder02"      startTime="6.0"  endTime="10.0" startRot="-90 0 0" endRot="-40 0 0"/>
+            <part node="ladder03"      startTime="6.0"  endTime="10.0" startRot="-90 0 0" endRot="0 0 0"/>
+            <part node="ladder01"      startTime="10.0" endTime="12.0" startRot="50 0 0"  endRot="0 0 0"/>
+            <part node="leftLegArm01"  startTime="6.0"  endTime="12.0" startRot="0 0 -92" endRot="0 0 0"/>
+            <part node="rightLegArm01" startTime="6.0"  endTime="12.0" startRot="0 0 92"  endRot="0 0 0"/>
+        </animation>
+    </animations>
+
+    <cylindered>
+        <movingTools>
+            <controlGroups>
+                <controlGroup name="$l10n_controlGroup_supportArm"/>
+                <controlGroup name="$l10n_controlGroup_crane"/>
+            </controlGroups>
+            <!-- legs (group 1, one axis each) -->
+            <movingTool node="leftLegArm01" playSound="true">
+                <controls groupIndex="1" axis="AXIS_CRANE_ARM2" invertAxis="false" mouseSpeedFactor="0.3" iconName="CRANE_ARM1_ROTATE_X"/>
+                <rotation rotSpeed="20" rotAcceleration="60" rotMax="0" rotMin="-92" rotationAxis="3"/>
+                <dependentPart node="leftLegHydrCylin"/>
+                <dependentPart node="leftFootPivot"/>
+            </movingTool>
+            <movingTool node="rightLegArm01" playSound="true">
+                <controls groupIndex="1" axis="AXIS_CRANE_ARM" invertAxis="true" mouseSpeedFactor="0.3" iconName="CRANE_ARM1_ROTATE_X"/>
+                <rotation rotSpeed="20" rotAcceleration="60" rotMax="92" rotMin="0" rotationAxis="3"/>
+                <dependentPart node="rightLegHydrCylin"/>
+                <dependentPart node="rightFootPivot"/>
+            </movingTool>
+            <!-- tower extension -->
+            <movingTool node="towerExten" foldMinLimit="0" foldMaxLimit="0" playSound="true">
+                <controls groupIndex="2" axis="AXIS_CRANE_ARM4" invertAxis="false" mouseSpeedFactor="0.3" iconName="CRANE_ARM1_TRANSLATE"/>
+                <translation transSpeed="0.4" transAcceleration="1.0" transMax="3.0" transMin="0.347136" translationAxis="2"/>
+                <!-- lower pipe joint follows: 1.5 m over the extension's 2.653 m (William 2026-10-22) -->
+                <dependentMovingTool node="towerExtenPipesLower01" speedScale="1" requiresMovement="true"/>
+            </movingTool>
+            <movingTool node="towerExtenPipesLower01" foldMinLimit="0" foldMaxLimit="0">
+                <translation transSpeed="0.22616" transAcceleration="0.5654" transMax="-1.11084" transMin="-2.61084" translationAxis="2"/>
+            </movingTool>
+            <!-- rotator -->
+            <movingTool node="towerRotator" foldMinLimit="0" foldMaxLimit="0" playSound="true">
+                <controls groupIndex="2" axis="AXIS_CRANE_TOOL" invertAxis="false" mouseSpeedFactor="0.3" iconName="CRANE_ARM1_ROTATE_Y"/>
+                <rotation rotSpeed="15" rotAcceleration="40" rotMax="200" rotMin="-200" rotationAxis="2"/>
+            </movingTool>
+            <!-- ladders -->
+            <movingTool node="ladder01" foldMinLimit="0" foldMaxLimit="0" playSound="true">
+                <controls groupIndex="2" axis="AXIS_CRANE_ARM" invertAxis="false" mouseSpeedFactor="0.3" iconName="CRANE_ARM1_ROTATE_X"/>
+                <rotation rotSpeed="12" rotAcceleration="40" rotMax="50" rotMin="-10" rotationAxis="1"/>
+                <dependentPart node="ladder01HydrCylin01"/>
+            </movingTool>
+            <movingTool node="ladder02" foldMinLimit="0" foldMaxLimit="0" playSound="true">
+                <controls groupIndex="2" axis="AXIS_CRANE_ARM2" invertAxis="false" mouseSpeedFactor="0.3" iconName="CRANE_ARM2_ROTATE_X"/>
+                <rotation rotSpeed="12" rotAcceleration="40" rotMax="0" rotMin="-45" rotationAxis="1"/>
+                <dependentPart node="ladder01Brace01Pivot"/>
+            </movingTool>
+            <movingTool node="ladder03" foldMinLimit="0" foldMaxLimit="0" playSound="true">
+                <controls groupIndex="2" axis="AXIS_CRANE_ARM3" invertAxis="false" mouseSpeedFactor="0.3" iconName="CRANE_ARM2_ROTATE_X"/>
+                <rotation rotSpeed="12" rotAcceleration="40" rotMax="0" rotMin="-45" rotationAxis="1"/>
+                <dependentPart node="ladder03HydrCylin"/>
+            </movingTool>
+        </movingTools>
+
+        <movingParts>
+            <movingPart node="leftLegHydrCylin" referencePoint="legLeftHydrPunchRefNode" referenceFrame="root" isActiveDirty="true" maxUpdateDistance="50">
+                <translatingPart node="leftLegHydrPunch"/>
+            </movingPart>
+            <movingPart node="rightLegHydrCylin" referencePoint="legRightHydrPunchRefNode" referenceFrame="root" isActiveDirty="true" maxUpdateDistance="50">
+                <translatingPart node="rightLegHydrPunch"/>
+            </movingPart>
+            <movingPart node="leftFootPivot"  referenceFrame="footRefFrame" limitedAxis="3" minRot="-20" maxRot="45" alignToWorldY="true" isActiveDirty="true" maxUpdateDistance="50"/>
+            <movingPart node="rightFootPivot" referenceFrame="footRefFrame" limitedAxis="3" minRot="-45" maxRot="20" alignToWorldY="true" isActiveDirty="true" maxUpdateDistance="50"/>
+            <!-- ladder 1 cylinder (on the rotator) -->
+            <movingPart node="ladder01HydrCylin01" referencePoint="ladder01HydrPunch01RefNode" referenceFrame="towerRotator" isActiveDirty="true" maxUpdateDistance="50">
+                <translatingPart node="ladder01HydrPunch01"/>
+            </movingPart>
+            <!-- ladder 2 linkage -->
+            <movingPart node="ladder01Brace01Pivot" referenceFrame="ladder02BraceDirFrame" isActiveDirty="true" maxUpdateDistance="50">
+                <dependentPart node="ladder01Brace02Pivot"/>
+                <dependentPart node="ladder01HydrCylin02"/>
+            </movingPart>
+            <movingPart node="ladder01Brace02Pivot" referencePoint="ladder01Brace02RefNode" referenceFrame="ladder01" isActiveDirty="true" maxUpdateDistance="50"/>
+            <movingPart node="ladder01HydrCylin02" referencePoint="ladder01HydrPunch02RefNode" referenceFrame="ladder01" isActiveDirty="true" maxUpdateDistance="50">
+                <translatingPart node="ladder01HydrPunch02"/>
+            </movingPart>
+            <!-- ladder 3 cylinder (on ladder02) -->
+            <movingPart node="ladder03HydrCylin" referencePoint="ladder03HydrPunchRefNode" referenceFrame="ladder02" isActiveDirty="true" maxUpdateDistance="50">
+                <translatingPart node="ladder03HydrPunch"/>
+            </movingPart>
+        </movingParts>
+
+        <sounds>
+            <hydraulic template="hydraulicOpen02" linkNode="towerRotator"/>
+        </sounds>
+
+        <dashboards>
+            <dashboard displayType="ROT" valueType="movingTool" node="hydrLever10" rotAxis="1" minRot="-15" maxRot="15"  axis="AXIS_CRANE_ARM2|leftLegArm01" doInterpolation="true" interpolationSpeed="0.02"/>
+            <dashboard displayType="ROT" valueType="movingTool" node="hydrLever01" rotAxis="1" minRot="15"  maxRot="-15" axis="AXIS_CRANE_ARM|rightLegArm01" doInterpolation="true" interpolationSpeed="0.02"/>
+            <dashboard displayType="ROT" valueType="movingTool" node="hydrLever02" rotAxis="1" minRot="-15" maxRot="15"  axis="AXIS_CRANE_ARM4|towerExten"  doInterpolation="true" interpolationSpeed="0.02"/>
+            <dashboard displayType="ROT" valueType="movingTool" node="hydrLever03" rotAxis="1" minRot="-15" maxRot="15"  axis="AXIS_CRANE_TOOL|towerRotator"  doInterpolation="true" interpolationSpeed="0.02"/>
+            <dashboard displayType="ROT" valueType="movingTool" node="hydrLever04" rotAxis="1" minRot="-15" maxRot="15"  axis="AXIS_CRANE_ARM|ladder01"   doInterpolation="true" interpolationSpeed="0.02"/>
+            <dashboard displayType="ROT" valueType="movingTool" node="hydrLever05" rotAxis="1" minRot="-15" maxRot="15"  axis="AXIS_CRANE_ARM2|ladder02"  doInterpolation="true" interpolationSpeed="0.02"/>
+            <dashboard displayType="ROT" valueType="movingTool" node="hydrLever06" rotAxis="1" minRot="-15" maxRot="15"  axis="AXIS_CRANE_ARM3|ladder03"  doInterpolation="true" interpolationSpeed="0.02"/>
+        </dashboards>
+    </cylindered>
+
+    <!-- blades spin while the tool is switched on (hydraulic drive, no PTO needed) -->
+    <turnOnVehicle turnOffIfNotAllowed="true">
+        <animationNodes>
+            <animationNode node="slurryMixerBladeRotNode" rotSpeed="5000" rotAxis="3" turnOnFadeTime="2" turnOffFadeTime="6"/>
+        </animationNodes>
+        <!-- lever 07 = blade drive: forward (15 deg) while the blades run, centred when off -->
+        <dashboards>
+            <dashboard displayType="ROT" valueType="turnedOn" node="hydrLever07" rotAxis="1" minRot="0" maxRot="15" doInterpolation="true" interpolationSpeed="0.01"/>
+        </dashboards>
+    </turnOnVehicle>
+
+    <enterable isTabbable="false" canBeEnteredFromMenu="false">
+        <enterReferenceNode node="exitPoint" interactionRadius="1.5"/>
+        <exitPoint node="exitPoint"/>
+        <cameras>
+            <camera node="outdoorCamera1" rotatable="true" rotateNode="outdoorCameraTarget" limit="true" useWorldXZRotation="true" rotMinX="-1.4" rotMaxX="1" transMin="4" transMax="40" translation="0 0 9" rotation="-20 0 0" positionSmoothingParameter="0.05">
+                <raycastNode node="cameraRaycastNode1"/>
+                <raycastNode node="cameraRaycastNode2"/>
+                <raycastNode node="cameraRaycastNode3"/>
+            </camera>
+            <camera node="indoorCamera1" rotatable="true" limit="true" rotMinX="-1.1" rotMaxX="1.1" transMin="0" transMax="0" useWorldXZRotation="false" allowHeadTracking="true" isInside="false"/>
+        </cameras>
+        <characterNode node="playerSkin" cameraMinDistance="0.5">
+            <target ikChain="rightFoot" targetNode="playerRightFootTarget"/>
+            <target ikChain="leftFoot"  targetNode="playerLeftFootTarget"/>
+            <target ikChain="rightArm"  targetNode="playerRightHandTarget" poseId="narrowFingers"/>
+            <target ikChain="leftArm"   targetNode="playerLeftHandTarget"  poseId="narrowFingers"/>
+        </characterNode>
+        <characterTargetNodeModifier node="playerRightHandTarget" transitionTime="0.15" transitionIdleDelay="0.5">
+            <state node="playerRightHandTarget01" referenceNode="hydrLever01" referenceNodeMovement="true"/>
+            <state node="playerRightHandTarget02" referenceNode="hydrLever02" referenceNodeMovement="true"/>
+            <state node="playerRightHandTarget03" referenceNode="hydrLever03" referenceNodeMovement="true"/>
+            <state node="playerRightHandTarget04" referenceNode="hydrLever04" referenceNodeMovement="true"/>
+            <state node="playerRightHandTarget05" referenceNode="hydrLever05" referenceNodeMovement="true"/>
+        </characterTargetNodeModifier>
+        <characterTargetNodeModifier node="playerLeftHandTarget" transitionTime="0.15" transitionIdleDelay="0.5">
+            <state node="playerLeftHandTarget01" referenceNode="hydrLever06" referenceNodeMovement="true"/>
+            <state node="playerLeftHandTarget02" referenceNode="hydrLever07" referenceNodeMovement="true"/>
+            <state node="playerLeftHandTarget03" referenceNode="hydrLever08" referenceNodeMovement="true"/>
+            <state node="playerLeftHandTarget04" referenceNode="hydrLever09" referenceNodeMovement="true"/>
+            <state node="playerLeftHandTarget05" referenceNode="hydrLever10" referenceNodeMovement="true"/>
+        </characterTargetNodeModifier>
+    </enterable>
+
+    <ai>
+        <collisionTrigger useSize="true"/>
+        <needsLowering value="false"/>
+        <agentAttachment useSize="true"/>
+    </ai>
+
+    <wearable wearDuration="480" workMultiplier="5" fieldMultiplier="2"/>
+    <washable dirtDuration="90" washDuration="1" workMultiplier="4" fieldMultiplier="2"/>
+
+    <slurryPipeSystem agitatorOnly="true">
+        <agitator tipNode="SPS_agitatorTip" crustMix="1.0" requiresTurnedOn="true"/>
+        <pumpMixer enabled="true"/>
+        <flow litersPerSecond="800"/>
+        <pipeCouplings>
+            <pipeCoupling id="1" mountNodeName="SPS_pipeCoupler01" valveType="HYDRAULIC" maxPipeLength="4.0" connector="female"
+                          configType="design" cylinderedConfigIndex="1" configType2="design2" configIndex2="0"/>
+            <pipeCoupling id="2" mountNodeName="SPS_pipeCoupler02" valveType="HYDRAULIC" maxPipeLength="4.0" connector="female"
+                          configType="design2" cylinderedConfigIndex="1"/>
+        </pipeCouplings>
+    </slurryPipeSystem>
+
+    <i3dMappings>
+        <i3dMapping id="tower_main_component1"        node="0>"/>
+        <i3dMapping id="attachable"                   node="0>0"/>
+        <i3dMapping id="attacherJointImplement"       node="0>0|0"/>
+        <i3dMapping id="topReferenceNode"             node="0>0|1"/>
+        <i3dMapping id="connectionHoses"              node="0>0|2"/>
+        <i3dMapping id="hydraulicIn01"                node="0>0|2|0"/>
+        <i3dMapping id="hydraulicIn01_detached"       node="0>0|2|0|0"/>
+        <i3dMapping id="hydraulicOut01"               node="0>0|2|1"/>
+        <i3dMapping id="hydraulicOut01_detached"      node="0>0|2|1|0"/>
+        <i3dMapping id="exitPoint"                    node="0>1"/>
+        <i3dMapping id="dashboards"                   node="0>2"/>
+        <i3dMapping id="slurryMixer"                  node="0>3"/>
+        <i3dMapping id="config"                       node="0>3|0"/>
+        <i3dMapping id="basicMixer"                   node="0>3|0|0"/>
+        <i3dMapping id="pumpMixer"                    node="0>3|0|1"/>
+        <i3dMapping id="frameBraceExtra"              node="0>3|0|1|0"/>
+        <i3dMapping id="coupler"                      node="0>3|0|1|0|2"/>
+        <i3dMapping id="dummyPipe01"                  node="0>3|0|1|0|3"/>
+        <i3dMapping id="dummyPipe01Ends"              node="0>3|0|1|0|3|0"/>
+        <i3dMapping id="dummyPipeBrackets"            node="0>4|4|0|0|10|0"/>
+        <i3dMapping id="dummyPipe"                    node="0>4|4|0|0|10|0|0"/>
+        <i3dMapping id="root"                         node="0>4"/>
+        <i3dMapping id="leftLegArm01"                 node="0>4|0"/>
+        <i3dMapping id="leftLegArm02"                 node="0>4|0|0|0|0"/>
+        <i3dMapping id="legLeftHydrPunchRefNode"      node="0>4|0|1"/>
+        <i3dMapping id="leftLegHydrCylin"             node="0>4|1"/>
+        <i3dMapping id="leftLegHydrPunch"             node="0>4|1|0"/>
+        <i3dMapping id="leftLegHydrPipes02"           node="0>4|1|1"/>
+        <i3dMapping id="rightLegArm01"                node="0>4|2"/>
+        <i3dMapping id="rightLegArm02"                node="0>4|2|0|0|0"/>
+        <i3dMapping id="legRightHydrPunchRefNode"     node="0>4|2|1"/>
+        <i3dMapping id="rightLegHydrCylin"            node="0>4|3"/>
+        <i3dMapping id="rightLegHydrPunch"            node="0>4|3|0"/>
+        <i3dMapping id="rightLegHydrPipes02"          node="0>4|3|1"/>
+        <i3dMapping id="leftLegHydrPipes01"           node="0>4|5"/>
+        <i3dMapping id="rightLegHydrPipes01"          node="0>4|6"/>
+        <i3dMapping id="rootCoupler"                  node="0>4|7"/>
+        <i3dMapping id="ladder01JointPipe01"          node="0>4|4|0|7"/>
+        <i3dMapping id="towerExten"                   node="0>4|4"/>
+        <i3dMapping id="towerRotator"                 node="0>4|4|0"/>
+        <i3dMapping id="towerExtenPipesUpper02"       node="0>4|4|1"/>
+        <i3dMapping id="towerExtenPipesUpper01"       node="0>4|8"/>
+        <i3dMapping id="towerExtenPipesLower01"       node="0>4|8|0"/>
+        <i3dMapping id="towerExtenPipesLower01Radius" node="0>4|8|0|0"/>
+        <i3dMapping id="towerExtenPipesLower02"       node="0>4|8|0|0|0"/>
+        <i3dMapping id="ladder01"                     node="0>4|4|0|0"/>
+        <i3dMapping id="ladder01Brace01"              node="0>4|4|0|0|1|0"/>
+        <i3dMapping id="ladder01Brace02"              node="0>4|4|0|0|1|0|0|0"/>
+        <i3dMapping id="ladder01HydrPunch02RefNode"   node="0>4|4|0|0|1|0|1"/>
+        <i3dMapping id="ladder01HydrCylin02"          node="0>4|4|0|0|2"/>
+        <i3dMapping id="ladder01HydrPunch02"          node="0>4|4|0|0|2|0"/>
+        <i3dMapping id="ladder01HydrCylin02Pipes02"   node="0>4|4|0|0|2|1"/>
+        <i3dMapping id="frameBracePipe02"             node="0>4|4|0|0|3"/>
+        <i3dMapping id="frameBracePipe03"             node="0>4|4|0|0|4"/>
+        <i3dMapping id="ladder01HydrPunch01RefNode"   node="0>4|4|0|0|5"/>
+        <i3dMapping id="ladder01HydrCylin02Pipes01"   node="0>4|4|0|0|6"/>
+        <i3dMapping id="ladder01JointPipe02"          node="0>4|4|0|0|7"/>
+        <i3dMapping id="ladder01PipeBend01"           node="0>4|4|0|0|8"/>
+        <i3dMapping id="hydrLeverRubberLower"         node="0>4|4|0|1"/>
+        <i3dMapping id="hydrLever01"                  node="0>4|4|0|1|0"/>
+        <i3dMapping id="hydrLever02"                  node="0>4|4|0|1|1"/>
+        <i3dMapping id="hydrLever03"                  node="0>4|4|0|1|2"/>
+        <i3dMapping id="hydrLever04"                  node="0>4|4|0|1|3"/>
+        <i3dMapping id="hydrLever05"                  node="0>4|4|0|1|4"/>
+        <i3dMapping id="hydrLever06"                  node="0>4|4|0|1|5"/>
+        <i3dMapping id="hydrLever07"                  node="0>4|4|0|1|6"/>
+        <i3dMapping id="hydrLever08"                  node="0>4|4|0|1|7"/>
+        <i3dMapping id="hydrLever09"                  node="0>4|4|0|1|8"/>
+        <i3dMapping id="hydrLever10"                  node="0>4|4|0|1|9"/>
+        <i3dMapping id="ladder01HydrCylin01"          node="0>4|4|0|2"/>
+        <i3dMapping id="ladder01HydrPunch01"          node="0>4|4|0|2|0"/>
+        <i3dMapping id="ladder01HydrCylin01Pipes02"   node="0>4|4|0|2|1"/>
+        <i3dMapping id="frameBracePipe01"             node="0>4|4|0|3"/>
+        <i3dMapping id="ladder01HydrCylin01Pipes01"   node="0>4|4|0|4"/>
+        <i3dMapping id="cameras"                      node="0>4|4|0|5"/>
+        <i3dMapping id="outdoorCameraTarget"          node="0>4|4|0|5|0"/>
+        <i3dMapping id="outdoorCamera1"               node="0>4|4|0|5|0|0"/>
+        <i3dMapping id="indoorCamera1"                node="0>4|4|0|5|1"/>
+        <i3dMapping id="cameraRaycastNode1"           node="0>4|4|0|5|2"/>
+        <i3dMapping id="cameraRaycastNode2"           node="0>4|4|0|5|3"/>
+        <i3dMapping id="cameraRaycastNode3"           node="0>4|4|0|5|4"/>
+        <i3dMapping id="ladder02"                     node="0>4|4|0|0|0"/>
+        <i3dMapping id="ladder03"                     node="0>4|4|0|0|0|0"/>
+        <i3dMapping id="ladder01PipeBend03"           node="0>4|4|0|0|0|0|0"/>
+        <i3dMapping id="slurryMixerBladeRotNode"      node="0>4|4|0|0|0|0|1"/>
+        <i3dMapping id="frameBracePipe04"             node="0>4|4|0|0|0|0|2"/>
+        <i3dMapping id="ladder03HydrPunchRefNode"     node="0>4|4|0|0|0|0|3"/>
+        <i3dMapping id="ladder03HydrCylin"            node="0>4|4|0|0|0|1"/>
+        <i3dMapping id="ladder03HydrPunch"            node="0>4|4|0|0|0|1|0"/>
+        <i3dMapping id="ladder03HydrCylin01Pipes02"   node="0>4|4|0|0|0|1|1"/>
+        <i3dMapping id="ladder01Brace02RefNode"       node="0>4|4|0|0|0|2"/>
+        <i3dMapping id="ladder03HydrCylin01Pipes01"   node="0>4|4|0|0|0|3"/>
+        <i3dMapping id="ladder01PipeBend02"           node="0>4|4|0|0|0|4"/>
+        <i3dMapping id="ladder01PipeBend04"           node="0>4|4|0|0|0|5"/>
+        <i3dMapping id="skinnedMesh"                  node="0>5"/>
+        <i3dMapping id="leverRubberBoots"             node="0>5|0"/>
+        <i3dMapping id="leftFootPivot"               node="0>4|0|0|0"/>
+        <i3dMapping id="rightFootPivot"              node="0>4|2|0|0"/>
+        <i3dMapping id="footRefFrame"                node="0>4|9"/>
+        <i3dMapping id="ladder01Brace01Pivot"        node="0>4|4|0|0|1"/>
+        <i3dMapping id="ladder01Brace02Pivot"        node="0>4|4|0|0|1|0|0"/>
+        <i3dMapping id="ladder01LinkRefFrame"        node="0>4|4|0|0|11"/>
+        <i3dMapping id="ladder02BraceDirFrame"       node="0>4|4|0|0|0|6"/>
+        <i3dMapping id="pumpMixerTransportPipe"      node="0>4|4|0|0|10"/>
+        <i3dMapping id="leftFootFrame"               node="0>4|0|0"/>
+        <i3dMapping id="rightFootFrame"              node="0>4|2|0"/>
+        <i3dMapping id="playerSkin"                  node="0>4|4|0|8"/>
+        <i3dMapping id="playerLeftFootTarget"        node="0>4|4|0|9"/>
+        <i3dMapping id="playerRightFootTarget"       node="0>4|4|0|10"/>
+        <i3dMapping id="playerLeftHandTarget"        node="0>4|4|0|1|7|1"/>
+        <i3dMapping id="playerRightHandTarget"       node="0>4|4|0|1|2|1"/>
+        <i3dMapping id="pipeCap01"                   node="0>4|4|0|0|10|1"/>
+        <i3dMapping id="pipeCap02"                   node="0>4|4|0|0|0|0|6|0"/>
+        <i3dMapping id="pumpMixerLadder03Parts"      node="0>4|4|0|0|0|0|6"/>
+        <i3dMapping id="pipeExtensionRotNode"        node="0>3|0|1|1"/>
+        <i3dMapping id="pipeExtension"               node="0>3|0|1|1|0"/>
+        <i3dMapping id="playerRightHandTarget01"     node="0>4|4|0|1|0|0"/>
+        <i3dMapping id="playerRightHandTarget02"     node="0>4|4|0|1|1|0"/>
+        <i3dMapping id="playerRightHandTarget03"     node="0>4|4|0|1|2|0"/>
+        <i3dMapping id="playerRightHandTarget04"     node="0>4|4|0|1|3|0"/>
+        <i3dMapping id="playerRightHandTarget05"     node="0>4|4|0|1|4|0"/>
+        <i3dMapping id="playerLeftHandTarget01"      node="0>4|4|0|1|5|0"/>
+        <i3dMapping id="playerLeftHandTarget02"      node="0>4|4|0|1|6|0"/>
+        <i3dMapping id="playerLeftHandTarget03"      node="0>4|4|0|1|7|0"/>
+        <i3dMapping id="playerLeftHandTarget04"      node="0>4|4|0|1|8|0"/>
+        <i3dMapping id="playerLeftHandTarget05"      node="0>4|4|0|1|9|0"/>
+    </i3dMappings>
+</vehicle>

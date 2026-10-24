@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Pressure 1.0.0.9.5 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSM_Pressure 1.0.0.9.5 loaded") end
 
 
 -- [SPS 1.0.0.9.5] Fert/herb sprayer exemption, decided by SPS's own registration

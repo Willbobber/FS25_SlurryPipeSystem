@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="SPS_nodeTree_Station_Phyto_Silo.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
+  </Asset>
+
+  <Files>
+    <File fileId="4" filename="$data/shaders/vehicleShader.xml"/>
+    <File fileId="2" filename="$data/shared/default_normal.png"/>
+    <File fileId="3" filename="$data/shared/default_vmask.dds"/>
+    <File fileId="6" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="7" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_diffuse.png"/>
+    <File fileId="5" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_specular.png"/>
+    <File fileId="1" filename="$data/shared/white_diffuse.dds"/>
+  </Files>
+
+
+  <Materials>
+    <Material name="black_plasticPainted_mat" materialId="96" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="5"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="7"/>
+      <CustomParameter name="colorScale" value="0.006 0.006 0.006"/>
+    </Material>
+    <Material name="red_plasticPainted_mat" materialId="97" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="5"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="7"/>
+      <CustomParameter name="colorScale" value="0.359 0.033 0.035"/>
+    </Material>
+    <Material name="UnnamedMaterial" materialId="17" diffuseColor="1 1 1 1">
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="SPS_nodeTree_Station_Phyto_Silo.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="SPS_Station_Phyto_Silo" nodeId="101">
+      <TransformGroup name="sprayerPipeCouplers" nodeId="102">
+        <TransformGroup name="silo" nodeId="103">
+          <TransformGroup name="SPS_sprayerPipeCoupler01" translation="4.23383 0.680177 3.71285" nodeId="104">
+            <TransformGroup name="SPS_sprayerPipeCoupler01Arcs" nodeId="105">
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="-1.5 0 3.5" nodeId="106"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="1.5 0 3.5" nodeId="107"/>
+            </TransformGroup>
+            <Shape name="sprayerConnector" shapeId="1" clipDistance="150" nodeId="108" castsShadows="true" receiveShadows="true" materialIds="96">
+              <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="109" castsShadows="true" receiveShadows="true" materialIds="97"/>
+            </Shape>
+            <TransformGroup name="inNode" translation="0 0 0.2055" rotation="0 180 0" nodeId="110"/>
+            <TransformGroup name="outNode" translation="0 0 0.2055" nodeId="111"/>
+          </TransformGroup>
+          <Shape name="SPS_playerTrigger" translation="5.83532 -1.78814e-07 4.30691" shapeId="3" static="true" trigger="true" collisionFilterGroup="0x20000000" collisionFilterMask="0x100000" nodeId="206" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="17">
+            <TransformGroup name="SPS_tankSwitchMarker" translation="0 1.78814e-07 0.741501" clipDistance="150" nodeId="207"/>
+          </Shape>
+        </TransformGroup>
+      </TransformGroup>
+    </TransformGroup>
+  </Scene>
+
+</i3D>

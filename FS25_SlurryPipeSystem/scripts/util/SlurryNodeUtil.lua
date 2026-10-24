@@ -173,6 +173,15 @@ function SlurryNodeUtil.getSurfaceWorldY(sourceEntry, worldX, worldZ)
         -- Engine manages the fill plane node Y position directly
         local _, surfaceWorldY, _ = getWorldTranslation(fillPlaneNode)
         return surfaceWorldY
+
+    elseif sourceEntry.type == (SPS_SOURCE_TYPE_BUYING_STATION or "BUYING_STATION") then
+        -- [SPS 1.0.1.8] Buying station with an authored <fillPlane>: an infinite paid
+        -- pool, so the surface never moves. Its height is the plane node's world Y as
+        -- placed. No plane authored (pipe-only station) = no surface = unreachable by arm.
+        local fillPlaneNode = sourceEntry.fillPlaneNode
+        if fillPlaneNode == nil or fillPlaneNode == 0 or not entityExists(fillPlaneNode) then return -math.huge end
+        local _, surfaceWorldY, _ = getWorldTranslation(fillPlaneNode)
+        return surfaceWorldY
     end
 
     return -math.huge

@@ -1,0 +1,695 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<vehicle type="spsHose" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../shared/xml/schema/vehicle.xsd">
+    <!-- [SPS 1.0.1.8] ONE shop item for every physical pipe (built by tools/build_pipes_single.py - do not hand-edit the
+         component / mapping blocks). The shop shows three selectors (spsHose spsPipeType / spsPipeLength / spsPipeEnds,
+         registered by SPSHoseItem); SPSHoseItem:onPreLoad turns them into the hidden component configuration below. -->
+
+    <storeData>
+        <name>$l10n_shopItem_spsHose</name>
+        <functions>
+            <function>$l10n_function_spsHose</function>
+        </functions>
+        <image>vehicles/hoses/icon_slurryPipe.png</image>
+        <price>250</price>
+        <lifetime>600</lifetime>
+        <rotation>0</rotation>
+        <brand>SPS</brand>
+        <allowLeasing>false</allowLeasing>
+        <category>slurryTools</category>
+        <shopTranslationOffset>0 0.1 0</shopTranslationOffset>
+        <shopRotationOffset>0 0 0</shopRotationOffset>
+        <!-- build every shop preview fresh: otherwise the shop reuses the last preview's body positions
+             (ShopConfigScreen:loadCurrentConfiguration setComponentPositionData) and the per-length offset is lost -->
+        <shopIgnoreLastComponentPositions>true</shopIgnoreLastComponentPositions>
+    </storeData>
+
+    <base>
+        <typeDesc>$l10n_typeDesc_spsHose</typeDesc>
+        <filename>vehicles/hoses/spsPipe.i3d</filename>
+        <size width="0.4" length="4.4" height="0.3" lengthOffset="2.2"/>
+        <input allowed="false"/>
+        <canBeReset>false</canBeReset>
+        <supportsPickUp>true</supportsPickUp>
+        <componentConfigurations>
+            <componentConfiguration name="$l10n_spsHose_slurry" vehicleName="$l10n_spsHose_slurry" vehicleIcon="vehicles/hoses/icon_slurryPipe.png" price="0" isDefault="true" numComponents="13">
+                <component index="1" mass="4" solverIterationCount="40"/>
+                <component index="2" mass="4" solverIterationCount="20"/>
+                <component index="3" mass="4" solverIterationCount="20"/>
+                <component index="4" mass="4" solverIterationCount="20"/>
+                <component index="5" mass="4" solverIterationCount="20"/>
+                <component index="6" mass="4" solverIterationCount="20"/>
+                <component index="7" mass="4" solverIterationCount="20"/>
+                <component index="8" mass="4" solverIterationCount="20"/>
+                <component index="9" mass="4" solverIterationCount="20"/>
+                <component index="10" mass="4" solverIterationCount="20"/>
+                <component index="11" mass="4" solverIterationCount="20"/>
+                <component index="12" mass="4" solverIterationCount="20"/>
+                <component index="13" mass="4" solverIterationCount="40"/>
+
+                <joint component1="1" component2="2" node="FM_joint01" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+                <joint component1="2" component2="3" node="FM_joint02" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="3" component2="4" node="FM_joint03" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="4" component2="5" node="FM_joint04" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="5" component2="6" node="FM_joint05" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="6" component2="7" node="FM_joint06" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="7" component2="8" node="FM_joint07" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="8" component2="9" node="FM_joint08" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="9" component2="10" node="FM_joint09" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="10" component2="11" node="FM_joint10" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="11" component2="12" node="FM_joint11" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="12" component2="13" node="FM_joint12" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+            </componentConfiguration>
+            <componentConfiguration name="$l10n_spsHose_slurry" vehicleName="$l10n_spsHose_slurry" vehicleIcon="vehicles/hoses/icon_slurryPipe.png" price="0" numComponents="13">
+                <component index="14" mass="4" solverIterationCount="40"/>
+                <component index="15" mass="4" solverIterationCount="20"/>
+                <component index="16" mass="4" solverIterationCount="20"/>
+                <component index="17" mass="4" solverIterationCount="20"/>
+                <component index="18" mass="4" solverIterationCount="20"/>
+                <component index="19" mass="4" solverIterationCount="20"/>
+                <component index="20" mass="4" solverIterationCount="20"/>
+                <component index="21" mass="4" solverIterationCount="20"/>
+                <component index="22" mass="4" solverIterationCount="20"/>
+                <component index="23" mass="4" solverIterationCount="20"/>
+                <component index="24" mass="4" solverIterationCount="20"/>
+                <component index="25" mass="4" solverIterationCount="20"/>
+                <component index="26" mass="4" solverIterationCount="40"/>
+
+                <joint component1="1" component2="2" node="FF_joint01" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+                <joint component1="2" component2="3" node="FF_joint02" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="3" component2="4" node="FF_joint03" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="4" component2="5" node="FF_joint04" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="5" component2="6" node="FF_joint05" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="6" component2="7" node="FF_joint06" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="7" component2="8" node="FF_joint07" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="8" component2="9" node="FF_joint08" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="9" component2="10" node="FF_joint09" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="10" component2="11" node="FF_joint10" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="11" component2="12" node="FF_joint11" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="12" component2="13" node="FF_joint12" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+            </componentConfiguration>
+            <componentConfiguration name="$l10n_spsHose_slurry" vehicleName="$l10n_spsHose_slurry" vehicleIcon="vehicles/hoses/icon_slurryPipe.png" price="0" numComponents="13">
+                <component index="27" mass="4" solverIterationCount="40"/>
+                <component index="28" mass="4" solverIterationCount="20"/>
+                <component index="29" mass="4" solverIterationCount="20"/>
+                <component index="30" mass="4" solverIterationCount="20"/>
+                <component index="31" mass="4" solverIterationCount="20"/>
+                <component index="32" mass="4" solverIterationCount="20"/>
+                <component index="33" mass="4" solverIterationCount="20"/>
+                <component index="34" mass="4" solverIterationCount="20"/>
+                <component index="35" mass="4" solverIterationCount="20"/>
+                <component index="36" mass="4" solverIterationCount="20"/>
+                <component index="37" mass="4" solverIterationCount="20"/>
+                <component index="38" mass="4" solverIterationCount="20"/>
+                <component index="39" mass="4" solverIterationCount="40"/>
+
+                <joint component1="1" component2="2" node="MM_joint01" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+                <joint component1="2" component2="3" node="MM_joint02" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="3" component2="4" node="MM_joint03" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="4" component2="5" node="MM_joint04" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="5" component2="6" node="MM_joint05" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="6" component2="7" node="MM_joint06" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="7" component2="8" node="MM_joint07" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="8" component2="9" node="MM_joint08" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="9" component2="10" node="MM_joint09" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="10" component2="11" node="MM_joint10" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="11" component2="12" node="MM_joint11" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="12" component2="13" node="MM_joint12" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+            </componentConfiguration>
+            <componentConfiguration name="$l10n_spsHose_slurry_long" vehicleName="$l10n_spsHose_slurry_long" vehicleIcon="vehicles/hoses/icon_slurryPipeLong.png" price="0" numComponents="19">
+                <component index="40" mass="4" solverIterationCount="40"/>
+                <component index="41" mass="4" solverIterationCount="20"/>
+                <component index="42" mass="4" solverIterationCount="20"/>
+                <component index="43" mass="4" solverIterationCount="20"/>
+                <component index="44" mass="4" solverIterationCount="20"/>
+                <component index="45" mass="4" solverIterationCount="20"/>
+                <component index="46" mass="4" solverIterationCount="20"/>
+                <component index="47" mass="4" solverIterationCount="20"/>
+                <component index="48" mass="4" solverIterationCount="20"/>
+                <component index="49" mass="4" solverIterationCount="20"/>
+                <component index="50" mass="4" solverIterationCount="20"/>
+                <component index="51" mass="4" solverIterationCount="20"/>
+                <component index="52" mass="4" solverIterationCount="20"/>
+                <component index="53" mass="4" solverIterationCount="20"/>
+                <component index="54" mass="4" solverIterationCount="20"/>
+                <component index="55" mass="4" solverIterationCount="20"/>
+                <component index="56" mass="4" solverIterationCount="20"/>
+                <component index="57" mass="4" solverIterationCount="20"/>
+                <component index="58" mass="4" solverIterationCount="40"/>
+
+                <joint component1="1" component2="2" node="FML_joint01" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+                <joint component1="2" component2="3" node="FML_joint02" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="3" component2="4" node="FML_joint03" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="4" component2="5" node="FML_joint04" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="5" component2="6" node="FML_joint05" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="6" component2="7" node="FML_joint06" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="7" component2="8" node="FML_joint07" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="8" component2="9" node="FML_joint08" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="9" component2="10" node="FML_joint09" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="10" component2="11" node="FML_joint10" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="11" component2="12" node="FML_joint11" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="12" component2="13" node="FML_joint12" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="13" component2="14" node="FML_joint13" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="14" component2="15" node="FML_joint14" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="15" component2="16" node="FML_joint15" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="16" component2="17" node="FML_joint16" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="17" component2="18" node="FML_joint17" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="18" component2="19" node="FML_joint18" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+            </componentConfiguration>
+            <componentConfiguration name="$l10n_spsHose_slurry_long" vehicleName="$l10n_spsHose_slurry_long" vehicleIcon="vehicles/hoses/icon_slurryPipeLong.png" price="0" numComponents="19">
+                <component index="59" mass="4" solverIterationCount="40"/>
+                <component index="60" mass="4" solverIterationCount="20"/>
+                <component index="61" mass="4" solverIterationCount="20"/>
+                <component index="62" mass="4" solverIterationCount="20"/>
+                <component index="63" mass="4" solverIterationCount="20"/>
+                <component index="64" mass="4" solverIterationCount="20"/>
+                <component index="65" mass="4" solverIterationCount="20"/>
+                <component index="66" mass="4" solverIterationCount="20"/>
+                <component index="67" mass="4" solverIterationCount="20"/>
+                <component index="68" mass="4" solverIterationCount="20"/>
+                <component index="69" mass="4" solverIterationCount="20"/>
+                <component index="70" mass="4" solverIterationCount="20"/>
+                <component index="71" mass="4" solverIterationCount="20"/>
+                <component index="72" mass="4" solverIterationCount="20"/>
+                <component index="73" mass="4" solverIterationCount="20"/>
+                <component index="74" mass="4" solverIterationCount="20"/>
+                <component index="75" mass="4" solverIterationCount="20"/>
+                <component index="76" mass="4" solverIterationCount="20"/>
+                <component index="77" mass="4" solverIterationCount="40"/>
+
+                <joint component1="1" component2="2" node="FFL_joint01" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+                <joint component1="2" component2="3" node="FFL_joint02" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="3" component2="4" node="FFL_joint03" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="4" component2="5" node="FFL_joint04" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="5" component2="6" node="FFL_joint05" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="6" component2="7" node="FFL_joint06" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="7" component2="8" node="FFL_joint07" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="8" component2="9" node="FFL_joint08" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="9" component2="10" node="FFL_joint09" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="10" component2="11" node="FFL_joint10" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="11" component2="12" node="FFL_joint11" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="12" component2="13" node="FFL_joint12" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="13" component2="14" node="FFL_joint13" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="14" component2="15" node="FFL_joint14" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="15" component2="16" node="FFL_joint15" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="16" component2="17" node="FFL_joint16" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="17" component2="18" node="FFL_joint17" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="18" component2="19" node="FFL_joint18" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+            </componentConfiguration>
+            <componentConfiguration name="$l10n_spsHose_slurry_long" vehicleName="$l10n_spsHose_slurry_long" vehicleIcon="vehicles/hoses/icon_slurryPipeLong.png" price="0" numComponents="19">
+                <component index="78" mass="4" solverIterationCount="40"/>
+                <component index="79" mass="4" solverIterationCount="20"/>
+                <component index="80" mass="4" solverIterationCount="20"/>
+                <component index="81" mass="4" solverIterationCount="20"/>
+                <component index="82" mass="4" solverIterationCount="20"/>
+                <component index="83" mass="4" solverIterationCount="20"/>
+                <component index="84" mass="4" solverIterationCount="20"/>
+                <component index="85" mass="4" solverIterationCount="20"/>
+                <component index="86" mass="4" solverIterationCount="20"/>
+                <component index="87" mass="4" solverIterationCount="20"/>
+                <component index="88" mass="4" solverIterationCount="20"/>
+                <component index="89" mass="4" solverIterationCount="20"/>
+                <component index="90" mass="4" solverIterationCount="20"/>
+                <component index="91" mass="4" solverIterationCount="20"/>
+                <component index="92" mass="4" solverIterationCount="20"/>
+                <component index="93" mass="4" solverIterationCount="20"/>
+                <component index="94" mass="4" solverIterationCount="20"/>
+                <component index="95" mass="4" solverIterationCount="20"/>
+                <component index="96" mass="4" solverIterationCount="40"/>
+
+                <joint component1="1" component2="2" node="MML_joint01" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+                <joint component1="2" component2="3" node="MML_joint02" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="3" component2="4" node="MML_joint03" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="4" component2="5" node="MML_joint04" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="5" component2="6" node="MML_joint05" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="6" component2="7" node="MML_joint06" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="7" component2="8" node="MML_joint07" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="8" component2="9" node="MML_joint08" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="9" component2="10" node="MML_joint09" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="10" component2="11" node="MML_joint10" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="11" component2="12" node="MML_joint11" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="12" component2="13" node="MML_joint12" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="13" component2="14" node="MML_joint13" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="14" component2="15" node="MML_joint14" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="15" component2="16" node="MML_joint15" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="16" component2="17" node="MML_joint16" rotLimit="6 6 2" rotMinLimit="-6 -6 -2" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="17" component2="18" node="MML_joint17" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="18" component2="19" node="MML_joint18" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+            </componentConfiguration>
+            <componentConfiguration name="$l10n_spsHose_WATER" vehicleName="$l10n_spsHose_WATER" vehicleIcon="vehicles/hoses/icon_waterPipe.png" price="0" numComponents="13">
+                <component index="97" mass="4" solverIterationCount="40"/>
+                <component index="98" mass="4" solverIterationCount="20"/>
+                <component index="99" mass="4" solverIterationCount="20"/>
+                <component index="100" mass="4" solverIterationCount="20"/>
+                <component index="101" mass="4" solverIterationCount="20"/>
+                <component index="102" mass="4" solverIterationCount="20"/>
+                <component index="103" mass="4" solverIterationCount="20"/>
+                <component index="104" mass="4" solverIterationCount="20"/>
+                <component index="105" mass="4" solverIterationCount="20"/>
+                <component index="106" mass="4" solverIterationCount="20"/>
+                <component index="107" mass="4" solverIterationCount="20"/>
+                <component index="108" mass="4" solverIterationCount="20"/>
+                <component index="109" mass="4" solverIterationCount="40"/>
+
+                <joint component1="1" component2="2" node="WP_joint01" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+                <joint component1="2" component2="3" node="WP_joint02" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="3" component2="4" node="WP_joint03" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="4" component2="5" node="WP_joint04" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="5" component2="6" node="WP_joint05" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="6" component2="7" node="WP_joint06" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="7" component2="8" node="WP_joint07" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="8" component2="9" node="WP_joint08" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="9" component2="10" node="WP_joint09" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="10" component2="11" node="WP_joint10" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="11" component2="12" node="WP_joint11" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="12" component2="13" node="WP_joint12" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+            </componentConfiguration>
+            <componentConfiguration name="$l10n_spsHose_WATER_long" vehicleName="$l10n_spsHose_WATER_long" vehicleIcon="vehicles/hoses/icon_waterPipeLong.png" price="0" numComponents="19">
+                <component index="110" mass="4" solverIterationCount="40"/>
+                <component index="111" mass="4" solverIterationCount="20"/>
+                <component index="112" mass="4" solverIterationCount="20"/>
+                <component index="113" mass="4" solverIterationCount="20"/>
+                <component index="114" mass="4" solverIterationCount="20"/>
+                <component index="115" mass="4" solverIterationCount="20"/>
+                <component index="116" mass="4" solverIterationCount="20"/>
+                <component index="117" mass="4" solverIterationCount="20"/>
+                <component index="118" mass="4" solverIterationCount="20"/>
+                <component index="119" mass="4" solverIterationCount="20"/>
+                <component index="120" mass="4" solverIterationCount="20"/>
+                <component index="121" mass="4" solverIterationCount="20"/>
+                <component index="122" mass="4" solverIterationCount="20"/>
+                <component index="123" mass="4" solverIterationCount="20"/>
+                <component index="124" mass="4" solverIterationCount="20"/>
+                <component index="125" mass="4" solverIterationCount="20"/>
+                <component index="126" mass="4" solverIterationCount="20"/>
+                <component index="127" mass="4" solverIterationCount="20"/>
+                <component index="128" mass="4" solverIterationCount="40"/>
+
+                <joint component1="1" component2="2" node="WPL_joint01" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+                <joint component1="2" component2="3" node="WPL_joint02" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="3" component2="4" node="WPL_joint03" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="4" component2="5" node="WPL_joint04" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="5" component2="6" node="WPL_joint05" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="6" component2="7" node="WPL_joint06" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="7" component2="8" node="WPL_joint07" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="8" component2="9" node="WPL_joint08" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="9" component2="10" node="WPL_joint09" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="10" component2="11" node="WPL_joint10" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="11" component2="12" node="WPL_joint11" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="12" component2="13" node="WPL_joint12" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="13" component2="14" node="WPL_joint13" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="14" component2="15" node="WPL_joint14" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="15" component2="16" node="WPL_joint15" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="16" component2="17" node="WPL_joint16" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="17" component2="18" node="WPL_joint17" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="18" component2="19" node="WPL_joint18" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+            </componentConfiguration>
+            <componentConfiguration name="$l10n_spsHose_MILK" vehicleName="$l10n_spsHose_MILK" vehicleIcon="vehicles/hoses/icon_milkPipe.png" price="0" numComponents="13">
+                <component index="97" mass="4" solverIterationCount="40"/>
+                <component index="98" mass="4" solverIterationCount="20"/>
+                <component index="99" mass="4" solverIterationCount="20"/>
+                <component index="100" mass="4" solverIterationCount="20"/>
+                <component index="101" mass="4" solverIterationCount="20"/>
+                <component index="102" mass="4" solverIterationCount="20"/>
+                <component index="103" mass="4" solverIterationCount="20"/>
+                <component index="104" mass="4" solverIterationCount="20"/>
+                <component index="105" mass="4" solverIterationCount="20"/>
+                <component index="106" mass="4" solverIterationCount="20"/>
+                <component index="107" mass="4" solverIterationCount="20"/>
+                <component index="108" mass="4" solverIterationCount="20"/>
+                <component index="109" mass="4" solverIterationCount="40"/>
+
+                <joint component1="1" component2="2" node="WP_joint01" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+                <joint component1="2" component2="3" node="WP_joint02" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="3" component2="4" node="WP_joint03" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="4" component2="5" node="WP_joint04" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="5" component2="6" node="WP_joint05" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="6" component2="7" node="WP_joint06" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="7" component2="8" node="WP_joint07" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="8" component2="9" node="WP_joint08" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="9" component2="10" node="WP_joint09" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="10" component2="11" node="WP_joint10" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="11" component2="12" node="WP_joint11" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="12" component2="13" node="WP_joint12" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+            </componentConfiguration>
+            <componentConfiguration name="$l10n_spsHose_MILK_long" vehicleName="$l10n_spsHose_MILK_long" vehicleIcon="vehicles/hoses/icon_milkPipeLong.png" price="0" numComponents="19">
+                <component index="110" mass="4" solverIterationCount="40"/>
+                <component index="111" mass="4" solverIterationCount="20"/>
+                <component index="112" mass="4" solverIterationCount="20"/>
+                <component index="113" mass="4" solverIterationCount="20"/>
+                <component index="114" mass="4" solverIterationCount="20"/>
+                <component index="115" mass="4" solverIterationCount="20"/>
+                <component index="116" mass="4" solverIterationCount="20"/>
+                <component index="117" mass="4" solverIterationCount="20"/>
+                <component index="118" mass="4" solverIterationCount="20"/>
+                <component index="119" mass="4" solverIterationCount="20"/>
+                <component index="120" mass="4" solverIterationCount="20"/>
+                <component index="121" mass="4" solverIterationCount="20"/>
+                <component index="122" mass="4" solverIterationCount="20"/>
+                <component index="123" mass="4" solverIterationCount="20"/>
+                <component index="124" mass="4" solverIterationCount="20"/>
+                <component index="125" mass="4" solverIterationCount="20"/>
+                <component index="126" mass="4" solverIterationCount="20"/>
+                <component index="127" mass="4" solverIterationCount="20"/>
+                <component index="128" mass="4" solverIterationCount="40"/>
+
+                <joint component1="1" component2="2" node="WPL_joint01" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+                <joint component1="2" component2="3" node="WPL_joint02" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="3" component2="4" node="WPL_joint03" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="4" component2="5" node="WPL_joint04" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="5" component2="6" node="WPL_joint05" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="6" component2="7" node="WPL_joint06" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="7" component2="8" node="WPL_joint07" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="8" component2="9" node="WPL_joint08" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="9" component2="10" node="WPL_joint09" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="10" component2="11" node="WPL_joint10" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="11" component2="12" node="WPL_joint11" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="12" component2="13" node="WPL_joint12" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="13" component2="14" node="WPL_joint13" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="14" component2="15" node="WPL_joint14" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="15" component2="16" node="WPL_joint15" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="16" component2="17" node="WPL_joint16" rotLimit="12 12 3" rotMinLimit="-12 -12 -3" transLimit="0 0 0" rotLimitSpring="700 700 700" rotLimitDamping="60 60 60"/>
+                <joint component1="17" component2="18" node="WPL_joint17" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" transLimit="0 0 0" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="18" component2="19" node="WPL_joint18" rotLimit="0 0 0" rotMinLimit="0 0 0" transLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+            </componentConfiguration>
+        </componentConfigurations>
+        <showInVehicleMenu>true</showInVehicleMenu>
+        <mapHotspot type="TOOL"/>
+    </base>
+
+    <!-- slurry rubber colour: the SPS set of configs/spsColors.xml (the original pipes' colours) first, then the game
+         palette + custom colour (useDefaultColors). Water / milk keep their fixed colour (variant rubberColor). -->
+    <designColorConfigurations useDefaultColors="true" price="0">
+        <designColorConfiguration name="$l10n_spsColor_green" price="0" isDefault="true" color="0 0.05 0"/>
+        <designColorConfiguration name="$l10n_spsColor_blue"  price="0" color="0 0.02 0.08"/>
+        <designColorConfiguration name="$l10n_spsColor_brown" price="0" color="0.1 0.05 0"/>
+        <designColorConfiguration name="$l10n_spsColor_black" price="0" color="0 0 0"/>
+    </designColorConfigurations>
+
+    <!-- dirt + wear (SPSHoseItem drives them by use: in service / liquid passing; see SPS_README_06) -->
+    <washable dirtDuration="90" washDuration="1" workMultiplier="4" fieldMultiplier="2"/>
+    <wearable wearDuration="600" showOnHud="false"/>
+
+    <spsHose tintable="true" startComponent="1" endComponent="13">
+        <!-- shop selectors: each option also names the component configuration it stands for (dependentConfiguration),
+             which hides the component list in the shop; the real choice is made from all three in SPSHoseItem:onPreLoad -->
+        <spsPipeTypeConfigurations title="$l10n_configuration_spsPipeType">
+            <spsPipeTypeConfiguration name="$l10n_spsPipe_typeSlurry" price="0" isDefault="true"><dependentConfiguration name="component" index="1"/></spsPipeTypeConfiguration>
+            <spsPipeTypeConfiguration name="$l10n_spsPipe_typeWater" price="0"><dependentConfiguration name="component" index="7"/></spsPipeTypeConfiguration>
+            <spsPipeTypeConfiguration name="$l10n_spsPipe_typeMilk" price="0"><dependentConfiguration name="component" index="9"/></spsPipeTypeConfiguration>
+        </spsPipeTypeConfigurations>
+        <spsPipeLengthConfigurations title="$l10n_configuration_spsPipeLength">
+            <spsPipeLengthConfiguration name="$l10n_spsPipe_length4" price="0" isDefault="true"><shopOffset translation="0 0.1 -2.2"/><size length="4.4" lengthOffset="2.2"/></spsPipeLengthConfiguration>
+            <spsPipeLengthConfiguration name="$l10n_spsPipe_length6" price="100"><shopOffset translation="0 0.1 -3.2"/><size length="6.4" lengthOffset="3.2"/></spsPipeLengthConfiguration>
+        </spsPipeLengthConfigurations>
+        <spsPipeEndsConfigurations title="$l10n_configuration_spsPipeEnds">
+            <spsPipeEndsConfiguration name="$l10n_spsHose_FM" price="0" isDefault="true"/>
+            <spsPipeEndsConfiguration name="$l10n_spsHose_FF" price="0"/>
+            <spsPipeEndsConfiguration name="$l10n_spsHose_MM" price="0"/>
+        </spsPipeEndsConfigurations>
+        <variant config="1" hoseKey="FM" meshNode="FM_mesh" startNode="FM_hoseStart" endNode="FM_hoseEnd" startGender="female" endGender="male" hoseMaterialIndex="0" endComponent="13" tintable="true"/>
+        <variant config="2" hoseKey="FF" meshNode="FF_mesh" startNode="FF_hoseStart" endNode="FF_hoseEnd" startGender="female" endGender="female" hoseMaterialIndex="0" endComponent="13" tintable="true"/>
+        <variant config="3" hoseKey="MM" meshNode="MM_mesh" startNode="MM_hoseStart" endNode="MM_hoseEnd" startGender="male" endGender="male" hoseMaterialIndex="0" endComponent="13" tintable="true"/>
+        <variant config="4" hoseKey="FM" meshNode="FML_mesh" startNode="FML_hoseStart" endNode="FML_hoseEnd" startGender="female" endGender="male" hoseMaterialIndex="0" endComponent="19" tintable="true"/>
+        <variant config="5" hoseKey="FF" meshNode="FFL_mesh" startNode="FFL_hoseStart" endNode="FFL_hoseEnd" startGender="female" endGender="female" hoseMaterialIndex="0" endComponent="19" tintable="true"/>
+        <variant config="6" hoseKey="MM" meshNode="MML_mesh" startNode="MML_hoseStart" endNode="MML_hoseEnd" startGender="male" endGender="male" hoseMaterialIndex="0" endComponent="19" tintable="true"/>
+        <variant config="7" hoseKey="WATER" meshNode="WP_mesh" startNode="WP_hoseStart" endNode="WP_hoseEnd" startGender="water" endGender="water" hoseMaterialIndex="0" endComponent="13" tintable="false" rubberColor="0 0.02 0.08" dirtScale="0.5"/>
+        <variant config="8" hoseKey="WATER" meshNode="WPL_mesh" startNode="WPL_hoseStart" endNode="WPL_hoseEnd" startGender="water" endGender="water" hoseMaterialIndex="0" endComponent="19" tintable="false" rubberColor="0 0.02 0.08" dirtScale="0.5"/>
+        <variant config="9" hoseKey="MILK" meshNode="WP_mesh" startNode="WP_hoseStart" endNode="WP_hoseEnd" startGender="water" endGender="water" hoseMaterialIndex="0" endComponent="13" tintable="false" rubberColor="0.8 0.8 0.8" dirtScale="0.5"/>
+        <variant config="10" hoseKey="MILK" meshNode="WPL_mesh" startNode="WPL_hoseStart" endNode="WPL_hoseEnd" startGender="water" endGender="water" hoseMaterialIndex="0" endComponent="19" tintable="false" rubberColor="0.8 0.8 0.8" dirtScale="0.5"/>
+    </spsHose>
+
+    <i3dMappings>
+        <i3dMapping id="FM_col01" node="0>"/>
+        <i3dMapping id="FM_col02" node="1>"/>
+        <i3dMapping id="FM_col03" node="2>"/>
+        <i3dMapping id="FM_col04" node="3>"/>
+        <i3dMapping id="FM_col05" node="4>"/>
+        <i3dMapping id="FM_col06" node="5>"/>
+        <i3dMapping id="FM_col07" node="6>"/>
+        <i3dMapping id="FM_col08" node="7>"/>
+        <i3dMapping id="FM_col09" node="8>"/>
+        <i3dMapping id="FM_col10" node="9>"/>
+        <i3dMapping id="FM_col11" node="10>"/>
+        <i3dMapping id="FM_col12" node="11>"/>
+        <i3dMapping id="FM_col13" node="12>"/>
+        <i3dMapping id="FM_joint01" node="0>2"/>
+        <i3dMapping id="FM_joint02" node="1>1"/>
+        <i3dMapping id="FM_joint03" node="2>1"/>
+        <i3dMapping id="FM_joint04" node="3>1"/>
+        <i3dMapping id="FM_joint05" node="4>1"/>
+        <i3dMapping id="FM_joint06" node="5>1"/>
+        <i3dMapping id="FM_joint07" node="6>1"/>
+        <i3dMapping id="FM_joint08" node="7>1"/>
+        <i3dMapping id="FM_joint09" node="8>1"/>
+        <i3dMapping id="FM_joint10" node="9>1"/>
+        <i3dMapping id="FM_joint11" node="10>1"/>
+        <i3dMapping id="FM_joint12" node="11>1"/>
+        <i3dMapping id="FM_hoseStart" node="0>3"/>
+        <i3dMapping id="FM_hoseEnd"   node="12>2"/>
+        <i3dMapping id="FM_mesh"      node="0>4"/>
+        <i3dMapping id="FF_col01" node="13>"/>
+        <i3dMapping id="FF_col02" node="14>"/>
+        <i3dMapping id="FF_col03" node="15>"/>
+        <i3dMapping id="FF_col04" node="16>"/>
+        <i3dMapping id="FF_col05" node="17>"/>
+        <i3dMapping id="FF_col06" node="18>"/>
+        <i3dMapping id="FF_col07" node="19>"/>
+        <i3dMapping id="FF_col08" node="20>"/>
+        <i3dMapping id="FF_col09" node="21>"/>
+        <i3dMapping id="FF_col10" node="22>"/>
+        <i3dMapping id="FF_col11" node="23>"/>
+        <i3dMapping id="FF_col12" node="24>"/>
+        <i3dMapping id="FF_col13" node="25>"/>
+        <i3dMapping id="FF_joint01" node="13>2"/>
+        <i3dMapping id="FF_joint02" node="14>1"/>
+        <i3dMapping id="FF_joint03" node="15>1"/>
+        <i3dMapping id="FF_joint04" node="16>1"/>
+        <i3dMapping id="FF_joint05" node="17>1"/>
+        <i3dMapping id="FF_joint06" node="18>1"/>
+        <i3dMapping id="FF_joint07" node="19>1"/>
+        <i3dMapping id="FF_joint08" node="20>1"/>
+        <i3dMapping id="FF_joint09" node="21>1"/>
+        <i3dMapping id="FF_joint10" node="22>1"/>
+        <i3dMapping id="FF_joint11" node="23>1"/>
+        <i3dMapping id="FF_joint12" node="24>1"/>
+        <i3dMapping id="FF_hoseStart" node="13>3"/>
+        <i3dMapping id="FF_hoseEnd"   node="25>2"/>
+        <i3dMapping id="FF_mesh"      node="13>4"/>
+        <i3dMapping id="MM_col01" node="26>"/>
+        <i3dMapping id="MM_col02" node="27>"/>
+        <i3dMapping id="MM_col03" node="28>"/>
+        <i3dMapping id="MM_col04" node="29>"/>
+        <i3dMapping id="MM_col05" node="30>"/>
+        <i3dMapping id="MM_col06" node="31>"/>
+        <i3dMapping id="MM_col07" node="32>"/>
+        <i3dMapping id="MM_col08" node="33>"/>
+        <i3dMapping id="MM_col09" node="34>"/>
+        <i3dMapping id="MM_col10" node="35>"/>
+        <i3dMapping id="MM_col11" node="36>"/>
+        <i3dMapping id="MM_col12" node="37>"/>
+        <i3dMapping id="MM_col13" node="38>"/>
+        <i3dMapping id="MM_joint01" node="26>2"/>
+        <i3dMapping id="MM_joint02" node="27>1"/>
+        <i3dMapping id="MM_joint03" node="28>1"/>
+        <i3dMapping id="MM_joint04" node="29>1"/>
+        <i3dMapping id="MM_joint05" node="30>1"/>
+        <i3dMapping id="MM_joint06" node="31>1"/>
+        <i3dMapping id="MM_joint07" node="32>1"/>
+        <i3dMapping id="MM_joint08" node="33>1"/>
+        <i3dMapping id="MM_joint09" node="34>1"/>
+        <i3dMapping id="MM_joint10" node="35>1"/>
+        <i3dMapping id="MM_joint11" node="36>1"/>
+        <i3dMapping id="MM_joint12" node="37>1"/>
+        <i3dMapping id="MM_hoseStart" node="26>3"/>
+        <i3dMapping id="MM_hoseEnd"   node="38>2"/>
+        <i3dMapping id="MM_mesh"      node="26>4"/>
+        <i3dMapping id="FML_col01" node="39>"/>
+        <i3dMapping id="FML_col02" node="40>"/>
+        <i3dMapping id="FML_col03" node="41>"/>
+        <i3dMapping id="FML_col04" node="42>"/>
+        <i3dMapping id="FML_col05" node="43>"/>
+        <i3dMapping id="FML_col06" node="44>"/>
+        <i3dMapping id="FML_col07" node="45>"/>
+        <i3dMapping id="FML_col08" node="46>"/>
+        <i3dMapping id="FML_col09" node="47>"/>
+        <i3dMapping id="FML_col10" node="48>"/>
+        <i3dMapping id="FML_col11" node="49>"/>
+        <i3dMapping id="FML_col12" node="50>"/>
+        <i3dMapping id="FML_col13" node="51>"/>
+        <i3dMapping id="FML_col14" node="52>"/>
+        <i3dMapping id="FML_col15" node="53>"/>
+        <i3dMapping id="FML_col16" node="54>"/>
+        <i3dMapping id="FML_col17" node="55>"/>
+        <i3dMapping id="FML_col18" node="56>"/>
+        <i3dMapping id="FML_col19" node="57>"/>
+        <i3dMapping id="FML_joint01" node="39>2"/>
+        <i3dMapping id="FML_joint02" node="40>1"/>
+        <i3dMapping id="FML_joint03" node="41>1"/>
+        <i3dMapping id="FML_joint04" node="42>1"/>
+        <i3dMapping id="FML_joint05" node="43>1"/>
+        <i3dMapping id="FML_joint06" node="44>1"/>
+        <i3dMapping id="FML_joint07" node="45>1"/>
+        <i3dMapping id="FML_joint08" node="46>1"/>
+        <i3dMapping id="FML_joint09" node="47>1"/>
+        <i3dMapping id="FML_joint10" node="48>1"/>
+        <i3dMapping id="FML_joint11" node="49>1"/>
+        <i3dMapping id="FML_joint12" node="50>1"/>
+        <i3dMapping id="FML_joint13" node="51>1"/>
+        <i3dMapping id="FML_joint14" node="52>1"/>
+        <i3dMapping id="FML_joint15" node="53>1"/>
+        <i3dMapping id="FML_joint16" node="54>1"/>
+        <i3dMapping id="FML_joint17" node="55>1"/>
+        <i3dMapping id="FML_joint18" node="56>1"/>
+        <i3dMapping id="FML_hoseStart" node="39>3"/>
+        <i3dMapping id="FML_hoseEnd"   node="57>2"/>
+        <i3dMapping id="FML_mesh"      node="39>4"/>
+        <i3dMapping id="FFL_col01" node="58>"/>
+        <i3dMapping id="FFL_col02" node="59>"/>
+        <i3dMapping id="FFL_col03" node="60>"/>
+        <i3dMapping id="FFL_col04" node="61>"/>
+        <i3dMapping id="FFL_col05" node="62>"/>
+        <i3dMapping id="FFL_col06" node="63>"/>
+        <i3dMapping id="FFL_col07" node="64>"/>
+        <i3dMapping id="FFL_col08" node="65>"/>
+        <i3dMapping id="FFL_col09" node="66>"/>
+        <i3dMapping id="FFL_col10" node="67>"/>
+        <i3dMapping id="FFL_col11" node="68>"/>
+        <i3dMapping id="FFL_col12" node="69>"/>
+        <i3dMapping id="FFL_col13" node="70>"/>
+        <i3dMapping id="FFL_col14" node="71>"/>
+        <i3dMapping id="FFL_col15" node="72>"/>
+        <i3dMapping id="FFL_col16" node="73>"/>
+        <i3dMapping id="FFL_col17" node="74>"/>
+        <i3dMapping id="FFL_col18" node="75>"/>
+        <i3dMapping id="FFL_col19" node="76>"/>
+        <i3dMapping id="FFL_joint01" node="58>2"/>
+        <i3dMapping id="FFL_joint02" node="59>1"/>
+        <i3dMapping id="FFL_joint03" node="60>1"/>
+        <i3dMapping id="FFL_joint04" node="61>1"/>
+        <i3dMapping id="FFL_joint05" node="62>1"/>
+        <i3dMapping id="FFL_joint06" node="63>1"/>
+        <i3dMapping id="FFL_joint07" node="64>1"/>
+        <i3dMapping id="FFL_joint08" node="65>1"/>
+        <i3dMapping id="FFL_joint09" node="66>1"/>
+        <i3dMapping id="FFL_joint10" node="67>1"/>
+        <i3dMapping id="FFL_joint11" node="68>1"/>
+        <i3dMapping id="FFL_joint12" node="69>1"/>
+        <i3dMapping id="FFL_joint13" node="70>1"/>
+        <i3dMapping id="FFL_joint14" node="71>1"/>
+        <i3dMapping id="FFL_joint15" node="72>1"/>
+        <i3dMapping id="FFL_joint16" node="73>1"/>
+        <i3dMapping id="FFL_joint17" node="74>1"/>
+        <i3dMapping id="FFL_joint18" node="75>1"/>
+        <i3dMapping id="FFL_hoseStart" node="58>3"/>
+        <i3dMapping id="FFL_hoseEnd"   node="76>2"/>
+        <i3dMapping id="FFL_mesh"      node="58>4"/>
+        <i3dMapping id="MML_col01" node="77>"/>
+        <i3dMapping id="MML_col02" node="78>"/>
+        <i3dMapping id="MML_col03" node="79>"/>
+        <i3dMapping id="MML_col04" node="80>"/>
+        <i3dMapping id="MML_col05" node="81>"/>
+        <i3dMapping id="MML_col06" node="82>"/>
+        <i3dMapping id="MML_col07" node="83>"/>
+        <i3dMapping id="MML_col08" node="84>"/>
+        <i3dMapping id="MML_col09" node="85>"/>
+        <i3dMapping id="MML_col10" node="86>"/>
+        <i3dMapping id="MML_col11" node="87>"/>
+        <i3dMapping id="MML_col12" node="88>"/>
+        <i3dMapping id="MML_col13" node="89>"/>
+        <i3dMapping id="MML_col14" node="90>"/>
+        <i3dMapping id="MML_col15" node="91>"/>
+        <i3dMapping id="MML_col16" node="92>"/>
+        <i3dMapping id="MML_col17" node="93>"/>
+        <i3dMapping id="MML_col18" node="94>"/>
+        <i3dMapping id="MML_col19" node="95>"/>
+        <i3dMapping id="MML_joint01" node="77>2"/>
+        <i3dMapping id="MML_joint02" node="78>1"/>
+        <i3dMapping id="MML_joint03" node="79>1"/>
+        <i3dMapping id="MML_joint04" node="80>1"/>
+        <i3dMapping id="MML_joint05" node="81>1"/>
+        <i3dMapping id="MML_joint06" node="82>1"/>
+        <i3dMapping id="MML_joint07" node="83>1"/>
+        <i3dMapping id="MML_joint08" node="84>1"/>
+        <i3dMapping id="MML_joint09" node="85>1"/>
+        <i3dMapping id="MML_joint10" node="86>1"/>
+        <i3dMapping id="MML_joint11" node="87>1"/>
+        <i3dMapping id="MML_joint12" node="88>1"/>
+        <i3dMapping id="MML_joint13" node="89>1"/>
+        <i3dMapping id="MML_joint14" node="90>1"/>
+        <i3dMapping id="MML_joint15" node="91>1"/>
+        <i3dMapping id="MML_joint16" node="92>1"/>
+        <i3dMapping id="MML_joint17" node="93>1"/>
+        <i3dMapping id="MML_joint18" node="94>1"/>
+        <i3dMapping id="MML_hoseStart" node="77>3"/>
+        <i3dMapping id="MML_hoseEnd"   node="95>2"/>
+        <i3dMapping id="MML_mesh"      node="77>4"/>
+        <i3dMapping id="WP_col01" node="96>"/>
+        <i3dMapping id="WP_col02" node="97>"/>
+        <i3dMapping id="WP_col03" node="98>"/>
+        <i3dMapping id="WP_col04" node="99>"/>
+        <i3dMapping id="WP_col05" node="100>"/>
+        <i3dMapping id="WP_col06" node="101>"/>
+        <i3dMapping id="WP_col07" node="102>"/>
+        <i3dMapping id="WP_col08" node="103>"/>
+        <i3dMapping id="WP_col09" node="104>"/>
+        <i3dMapping id="WP_col10" node="105>"/>
+        <i3dMapping id="WP_col11" node="106>"/>
+        <i3dMapping id="WP_col12" node="107>"/>
+        <i3dMapping id="WP_col13" node="108>"/>
+        <i3dMapping id="WP_joint01" node="96>2"/>
+        <i3dMapping id="WP_joint02" node="97>1"/>
+        <i3dMapping id="WP_joint03" node="98>1"/>
+        <i3dMapping id="WP_joint04" node="99>1"/>
+        <i3dMapping id="WP_joint05" node="100>1"/>
+        <i3dMapping id="WP_joint06" node="101>1"/>
+        <i3dMapping id="WP_joint07" node="102>1"/>
+        <i3dMapping id="WP_joint08" node="103>1"/>
+        <i3dMapping id="WP_joint09" node="104>1"/>
+        <i3dMapping id="WP_joint10" node="105>1"/>
+        <i3dMapping id="WP_joint11" node="106>1"/>
+        <i3dMapping id="WP_joint12" node="107>1"/>
+        <i3dMapping id="WP_hoseStart" node="96>3"/>
+        <i3dMapping id="WP_hoseEnd"   node="108>2"/>
+        <i3dMapping id="WP_mesh"      node="96>4"/>
+        <i3dMapping id="WPL_col01" node="109>"/>
+        <i3dMapping id="WPL_col02" node="110>"/>
+        <i3dMapping id="WPL_col03" node="111>"/>
+        <i3dMapping id="WPL_col04" node="112>"/>
+        <i3dMapping id="WPL_col05" node="113>"/>
+        <i3dMapping id="WPL_col06" node="114>"/>
+        <i3dMapping id="WPL_col07" node="115>"/>
+        <i3dMapping id="WPL_col08" node="116>"/>
+        <i3dMapping id="WPL_col09" node="117>"/>
+        <i3dMapping id="WPL_col10" node="118>"/>
+        <i3dMapping id="WPL_col11" node="119>"/>
+        <i3dMapping id="WPL_col12" node="120>"/>
+        <i3dMapping id="WPL_col13" node="121>"/>
+        <i3dMapping id="WPL_col14" node="122>"/>
+        <i3dMapping id="WPL_col15" node="123>"/>
+        <i3dMapping id="WPL_col16" node="124>"/>
+        <i3dMapping id="WPL_col17" node="125>"/>
+        <i3dMapping id="WPL_col18" node="126>"/>
+        <i3dMapping id="WPL_col19" node="127>"/>
+        <i3dMapping id="WPL_joint01" node="109>2"/>
+        <i3dMapping id="WPL_joint02" node="110>1"/>
+        <i3dMapping id="WPL_joint03" node="111>1"/>
+        <i3dMapping id="WPL_joint04" node="112>1"/>
+        <i3dMapping id="WPL_joint05" node="113>1"/>
+        <i3dMapping id="WPL_joint06" node="114>1"/>
+        <i3dMapping id="WPL_joint07" node="115>1"/>
+        <i3dMapping id="WPL_joint08" node="116>1"/>
+        <i3dMapping id="WPL_joint09" node="117>1"/>
+        <i3dMapping id="WPL_joint10" node="118>1"/>
+        <i3dMapping id="WPL_joint11" node="119>1"/>
+        <i3dMapping id="WPL_joint12" node="120>1"/>
+        <i3dMapping id="WPL_joint13" node="121>1"/>
+        <i3dMapping id="WPL_joint14" node="122>1"/>
+        <i3dMapping id="WPL_joint15" node="123>1"/>
+        <i3dMapping id="WPL_joint16" node="124>1"/>
+        <i3dMapping id="WPL_joint17" node="125>1"/>
+        <i3dMapping id="WPL_joint18" node="126>1"/>
+        <i3dMapping id="WPL_hoseStart" node="109>3"/>
+        <i3dMapping id="WPL_hoseEnd"   node="127>2"/>
+        <i3dMapping id="WPL_mesh"      node="109>4"/>
+    </i3dMappings>
+</vehicle>

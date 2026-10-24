@@ -6,6 +6,13 @@
 <!-- Version: 1.0.0.0 -->
 
 <slurryPipeSystem agitator="false">
+    <!-- [SPS 1.0.1.8] Virtual slurry surface: vanilla declares no liquid-manure plane for this
+         barn, so SPS drives an empty transform (virtualSurface) between minY and maxY relative to
+         slurryStore01, which sits at the EMPTY pit level (0 -2 0 in the storage container).
+         Gives the coupler gravity head levelling; no shape bounds => not arm-detectable. -->
+    <slurryStores>
+        <slurryStore id="1" node="slurryStore01" fillPlaneNode="virtualSurface" minY="0" maxY="2" fillType="LIQUIDMANURE" agitator="false" hideWhenEmpty="false"/>
+    </slurryStores>
  
     <nodeTree filename="nodeTree.i3d"/>
 	

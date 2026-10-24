@@ -17,7 +17,7 @@
 -- (statIntakeLph, statManureLph, tightness, blockReason) is already synced.
 -- ---------------------------------------------------------------------------
 
-print("[SPS BUILD] SPSSeparatorActivatable 1.0.0.9.21 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSSeparatorActivatable 1.0.0.9.21 loaded") end
 
 SPSSeparatorActivatable = {}
 SPSSeparatorActivatable.__index = SPSSeparatorActivatable
@@ -62,6 +62,7 @@ local function getPanelNode(self)
 end
 
 function SPSSeparatorActivatable:getIsActivatable()
+    if SPSAccess ~= nil and not SPSAccess.localCanUse(self.sep) then return false end   -- [SPS 1.0.1.8] farm permission
     if g_localPlayer == nil then return false end
     local node = getPanelNode(self)
     if node == nil then return false end

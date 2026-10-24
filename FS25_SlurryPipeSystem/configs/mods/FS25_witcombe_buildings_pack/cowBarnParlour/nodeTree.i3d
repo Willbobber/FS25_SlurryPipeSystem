@@ -6,8 +6,8 @@
   </Asset>
 
   <Files>
-    <File fileId="42" filename="$data/fillPlanes/liquidManure_normal.dds"/>
-    <File fileId="43" filename="$data/fillPlanes/liquidManure_specular.dds"/>
+    <File fileId="41" filename="$data/fillPlanes/liquidManure_normal.dds"/>
+    <File fileId="42" filename="$data/fillPlanes/liquidManure_specular.dds"/>
     <File fileId="33" filename="$data/placeables/brandless/liquidManureTanks/shared/alpsFence05_diffuse.png"/>
     <File fileId="34" filename="$data/placeables/brandless/liquidManureTanks/shared/alpsFence05_normal.png"/>
     <File fileId="35" filename="$data/placeables/brandless/liquidManureTanks/shared/alpsFence05_specular.png"/>
@@ -36,11 +36,12 @@
     <File fileId="6" filename="$data/shared/detailLibrary/flat_normal.png"/>
     <File fileId="7" filename="$data/shared/detailLibrary/metallic/silverScratched_diffuse.png"/>
     <File fileId="5" filename="$data/shared/detailLibrary/metallic/silverScratched_specular.png"/>
+    <File fileId="44" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_diffuse.png"/>
+    <File fileId="43" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_specular.png"/>
     <File fileId="16" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_diffuse.dds"/>
     <File fileId="15" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_normal.dds"/>
     <File fileId="14" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_specular.dds"/>
     <File fileId="1" filename="$data/shared/white_diffuse.dds"/>
-    <File fileId="41" filename="../../../../../data/placeables/brandless/liquidManureTanks/shared/liquidManure_diffuse.dds"/>
   </Files>
 
 
@@ -59,14 +60,22 @@
       <Texture fileId="22"/>
       <Normalmap fileId="23"/>
     </Material>
+    <Material name="black_plasticPainted_mat" materialId="62" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="43"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="44"/>
+      <CustomParameter name="colorScale" value="0.006 0.006 0.006"/>
+    </Material>
     <Material name="bunkerSilo_mat" materialId="8" specularColor="0.501961 1 0">
       <Texture fileId="31"/>
       <Normalmap fileId="2"/>
     </Material>
     <Material name="crust_mat" materialId="9">
-      <Texture fileId="41"/>
-      <Normalmap fileId="42"/>
-      <Glossmap fileId="43"/>
+      <Normalmap fileId="41"/>
+      <Glossmap fileId="42"/>
     </Material>
     <Material name="hose_mat" materialId="10" customShaderId="4">
       <Texture fileId="1"/>
@@ -78,6 +87,15 @@
       <CustomParameter name="colorScale" value="0 0.05 0"/>
     </Material>
     <Material name="lambert1" materialId="11" diffuseColor="0.501961 0.501961 0.501961 1" specularColor="0.501961 1 0">
+    </Material>
+    <Material name="red_plasticPainted_mat" materialId="64" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="43"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="44"/>
+      <CustomParameter name="colorScale" value="0.359 0.033 0.035"/>
     </Material>
     <Material name="silverScratched_mat" materialId="12" customShaderId="4">
       <Texture fileId="1"/>
@@ -130,17 +148,32 @@
             </Shape>
             <TransformGroup name="inNode" nodeId="44"/>
             <TransformGroup name="outNode" rotation="0 180 0" nodeId="45"/>
-            <TransformGroup name="headHeight01" nodeId="53"/>
+            <TransformGroup name="headHeight01" nodeId="46"/>
           </TransformGroup>
-          <TransformGroup name="slurryPlaneCentre" translation="-32.4471 0.042017 -51.618" rotation="1.12556e-06 42.7011 2.8794e-06" nodeId="46"/>
-          <TransformGroup name="slurryPlaneEdge" translation="-38.9544 0.0420167 -45.6131" rotation="1.12556e-06 42.7011 2.8794e-06" nodeId="47"/>
+          <TransformGroup name="slurryPlaneCentre" translation="-32.4471 0.042017 -51.618" rotation="1.12556e-06 42.7011 2.8794e-06" nodeId="47"/>
+          <TransformGroup name="slurryPlaneEdge" translation="-38.9544 0.0420167 -45.6131" rotation="1.12556e-06 42.7011 2.8794e-06" nodeId="48"/>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="crustPlane" nodeId="48">
-        <TransformGroup name="slurryPit_fillPlane" translation="-36.1633 0.0370717 -47.8528" rotation="-3.05333e-13 5.12469e-06 2.03637e-13" scale="0.9996 1 1" nodeId="49">
-          <Shape name="crust_fillPlane" shapeId="10" clipDistance="200" nodeId="50" castsShadows="true" receiveShadows="true" materialIds="9">
-            <Shape name="crustFoliage" rotation="0 42.701 0" shapeId="11" nodeId="51" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="11"/>
+      <TransformGroup name="crustPlane" nodeId="49">
+        <TransformGroup name="slurryPit_fillPlane" translation="-36.1633 0.0370717 -47.8528" rotation="-3.05333e-13 5.12469e-06 2.03637e-13" scale="0.9996 1 1" nodeId="50">
+          <Shape name="crust_fillPlane" shapeId="10" clipDistance="200" nodeId="51" castsShadows="true" receiveShadows="true" materialIds="9">
+            <Shape name="crustFoliage" rotation="0 42.701 0" shapeId="11" nodeId="52" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="11"/>
           </Shape>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="milkPipeCouplers" nodeId="104">
+        <TransformGroup name="storage" nodeId="105">
+          <TransformGroup name="SPS_milkPipeCoupler01" translation="-29.4686 0.670055 -29.792" rotation="32.1384 -0 3.0942e-05" nodeId="106">
+            <TransformGroup name="SPS_milkPipeCoupler01Arcs" rotation="3.09421e-05 0 0" nodeId="107">
+              <TransformGroup name="SPS_milkPipeCoupler01Arc01" translation="3 0 4" nodeId="108"/>
+              <TransformGroup name="SPS_milkPipeCoupler01Arc02" translation="0 2.39403e-19 4" nodeId="109"/>
+            </TransformGroup>
+            <Shape name="sprayerConnector" shapeId="12" clipDistance="150" nodeId="110" castsShadows="true" receiveShadows="true" materialIds="62">
+              <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="13" clipDistance="150" nodeId="111" castsShadows="true" receiveShadows="true" materialIds="64"/>
+              <TransformGroup name="inNode" translation="2.49905e-08 1.64534e-08 0.205501" rotation="0 180 0" nodeId="112"/>
+              <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="113"/>
+            </Shape>
+          </TransformGroup>
         </TransformGroup>
       </TransformGroup>
     </TransformGroup>

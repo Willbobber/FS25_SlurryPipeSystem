@@ -6,7 +6,7 @@
 -- FS25_SlurryPipeSystem
 
 -- [SPS] Debug gate lives in scripts/SPSDebugConfig.lua (channel "SPSSprayerEvents").
-print("[SPS BUILD] SPSSprayerEvents 1.0.0.9.5 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSSprayerEvents 1.0.0.9.5 loaded") end
 local function log(fmt, ...)
     if SPSDebugConfig == nil or not SPSDebugConfig.isOn("SPSSprayerEvents") then return end
     if select("#", ...) > 0 then
@@ -54,7 +54,7 @@ function SPSSprayerPumpStateEvent:run(connection)
         if state ~= nil then
             state.pumpRunning = self.pumpOn
             if not connection:getIsServer() then
-                g_server:broadcastEvent(SPSSprayerPumpStateEvent.new(self.object, self.pumpOn), nil, connection, self.object)
+                g_server:broadcastEvent(SPSSprayerPumpStateEvent.new(self.object, self.pumpOn), nil, connection, self.object, nil, nil, true)
             end
         end
     end
@@ -63,7 +63,7 @@ end
 function SPSSprayerPumpStateEvent.sendEvent(object, pumpOn, noEventSend)
     if noEventSend == nil or not noEventSend then
         if g_server ~= nil then
-            g_server:broadcastEvent(SPSSprayerPumpStateEvent.new(object, pumpOn), nil, nil, object)
+            g_server:broadcastEvent(SPSSprayerPumpStateEvent.new(object, pumpOn), nil, nil, object, nil, nil, true)
         else
             g_client:getServerConnection():sendEvent(SPSSprayerPumpStateEvent.new(object, pumpOn))
         end
@@ -127,7 +127,7 @@ function SPSSprayerValveStateEvent:run(connection)
                 end
             end
             if not connection:getIsServer() then
-                g_server:broadcastEvent(SPSSprayerValveStateEvent.new(self.object, self.valveOpen), nil, connection, self.object)
+                g_server:broadcastEvent(SPSSprayerValveStateEvent.new(self.object, self.valveOpen), nil, connection, self.object, nil, nil, true)
             end
         end
     end
@@ -136,7 +136,7 @@ end
 function SPSSprayerValveStateEvent.sendEvent(object, valveOpen, noEventSend)
     if noEventSend == nil or not noEventSend then
         if g_server ~= nil then
-            g_server:broadcastEvent(SPSSprayerValveStateEvent.new(object, valveOpen), nil, nil, object)
+            g_server:broadcastEvent(SPSSprayerValveStateEvent.new(object, valveOpen), nil, nil, object, nil, nil, true)
         else
             g_client:getServerConnection():sendEvent(SPSSprayerValveStateEvent.new(object, valveOpen))
         end
@@ -181,7 +181,7 @@ function SPSSprayerDirectionEvent:run(connection)
         if state ~= nil then
             state.direction = self.direction
             if not connection:getIsServer() then
-                g_server:broadcastEvent(SPSSprayerDirectionEvent.new(self.object, self.direction), nil, connection, self.object)
+                g_server:broadcastEvent(SPSSprayerDirectionEvent.new(self.object, self.direction), nil, connection, self.object, nil, nil, true)
             end
         end
     end
@@ -190,7 +190,7 @@ end
 function SPSSprayerDirectionEvent.sendEvent(object, direction, noEventSend)
     if noEventSend == nil or not noEventSend then
         if g_server ~= nil then
-            g_server:broadcastEvent(SPSSprayerDirectionEvent.new(object, direction), nil, nil, object)
+            g_server:broadcastEvent(SPSSprayerDirectionEvent.new(object, direction), nil, nil, object, nil, nil, true)
         else
             g_client:getServerConnection():sendEvent(SPSSprayerDirectionEvent.new(object, direction))
         end
@@ -249,7 +249,7 @@ function SPSSprayerConnectEvent:run(connection)
             -- findOverlappingSprayerCoupler on receipt, same as every other client.
             g_server:broadcastEvent(
                 SPSSprayerConnectEvent.new(self.object, self.couplingId, self.targetObject, self.targetCouplingId),
-                nil, nil, self.object
+                nil, nil, self.object, nil, nil, true
             )
         end
     end
@@ -259,7 +259,7 @@ function SPSSprayerConnectEvent.sendEvent(object, couplingId, targetObject, targ
     if g_server ~= nil then
         g_server:broadcastEvent(
             SPSSprayerConnectEvent.new(object, couplingId, targetObject, targetCouplingId),
-            nil, nil, object
+            nil, nil, object, nil, nil, true
         )
     else
         g_client:getServerConnection():sendEvent(
@@ -366,7 +366,7 @@ function SPSSprayerDisconnectEvent:run(connection)
             -- Include the originator so it removes the sprayer pipe locally.
             g_server:broadcastEvent(
                 SPSSprayerDisconnectEvent.new(self.object, self.couplingId),
-                nil, nil, self.object
+                nil, nil, self.object, nil, nil, true
             )
         end
     end
@@ -374,7 +374,7 @@ end
 
 function SPSSprayerDisconnectEvent.sendEvent(object, couplingId)
     if g_server ~= nil then
-        g_server:broadcastEvent(SPSSprayerDisconnectEvent.new(object, couplingId), nil, nil, object)
+        g_server:broadcastEvent(SPSSprayerDisconnectEvent.new(object, couplingId), nil, nil, object, nil, nil, true)
     else
         g_client:getServerConnection():sendEvent(SPSSprayerDisconnectEvent.new(object, couplingId))
     end
@@ -394,18 +394,22 @@ function SPSSprayerCompartmentEvent.emptyNew()
     return self
 end
 
-function SPSSprayerCompartmentEvent.new(object, couplerId, fillType, level)
+-- [SPS 1.0.1.8] tankId (0 = the coupler is its own compartment) identifies a
+-- <tank> of a multi-tank coupler. 5 bits: up to 31 tanks per coupler.
+function SPSSprayerCompartmentEvent.new(object, couplerId, fillType, level, tankId)
     local self = SPSSprayerCompartmentEvent.emptyNew()
     self.object    = object
     self.couplerId = couplerId
     self.fillType  = fillType or 0
     self.level     = level or 0
+    self.tankId    = tankId or 0
     return self
 end
 
 function SPSSprayerCompartmentEvent:readStream(streamId, connection)
     self.object    = NetworkUtil.readNodeObject(streamId)
     self.couplerId = streamReadUIntN(streamId, 8)
+    self.tankId    = streamReadUIntN(streamId, 5)
     self.fillType  = streamReadInt32(streamId)
     self.level     = streamReadFloat32(streamId)
     self:run(connection)
@@ -414,16 +418,88 @@ end
 function SPSSprayerCompartmentEvent:writeStream(streamId, connection)
     NetworkUtil.writeNodeObject(streamId, self.object)
     streamWriteUIntN(streamId, self.couplerId or 0, 8)
+    streamWriteUIntN(streamId, self.tankId or 0, 5)
     streamWriteInt32(streamId, self.fillType or 0)
     streamWriteFloat32(streamId, self.level or 0)
 end
 
 function SPSSprayerCompartmentEvent:run(connection)
-    log("CompartmentEvent:run obj=%s coupler=%s fillType=%s level=%.1f",
+    log("CompartmentEvent:run obj=%s coupler=%s tank=%s fillType=%s level=%.1f",
         tostring(self.object and self.object.configFileName), tostring(self.couplerId),
-        tostring(self.fillType), self.level or 0)
+        tostring(self.tankId), tostring(self.fillType), self.level or 0)
     if self.object ~= nil and g_slurryPipeManager ~= nil
     and g_slurryPipeManager.applySprayerCompartmentState ~= nil then
-        g_slurryPipeManager:applySprayerCompartmentState(self.object, self.couplerId, self.fillType, self.level)
+        g_slurryPipeManager:applySprayerCompartmentState(self.object, self.couplerId, self.fillType, self.level, self.tankId)
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.8] SPSSprayerTankSelectEvent — which <tank> a multi-tank coupler
+-- routes to. REQ (client -> server) asks for a tank; STATE (server -> all)
+-- is the applied selection. Same shape as SPSBuyStationEvent.
+-- ---------------------------------------------------------------------------
+SPSSprayerTankSelectEvent = {}
+SPSSprayerTankSelectEvent_mt = Class(SPSSprayerTankSelectEvent, Event)
+InitEventClass(SPSSprayerTankSelectEvent, "SPSSprayerTankSelectEvent")
+
+SPSSprayerTankSelectEvent.REQ   = 0
+SPSSprayerTankSelectEvent.STATE = 1
+
+function SPSSprayerTankSelectEvent.emptyNew()
+    return Event.new(SPSSprayerTankSelectEvent_mt)
+end
+
+function SPSSprayerTankSelectEvent.new(reqType, object, couplerId, tankIndex)
+    local self     = SPSSprayerTankSelectEvent.emptyNew()
+    self.reqType   = reqType
+    self.object    = object
+    self.couplerId = couplerId or 0
+    self.tankIndex = tankIndex or 1
+    return self
+end
+
+function SPSSprayerTankSelectEvent:writeStream(streamId, connection)
+    streamWriteUIntN(streamId, self.reqType or 0, 1)
+    NetworkUtil.writeNodeObject(streamId, self.object)
+    streamWriteUIntN(streamId, self.couplerId or 0, 8)
+    streamWriteUIntN(streamId, self.tankIndex or 1, 5)
+end
+
+function SPSSprayerTankSelectEvent:readStream(streamId, connection)
+    self.reqType   = streamReadUIntN(streamId, 1)
+    self.object    = NetworkUtil.readNodeObject(streamId)
+    self.couplerId = streamReadUIntN(streamId, 8)
+    self.tankIndex = streamReadUIntN(streamId, 5)
+    self:run(connection)
+end
+
+function SPSSprayerTankSelectEvent:run(connection)
+    if self.object == nil or not self.object:getIsSynchronized() then return end
+    local mgr = g_slurryPipeManager
+    if mgr == nil or mgr.applySprayerTankSelection == nil then return end
+    log("TankSelectEvent:run reqType=%d obj=%s coupler=%s tank=%s (server=%s)",
+        self.reqType, tostring(self.object.configFileName), tostring(self.couplerId),
+        tostring(self.tankIndex), tostring(g_server ~= nil))
+    if self.reqType == SPSSprayerTankSelectEvent.STATE then
+        mgr:applySprayerTankSelection(self.object, self.couplerId, self.tankIndex, false)
+    elseif self.reqType == SPSSprayerTankSelectEvent.REQ then
+        if not connection:getIsServer() then
+            mgr:applySprayerTankSelection(self.object, self.couplerId, self.tankIndex, true)
+        end
+    end
+end
+
+function SPSSprayerTankSelectEvent.sendRequest(object, couplerId, tankIndex)
+    if g_client ~= nil and g_server == nil then
+        g_client:getServerConnection():sendEvent(
+            SPSSprayerTankSelectEvent.new(SPSSprayerTankSelectEvent.REQ, object, couplerId, tankIndex))
+    end
+end
+
+function SPSSprayerTankSelectEvent.sendState(object, couplerId, tankIndex)
+    if g_server ~= nil and object ~= nil then
+        g_server:broadcastEvent(
+            SPSSprayerTankSelectEvent.new(SPSSprayerTankSelectEvent.STATE, object, couplerId, tankIndex),
+            nil, nil, object, nil, nil, true)
     end
 end

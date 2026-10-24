@@ -50,4 +50,15 @@
 		<plant stage="3" i3d="i3d/foliage/nettle.i3d"   weight="1"/>
 	</crust>
 	
+
+    <!-- [SPS 1.0.1.8] MILK lane: barn -> tanker (MILK or BUFFALOMILK, 60000 l each). This barn has
+         automatic water supply, so there is deliberately NO water coupler. SPS_milkPipeCoupler01
+         (+ Arcs, inNode/outNode) sits in nodeTree.i3d as EMPTY transforms at the "cowShedUK" origin:
+         position it and add the sprayerConnector mesh in GIANTS Editor. See SPS_README_05_Animal_Water.md. -->
+    <milkPipeSystem>
+        <milkPipeCouplings>
+            <milkPipeCoupling id="1" mountNodeName="SPS_milkPipeCoupler01" maxPipeLength="7.5" connectorAnimation="3"/>
+        </milkPipeCouplings>
+    </milkPipeSystem>
+
 </slurryPipeSystem>

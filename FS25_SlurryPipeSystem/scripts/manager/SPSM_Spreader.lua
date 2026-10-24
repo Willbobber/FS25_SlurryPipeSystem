@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Spreader 1.0.0.10.4 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSM_Spreader 1.0.0.10.4 loaded") end
 
 
 function SlurryPipeManager:vehicleHasSpreader(vehicle)
@@ -37,7 +37,16 @@ end
 -- The SPS spreader valve drives their TurnOnVehicle state: open -> setIsTurnedOn(true),
 -- close -> auto-off via getCanBeTurnedOn / TurnOnVehicle.turnOffIfNotAllowed.
 function SlurryPipeManager:findAttachedDribbleBars(vehicle)
+    -- [SPS PERF] update() consults this up to three times per spreader per tick;
+    -- memoise the result on the vehicle for the current frame (g_time is constant
+    -- within a frame). Attach/detach lands next frame — the same latency the
+    -- repeated calls already had between frames.
+    if vehicle._spsBarsFrameT == g_time and vehicle._spsBarsList ~= nil then
+        return vehicle._spsBarsList
+    end
     local bars = {}
+    vehicle._spsBarsFrameT = g_time
+    vehicle._spsBarsList   = bars
     local root = vehicle:getRootVehicle()
     if root == nil or root.getChildVehicles == nil then return bars end
     for _, v in ipairs(root:getChildVehicles()) do

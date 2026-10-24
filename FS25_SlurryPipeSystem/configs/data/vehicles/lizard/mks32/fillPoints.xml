@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- mks32 -->
+
+<!-- FS25_SlurryPipeSystem — Vehicle fillPoints.xml -->
+<!-- Author: Oscar Mods -->
+<!-- Version: 1.0.1.8 -->
+
+<!-- Water / milk trailer: no slurry side, so the root is the liquid connector itself.
+     ONE connector: at a barn WATER coupler water goes in, at a MILK coupler milk comes out,
+     at a sprayer silo / IBC / phyto station it behaves like a sprayer (fert, herb, ANY).
+     A tank holding milk only sees milk couplers, water only water, fert only sprayer
+     sources; empty sees all. Nodes from nodeTree.i3d in this folder under a container
+     named after a live node of the vehicle (e.g. "mks32_vis"):
+       SPS_liquidPipeCoupler01 / ...Arcs(Arc01,Arc02) / sprayerConnector / inNode / outNode
+       SPS_liquidControlNode  (walk-up node, ~1 m from the coupler)
+     Listed under <liquidVehicleConfigs> in spsConfigManifest.xml (enable when the tree exists). -->
+
+<liquidPipeSystem>
+    <nodeTree filename="nodeTree.i3d"/>
+    <flow litersPerSecond="200"/>
+    <liquidPipeCouplings>
+        <liquidPipeCoupling id="1" mountNodeName="SPS_liquidPipeCoupler01" fillUnitIndex="1"
+                            maxPipeLength="7.5" connectorAnimation="3"/>
+    </liquidPipeCouplings>
+    <liquidPumpControls>
+        <liquidPumpControl id="1" nodeName="SPS_liquidControlNode" radius="1.5"/>
+    </liquidPumpControls>
+</liquidPipeSystem>

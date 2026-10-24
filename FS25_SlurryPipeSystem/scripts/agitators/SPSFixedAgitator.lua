@@ -26,7 +26,7 @@
 -- immediate next add once connect is verified in-game.
 -- ---------------------------------------------------------------------------
 
-print("[SPS BUILD] SPSFixedAgitator 1.0.0.10.3 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSFixedAgitator 1.0.0.10.3 loaded") end
 
 SPSFixedAgitator = {}
 
@@ -88,7 +88,7 @@ function SPSFixedAgitator.readConfig(xmlFile, kp)
 
     local cfg = {}
     cfg.turnOffIfNotAllowed = xmlFile:getBool(base .. "#turnOffIfNotAllowed", true)
-    cfg.maxConnectDistance  = xmlFile:getFloat(base .. "#maxConnectDistance", 0.2)
+    cfg.maxConnectDistance  = xmlFile:getFloat(base .. "#maxConnectDistance", 0.3)  -- [SPS 1.0.1.8] was 0.2; William: too tight in play
     -- [SPS CRUST v1.0.0.10.2] Mixing speed for this fixed unit. 1.0 = baseline
     -- (SlurryPipeManager.CRUST_MIX_HOURS to clear a full crust); 2.0 = twice as fast.
     -- Same attribute name and meaning as the tractor-mounted agitator's crustMix, so a
@@ -103,6 +103,11 @@ function SPSFixedAgitator.readConfig(xmlFile, kp)
     -- Without this a fixed agitator on a multi-lagoon placeable always mixed store 1
     -- regardless of which lagoon its shaft was actually standing in.
     cfg.storeId = xmlFile:getInt(base .. "#storeId", nil)
+    -- [SPS 1.0.1.8] Issue #33: PTO load on the connected tractor. Same units as the
+    -- vanilla <powerConsumer> block (kW at #ptoRpm). 0 disables the load; the shaft
+    -- still connects and the unit still mixes.
+    cfg.neededPtoPower = math.max(0, xmlFile:getFloat(base .. "#neededPtoPower", 60))
+    cfg.ptoRpm         = math.max(0, xmlFile:getFloat(base .. "#ptoRpm", 540))
 
     -- <input inputNode=".." detachNode=".." filename=".." .../>
     cfg.inputNodeName    = xmlFile:getString(base .. ".input#inputNode", nil)
@@ -162,7 +167,7 @@ function SPSFixedAgitator.initForPlaceable(manager, pEntry, xmlFile, kp, linkedN
     fa.distanceNode     = resolve(cfg.distanceNodeName)
     fa.levelNode        = resolve(cfg.levelNodeName)
     fa.soundNode        = resolve(cfg.soundLinkNodeName)
-    fa.maxConnectDist   = cfg.maxConnectDistance or 0.2
+    fa.maxConnectDist   = cfg.maxConnectDistance or 0.3
 
     -- Blade nodes + captured base rotation (spin is added on the chosen axis so
     -- any authored orientation is preserved).
@@ -750,6 +755,79 @@ function SPSFixedAgitator.updateVehiclePhysics(self, superFunc, axisForward, axi
     return superFunc(self, axisForward, axisSide, doHandbrake, dt)
 end
 
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.8] Issue #33: engine load + "turned on" schema symbol on the tractor.
+--
+-- A placeable is not a PowerConsumer, so vanilla's PTO sums never see it. Both
+-- sums are plain statics the tractor calls with ITSELF as the first argument:
+--   PowerConsumer.getTotalConsumedPtoTorque(vehicle, excludeVehicle, expected, ignoreTurnOnPeak)
+--     - WheelsUtil.lua:306 every physics tick (the real motor load, fed to
+--       controlVehicle as neededPtoTorque), VehicleMotor.lua:857 (start-gear
+--       power budget), PowerConsumer:getCanBeTurnedOn* (torque headroom checks).
+--   PowerConsumer.getMaxPtoRpm(vehicle)
+--     - VehicleMotor.lua:315/683: the motor holds PTO rpm while a consumer runs.
+-- Both recurse over attached implements through the same global name, so the
+-- add-on is keyed on the vehicle being exactly the one the agitator holds
+-- (fa.connectedVehicle is the entered tractor, never an implement) and lands once.
+-- Torque maths is vanilla's own (PowerConsumer.lua:162-163): kW / (rpm * pi / 30).
+--
+-- The green schema symbol is InputHelpDisplay.lua:531 -> vehicle:getUseTurnedOnSchema();
+-- Vehicle.lua:2780 returns false and TurnOnVehicle ORs in getIsTurnedOn. Registered
+-- as an overwritten function on every Drivable type, like the movement lock.
+-- ---------------------------------------------------------------------------
+function SPSFixedAgitator.getAgitatorHeldBy(vehicle)
+    if vehicle == nil or g_slurryPipeManager == nil or g_slurryPipeManager.registeredPlaceables == nil then
+        return nil
+    end
+    for _, pE in ipairs(g_slurryPipeManager.registeredPlaceables) do
+        local fa = pE.fixedAgitator
+        if fa ~= nil and fa.connectedVehicle == vehicle then return fa end
+    end
+    return nil
+end
+
+function SPSFixedAgitator.getPtoTorque(fa, expected)
+    local cfg = fa.cfg
+    if cfg == nil or cfg.neededPtoPower <= 0 or cfg.ptoRpm <= 0 then return 0 end
+    if fa.running or (expected == true and fa.ptoEngaged == true) then
+        return cfg.neededPtoPower / (cfg.ptoRpm * math.pi / 30)
+    end
+    return 0
+end
+
+function SPSFixedAgitator.getUseTurnedOnSchema(self, superFunc)
+    if superFunc(self) then return true end
+    local fa = SPSFixedAgitator.getAgitatorHeldBy(self)
+    return fa ~= nil and fa.running == true
+end
+
+function SPSFixedAgitator.installPtoLoadHooks()
+    if SPSFixedAgitator._ptoHooksInstalled or PowerConsumer == nil then return end
+    local origTorque = PowerConsumer.getTotalConsumedPtoTorque
+    local origRpm    = PowerConsumer.getMaxPtoRpm
+    if origTorque == nil or origRpm == nil then return end
+    PowerConsumer.getTotalConsumedPtoTorque = function(vehicle, excludeVehicle, expected, ignoreTurnOnPeak)
+        local torque, mult = origTorque(vehicle, excludeVehicle, expected, ignoreTurnOnPeak)
+        if vehicle ~= excludeVehicle then
+            local fa = SPSFixedAgitator.getAgitatorHeldBy(vehicle)
+            if fa ~= nil then
+                torque = (torque or 0) + SPSFixedAgitator.getPtoTorque(fa, expected)
+            end
+        end
+        return torque, mult
+    end
+    PowerConsumer.getMaxPtoRpm = function(vehicle)
+        local rpm = origRpm(vehicle) or 0
+        local fa = SPSFixedAgitator.getAgitatorHeldBy(vehicle)
+        if fa ~= nil and fa.running and fa.cfg ~= nil and fa.cfg.neededPtoPower > 0 then
+            rpm = math.max(rpm, fa.cfg.ptoRpm)
+        end
+        return rpm
+    end
+    SPSFixedAgitator._ptoHooksInstalled = true
+    log("PTO load hooks installed on PowerConsumer statics")
+end
+
 function SPSFixedAgitator.registerOverrides()
     if g_vehicleTypeManager == nil then return end
     local n = 0
@@ -762,11 +840,14 @@ function SPSFixedAgitator.registerOverrides()
             if hasDrivable then
                 SpecializationUtil.registerOverwrittenFunction(
                     typeEntry, "updateVehiclePhysics", SPSFixedAgitator.updateVehiclePhysics)
+                SpecializationUtil.registerOverwrittenFunction(
+                    typeEntry, "getUseTurnedOnSchema", SPSFixedAgitator.getUseTurnedOnSchema)
                 n = n + 1
             end
         end
     end
-    log("registered updateVehiclePhysics lock on %d drivable types", n)
+    log("registered updateVehiclePhysics lock + turned-on schema on %d drivable types", n)
+    SPSFixedAgitator.installPtoLoadHooks()
 
     -- One-shot: register the detection-dump console command.
     if not SPSFixedAgitator._consoleRegistered and addConsoleCommand ~= nil then

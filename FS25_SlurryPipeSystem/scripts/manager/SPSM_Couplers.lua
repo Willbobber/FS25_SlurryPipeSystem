@@ -10,7 +10,7 @@
 -- every function body in this file is byte-identical to the baseline.
 -- Loads AFTER the core manager file (see modDesc extraSourceFiles order).
 
-print("[SPS BUILD] SPSM_Couplers 1.0.0.9.29 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSM_Couplers 1.0.0.9.29 loaded") end
 
 
 -- Applies saved coupler animation time/direction to a registered coupling.
@@ -271,6 +271,9 @@ function SlurryPipeManager:hasActiveCouplingConnection(vehicle)
         if entry.vehicle == vehicle then
             for _, c in ipairs(entry.couplingEntries) do
                 if c.isConnected and c.valveOpen then return true end
+                -- [SPS 1.0.1.8] physical pipe with its far end lying in the water = water intake
+                if c.valveOpen and c.physPipe ~= nil and self.physCouplingIsWaterFed ~= nil
+                   and self:physCouplingIsWaterFed(c) then return true end
             end
             return false
         end
@@ -726,6 +729,37 @@ function SlurryPipeManager:onCouplerConnect(vehicle, coupling)
     SlurryPipeConnectEvent.sendEvent(vehicle or ownerA, ownerB, targetType, coupling.id, otherCoupling.id)
 end
 
+-- [SPS HOSE step 2b/3] The one place that decides which visual draws a coupler-to-coupler
+-- hose. New physical hoses (SPSHoseVisual) when the live switch is on and the class is
+-- loaded - chain termini included (step 3): a chain end node (old mesh or new proxy) has the
+-- same axis convention as a coupler outNode and a chain start the same as an inNode, and the
+-- end-piece visibility fix-ups after creation read inst.endConnectors, which a hose instance
+-- does not have. Otherwise the old SPSPipeVisual exactly as before. Hose instances carry
+-- isHose, so the shared updatePipe/destroyPipe/applyColor calls in SlurryPipeManager delegate.
+function SlurryPipeManager:_createCouplerVisual(nodeA, nodeB, startConnType, endConnType, leadCoupling, followCoupling)
+    -- [SPS 1.0.1.8] A bought PHYSICAL pipe plugged into either coupling IS the hose: draw nothing.
+    if (leadCoupling ~= nil and leadCoupling.physPipe ~= nil) or (followCoupling ~= nil and followCoupling.physPipe ~= nil) then
+        return nil
+    end
+    local chainInvolved = (leadCoupling ~= nil and (leadCoupling.isChainTerminus or leadCoupling.isChainStart))
+                       or (followCoupling ~= nil and (followCoupling.isChainTerminus or followCoupling.isChainStart))
+    local reason = nil
+    if SPSHoseVisual == nil then reason = "hose class missing"
+    elseif not SPSHoseVisual.LIVE then reason = "spsHoseLive is OFF"
+    elseif g_spsHoseVisual == nil or not g_spsHoseVisual:isReady() then reason = "hose class not ready yet"
+    end
+    if reason == nil then
+        local inst = g_spsHoseVisual:createSlurryHose(nodeA, nodeB, startConnType, endConnType)
+        if inst ~= nil then return inst end
+        reason = "createSlurryHose failed (see the [SPS HOSE] error above)"
+    end
+    -- Always logged (not channel-gated), the counterpart of the "[SPS HOSE] LIVE:" line, so the
+    -- log always says which visual a coupler connection got and why (William 2026-10-13).
+    print(string.format("[SPS HOSE] OLD bez pipe used for coupler connection A.id=%s B.id=%s (chain involved=%s): %s",
+        tostring(leadCoupling and leadCoupling.id), tostring(followCoupling and followCoupling.id), tostring(chainInvolved), reason))
+    return g_spsPipeVisual:createPipe(nodeA, nodeB, startConnType, endConnType, false, false)
+end
+
 -- applyConnectCouplings — called locally with the actual coupling objects.
 -- Avoids the ID lookup ambiguity that breaks placeable-initiated connections.
 function SlurryPipeManager:applyConnectCouplings(couplingA, couplingB, ownerA, ownerB)
@@ -817,7 +851,7 @@ function SlurryPipeManager:applyConnectCouplings(couplingA, couplingB, ownerA, o
         self:_traceNode("applyConnect.nodeB(pipe END)",   nodeB)
 --        print("[SPS TRACE] applyConnect: startConnType=" .. tostring(startConnType) .. " endConnType=" .. tostring(endConnType))
 
-        local inst = g_spsPipeVisual:createPipe(nodeA, nodeB, startConnType, endConnType, false, false)
+        local inst = self:_createCouplerVisual(nodeA, nodeB, startConnType, endConnType, leadCoupling, followCoupling)
         SlurryPipeManager.logMP(string.format("[SPS MP] applyConnectCouplings createPipe nodeA=%s nodeB=%s inst=%s",
             tostring(nodeA), tostring(nodeB), tostring(inst ~= nil)))
         if inst ~= nil then
@@ -907,7 +941,7 @@ function SlurryPipeManager:_drainPendingPipeVisuals()
             end
             local startConnType = (leadCoupling.connectorType ~= nil) and leadCoupling.connectorType or "male"
             local endConnType   = (followCoupling.connectorType ~= nil) and followCoupling.connectorType or "female"
-            local inst = g_spsPipeVisual:createPipe(nodeA, nodeB, startConnType, endConnType, false, false)
+            local inst = self:_createCouplerVisual(nodeA, nodeB, startConnType, endConnType, leadCoupling, followCoupling)
             SlurryPipeManager.logMP(string.format("[SPS MP] _drainPendingPipeVisuals: createPipe A.id=%s B.id=%s inst=%s",
                 tostring(couplingA.id), tostring(couplingB.id), tostring(inst ~= nil)))
             if inst ~= nil then
@@ -991,6 +1025,12 @@ function SlurryPipeManager:applyDisconnect(vehicle, couplingId, couplingObj)
 
     local partner = coupling.connectedPartnerCoupling
 
+    -- [SPS 1.0.1.8] Physical pipe plugged into THIS coupling: let its end go (the partner side's
+    -- end, if any, stays plugged in - one end was disconnected, not the pipe).
+    if coupling.physPipe ~= nil and self._physFreeCoupling ~= nil then
+        self:_physFreeCoupling(coupling)
+    end
+
     -- Destroy pipe visual
     if coupling.pipeId ~= nil then
         local pipeData = self.activePipes[coupling.pipeId]
@@ -1066,7 +1106,8 @@ end
 
 function SlurryPipeManager:onValveOpen(vehicle, coupling)
     SlurryPipeManager.log("onValveOpen: %s couplingId=%s", tostring(vehicle and vehicle.configFileName), tostring(coupling and coupling.id))
-    if not coupling.isConnected then return end
+    -- [SPS 1.0.1.8] a physical pipe lying free in the water counts as connected (water intake)
+    if not (coupling.isConnected or (self.physCouplingIsWaterFed ~= nil and self:physCouplingIsWaterFed(coupling))) then return end
     if coupling.valveOpen then return end
 
 
@@ -1085,7 +1126,8 @@ end
 
 function SlurryPipeManager:onValveClose(vehicle, coupling)
     SlurryPipeManager.log("onValveClose: %s couplingId=%s", tostring(vehicle and vehicle.configFileName), tostring(coupling and coupling.id))
-    if not coupling.isConnected then return end
+    -- [SPS 1.0.1.8] closing must work on a water-fed physical pipe as well (and on a stale open valve)
+    if not (coupling.isConnected or coupling.physPipe ~= nil) then return end
     if not coupling.valveOpen then return end
 
     if g_server == nil then

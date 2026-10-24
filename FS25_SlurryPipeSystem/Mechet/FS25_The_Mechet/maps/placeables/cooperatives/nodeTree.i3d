@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
+  </Asset>
+
+  <Files>
+  </Files>
+
+
+  <Materials>
+  </Materials>
+
+
+  <Shapes>
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="SPS_reservoir_01" nodeId="211">
+      <TransformGroup name="pipeCouplers" nodeId="212">
+        <TransformGroup name="loadingStation" nodeId="213">
+          <TransformGroup name="SPS_pipeCoupler01" translation="-6.87642 0.784829 5.45492" rotation="0 180 0" nodeId="214">
+            <TransformGroup name="SPS_pipeCoupler01Arcs" rotation="-177.114 1.88896e-05 -180" nodeId="215">
+              <TransformGroup name="SPS_pipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="216"/>
+              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="217"/>
+            </TransformGroup>
+            <TransformGroup name="inNode" nodeId="218"/>
+            <TransformGroup name="outNode" rotation="180 -4.8279e-06 180" nodeId="219"/>
+            <TransformGroup name="headHeight01" nodeId="220"/>
+          </TransformGroup>
+          <TransformGroup name="poolCentre" nodeId="221"/>
+          <TransformGroup name="poolCorner1" translation="-8.2095 0 1.1757" nodeId="222"/>
+          <TransformGroup name="poolCorner2" translation="13.6177 0 -5.64228" nodeId="223"/>
+        </TransformGroup>
+      </TransformGroup>
+    </TransformGroup>
+  </Scene>
+
+</i3D>

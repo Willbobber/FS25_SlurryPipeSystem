@@ -3,7 +3,7 @@
 
 <!-- FS25_SlurryPipeSystem — Vehicle fillPoints.xml -->
 <!-- Author: Oscar Mods -->
-<!-- Version: 1.0.0.6 — straighteningFactor: straight exit section out of the coupler (tune the value; straight direction = slurryPipe local -Z) -->
+<!-- Version: 1.0.0.6 -->
 
 <slurryPipeSystem>
 
@@ -49,26 +49,34 @@
 
     <rubberBootPorts/>
 
+    <pipeHolders>
+        <pipeHolder id="1" nodeName="SPS_pipeHolder01" radius="1.0"/>
+        <pipeHolder id="2" nodeName="SPS_pipeHolder02" radius="1.0"/>
+        <pipeHolder id="3" nodeName="SPS_pipeHolder03" radius="1.0"/>
+    </pipeHolders>
+
+    <dockingStationHolders>
+        <dockingStationHolder id="1" nodeName="dockingStationPosition" radius="1.5"/>
+    </dockingStationHolders>
+
     <outsideControls>
         <outsideControl mountNodeName="pumpControl01" pto="true" direction="false"/>
     </outsideControls>
 
-    <!-- RECEIVER side of the tractor-mounted front fill arm system.
-         accepted="true": this tanker can be hose-paired with a front mount
-         through the tractor's side pipe carrier. The hose below is INJECTED
-         into the vehicle's connection hoses by SPS at registration:
-           * node        — resolved by name in the SPS nodeTree (slurryPipe is
-                           the receiving pipe modelled in this tanker's tree)
-           * type        — plain TOOL_CONNECTOR_TOP_RIGHT, no specType: plugs
-                           a normal tractor's carrier back-connector and pairs
-                           with the front mount's plain hose (same type)
-           * inputAttacherJointIndices — the tanker's own input joint (1 = its
-                           drawbar/first joint)
-         objectChange hides the static hose mesh while the dynamic hose runs. -->
     <tractorMountFillArms accepted="true">
         <hose inputAttacherJointIndices="1" type="TOOL_CONNECTOR_TOP_RIGHT" node="slurryPipe" length="2" diameter="0.18" isTwoPointHose="true">
             <objectChange node="coupler" visibilityActive="true" visibilityInactive="false" initialState="inactive"/>
         </hose>
     </tractorMountFillArms>
+
+    <liquidPipeSystem>
+        <liquidPipeCouplings>
+            <liquidPipeCoupling id="1" mountNodeName="SPS_liquidPipeCoupler01" fillUnitIndex="1" lanes="WATER"
+                                maxPipeLength="7.5" valveAnimation="4"/>
+        </liquidPipeCouplings>
+        <liquidPumpControls>
+            <liquidPumpControl id="1" nodeName="SPS_liquidControlNode" radius="1.5"/>
+        </liquidPumpControls>
+    </liquidPipeSystem>
 
 </slurryPipeSystem>

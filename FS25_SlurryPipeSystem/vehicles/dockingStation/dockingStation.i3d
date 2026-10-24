@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="dockingStation.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.14"/>
+  </Asset>
+
+  <Files>
+    <File fileId="5" filename="$data/shaders/vehicleShader.xml"/>
+    <File fileId="3" filename="$data/shared/default_normal.dds"/>
+    <File fileId="14" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="8" filename="$data/shared/detailLibrary/metallic/metalGalvanized_diffuse.png"/>
+    <File fileId="7" filename="$data/shared/detailLibrary/metallic/metalGalvanized_normal.png"/>
+    <File fileId="6" filename="$data/shared/detailLibrary/metallic/metalGalvanized_specular.png"/>
+    <File fileId="15" filename="$data/shared/detailLibrary/metallic/silverScratched_diffuse.png"/>
+    <File fileId="13" filename="$data/shared/detailLibrary/metallic/silverScratched_specular.png"/>
+    <File fileId="18" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubberBlack_diffuse.png"/>
+    <File fileId="17" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_normal.png"/>
+    <File fileId="16" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_specular.png"/>
+    <File fileId="2" filename="$data/shared/white_diffuse.dds"/>
+    <File fileId="4" filename="dockingStation_Vmask.dds"/>
+  </Files>
+
+
+  <Materials>
+    <Material name="i3d_default_material" materialId="5" diffuseColor="0.8 0.8 0.8 1" specularColor="0.6 1 0">
+    </Material>
+    <Material name="lambert1" materialId="6" diffuseColor="0.8 0.8 0.8 1" specularColor="0.501961 1 0">
+    </Material>
+    <Material name="metalGalvanized_mat" materialId="7" customShaderId="5" customShaderVariation="vmaskUV2">
+      <Texture fileId="2"/>
+      <Normalmap fileId="3"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="6"/>
+      <Custommap name="detailNormal" fileId="7"/>
+      <Custommap name="detailDiffuse" fileId="8"/>
+    </Material>
+    <Material name="rubberBlack_mat" materialId="8" customShaderId="5" customShaderVariation="vmaskUV2">
+      <Texture fileId="2"/>
+      <Normalmap fileId="3"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="16"/>
+      <Custommap name="detailNormal" fileId="17"/>
+      <Custommap name="detailDiffuse" fileId="18"/>
+      <CustomParameter name="porosity" value="0.5"/>
+    </Material>
+    <Material name="silverScratched_mat" materialId="9" customShaderId="5" customShaderVariation="vmaskUV2">
+      <Texture fileId="2"/>
+      <Normalmap fileId="3"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="13"/>
+      <Custommap name="detailNormal" fileId="14"/>
+      <Custommap name="detailDiffuse" fileId="15"/>
+    </Material>
+    <Material name="UnnamedMaterial" materialId="10" diffuseColor="1 1 1 1">
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="dockingStation.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <Shape name="SPS_DockingStation_mainComponent1" shapeId="1" dynamic="true" compound="true" collisionFilterGroup="0x10004" collisionFilterMask="0xfe3ffb83" clipDistance="300" nodeId="16" castsShadows="false" receiveShadows="false" nonRenderable="true" distanceBlending="false" materialIds="10">
+      <Shape name="dockingStation_vis" rotation="-180 -5.00896e-06 -180" shapeId="2" clipDistance="300" nodeId="17" castsShadows="true" receiveShadows="true" skinBindNodeIds="20 22" materialIds="7,9,8">
+        <TransformGroup name="SPS_rubberBootLower01" translation="-1.52827e-08 0.427645 0.05676" rotation="-180 5.00896e-06 -180" nodeId="18"/>
+        <TransformGroup name="SPS_rubberBootUpper01" translation="-4.37345e-08 0.753095 0.05676" rotation="-180 5.00896e-06 -180" nodeId="19"/>
+        <TransformGroup name="Bone01" translation="-1.52827e-08 0.427645 0.05676" rotation="1.36604e-05 -180 5.00895e-06" nodeId="20"/>
+        <TransformGroup name="fillarmConnectNode" translation="-2.53402e-08 0.631275 0.05676" rotation="-180 5.00896e-06 -180" nodeId="21">
+          <TransformGroup name="Bone02" translation="-7.10543e-15 0.12182 -2.30897e-08" rotation="5.00897e-06 8.68433e-13 3.64247e-06" nodeId="22"/>
+        </TransformGroup>
+      </Shape>
+      <TransformGroup name="cols" rotation="-180 1.86693e-05 -180" nodeId="23">
+        <Shape name="dockingStationCol2" shapeId="3" compoundChild="true" collisionFilterGroup="0x10004" collisionFilterMask="0xfe3ffb83" nodeId="24" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="5"/>
+        <Shape name="dockingStationCol3" shapeId="4" compoundChild="true" collisionFilterGroup="0x10004" collisionFilterMask="0xfe3ffb83" nodeId="25" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="6"/>
+      </TransformGroup>
+      <TransformGroup name="SPS_pipeCoupler01" translation="-1.17213e-07 0.163343 0.359723" rotation="-180 1.86693e-05 -180" nodeId="26">
+        <TransformGroup name="SPS_pipeCoupler01Arcs" nodeId="27">
+          <TransformGroup name="SPS_pipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="28"/>
+          <TransformGroup name="SPS_pipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="29"/>
+        </TransformGroup>
+        <TransformGroup name="inNode" nodeId="30"/>
+        <TransformGroup name="outNode" rotation="0 180 0" nodeId="31"/>
+        <TransformGroup name="headHeight" nodeId="32"/>
+      </TransformGroup>
+    </Shape>
+  </Scene>
+
+</i3D>

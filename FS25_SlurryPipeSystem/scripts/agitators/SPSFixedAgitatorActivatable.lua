@@ -43,6 +43,7 @@ local function getProxNode(fa)
 end
 
 function SPSFixedAgitatorActivatable:getIsActivatable()
+    if SPSAccess ~= nil and not SPSAccess.localCanUse(self.pEntry) then return false end   -- [SPS 1.0.1.8] farm permission
     if g_localPlayer == nil then return false end
     local fa = getFA(self)
     if fa == nil then return false end

@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<placeable type="silo" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../shared/xml/schema/placeable.xsd">
+    <storeData>
+        <name>$l10n_shopItem_spsSprayerSilo</name>
+        <functions>
+            <function>$l10n_function_spsSprayerSilo</function>
+        </functions>
+        <image>placeables/silos/fertHerbSilo/store_sprayerSilo.dds</image>
+        <price>246500</price>
+        <dailyUpkeep>100</dailyUpkeep>
+        <lifetime>1000</lifetime>
+        <rotation>0</rotation>
+        <brand>MERIDIAN</brand>
+        <species>PLACEABLE</species>
+        <category>fillableTanks</category>
+        <brush>
+            <type>placeable</type>
+            <category>buildings</category>
+            <tab>containers</tab>
+        </brush>
+    </storeData>
+
+    <base>
+        <filename>placeables\silos\fertHerbSilo\sprayerSilo.i3d</filename>
+        <canBeRenamed>true</canBeRenamed>
+    </base>
+
+    <placement useRandomYRotation="false" useManualYRotation="true"  >
+        <testAreas>
+            <testArea startNode="testAreaStart01" endNode="testAreaEnd01" />
+        </testAreas>
+
+        <sounds>
+            <place template="siloImp" pitchScale="1.2"/>
+        </sounds>
+    </placement>
+
+    <clearAreas>
+        <clearArea startNode="clearAreaStart01" widthNode="clearAreaWidth01" heightNode="clearAreaHeight01"/>
+    </clearAreas>
+
+    <leveling requireLeveling="true" maxSmoothDistance="3" maxSlope="75" maxEdgeAngle="30">
+        <levelAreas>
+            <levelArea startNode="levelAreaStart01" widthNode="levelAreaWidth01" heightNode="levelAreaHeight01" groundType="asphalt"/>
+        </levelAreas>
+    </leveling>
+
+    <indoorAreas/>
+
+    <tipOcclusionUpdateAreas>
+        <tipOcclusionUpdateArea startNode="tipOcclusionUpdateAreaStart01" endNode="tipOcclusionUpdateAreaEnd01" />
+    </tipOcclusionUpdateAreas>
+
+    <ai>
+        <updateAreas>
+            <updateArea startNode="tipOcclusionUpdateAreaStart01" endNode="tipOcclusionUpdateAreaEnd01" />
+        </updateAreas>
+    </ai>
+
+    <infoTrigger triggerNode="infoTrigger"/>
+
+    <silo playerActionTrigger="refillPlayerTrigger">
+        <storages>
+            <storage node="storage" fillTypes="LIQUIDFERTILIZER HERBICIDE" capacity="173500" isExtension="false">
+                <startFillLevel fillType="LIQUIDFERTILIZER" fillLevel="0" />
+                <startFillLevel fillType="HERBICIDE"        fillLevel="0" />
+            </storage>
+        </storages>
+    </silo>
+
+    <hotspots>
+        <hotspot type="LOADING" linkNode="mapPosition" teleportNode="refillMarker"/>
+    </hotspots>
+
+    <triggerMarkers>
+        <triggerMarker node="refillMarker"         filename="$data/shared/assets/marker/markerIconWrench.i3d" />
+        <triggerMarker node="SPS_tankSwitchMarker" filename="placeables/silos/fertHerbSilo/tankSwitchMarker.i3d" />
+    </triggerMarkers>
+
+    <dynamicallyLoadedParts>
+        <dynamicallyLoadedPart node="0" linkNode="lightSwitch"   filename="$data/shared/assets/lights/terraLed/switch.i3d" />
+        <dynamicallyLoadedPart node="0" linkNode="powerSwitch01" filename="$data/shared/assets/lights/rudolfHormann/powerSwitch.i3d" />
+        <dynamicallyLoadedPart node="0" linkNode="powerSwitch02" filename="$data/shared/assets/lights/rudolfHormann/powerSwitch.i3d" />
+        <dynamicallyLoadedPart node="0" linkNode="powerSwitch03" filename="$data/shared/assets/lights/rudolfHormann/powerSwitch.i3d" />
+        <dynamicallyLoadedPart node="0" linkNode="powerSwitch04" filename="$data/shared/assets/lights/rudolfHormann/powerSwitch.i3d" />
+        <dynamicallyLoadedPart node="0" linkNode="powerSwitch05" filename="$data/shared/assets/lights/rudolfHormann/powerSwitch.i3d" />
+    </dynamicallyLoadedParts>
+
+    <!-- SPS: ONE connection, FOUR physical tanks. The player walks into SPS_playerTrigger and
+         cycles the tank the coupler routes to (R, Shift+R backwards). Every tank is ANY: it locks
+         to the first liquid pumped in and frees itself when empty. The marker is declared in
+         <triggerMarkers> above, so no switchMarkerNode here (that attribute is for configs whose
+         author cannot edit the placeable XML). -->
+    <sprayerPipeSystem>
+        <sprayerPipeCouplings>
+            <sprayerPipeCoupling id="1" mountNodeName="SPS_sprayerPipeCoupler01"
+                                 flowDirection="BOTH" maxPipeLength="7.5"
+                                 connectorAnimation="3"
+                                 switchTriggerNode="SPS_playerTrigger">
+                <tank id="1" fillTypeCategories="ANY" capacity="43375"/>
+                <tank id="2" fillTypeCategories="ANY" capacity="43375"/>
+                <tank id="3" fillTypeCategories="ANY" capacity="43375"/>
+                <tank id="4" fillTypeCategories="ANY" capacity="43375"/>
+            </sprayerPipeCoupling>
+        </sprayerPipeCouplings>
+    </sprayerPipeSystem>
+
+    <i3dMappings>
+        <i3dMapping id="clearAreaStart01" node="0>0|0" />
+        <i3dMapping id="clearAreaWidth01" node="0>0|0|0" />
+        <i3dMapping id="clearAreaHeight01" node="0>0|0|1" />
+        <i3dMapping id="levelAreaStart01" node="0>1|0" />
+        <i3dMapping id="levelAreaWidth01" node="0>1|0|0" />
+        <i3dMapping id="levelAreaHeight01" node="0>1|0|1" />
+        <i3dMapping id="testAreaStart01" node="0>2|0" />
+        <i3dMapping id="testAreaEnd01" node="0>2|0|0" />
+        <i3dMapping id="tipOcclusionUpdateAreaStart01" node="0>3|0" />
+        <i3dMapping id="tipOcclusionUpdateAreaEnd01" node="0>3|0|0" />
+        <i3dMapping id="refillPlayerTrigger" node="0>4|0" />
+        <i3dMapping id="refillMarker" node="0>4|1" />
+        <i3dMapping id="storage" node="0>4|2" />
+        <i3dMapping id="mapPosition" node="0>4|3" />
+        <i3dMapping id="infoTrigger" node="0>4|4" />
+        <i3dMapping id="SPS_tankSwitchMarker" node="0>8|0|0|1|0" />
+        <i3dMapping id="lightSwitch"   node="0>9|0" />
+        <i3dMapping id="powerSwitch01" node="0>9|1" />
+        <i3dMapping id="powerSwitch02" node="0>9|2" />
+        <i3dMapping id="powerSwitch03" node="0>9|3" />
+        <i3dMapping id="powerSwitch04" node="0>9|4" />
+        <i3dMapping id="powerSwitch05" node="0>9|5" />
+    </i3dMappings>
+</placeable>

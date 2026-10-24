@@ -10,7 +10,7 @@
 --   3. B (SPS_TOGGLE_PUMP)             — start / stop flow (valve toggle)
 --   4. Y (SPS_TOGGLE_DIRECTION)        — set load / set unload direction
 
-print("[SPS BUILD] SPSSprayerPumpControl 1.0.0.9.8 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSSprayerPumpControl 1.0.0.9.8 loaded") end
 
 SPSSprayerPumpControl = {}
 SPSSprayerPumpControl.__index = SPSSprayerPumpControl
@@ -58,6 +58,7 @@ end
 -- ActivatableObjectsSystem interface
 -- ---------------------------------------------------------------------------
 function SPSSprayerPumpControl:getIsActivatable()
+    if SPSAccess ~= nil and not SPSAccess.localCanUse(self.object) then return false end   -- [SPS 1.0.1.8] farm permission
     if g_localPlayer == nil then return false end
     if self.node == nil or self.node == 0 or not entityExists(self.node) then return false end
     if g_slurryPipeManager == nil or not g_slurryPipeManager:isSprayerVehicleRegistered(self.object) then

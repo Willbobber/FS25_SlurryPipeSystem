@@ -79,6 +79,9 @@
     <TransformGroup name="SPS_cowBarnMedium" nodeId="21">
       <TransformGroup name="pipeCouplers" nodeId="22">
         <TransformGroup name="storage" nodeId="23">
+          <TransformGroup name="slurryStore01" translation="0 -2 0" nodeId="43">
+            <TransformGroup name="virtualSurface" nodeId="44"/>
+          </TransformGroup>
           <TransformGroup name="SPS_pipeCoupler01" translation="10.6763 0.57041 2.79794" rotation="-15.4523 -90 0" nodeId="24">
             <TransformGroup name="SPS_pipeCoupler01Arcs" rotation="167.434 1.82134e-05 -180" nodeId="25">
               <TransformGroup name="SPS_pipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="26"/>

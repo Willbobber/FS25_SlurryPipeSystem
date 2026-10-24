@@ -5,7 +5,7 @@
 -- SPSPipeActivatable.lua
 -- FS25_SlurryPipeSystem
 
-print("[SPS BUILD] SPSPipeActivatable 1.0.0.9.30 loaded")
+if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSPipeActivatable 1.0.0.9.30 loaded") end
 
 SPSPipeActivatable = {}
 SPSPipeActivatable.__index = SPSPipeActivatable
@@ -35,7 +35,17 @@ end
 -- ActivatableObjectsSystem interface
 -- ---------------------------------------------------------------------------
 function SPSPipeActivatable:getIsActivatable(dirX, dirY, dirZ)
+    if SPSAccess ~= nil and not SPSAccess.localCanUse(self.vehicle) then return false end   -- [SPS 1.0.1.8] farm permission
     if g_localPlayer == nil then return false end
+    -- [SPS 1.0.1.8] pipe mode: physical pipes only -> no original connect prompt; the valve /
+    -- disconnect prompt stays for a coupling that a PHYSICAL pipe has connected (valves, pump, flow).
+    -- [SPS 1.0.1.8] ...or whose physical pipe chain ends free in the water (water intake, see
+    -- SPSM_PhysPipes physFreeEndWaterPlane): the valve must be reachable there too.
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.physicalPipesEnabled == true
+       and not (self.coupling.physPipe ~= nil
+                and (self.coupling.isConnected or g_slurryPipeManager:physCouplingIsWaterFed(self.coupling))) then
+        return false
+    end
     if self.coupling.mountNode == nil or not entityExists(self.coupling.mountNode) then return false end
     -- AI guard: hide activatable when the owning vehicle's root is AI-driven.
     if self.vehicle ~= nil
@@ -202,7 +212,11 @@ function SPSPipeActivatable:_getState()
     local coupling = self.coupling
     -- Deployable coupling not yet deployed — not activatable
     if coupling.deployable and not coupling.isDeployed then return nil end
-    if not coupling.isConnected then
+    -- [SPS 1.0.1.8] A physical pipe whose far end lies in the water counts as connected (water intake).
+    local connectedLike = coupling.isConnected
+        or (coupling.physPipe ~= nil and g_slurryPipeManager ~= nil
+            and g_slurryPipeManager.physCouplingIsWaterFed ~= nil and g_slurryPipeManager:physCouplingIsWaterFed(coupling))
+    if not connectedLike then
         if g_slurryPipeManager ~= nil then
             -- If this coupling is a chain anchor with segments, block connect to random couplers.
             -- Exception: if the chain's bez pipe (chainStartCoupling) is disconnected,
@@ -263,7 +277,15 @@ function SPSPipeActivatable:_buildActivateText()
     elseif state == "disconnectOrOpenValve" then
         return g_i18n:getText("action_spsDisconnectOrOpenValve")
     elseif state == "closeValve" then
-        return g_i18n:getText("action_spsCloseValve")
+        -- [SPS 1.0.1.8] valve open but a running pump is not moving slurry: say why on the prompt
+        local txt = g_i18n:getText("action_spsCloseValve")
+        if self.vehicle ~= nil and SPSConduitHUDExtension ~= nil and SPSConduitHUDExtension.getStopReasonFor ~= nil then
+            local stop = SPSConduitHUDExtension.getStopReasonFor(self.vehicle)
+            if stop ~= nil then
+                txt = txt .. " (" .. g_i18n:getText(stop) .. ")"
+            end
+        end
+        return txt
     end
     return ""
 end

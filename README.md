@@ -3,31 +3,65 @@
 **Realistic physical slurry pipe system for Farming Simulator 2025.**
 
 Replaces vanilla "drive into a trigger and fill" mechanics with a tactile system where you
-physically connect tanker fill arms or pipe chains, run a PTO-driven pump, build pressure,
-control flow direction, and watch slurry move through real plumbing — with a slurry that
-actually thickens, crusts and blocks if you neglect it.
+physically connect tanker fill arms or pipes, run a PTO-driven pump, build pressure, control
+flow direction, and watch slurry move through real plumbing — with a slurry that actually
+thickens, crusts and blocks if you neglect it.
+
+Current version: **1.0.1.8** — full list of changes in `RELEASE_NOTES_V1.0.1.8.md` inside the mod.
+
+---
+
+## What's new in 1.0.1.8
+
+- **Physical pipes** — real pipes you buy, carry, plug in and join by hand, as an alternative
+  to the original laid pipes. One shop page for every pipe: choose **slurry, water or milk**,
+  **4 m or 6 m**, and the **ends** (female/male, female/female, male/male), plus a colour.
+  The game asks the host once which pipe system a save uses; it can be changed later in the
+  settings.
+- **Free a stuck pipe** — pick up a pipe that is caught in a wheel or fender and press
+  **Free stuck pipe** (Left Alt + F, rebindable): it passes through vehicles while held; let
+  go and it collides again.
+- **Pipe holders on tankers** — stow pipes on the tanker's side with right mouse.
+- **SPS Docking Station** — a portable boot port, carried and stowed on tankers like a pipe.
+- **SPS Tower Mixer** — a tractor-driven lagoon mixer on a folding tower with its own pump:
+  mix the store, then pump the mixed slurry straight into a tanker.
+- **Pump flow meter** — the PTO pump and the tower mixer show rate, total pumped and, when
+  nothing moves, why (valve closed, source empty, destination full, too thick). The tanker
+  HUD shows the same reason while a pump feeds it.
+- **Water and milk by pipe** — fittings with their own valves for animal drinking water in
+  and milk out, gravity flow, tanker to tanker; the **Cow Barn Medium (SPS)** placeable.
+- **Fertiliser / herbicide silo** — four tanks, one connection, walk-in tank switch.
+- **Dirt and wear** — pipes, the docking station, the PTO pump and the tower mixer get dirty
+  and worn with use; the pressure washer cleans them.
+- **Draw your own water courses** in the building screen.
+- **Multiplayer** — many sync fixes; only an admin can change the SPS gameplay settings;
+  other farms cannot work your valves, pumps or separator.
+- **Shop** — the pipe, docking station, PTO pump and tower mixer sit under **Slurry Tools**
+  and in the **SPS Slurry Kit** pack.
 
 ---
 
 ## What it does
 
+**Two pipe systems (chosen per save)**
+- **Physical pipes** — bought pipe items with real ends: carry them in your hands, plug an
+  end into a coupler or join it to another pipe, stow them on a tanker's pipe holder.
+- **Original system** — **pipe chains** laid by walking from one coupler toward another,
+  and **direct pipes** — a single connecting pipe between two nearby couplers.
+
 **Plumbing & transfer**
 - **Fill arms** swung out of the tanker by joystick into open slurry pits or rubber boot
-  ports on buildings and other vehicles.
-- **Pipe chains** — multi-segment pipes laid by walking from one coupler toward another,
-  locked into place when both ends overlap valid couplings.
-- **Direct bez pipes** — a single connecting pipe between two nearby couplers, for quick pump
-  transfers between a tanker and a building.
-- **Conduit pump (PTO Slurry Pump)** — a passive pump trailer that lets two pipe chains
-  transfer through it.
-- **Animated couplers and valves** — clamp handles close on connect, valve wheels rotate on
-  open.
+  ports on buildings, other vehicles and the docking station.
+- **PTO Slurry Pump** — a pump on the tractor's three-point linkage that moves slurry
+  between two pipes, with a flow meter.
+- **Animated couplers and valves** — clamp handles close on connect, valve wheels and ball
+  valves turn on open.
 - **Lid-linked deployable couplers** — a store coupler can drive the placeable's own vanilla
   animated lid: deploy opens it, connect requires it fully open, and the lid locks while a
   pipe is live.
-- **Pipes rest on real surfaces** — laid pipes and connection pipes settle onto concrete
-  pads, building floors, bridge decks and roads, not just the terrain.
-- **Coloured pipes** — pick from a palette per pipe segment, stored per save.
+- **Pipes rest on real surfaces** — pipes settle onto concrete pads, building floors, bridge
+  decks and roads, not just the terrain.
+- **Coloured pipes** — pick from a palette, stored per save.
 - **Multi-fill-type support** — works with `LIQUIDMANURE` and `DIGESTATE`; transfers
   automatically pick whichever fill type is actually present, and mixed deposits merge into
   the type already held.
@@ -42,16 +76,7 @@ actually thickens, crusts and blocks if you neglect it.
   drives fill and discharge; spread behaviour scales with pressure rather than a simple
   on/off.
 - **PTO shear bolt (opt-in)** — wears and snaps under load while turning with the PTO
-  engaged; walk-up hold-to-repair.
-- **Manual or hydraulic changeover** — the vacuum/pressure direction is set at a walk-up
-  node on the tanker, from the cab, or either one depending on the store configuration
-  the player bought (`cabDirectionConfigIndex`). An optional changeover-lever animation
-  (`directionAnimation`) shows the handle move, synced in multiplayer.
-- **Valve & coupler animations from the vehicle's own `<animations>`** — rear spreader
-  valves (`spreaderValveAnimation`) open and close with the SPS spreader valve, and
-  coupler clamp/valve animations can be referenced by name
-  (`connectorAnimationName` / `valveAnimationName`) instead of re-authored — poses
-  restore from savegames and sync to every player automatically.
+  engaged; walk-up hold-to-repair. A snapped bolt stays snapped through a save.
 
 **Slurry that behaves like slurry**
 - **Thickness / dry matter** — slurry thickens as dry matter concentrates; thickness affects
@@ -60,39 +85,49 @@ actually thickens, crusts and blocks if you neglect it.
   game hours, roughly 30 in-game days, whatever your season length); crusted, lumpy slurry
   blocks spreader outlets and the macerator. Mixing clears the risk in about 2 game hours;
   **adding water** dilutes thick slurry.
-- **Agitation** — a manager-driven agitator works on any registered vehicle with an agitator
-  tip node, no specialization required.
+- **Agitation** — the SPS Tower Mixer, fixed PTO agitators on stores, and any registered
+  vehicle with an agitator tip node.
 - **Slurry separation** — the Börger screw-press separator placeable strips dry matter out
   of piped slurry: solids drop onto its manure bunker, the thinner liquid fraction returns
-  through the pipe. Walk-up start/stop and a five-step screw tightness control; recirculate
-  for progressively thinner slurry.
-- **Water intake** — fill arms can draw water straight from map lakes and ponds wherever the
-  map provides SPS water planes.
+  through the pipe. Walk-up start/stop and a five-step screw tightness control.
+- **Water intake** — fill arms and pipes can draw water straight from map lakes and ponds
+  wherever the map provides SPS water, or from water courses you draw yourself.
 - **Front-mount fill arms** — a capacity-0 pass-through pump unit on the tractor's front
-  linkage, hose-linked to a rear receiver tanker on **any** tractor via injected Giants
-  connection hoses (the Xerion keeps its own factory hose circuit). Filling cascades:
+  linkage, hose-linked to a rear receiver tanker on **any** tractor. Filling cascades:
   coupler-connected targets first, overflow to the rear tanker, switching automatically as
   levels change — full mirror when unloading.
 - **Buying station support** — a compatible buying-station placeable (FS25_BuyableManureAndOther)
   acts as a paid, infinite pipe-only source, with a walk-up switch to choose which sold
-  liquid the coupler dispenses (Shift + activate cycles in reverse). A **sprayer** variant
-  sells liquid fertiliser / herbicide straight into the sprayer pipe system — a part-full
-  sprayer auto-switches the station to its held liquid on connect and locks the switch
-  while connected, and script mods can add whole liquid categories via
-  `<extraFillTypeCategory>`.
+  liquid the coupler dispenses. A **sprayer** variant sells liquid fertiliser / herbicide
+  straight into the sprayer pipe system.
 
 **Spreading**
 - **Dribble bars & band spreaders** — per-outlet blockage modelling with a macerator that
-  shields the outlets up to its capacity, per-vehicle tuning, and a spreader HUD (which
-  can optionally hide together with the help menu on F1 — settings page, per player).
+  shields the outlets up to its capacity, per-vehicle tuning, and a spreader HUD.
 - **Fertiliser / herbicide sprayers** — load liquid fertiliser or herbicide through the same
-  coupler-and-pipe system via a dedicated sprayer integration, operated from a single
-  walk-up pump control. No pressure model on sprayers — flow is a flat rate.
+  coupler-and-pipe system, operated from a single walk-up pump control. No pressure model on
+  sprayers — flow is a flat rate.
 - **Front tank combos ("FlowControl")** — any front tank pairs automatically with any rear
   sprayer on the same tractor sharing a fill type. One pipe connection to either tank fills
-  or drains **both**, and an automatic balancer (modelled on the real Amazone FT-P) holds the
-  rear at 30% from the front tank while spraying, so the front empties first and front axle
-  load is preserved. No config pairing, no keybind — attach and go.
+  or drains **both**, and an automatic balancer holds the rear at 30% from the front tank
+  while spraying, so the front empties first. No config pairing, no keybind.
+
+---
+
+## Documentation map
+
+The guides ship inside the mod folder:
+
+If you want to... | Read this
+---|---
+Set up or use a slurry tanker or dribble bar | **SPS_README_01_Tanker_and_Spreader.md**
+Set up or use a fertiliser / herbicide sprayer | **SPS_README_02_Fert_Sprayer.md**
+Set up a store, pit, barn or liquid source tank | **SPS_README_03_Placeables.md**
+Add water sources to a map / draw water courses | **SPS_README_04_Map_Water.md**
+Animal drinking water in and milk out by pipe | **SPS_README_05_Animal_Water.md**
+Use physical pipes, pipe holders and the docking station | **SPS_README_06_Physical_Pipes.md**
+Use the SPS Tower Mixer | **SPS_README_07_Tower_Mixer.md**
+Understand thickness, crust and mixing | **SlurryPipeSystem_SlurryGuide.md**
 
 ---
 
@@ -116,42 +151,7 @@ mod work normally. Self-contained, with no conflicts against other mods of the s
 | Liquid-fertiliser source tanks | `<sprayerPipeSystem>` | inside `<placeable>` |
 | Map water sources (lakes/ponds) | an `SPS_waterNodes` node tree | in the **map i3d**, under the terrain root |
 
-See the setup guides listed in the documentation map below.
-
-### Video guides
-
-Watch the whole process end to end before (or instead of) reading:
-
-- **Setting up a vacuum tanker** — fill arm, couplers, pressure model, nodeTree:
-  https://www.youtube.com/watch?v=1JKplzkCDS4
-  https://www.youtube.com/watch?v=nd8IPuBHPrs
-- **Setting up a placeable store** — fill plane, couplers, surface detection:
-  https://www.youtube.com/watch?v=C4EO5RhY6Fk
-
-### Custom vehicle types
-
-Your vehicle does **not** have to use a vanilla type name. A custom type declared in your
-modDesc works as long as it descends from one of the vanilla tanker or sprayer types:
-
-```xml
-<vehicleTypes>
-    <type name="myTanker" parent="manureBarrel" className="Vehicle"
-          filename="$dataS/scripts/vehicles/Vehicle.lua">
-        <specialization name="waterTrailer"/>
-    </type>
-</vehicleTypes>
-```
-
-SPS walks the parent chain, so any descendant of `manureBarrel`, `manureTrailer`,
-`selfPropelledManureBarrel`, `sprayer` or `selfPropelledSprayer` — at any depth — receives
-the full SPS behaviour. (Added in 1.0.1.4; earlier versions required the exact vanilla
-type names.)
-
-Even a type that descends from **none** of these still works (1.0.1.5+): a vehicle
-carrying an embedded `<slurryPipeSystem>` block receives the tanker behaviour per-vehicle
-when it registers, whatever its type — the block in your XML is the authority. Descending from
-the matching vanilla family is still recommended (it is what the type means in vanilla,
-and other slurry-aware mods may key on it too).
+See the guides in the documentation map above.
 
 ### Bundled / manifest (SPS-internal — not for third-party modders)
 
@@ -166,13 +166,9 @@ and is **not** a supported way to add your own content — use the embedded path
 ```
 FS25_SlurryPipeSystem/
 ├── modDesc.xml
-├── SPS_README_01_Tanker_and_Spreader.md        ← tanker / dribble-bar setup (embedded)
-├── SPS_README_02_Fert_Sprayer.md               ← sprayer setup (embedded)
-├── SPS_README_03_Placeables.md                 ← store / pit / source-tank setup (embedded)
-├── SPS_README_04_Map_Water.md                  ← map water sources (embedded, map i3d)
-├── SlurryPipeSystem_SlurryGuide.md             ← player guide: thickness, crust, mixing, blockages
-├── RELEASE_NOTES_V1.0.1.6.md                   ← changes in this release
-├── RELEASE_NOTES_V*.md                         ← previous releases
+├── RELEASE_NOTES_V1.0.1.8.md                  ← everything since 1.0.1.7
+├── SPS_README_01 … 07_*.md                    ← player / modder guides (see documentation map)
+├── SlurryPipeSystem_SlurryGuide.md            ← thickness, crust and mixing explained
 │
 ├── configs/
 │   ├── spsConfigManifest.xml                   ← bundled (SPS-internal) fleet list
@@ -184,72 +180,33 @@ FS25_SlurryPipeSystem/
 │   └── mods/                                   ← third-party fleet bundled configs (internal)
 │       └── <FS25_ModFolderName>/...
 │
-├── water/                                      ← optional external water nodes (SPS-internal)
-│   ├── spsWaterManifest.xml
-│   └── <mapFolder>/SPS_waterNodes.i3d
+├── vehicles/
+│   ├── hoses/spsPipe.xml                       ← the physical pipe (one shop item, all types)
+│   ├── dockingStation/                         ← SPS Docking Station
+│   ├── PTOSlurryPump/                          ← PTO Slurry Pump
+│   └── towerMixer/                             ← SPS Tower Mixer
 │
-├── i3d/                                        ← SPS visual assets
-│   ├── pipes/slurryPipe.i3d                    ← slurry pipe mesh and rig
-│   ├── pipes/sprayerPipe.i3d                   ← sprayer pipe mesh
-│   ├── nodes/spsPivot.i3d                      ← chain pivot helper
-│   └── dockingStation/dockingStation.i3d       ← docking station building
+├── placeables/                                 ← Cow Barn Medium (SPS), fert/herbicide silo,
+│                                                  Börger separator, water-course brushes
+├── i3d/                                        ← shared visual assets (connectors, IBCs, mixers…)
+├── placementPipes/                             ← pipe visuals for the build-menu preview
+├── effects/                                    ← pipe / arm effects
+├── water/                                      ← optional external water nodes (SPS-internal)
+├── Mechet/                                     ← drop-in kit for The Mechet map
+├── icons/  l10n/                               ← HUD icons, six languages
 │
 └── scripts/                                    ← Lua source
-    ├── init.lua                                ← entry point (loaded last)
-    ├── debug/
-    │   └── SPSDebugConfig.lua / SlurryDebug.lua ← channel-gated debug registry + markers
-    ├── manager/
-    │   ├── SlurryPipeManager.lua               ← singleton manager (core)
-    │   └── SPSM_Chains / SPSM_Couplers / SPSM_Flow / SPSM_Pressure /
-    │       SPSM_Consistency / SPSM_Stores / SPSM_Spreader / SPSM_Sprayers /
-    │       SPSM_FrontMount / SPSM_IBC .lua
-    │                                           ← domain modules of the manager
-    ├── events/
-    │   └── SPSEvents.lua                       ← network events
-    ├── chains/
-    │   └── SPSPipeChain.lua / SPSChainActivatable.lua
-    ├── couplers/
-    │   ├── SPSPipeVisual.lua / SPSPipeActivatable.lua / SPSCouplerAnimator.lua
-    │   └── SPSPumpControlActivatable.lua / SPSOutsideControlActivatable.lua
-    ├── blockage/
-    │   └── SPSBlockageActivatable.lua / SPSBlockageEvent.lua
-    ├── shearBolt/
-    │   └── SPSShearBolt.lua / SPSShearBoltActivatable.lua / SPSShearBoltEvent.lua
-    ├── agitators/
-    │   ├── SlurryAgitatorEvent.lua
-    │   └── SPSFixedAgitator / SPSFixedAgitatorShaft / SPSFixedAgitatorActivatable /
-    │       SPSFixedAgitatorEvent .lua          ← fixed PTO agitator placeable system
-    ├── separator/
-    │   └── SPSSeparator.lua / SPSSeparatorActivatable.lua / SPSSeparatorEvent.lua
-    ├── buyStation/
-    │   └── SPSBuyStationActivatable.lua / SPSBuyStationEvent.lua
-    ├── hud/
-    │   └── SPSSpreaderHUD.lua                  ← (+ SPSConduitHUDExtension.lua, source()'d)
-    ├── herbFertSprayer/                        ← fertiliser / herbicide sprayer support
-    │   ├── SPSSprayerPumpControl.lua / SPSSprayerEvents.lua
-    │   └── SPSSprayerPipeVisual.lua / SPSSprayerPipeActivatable.lua
-    ├── water/
-    │   └── SPSWaterPlaneManager.lua            ← map water detection
-    ├── util/
-    │   └── SlurryNodeUtil.lua / SlurryTractorCapability.lua / SPSCrustVegetation.lua
-    ├── settings/
-    │   └── SPSSettingsMenuExtension.lua        ← in-game settings page (source()'d late)
-    └── overrides/
-        ├── ManureBarrelOverride.lua / PlaceableOverride.lua
-        └── SPSSlurryTankExtensions.lua / SPSChainBondPersistence.lua
+    ├── init.lua                                ← entry point
+    ├── debug/                                  ← channel-gated debug registry (`spsDebug`)
+    ├── manager/                                ← singleton manager + domain modules
+    ├── specializations/                        ← pipe item, docking station, pump mixer, park pose…
+    ├── hoses/                                  ← hose visuals, carrying pipes in the hands
+    ├── events/                                 ← network events
+    ├── chains/  couplers/  liquidLanes/        ← original pipes, couplers, water / milk lanes
+    ├── herbFertSprayer/  separator/  agitators/
+    ├── blockage/  shearBolt/  buyStation/
+    ├── hud/  settings/  water/  util/  overrides/
 ```
-
----
-
-## Documentation map
-
-If you want to... | Read / watch this
----|---
-Add SPS to a slurry tanker or dribble bar | **SPS_README_01_Tanker_and_Spreader.md** · [video: vac tanker setup](https://www.youtube.com/watch?v=1JKplzkCDS4)
-Add SPS to a fertiliser / herbicide sprayer | **SPS_README_02_Fert_Sprayer.md**
-Add SPS to a store, pit or liquid source tank | **SPS_README_03_Placeables.md** · [video: placeable setup](https://www.youtube.com/watch?v=C4EO5RhY6Fk)
-Add water sources to a map | **SPS_README_04_Map_Water.md**
-Understand thickness, crust, mixing and blockages in play | **SlurryPipeSystem_SlurryGuide.md**
 
 ---
 
@@ -274,7 +231,7 @@ You can also define your **own** animations without touching SPS: put a
 `<couplerAnimations>` block inside your embedded `<slurryPipeSystem>` /
 `<sprayerPipeSystem>`, using the same format as the shipped file. Config-local ids are
 checked before the shared library, so a local id overrides a shipped one of the same number.
-See the placeable guide §7 for the block format.
+See the placeables guide for the block format.
 
 ### Path-based manifest matching (internal)
 
@@ -290,6 +247,12 @@ Coupling-to-coupling transfers and discharge effects use whatever fill type is p
 source. A nurse tanker carrying digestate piped to a digestate-accepting store works exactly
 like the liquidmanure equivalent.
 
+### A quiet log
+
+SPS writes only warnings, errors and a couple of status lines to `log.txt`. Routine detail
+(registrations, pipe grab / drop, hooks) is behind the `Info` debug channel: type
+`spsDebug Info on` in the console when you need it.
+
 ---
 
 ## Compatibility
@@ -302,15 +265,10 @@ like the liquidmanure equivalent.
 - **Buyable Manure And Other (BartsoNv3, FS25_BuyableManureAndOther)** — the liquid manure
   buying station registers as a paid, infinite SPS pipe source, with a walk-up switch
   between its sold liquids. Purchases charge through the station's own pricing.
-- **Base-game silo extensions** — the vanilla Liquid Manure Tank Extensions (small and
-  large) link to their base tank normally; SPS's anti-pooling filter recognises them as
-  capacity extensions. Standalone tanks still keep separate fill levels.
-- **Missions & contracts** — mission/contract vehicles are never captured by SPS, so
-  leased contract sprayers and tankers fill through vanilla triggers and contracts
-  complete normally, on dedicated servers included.
 - **Real autosave** — SPS save data is preserved across autosaves.
-- **Multiplayer** — server-authoritative state; valve toggles, connections, pressure, pump
-  and shear-bolt state all sync via dedicated events.
+- **Multiplayer** — server-authoritative state; connections, valves, pressure, pump, pipes
+  and shear-bolt state all sync via dedicated events. Unzipped mod folders do not run in
+  multiplayer — use the release zip.
 
 ---
 
