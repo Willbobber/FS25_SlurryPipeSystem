@@ -190,6 +190,8 @@ function SlurryPipeManager:_reconcileStorePools(se)
     local last  = se._lastTotal or total
     if total > last + 0.001 then
         se.solids = (se.solids or 0) + (total - last) * SlurryPipeManager.DM_FRESH
+        -- [SPS 1.0.1.9] fresh slurry carries no crust: dilute the settle by volume
+        self:applyStoreCrustBlend(se, last, total - last, 0)
     elseif total < last - 0.001 then
         local dm = last > 0 and ((se.solids or 0) / last) or 0
         se.solids = math.max(0, (se.solids or 0) - (last - total) * dm)
@@ -395,6 +397,50 @@ function SlurryPipeManager:applyFillCrustBlend(vehicle, oldLevel, addedVol, srcC
         state.crust = srcCrust or 0
     else
         state.crust = ((oldLevel or 0) * oldC + addedVol * (srcCrust or 0)) / denom
+    end
+end
+
+-- [SPS 1.0.1.9] Volume-weighted blend of incoming crust into a STORE as it fills - the
+-- store twin of applyFillCrustBlend. Until now a store's settle (0..1 crust) was a pure
+-- timer: nothing that entered the pit ever diluted it, so a near-empty tank at 14% crust
+-- kept 14% after 95,000 L of freshly pressed separator liquid landed on it (William,
+-- 2026-10-27). New crust = (oldTotal*oldSettle + added*srcCrust) / (oldTotal + added):
+-- separator return and water carry 0, a tanker carries its own crust, an outside fill
+-- (vanilla / AI / map) counts as fresh. oldTotal is the store total BEFORE the add.
+-- Server-side only (every caller is a server deposit path); the store tick replicates
+-- settle to clients through SPSStoreCrustEvent as usual. Never raises settle above 1.
+function SlurryPipeManager:applyStoreCrustBlend(se, oldTotal, addedVol, srcCrust)
+    if se == nil or se.type ~= SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE then return end
+    if not se.thickeningEnabled or (addedVol or 0) <= 0 then return end
+    self:_ensureStorePools(se)
+    local oldC  = se.settle or 0
+    local denom = (oldTotal or 0) + addedVol
+    local newC
+    if denom <= 0 then
+        newC = math.max(0.0, math.min(1.0, srcCrust or 0))
+    else
+        newC = math.max(0.0, math.min(1.0, ((oldTotal or 0) * oldC + addedVol * (srcCrust or 0)) / denom))
+    end
+    if newC == oldC then return end
+    se.settle = newC
+    -- Same foliage refresh rule as growth / agitation: only once settle has moved >= 0.002.
+    if SPSCrustVegetation ~= nil
+    and math.abs(newC - (se._foliageSettle or -1)) >= 0.002 then
+        se._foliageSettle = newC
+        for _, pEntry in ipairs(self.registeredPlaceables) do
+            local matched = false
+            if self.getStoreSources ~= nil then
+                for _, s in ipairs(self:getStoreSources(pEntry)) do
+                    if s == se then matched = true break end
+                end
+            elseif pEntry.sourceEntry == se then
+                matched = true
+            end
+            if matched then
+                SPSCrustVegetation.updateVisibility(pEntry, se)
+                break
+            end
+        end
     end
 end
 

@@ -60,6 +60,8 @@
 
     <triggerMarkers>
         <triggerMarker node="loadingTriggerMarker" filename="$data/shared/assets/marker/markerIconLoad.i3d"/>
+        <!-- [SPS 1.0.1.9] the on / off spot (William 2026-10-26: "add an icon on the spot where we turn on and off") -->
+        <triggerMarker node="icon" filename="$data/shared/assets/marker/markerIconWrench.i3d"/>
     </triggerMarkers>
 
     <hotspots>
@@ -105,11 +107,31 @@
 		           solidsDryMatter="0.28" captureEffMin="0.15" captureEffMax="0.40"
 		           tightMinThroughputMult="0.5"
 		           inCouplingId="1" outCouplingId="2"
-		           dropChunksTexture="effects/sepDropArray54x24.dds" dropChunksSpeedScale="0.5" 
-				   dropChunksDensity="1.0" dropChunksSizeScale="0.9 0.9"
-				   panelNodeName="SPS_separatorPanel" dropNodeName="SPS_dropNode"
-		           interactRadius="4.0"
-				/>
+		           panelNodeName="SPS_separatorPanel" dropNodeName="SPS_dropNode"
+		           interactRadius="4.0">
+			<!-- [SPS 1.0.1.9] Manure drop effect, loaded by the game's own effect loader (same layout as the Albutt
+			     manure fork's unload effect: a stream plane, chunk particles, dust). The three meshes are the fork's,
+			     under SPS_dropNode / SPS_separator (GE script SPS_BorgerAddDropEffect, 2026-10-26). The old
+			     dropChunks* motion-path layer is off (attributes removed). -->
+			<!-- [SPS 1.0.1.9] Digit read-outs on the panel (William's empties, 2026-10-26). node = the empty's name; the
+			     number ends on the node and grows to its left; size in metres per digit; colours r g b a. Values: intakeLph,
+			     returnLph, solidsLph, dmIn, dmOut (dry matter %), screwPct, manureKg, manureT. -->
+			<panelDisplays>
+				<display node="LTRSin"        value="intakeLph" mask="000000" size="0.016" color="0.1 0.9 0.85 1" emissiveScale="0.6"/>
+				<display node="DMin"          value="dmIn"      mask="00.0"   size="0.016" color="0.1 0.9 0.85 1" emissiveScale="0.6"/>
+				<display node="LTRSout"       value="returnLph" mask="000000" size="0.016" color="0.1 0.9 0.85 1" emissiveScale="0.6"/>
+				<display node="DMout"         value="dmOut"     mask="00.0"   size="0.016" color="0.1 0.9 0.85 1" emissiveScale="0.6"/>
+				<display node="screwDisplay"  value="screwPct"  mask="000"    size="0.02"  color="0.1 0.9 0.85 1" emissiveScale="0.6"/>
+				<display node="manureDisplay" value="manureKg"  mask="00000"  size="0.02"  color="0.1 0.9 0.85 1" emissiveScale="0.6"/>
+			</panelDisplays>
+			<effects>
+				<effectNode effectClass="TipEffect">
+					<effectNode effectNode="SPS_dropParticles" effectClass="ParticleEffect" materialType="unloadingParticle" spriteScale="0.5" emitCountScale="8"/>   <!-- the emitter is now the chute mouth (0.3 x 0.17 m, 16x smaller than the fork's), the count scales with its area -->
+					<effectNode effectNode="SPS_dropStream" materialType="unloading" fadeTime="0.5" alignXAxisToWorldY="true"/>
+				</effectNode>
+				<effectNode effectNode="SPS_dropSmoke" materialType="unloadingSmoke" fadeTime="0.5"/>
+			</effects>
+		</separator>
 	</slurryPipeSystem>
     
 	<i3dMappings>
@@ -150,5 +172,9 @@
 		<i3dMapping id="SPS_pipeCoupler02Arc02" node="0>9|0|0|1|0|1"/>
 		<i3dMapping id="SPS_separatorPanel" node="0>9|0|1"/>
 		<i3dMapping id="SPS_dropNode" node="0>9|0|2"/>
+		<i3dMapping id="SPS_dropStream" node="0>9|0|2|0"/>
+		<i3dMapping id="SPS_dropSmoke" node="0>9|0|2|1"/>
+		<i3dMapping id="SPS_dropParticles" node="0>9|1"/>
+		<i3dMapping id="icon" node="0>11"/>
     </i3dMappings>
 </placeable>

@@ -16,7 +16,7 @@
         <rotation>0</rotation>
         <brand>SPS</brand>
         <category>slurryTools</category>
-        <shopTranslationOffset>0 0.36 0</shopTranslationOffset>   <!-- legs down (parkPose plays in the shop): foot pivots are 0.32 m below the root -->
+        <shopTranslationOffset>0 0.491 0</shopTranslationOffset>  <!-- legs down (parkPose plays in the shop): sole of the feet = shopLevel node, 0.491 m below the root (the foot PIVOTS are at 0.32) -->
         <shopRotationOffset>0 0 0</shopRotationOffset>
         <shopHeight>5.0</shopHeight>
     </storeData>
@@ -122,7 +122,7 @@
             <part node="towerExtenPipesLower01" startTime="0.0" endTime="2.0" startTrans="0 -2.61084 0" endTrans="0 -2.61084 0"/>
             <part node="ladder01"      startTime="0.0"  endTime="2.0"  startRot="0 0 0"   endRot="50 0 0"/>
             <part node="towerRotator"  startTime="2.0"  endTime="6.0"  startRot="0 180 0" endRot="0 0 0"/>
-            <part node="ladder02"      startTime="6.0"  endTime="10.0" startRot="-90 0 0" endRot="-40 0 0"/>
+            <part node="ladder02"      startTime="6.0"  endTime="10.0" startRot="-90 0 0" endRot="-47 0 0"/>
             <part node="ladder03"      startTime="6.0"  endTime="10.0" startRot="-90 0 0" endRot="0 0 0"/>
             <part node="ladder01"      startTime="10.0" endTime="12.0" startRot="50 0 0"  endRot="0 0 0"/>
             <part node="leftLegArm01"  startTime="6.0"  endTime="12.0" startRot="0 0 -92" endRot="0 0 0"/>

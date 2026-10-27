@@ -117,7 +117,7 @@ function SPSHoseVisual.loadDefinitions(modDirectory)
         idx = idx + 1
     end
     xmlFile:delete()
-    print(string.format("[SPS HOSE] loadDefinitions: %d hose(s), %d connector(s) from %s", n, nc, path))
+    if spsInfo ~= nil then spsInfo(string.format("[SPS HOSE] loadDefinitions: %d hose(s), %d connector(s) from %s", n, nc, path)) end
     if n == 0 then return nil end
     return i3dPath
 end
@@ -242,7 +242,12 @@ local function dbg(fmt, ...)
         print("[SPS HOSE] " .. string.format(fmt, ...))
     end
 end
+-- [SPS 1.0.1.9] quiet log: say() = routine load / LIVE lines, only with `spsDebug Info on`;
+-- sayAlways() = errors, warnings and the console report / proof commands.
 local function say(fmt, ...)
+    if spsInfoOn ~= nil and spsInfoOn() then print("[SPS HOSE] " .. string.format(fmt, ...)) end
+end
+local function sayAlways(fmt, ...)
     print("[SPS HOSE] " .. string.format(fmt, ...))
 end
 local function valid(n) return n ~= nil and n ~= 0 and entityExists(n) end
@@ -305,16 +310,16 @@ end
 function SPSHoseVisual:load()
     local path = SPSHoseVisual.loadDefinitions(self.modDirectory)
     if path == nil then
-        say("load: ERROR no hose definitions - hoses disabled")
+        sayAlways("load: ERROR no hose definitions - hoses disabled")
         return
     end
     if not fileExists(path) then
-        say("load: ERROR not found %s", path)
+        sayAlways("load: ERROR not found %s", path)
         return
     end
     local root = loadI3DFile(path)
     if root == nil or root == 0 then
-        say("load: ERROR loadI3DFile failed %s", path)
+        sayAlways("load: ERROR loadI3DFile failed %s", path)
         return
     end
     -- Floor ray must never see any SPS hose (same rule as the old pipes).
@@ -347,7 +352,7 @@ function SPSHoseVisual:load()
                 tostring(d.boneNames[1]), d.boneRestZ[1] or -1,
                 tostring(d.boneNames[d.numBones]), d.boneRestZ[d.numBones] or -1, tostring(d.endNodeName))
         else
-            say("load: WARNING variant %s: shape '%s' not in %s", key, v.shape, path)
+            sayAlways("load: WARNING variant %s: shape '%s' not in %s", key, v.shape, path)
         end
     end
     local defined = 0
@@ -446,21 +451,21 @@ end
 -- ---------------------------------------------------------------------------
 function SPSHoseVisual:createHose(variantKey, startNode, endNode, opts)
     opts = opts or {}
-    if not self._isLoaded then say("createHose: ERROR not loaded"); return nil end
+    if not self._isLoaded then sayAlways("createHose: ERROR not loaded"); return nil end
     local d = self.descriptors[variantKey]
-    if d == nil then say("createHose: ERROR unknown variant %s", tostring(variantKey)); return nil end
-    if not valid(startNode) or not valid(endNode) then say("createHose: ERROR start/end node invalid"); return nil end
-    if d.numBones < 3 then say("createHose: ERROR %s has %d bones", variantKey, d.numBones); return nil end
+    if d == nil then sayAlways("createHose: ERROR unknown variant %s", tostring(variantKey)); return nil end
+    if not valid(startNode) or not valid(endNode) then sayAlways("createHose: ERROR start/end node invalid"); return nil end
+    if d.numBones < 3 then sayAlways("createHose: ERROR %s has %d bones", variantKey, d.numBones); return nil end
 
     local mode = opts.mode or "clone"
     local shape, children, owner = self:_instantiate(d, mode, opts.physics)
-    if shape == nil then say("createHose: ERROR instantiate failed (mode=%s)", mode); return nil end
+    if shape == nil then sayAlways("createHose: ERROR instantiate failed (mode=%s)", mode); return nil end
 
     local bones = {}
     for i = 1, d.numBones do
         local b = children[d.boneNames[i]]
         if b == nil then
-            say("createHose: ERROR bone %s missing on instance", tostring(d.boneNames[i]))
+            sayAlways("createHose: ERROR bone %s missing on instance", tostring(d.boneNames[i]))
             if valid(owner) then delete(owner) end
             return nil
         end
@@ -515,7 +520,7 @@ end
 function SPSHoseVisual:createSlurryHose(nodeA, nodeB, startWanted, endWanted, opts)
     local key, reversed = SPSHoseVisual.pickVariant(startWanted, endWanted, "slurry")
     if key == nil then
-        say("createSlurryHose: ERROR no slurry hose has ends %s/%s", tostring(startWanted), tostring(endWanted))
+        sayAlways("createSlurryHose: ERROR no slurry hose has ends %s/%s", tostring(startWanted), tostring(endWanted))
         return nil
     end
     local o = opts or {}
@@ -551,7 +556,7 @@ end
 function SPSHoseVisual:createLaneHose(nodeA, nodeB, fluid, opts)
     local key = (string.lower(tostring(fluid or "water")) == "milk") and "MILK" or "WATER"
     if self.descriptors[key] == nil then
-        say("createLaneHose: ERROR variant %s not loaded", key)
+        sayAlways("createLaneHose: ERROR variant %s not loaded", key)
         return nil
     end
     local o = opts or {}
@@ -581,7 +586,7 @@ end
 -- ---------------------------------------------------------------------------
 function SPSHoseVisual:createChainSegmentHose(startProxy, endProxy, color)
     if self.descriptors["FM"] == nil then
-        say("createChainSegmentHose: ERROR variant FM not loaded")
+        sayAlways("createChainSegmentHose: ERROR variant FM not loaded")
         return nil
     end
     local inst = self:createHose("FM", endProxy, startProxy, { mode = "clone", physics = true, startSign = 1, endSign = 1, color = color })
@@ -907,13 +912,13 @@ function SPSHoseVisual:report(inst)
     local ex, ey, ez = getWorldTranslation(inst.endNodeTarget)
     local cx, cy, cz = xN + edx*(d.endRestZ - d.boneRestZ[N]), yN + edy*(d.endRestZ - d.boneRestZ[N]), zN + edz*(d.endRestZ - d.boneRestZ[N])
     local landErr = math.sqrt((cx-ex)^2 + (cy-ey)^2 + (cz-ez)^2)
-    say("REPORT %s mode=%s sign=%d/%d | T1 %s", inst.variant, inst.mode, inst.startSign, inst.endSign, tostring(inst.skinReport))
-    say("REPORT %s | curve %.3f m vs rest span %.3f m (x%.2f) | gaps/rest min %.2f max %.2f | start tangent·dir %.3f | end tangent·dir %.3f",
+    sayAlways("REPORT %s mode=%s sign=%d/%d | T1 %s", inst.variant, inst.mode, inst.startSign, inst.endSign, tostring(inst.skinReport))
+    sayAlways("REPORT %s | curve %.3f m vs rest span %.3f m (x%.2f) | gaps/rest min %.2f max %.2f | start tangent·dir %.3f | end tangent·dir %.3f",
         inst.variant, inst.curveLength or 0, inst.restSpan or 0,
         (inst.restSpan and inst.restSpan > 0) and (inst.curveLength or 0) / inst.restSpan or 0, minR, maxR, dotS, dotE)
-    say("REPORT %s | T2 end up·target up %.3f (1 = no roll) | end landing error %.3f m | T4 slots=[%s] colour index %s",
+    sayAlways("REPORT %s | T2 end up·target up %.3f (1 = no roll) | end landing error %.3f m | T4 slots=[%s] colour index %s",
         inst.variant, upDot, landErr, tostring(inst.materialSlots), tostring(inst.colorIndex))
-    say("REPORT %s | SHAPE sag %.2f m, %d rigid bone(s) at each end | curved part laid %.3f m vs rest %.3f m (x%.3f, mesh compressed/stretched to fit) | tintable=%s fluid=%s",
+    sayAlways("REPORT %s | SHAPE sag %.2f m, %d rigid bone(s) at each end | curved part laid %.3f m vs rest %.3f m (x%.3f, mesh compressed/stretched to fit) | tintable=%s fluid=%s",
         inst.variant, inst._sag or 0, SPSHoseVisual.RIGID_END_BONES, inst.curveLength or 0, inst.restSpan or 0,
         (inst.restSpan and inst.restSpan > 0) and (inst.curveLength or 0) / inst.restSpan or 0,
         tostring(inst.d.tintable), tostring(inst.d.fluid))
@@ -935,14 +940,14 @@ function SPSHoseVisual:report(inst)
     end
     local kindList = {}
     for k, v in pairs(kinds) do kindList[#kindList + 1] = k .. "x" .. v end
-    say("REPORT %s | T6 col shapes %d, with rigid body %d (types %s; KINEMATIC=%s NONE=%s) | group 0x%X mask 0x%X",
+    sayAlways("REPORT %s | T6 col shapes %d, with rigid body %d (types %s; KINEMATIC=%s NONE=%s) | group 0x%X mask 0x%X",
         inst.variant, nCol, nBody, table.concat(kindList, ","), tostring(RigidBodyType.KINEMATIC), tostring(RigidBodyType.NONE),
         grp or 0, msk or 0)
     -- T5 evidence: the render bounding sphere the engine culls this skinned shape by.
     local bx2, by2, bz2, br = getShapeWorldBoundingSphere(inst.shape)
     local sx, sy, sz = getWorldTranslation(inst.shape)
     local farDist = math.sqrt((xN-bx2)^2 + (yN-by2)^2 + (zN-bz2)^2)
-    say("REPORT %s | T5 bounding sphere centre (%.2f %.2f %.2f) radius %.2f m | centre is %.2f m from the hose root, last bone is %.2f m from the centre (%s)",
+    sayAlways("REPORT %s | T5 bounding sphere centre (%.2f %.2f %.2f) radius %.2f m | centre is %.2f m from the hose root, last bone is %.2f m from the centre (%s)",
         inst.variant, bx2 or 0, by2 or 0, bz2 or 0, br or 0,
         math.sqrt((bx2-sx)^2 + (by2-sy)^2 + (bz2-sz)^2), farDist, (br ~= nil and farDist > br) and "OUTSIDE -> culled when only the far end is in view" or "inside")
 end
@@ -1008,7 +1013,7 @@ function SPSHoseProof.consoleProof(_, variant, mode, reverse, pipeArg)
         end
         variantKey = picked
         if flip then reverse = "1" end
-        say("proof: couplers want hose ends start=%s far=%s -> %s%s", wantS, wantF, picked, flip and " laid reversed" or "")
+        sayAlways("proof: couplers want hose ends start=%s far=%s -> %s%s", wantS, wantF, picked, flip and " laid reversed" or "")
     end
     if tostring(reverse) == "1" or tostring(reverse) == "true" then
         -- lay it the other way round: start piece on the far coupler
@@ -1017,7 +1022,7 @@ function SPSHoseProof.consoleProof(_, variant, mode, reverse, pipeArg)
     end
     local inst = hv:createHose(variantKey, startNode, endNode, opts)
     if inst == nil then return "[SPS HOSE] proof: createHose failed (see log)" end
-    say("proof: laid %s between coupling id=%s (%s) and id=%s (%s), %d proof hose(s) live",
+    sayAlways("proof: laid %s between coupling id=%s (%s) and id=%s (%s), %d proof hose(s) live",
         inst.variant, tostring(startC.id), getName(startNode) or "?", tostring(endC.id), getName(endNode) or "?", #hv.hoses)
     hv:report(inst)
     return "[SPS HOSE] proof hose laid - see log.txt REPORT lines"
@@ -1044,7 +1049,7 @@ function SPSHoseProof.consoleFree(_, variant, mode, lengthArg)
     table.insert(SPSHoseProof.nodes, a); table.insert(SPSHoseProof.nodes, b)
     local inst = hv:createHose(parseVariant(variant), a, b, { mode = parseMode(mode), physics = true, color = currentColor() })
     if inst == nil then return "[SPS HOSE] proof: createHose failed (see log)" end
-    say("proofFree: laid %s %.1f m ahead of the camera, %d proof hose(s) live", inst.variant, length, #hv.hoses)
+    sayAlways("proofFree: laid %s %.1f m ahead of the camera, %d proof hose(s) live", inst.variant, length, #hv.hoses)
     hv:report(inst)
     return "[SPS HOSE] free hose laid - see log.txt REPORT lines"
 end

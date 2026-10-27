@@ -403,13 +403,20 @@ if HandToolHands ~= nil and HandToolHands.getCanPickUpNode ~= nil and not SPSDoc
 end
 
 -- Hook 2: runs BEFORE HandToolHands.pickUpTarget. A frozen station must be dynamic for the hand joint to move it.
+-- [SPS 1.0.1.9] overwritten (was prepended): Utils.prependedFunction drops the return value, and this hook is the OUTER
+-- wrapper (spsDockingStation is registered after spsHoseItem in modDesc). HandsPickUpObjectEvent:run (ref :58) reads that
+-- return on the server: nil = "failed" -> HandsPickUpFailedEvent -> the CLIENT let go while the SERVER kept holding, for
+-- every pick-up by a joined player (any object). The server hands then sat on a node that was later deleted.
 if HandToolHands ~= nil and HandToolHands.pickUpTarget ~= nil and not SPSDockingStation._hooked then
     SPSDockingStation._hooked = true
-    HandToolHands.pickUpTarget = Utils.prependedFunction(HandToolHands.pickUpTarget, function(hands, target, noEventSend)
-        if target == nil or target.node == nil or g_currentMission == nil then return end
-        local object = g_currentMission:getNodeObject(target.node)
-        if object == nil or object.spsDsOnGrabbed == nil then return end
-        if object.getCanBePickedUp ~= nil and not object:getCanBePickedUp(hands.getCarryingPlayer ~= nil and hands:getCarryingPlayer() or nil) then return end
-        object:spsDsOnGrabbed(hands)
+    HandToolHands.pickUpTarget = Utils.overwrittenFunction(HandToolHands.pickUpTarget, function(hands, superFunc, target, noEventSend)
+        if target ~= nil and target.node ~= nil and g_currentMission ~= nil then
+            local object = g_currentMission:getNodeObject(target.node)
+            if object ~= nil and object.spsDsOnGrabbed ~= nil
+               and (object.getCanBePickedUp == nil or object:getCanBePickedUp(hands.getCarryingPlayer ~= nil and hands:getCarryingPlayer() or nil)) then
+                object:spsDsOnGrabbed(hands)
+            end
+        end
+        return superFunc(hands, target, noEventSend)
     end)
 end

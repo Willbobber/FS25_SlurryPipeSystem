@@ -5460,7 +5460,7 @@ function SlurryPipeManager:sendFullStateToConnection(connection)
                     for idx = 1, 2 do
                         local e = pipe:spsGetEnd(idx)
                         if e ~= nil and e.coupling ~= nil and e.object ~= nil and not e.object.isDeleted and e.couplingId ~= nil then
-                            connection:sendEvent(SPSPhysPipeConnectEvent.new(pipe, idx, e.object, e.isPlaceable == true, e.couplingId, e.coupling.isLiquidLane == true))
+                            connection:sendEvent(SPSPhysPipeConnectEvent.new(pipe, idx, e.object, e.isPlaceable == true, e.couplingId, e.coupling.isLiquidLane == true, e.coupling.isSprayerCoupling == true))   -- [SPS 1.0.1.9] + sprayer system
                             self._dumpCounts.phys = self._dumpCounts.phys + 1
                         end
                     end
@@ -6118,6 +6118,8 @@ function SlurryPipeManager:update(dt)
 	-- [SPS MP] Create any bez visuals that were queued while the pipe visual was
 	-- still async-loading (join-dump bonds applied mid map-load).
 	self:_drainPendingPipeVisuals()
+	-- [SPS 1.0.1.9 MP] client-side retries of join-dump plugs / joins / stows that arrived before their objects registered
+	if self._physTryResolveDeferred ~= nil then self:_physTryResolveDeferred() end
 	-- [SPS MP] Re-send IBC-spawn connects after the vehicle has network-synced
 	-- (see the queue site in the IBC-loaded callback). Server only, 2 attempts.
 	if g_server ~= nil and self._pendingIbcConnectResends ~= nil and #self._pendingIbcConnectResends > 0 then

@@ -168,8 +168,11 @@ function SPSPipeVisual:delete()
     self._isLoaded = false
 end
 
+-- [SPS 1.0.1.9] also ready when the new hoses can draw: the old mesh is gone since 1.0.1.8, and the callers
+-- (applyConnectCouplings + its pending-visual retry) gate the whole visual step on this - with _isLoaded alone
+-- every ORIGINAL-mode coupler connection was marked connected but never drawn (report 2026-10-25)
 function SPSPipeVisual:isReady()
-    return self._isLoaded
+    return self._isLoaded or (SPSHoseVisual ~= nil and SPSHoseVisual.LIVE and g_spsHoseVisual ~= nil and g_spsHoseVisual:isReady())
 end
 
 -- ---------------------------------------------------------------------------

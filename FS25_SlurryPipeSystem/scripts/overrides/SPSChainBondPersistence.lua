@@ -155,8 +155,12 @@ function SPSChainBondPersistence.appendMissingBonds(mgr, savePath)
     local function considerList(list)
         if list == nil then return end
         for _, c in ipairs(list) do
+            -- [SPS 1.0.1.9] a bond made by a PHYSICAL pipe is saved by the pipe (SPSHoseItem end#owner/#coupling) and
+            -- re-made from its plugged ends; written here it came back as an ORIGINAL hose on reload, the coupler read
+            -- "busy" and the real pipe was left loose (William 2026-10-26 22:06, Borger <-> base tank)
             if c.isConnected == true and c.connectedPartnerCoupling ~= nil
             and c.connectedPartnerCoupling ~= c
+            and c.physPipe == nil and c.connectedPartnerCoupling.physPipe == nil
             and not sideIsVehicle(c) and not sideIsVehicle(c.connectedPartnerCoupling) then
                 local key = bondKey(c)
                 if not seen[key] then

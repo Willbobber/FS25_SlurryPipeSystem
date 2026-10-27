@@ -48,6 +48,20 @@ if SPSDebugConfig ~= nil then SPSDebugConfig.log("Build", "[SPS BUILD] SPSSepara
 
 SPSSeparator = {}
 
+-- [SPS 1.0.1.9] Drop effect from the placeable XML (<separator><effects> - the game's own TipEffect / ShaderPlaneEffect /
+-- ParticleEffect loader, the way a trailer or the Albutt manure fork defines its unload effect). Registered on the
+-- placeable schema so Effect.getValue can read the attributes. The hand-built effect tables below stay as the
+-- fallback for a separator XML without an <effects> block.
+SPSSeparator.EFFECTS_XML_PATH = "placeable.slurryPipeSystem.separator.effects"
+-- Registering on Placeable.xmlSchema from a mod script did not take ("Path not registered", William's log 22:18), so the
+-- effects block is read through the mod's OWN schema: the placeable XML opened a second time with a schema that knows
+-- only the effect paths. Nothing of the game's placeable schema is touched.
+SPSSeparator.effectsSchema = nil
+if XMLSchema ~= nil and EffectManager ~= nil and EffectManager.registerEffectXMLPaths ~= nil then
+    SPSSeparator.effectsSchema = XMLSchema.new("spsSeparatorEffects")
+    EffectManager.registerEffectXMLPaths(SPSSeparator.effectsSchema, SPSSeparator.EFFECTS_XML_PATH)
+end
+
 -- Debug: wired to the central registry (SPSDebugConfig channel "SPSSeparator").
 -- The class field is pushed by SPSDebugConfig.applyAll(); the call-time isOn()
 -- consult makes `spsDebug SPSSeparator on|off` take effect instantly as well.
@@ -158,6 +172,41 @@ function SPSSeparator.readConfig(xmlFile, kp)
     cfg.outCouplingId          = xmlFile:getInt(base .. "#outCouplingId")
     -- Walk-up control point. Falls back to the IN coupling's mount node.
     cfg.panelNodeName          = xmlFile:getString(base .. "#panelNodeName", "SPS_separatorPanel")
+    -- [SPS 1.0.1.9] Digit read-outs on the control panel (William 2026-10-26): <panelDisplays><display node=".."
+    -- value="intakeLph|returnLph|dmIn|dmOut|screwPct|manureKg|manureT" mask="000000" font="DIGIT" alignment="RIGHT"
+    -- size="0.02" scaleX scaleY color hiddenColor emissiveScale/>. Same engine as the weigh station: a CharacterLine
+    -- of font quads at an empty transform (text runs along the node's +X, the glyphs face its +Z, RIGHT alignment =
+    -- the last digit sits on the node and the number grows to the node's -X).
+    cfg.panelDisplays = {}
+    local function parseColor(str, default)
+        if str == nil then return default end
+        local out = {}
+        for v in string.gmatch(str, "[%d%.]+") do out[#out + 1] = tonumber(v) end
+        if #out < 3 then return default end
+        out[4] = out[4] or 1
+        return out
+    end
+    local di = 0
+    while true do
+        local dKey = string.format("%s.panelDisplays.display(%d)", base, di)
+        if not xmlFile:hasProperty(dKey) then break end
+        table.insert(cfg.panelDisplays, {
+            nodeName      = xmlFile:getString(dKey .. "#node"),
+            value         = string.lower(xmlFile:getString(dKey .. "#value", "")),
+            mask          = xmlFile:getString(dKey .. "#mask", "000000"),
+            font          = string.upper(xmlFile:getString(dKey .. "#font", "DIGIT")),
+            alignment     = string.upper(xmlFile:getString(dKey .. "#alignment", "RIGHT")),
+            size          = xmlFile:getFloat(dKey .. "#size", 0.02),
+            scaleX        = xmlFile:getFloat(dKey .. "#scaleX", 1.0),
+            scaleY        = xmlFile:getFloat(dKey .. "#scaleY", 1.0),
+            emissiveScale = xmlFile:getFloat(dKey .. "#emissiveScale", 0.5),
+            color         = parseColor(xmlFile:getString(dKey .. "#color"), { 0.1, 0.9, 0.85, 1 }),
+            -- no hiddenColor = unused digit positions are INVISIBLE (a space has no glyph); with one they show as dim
+            -- zeros like the weigh station (William 2026-10-26: "I don't want to see the 0 at the start")
+            hiddenColor   = parseColor(xmlFile:getString(dKey .. "#hiddenColor"), nil),
+        })
+        di = di + 1
+    end
     cfg.interactRadius         = xmlFile:getFloat(base .. "#interactRadius", 4.0)
     -- Manure drop-effect node (visual seam — see header note).
     cfg.dropNodeName           = xmlFile:getString(base .. "#dropNodeName", "SPS_dropNode")
@@ -312,10 +361,29 @@ function SPSSeparator.tryInitForPlaceable(manager, placeable)
 
     -- Fresh owned handle, queried and deleted immediately (project rule).
     local cfg = nil
+    local xmlEffects = nil
     local xmlFile = XMLFile.loadIfExists("spsSeparatorConfig", placeable.configFileName, nil)
     if xmlFile ~= nil then
         cfg = SPSSeparator.readConfig(xmlFile, "placeable.")
         xmlFile:delete()
+    end
+    -- [SPS 1.0.1.9] <separator><effects> through the game's effect loader, read with the mod's own schema (see top).
+    if placeable.isClient and g_effectManager ~= nil and SPSSeparator.effectsSchema ~= nil
+       and placeable.components ~= nil and placeable.components[1] ~= nil then
+        local fx = XMLFile.loadIfExists("spsSeparatorEffects", placeable.configFileName, SPSSeparator.effectsSchema)
+        if fx ~= nil then
+            if fx:hasProperty(SPSSeparator.EFFECTS_XML_PATH) then
+                local ok, res = pcall(g_effectManager.loadEffect, g_effectManager, fx, SPSSeparator.EFFECTS_XML_PATH,
+                    placeable.components[1].node, placeable, placeable.i3dMappings)
+                if ok and type(res) == "table" and #res > 0 then
+                    xmlEffects = res
+                    log("drop effects loaded from XML: %d effect node(s)", #res)
+                elseif not ok then
+                    print("[SPS SEPARATOR] drop effects: XML load failed - " .. tostring(res))
+                end
+            end
+            fx:delete()
+        end
     end
     if cfg == nil then
         log("no <separator> block in %s — using defaults", tostring(placeable.configFileName))
@@ -326,6 +394,7 @@ function SPSSeparator.tryInitForPlaceable(manager, placeable)
         placeable       = placeable,
         pEntry          = pEntry,
         cfg             = cfg,
+        xmlEffects      = xmlEffects,   -- [SPS 1.0.1.9] effects from <separator><effects>, nil = hand-built fallback
         isOn            = false,
         tightness       = 0.5,
         blockReason     = SPSSeparator.REASON_NO_PIPES,
@@ -383,6 +452,27 @@ function SPSSeparator.tryInitForPlaceable(manager, placeable)
     end
     -- Optional particle emitter shape (chunk particles). Absent = no particles.
     sep.dropParticlesNode = findComponentNode(placeable, cfg.dropParticlesNodeName)
+    -- [SPS 1.0.1.9] panel digit read-outs (client; the server has no renderer and no font materials)
+    sep.panelDisplays = {}
+    if placeable.isClient and CharacterLine ~= nil and g_materialManager ~= nil and cfg.panelDisplays ~= nil then
+        for _, d in ipairs(cfg.panelDisplays) do
+            local node = findComponentNode(placeable, d.nodeName)
+            local font = g_materialManager:getFontMaterial(d.font, placeable.customEnvironment)
+            if node == nil then
+                print(string.format("[SPS SEPARATOR] panel display node '%s' not found in %s - read-out skipped", tostring(d.nodeName), tostring(placeable.configFileName)))
+            elseif font == nil then
+                print(string.format("[SPS SEPARATOR] panel display font '%s' not found - read-out '%s' skipped", tostring(d.font), tostring(d.nodeName)))
+            else
+                local formatStr, precision = Utils.maskToFormat(d.mask)
+                local cl = CharacterLine.new(node, font, d.mask:len())
+                cl:setSizeAndScale(d.size, d.scaleX, d.scaleY)
+                cl:setTextAlignment(RenderText["ALIGN_" .. d.alignment] or RenderText.ALIGN_RIGHT)
+                cl:setColor(d.color, d.hiddenColor, d.emissiveScale)
+                table.insert(sep.panelDisplays, { line = cl, value = d.value, formatStr = formatStr, precision = precision or 0, lastText = nil })
+            end
+        end
+        log("panel displays: %d read-out(s) built", #sep.panelDisplays)
+    end
     if sep.dropParticlesNode ~= nil then
         log("particle emitter '%s' resolved", tostring(cfg.dropParticlesNodeName))
     end
@@ -663,6 +753,11 @@ local function depositReturn(mgr, dstEntry, amount, fillType, returnDM)
         if dstEntry.thickeningEnabled then
             mgr:_ensureStorePools(dstEntry)
             dstEntry.solids = (dstEntry.solids or 0) + toAdd * math.max(0, returnDM or 0)
+            -- [SPS 1.0.1.9] pressed liquid carries no crust: it dilutes the store's settle
+            -- by volume (William 2026-10-27: 14% crust survived 95,000 L of return liquid).
+            if mgr.applyStoreCrustBlend ~= nil then
+                mgr:applyStoreCrustBlend(dstEntry, mgr:_getStoreTotalFill(dstEntry), toAdd, 0)
+            end
         end
         storage:setFillLevel((storage:getFillLevel(depFt) or 0) + toAdd, depFt)
         if dstEntry.thickeningEnabled then
@@ -702,7 +797,10 @@ function SPSSeparator.evaluateBlockReason(mgr, sep)
 
     local fillType = mgr:_resolveSourceFillType(srcEntry)
     if fillType == nil then return SPSSeparator.REASON_SOURCE_EMPTY, srcEntry, dstEntry end
-    local avail = mgr:_equaliseSourceLevel(srcEntry, fillType)
+    -- [SPS 1.0.1.9] the store farm-access rule (2026-10-20) reads a store as EMPTY / full for a caller with no farm
+    -- (AccessHandler:canFarmAccess(nil, ...) is false for any farm-owned store). The separator's farm is its
+    -- placeable's: pass it as the farm object (it has getOwnerFarmId). William 2026-10-26: "says the source is empty".
+    local avail = mgr:_equaliseSourceLevel(srcEntry, fillType, sep.placeable)
     if avail <= 1.0 then return SPSSeparator.REASON_SOURCE_EMPTY, srcEntry, dstEntry, fillType end
 
     if isSourceTooThick(mgr, srcEntry) then
@@ -736,7 +834,7 @@ function SPSSeparator.evaluateBlockReason(mgr, sep)
         and srcEntry.storage ~= nil and srcEntry.storage == dstEntry.storage
     local sameVehicle = srcEntry.vehicle ~= nil and srcEntry.vehicle == dstEntry.vehicle
     if not sameStorage and not sameVehicle then
-        local destFree = mgr:_equaliseDestFree(dstEntry, fillType)
+        local destFree = mgr:_equaliseDestFree(dstEntry, fillType, sep.placeable)   -- [SPS 1.0.1.9] farm = the separator's
         if destFree <= 1.0 then
             return SPSSeparator.REASON_RETURN_FULL, srcEntry, dstEntry, fillType
         end
@@ -772,6 +870,9 @@ function SPSSeparator.flushManure(sep, force)
     if target - level <= 0.1 then return end
     heap:setFillLevel(target, ft)
     sep._manurePending = pending - (target - level)
+    -- [SPS 1.0.1.9] diagnostic (channel SPSSeparator): does the heap DROP what we push (toDrop drains) or queue it?
+    log("flush: +%.1f L -> heap level %.0f / %.0f L, undropped queue %.1f L, lifetime %.0f L",
+        target - level, heap:getFillLevel(ft) or 0, cap, heap.manureToDrop or 0, sep.lifetimeManure or 0)
 end
 
 -- ---------------------------------------------------------------------------
@@ -802,7 +903,7 @@ function SPSSeparator.processTick(mgr, sep, dt)
     local intake = rate * dtSec
 
     -- Clamp by source, manure bunker and (different-vessel) return space.
-    intake = math.min(intake, mgr:_equaliseSourceLevel(srcEntry, fillType))
+    intake = math.min(intake, mgr:_equaliseSourceLevel(srcEntry, fillType, sep.placeable))   -- [SPS 1.0.1.9] farm = the separator's
     local manureFree = (sep.heap:getFreeCapacity(sep.heap.fillTypeIndex) or 0)
         - (sep._manurePending or 0)
     if k > 0 then
@@ -813,7 +914,7 @@ function SPSSeparator.processTick(mgr, sep, dt)
         and srcEntry.storage ~= nil and srcEntry.storage == dstEntry.storage
     local sameVehicle = srcEntry.vehicle ~= nil and srcEntry.vehicle == dstEntry.vehicle
     if not sameStorage and not sameVehicle then
-        local destFree = mgr:_equaliseDestFree(dstEntry, fillType)
+        local destFree = mgr:_equaliseDestFree(dstEntry, fillType, sep.placeable)   -- [SPS 1.0.1.9] farm = the separator's
         if (1 - k) > 0 then
             intake = math.min(intake, destFree / (1 - k))
         end
@@ -1236,11 +1337,20 @@ function SPSSeparator.buildDropEffects(sep)
         return nil
     end
 
-    -- Three independent layers; any subset may be present:
+    -- [SPS 1.0.1.9] effects defined in the placeable XML (game loader) win; the chunk layer may still be added below
+    if sep.xmlEffects ~= nil then
+        local effects = sep.xmlEffects
+        local mp = buildMotionPathDrop(sep)
+        if mp ~= nil then table.insert(effects, mp) end
+        log("drop effects: %d from XML%s", #effects, mp ~= nil and " (+ chunk layer)" or "")
+        return effects
+    end
+    -- Hand-built fallback (no <effects> block in the XML). Layers, any subset may be present:
     --   child 0 of dropNode  = shader-plane stream mesh (optional)
     --   child 1 of dropNode  = smoke/dust plane (optional)
-    --   SPS_dropParticles    = chunk particle emitter (optional)
     --   dropChunksTexture    = motion-path chunk drop (optional)
+    -- [SPS 1.0.1.9] the hand-built particle layer is retired: it crashed in ParticleEffect:setFillType (nil average
+    -- speed, William's log 2026-10-26 22:06); particles come from the XML block now.
     local effects = {}
     local numChildren = getNumOfChildren(sep.dropNode)
     if numChildren > 0 then
@@ -1253,7 +1363,7 @@ function SPSSeparator.buildDropEffects(sep)
         local smoke = buildOneDropEffect(sep, getChildAt(sep.dropNode, 1), true)
         if smoke ~= nil then table.insert(effects, smoke) end
     end
-    if sep.dropParticlesNode ~= nil then
+    if sep.dropParticlesNode ~= nil and SPSSeparator.HANDBUILT_PARTICLES == true then
         local pe = buildParticleEffect(sep, sep.dropParticlesNode)
         if pe ~= nil then
             table.insert(effects, pe)
@@ -1285,6 +1395,15 @@ function SPSSeparator.updateDropEffects(sep)
     end
     if shouldRun then
         g_effectManager:setEffectTypeInfo(sep.dropEffects, FillType.MANURE)
+        -- [SPS 1.0.1.9] the stream ends at the bunker floor: drop node height above the terrain (the floor is at
+        -- terrain level), handed to every effect that takes a distance (TipEffect forwards to its active effect)
+        if sep.dropNode ~= nil and entityExists(sep.dropNode) and g_terrainNode ~= nil then
+            local dx, dy, dz = getWorldTranslation(sep.dropNode)
+            local dist = math.max(0.5, dy - getTerrainHeightAtWorldPos(g_terrainNode, dx, 0, dz))
+            for _, effect in ipairs(sep.dropEffects) do
+                if effect.setDistance ~= nil then effect:setDistance(dist) end
+            end
+        end
         for i, effect in ipairs(sep.dropEffects) do
             -- hasValidMaterial=false means the MaterialManager lookup for
             -- (MANURE, materialType, 1) failed — vanilla then keeps the mesh
@@ -1302,6 +1421,54 @@ end
 -- ---------------------------------------------------------------------------
 -- updateAll — per-tick driver, called from the manager-update wrap.
 -- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.9] Panel read-out values. Every peer computes them from state it already has: the L/h stats come with the
+-- STATE event, DM in from the source entry (same call the info box uses), DM out from DM in and the press settings
+-- (the processTick split), the bunker mass from the heap level.
+function SPSSeparator.getPanelValue(mgr, sep, key)
+    local running = sep.isOn and (sep.blockReason or SPSSeparator.REASON_NONE) == SPSSeparator.REASON_NONE
+    if key == "intakelph" then
+        return running and (sep.statIntakeLph or 0) or 0
+    elseif key == "returnlph" then
+        return running and math.max(0, (sep.statIntakeLph or 0) - (sep.statManureLph or 0)) or 0
+    elseif key == "solidslph" then
+        return running and (sep.statManureLph or 0) or 0
+    elseif key == "dmin" or key == "dmout" then
+        local has, srcEntry = SPSSeparator.resolveEndpoint(mgr, sep.inCoupling)
+        if not has or srcEntry == nil then return 0 end
+        local dm = getSourceDM(mgr, srcEntry) or 0
+        if key == "dmin" then return dm * 100 end
+        local capture = SPSSeparator.getCaptureEff(sep)
+        local k = math.min(0.95, dm * capture / (sep.cfg.solidsDryMatter or 0.28))
+        local returnDM = (1 - k) > 0 and ((dm - dm * capture) / (1 - k)) or 0
+        return math.max(0, returnDM) * 100
+    elseif key == "screwpct" then
+        return (sep.tightness or 0) * 100
+    elseif key == "manurekg" or key == "manuret" then
+        local heap = sep.heap
+        if heap == nil or heap.fillTypeIndex == nil then return 0 end
+        local level = heap:getFillLevel(heap.fillTypeIndex) or 0
+        local desc = g_fillTypeManager:getFillTypeByIndex(FillType.MANURE)
+        local mpl = desc ~= nil and desc.massPerLiter or 0.0007
+        if mpl > 0.01 then mpl = mpl / 1000 end
+        local tonnes = level * mpl
+        return key == "manuret" and tonnes or tonnes * 1000
+    end
+    return 0
+end
+
+function SPSSeparator.updatePanelDisplays(mgr, sep)
+    if sep.panelDisplays == nil or #sep.panelDisplays == 0 then return end
+    for _, d in ipairs(sep.panelDisplays) do
+        local v = SPSSeparator.getPanelValue(mgr, sep, d.value) or 0
+        local int, floatPart = math.modf(v)
+        local text = string.format(d.formatStr, int, math.abs(math.floor(floatPart * 10 ^ d.precision)))
+        if text ~= d.lastText then
+            d.lastText = text
+            d.line:setText(text)
+        end
+    end
+end
+
 function SPSSeparator.updateAll(mgr, dt)
     for _, pEntry in ipairs(mgr.registeredPlaceables) do
         local sep = pEntry.separator
@@ -1322,6 +1489,13 @@ function SPSSeparator.updateAll(mgr, dt)
                 sep._syncTimerMs = sep._syncTimerMs + dt
                 if sep._syncTimerMs >= 5000.0 then
                     sep._syncTimerMs = 0.0
+                    -- [SPS 1.0.1.9] diagnostic (channel SPSSeparator): heap state every 5 s while the press runs
+                    if sep.heap ~= nil then
+                        log("heap: level %.0f / %.0f L, undropped %.1f L, toPick %.1f L, reason=%s, in %.0f L/h, solids %.0f L/h",
+                            sep.heap:getFillLevel(sep.heap.fillTypeIndex) or 0, sep.heap:getCapacity(sep.heap.fillTypeIndex) or 0,
+                            sep.heap.manureToDrop or 0, sep.heap.manureToPick or 0, tostring(sep.blockReason),
+                            sep.statIntakeLph or 0, sep.statManureLph or 0)
+                    end
                     if SPSSeparatorEvent ~= nil then
                         SPSSeparatorEvent.sendState(sep)
                     end
@@ -1329,6 +1503,12 @@ function SPSSeparator.updateAll(mgr, dt)
             end
             -- Effects follow state on every peer (server included for listen).
             SPSSeparator.updateDropEffects(sep)
+            -- [SPS 1.0.1.9] panel read-outs, 4x a second, every peer
+            sep._panelMs = (sep._panelMs or 0) + dt
+            if sep._panelMs >= 250 then
+                sep._panelMs = 0
+                SPSSeparator.updatePanelDisplays(mgr, sep)
+            end
         end
     end
 end
@@ -1399,11 +1579,19 @@ SlurryPipeManager.registerPlaceableDetachHandler("Separator", function(mgr, plac
                 g_effectManager:stopEffects(sep.dropEffects)
                 g_effectManager:deleteEffects(sep.dropEffects)
                 sep.dropEffects = nil
+                sep.xmlEffects = nil   -- same table once built
+            elseif sep.xmlEffects ~= nil then
+                g_effectManager:deleteEffects(sep.xmlEffects)   -- loaded but never started
+                sep.xmlEffects = nil
             end
             if sep.activatable ~= nil then
                 sep.activatable:delete()
                 sep.activatable = nil
             end
+            for _, d in ipairs(sep.panelDisplays or {}) do
+                if d.line ~= nil and d.line.rootNode ~= nil and entityExists(d.line.rootNode) then delete(d.line.rootNode) end
+            end
+            sep.panelDisplays = nil
             sep.isOn = false
             pEntry.separator = nil
             SPSSeparator.log("detached from %s", tostring(placeable.configFileName))

@@ -642,6 +642,7 @@ function SlurryPipeManager:registerSprayerVehicle(vehicle)
                 connectedPartnerCoupling = nil,
                 pipeId                   = nil,
                 object                   = vehicle,
+                isSprayerCoupling        = true,   -- [SPS 1.0.1.9] physical WATER hose plugs in (SPSM_PhysPipes)
             }
             -- Bind coupler animations (connector + valve) if configured
             if SPSCouplerAnimator ~= nil
@@ -1860,6 +1861,7 @@ function SlurryPipeManager:registerSprayerPlaceable(placeable)
                 object                   = placeable,
                 placeable                = placeable,
                 sourceEntry              = sourceEntry,
+                isSprayerCoupling        = true,   -- [SPS 1.0.1.9] physical WATER hose plugs in (SPSM_PhysPipes)
             }
             -- Bind coupler animations (connector + valve) if configured
             if SPSCouplerAnimator ~= nil
@@ -2414,6 +2416,7 @@ function SlurryPipeManager:registerSprayerSourceVehicle(vehicle)
                 object                   = vehicle,
                 placeable                = nil,
                 sourceEntry              = sourceEntry,
+                isSprayerCoupling        = true,   -- [SPS 1.0.1.9] physical WATER hose plugs in (SPSM_PhysPipes)
             }
             if SPSCouplerAnimator ~= nil
             and (sc.connectorAnimationId ~= nil or sc.valveAnimationId ~= nil) then
@@ -2641,6 +2644,7 @@ end
 -- ---------------------------------------------------------------------------
 function SlurryPipeManager:findOverlappingSprayerCoupler(coupling)
     if coupling.isConnected then return nil end
+    if coupling.physPipe ~= nil then return nil end   -- [SPS 1.0.1.9] a physical pipe is on it: that pipe's chain connects it
     local apexA, arc1A, arc2A = self:_getCouplingArcNodes(coupling)
     if apexA == nil or not entityExists(apexA) then return nil end
     local apexAx, apexAy, apexAz = getWorldTranslation(apexA)
@@ -2662,10 +2666,15 @@ function SlurryPipeManager:findOverlappingSprayerCoupler(coupling)
     local best, bestDist = nil, math.huge
 
     local function consider(cand)
+        if cand.physPipe ~= nil then return end   -- [SPS 1.0.1.9] taken by a physical pipe
         local apexB, arc1B, arc2B = self:_getCouplingArcNodes(cand)
         if apexB == nil or not entityExists(apexB) then return end
         local bx, by, bz = getWorldTranslation(apexB)
-        if MathUtil.vector3Length(apexAx-bx, apexAy-by, apexAz-bz) > SPS_MAX_CONNECT_DIST then return end
+        -- [SPS 1.0.1.9] reach rule 6c at the CONNECT range too (NEW_HOSES_WORKUP 6c: "applied at the three places"): the
+        -- 80 mm reach is 4.0 m but this gate still allowed 5.9 m, so a hose made at 4-5.9 m was cut by the stretch
+        -- check on the next tick (William 2026-10-26: "the pipe disconnects instantly")
+        local reach = math.min(SPS_MAX_CONNECT_DIST, coupling.maxPipeLength or 7.5, cand.maxPipeLength or 7.5)
+        if MathUtil.vector3Length(apexAx-bx, apexAy-by, apexAz-bz) > reach then return end
         if not self:_arcsOverlap(apexA, arc1A, arc2A, apexB, arc1B, arc2B) then return end
         local d = MathUtil.vector3Length(refX-bx, refY-by, refZ-bz)
         if d < bestDist then
@@ -2760,7 +2769,9 @@ function SlurryPipeManager:applySprayerConnect(couplingA, couplingB, ownerA, own
     couplingB.connectedPartnerCoupling = couplingA
     
 
-    if g_spsSprayerPipeVisual ~= nil and g_spsSprayerPipeVisual:isReady() then
+    -- [SPS 1.0.1.9] PHYSICAL pipes: the bought pipe IS the hose - draw nothing (SPSM_PhysPipes). Original mode: unchanged.
+    local physPipe = couplingA.physPipe ~= nil or couplingB.physPipe ~= nil
+    if not physPipe and g_spsSprayerPipeVisual ~= nil and g_spsSprayerPipeVisual:isReady() then
         -- couplingA is the side the player activated from — pipe starts at its outNode.
         -- couplingB is the far side — pipe ends at its inNode.
         local nodeA = couplingA.outNode or couplingA.mountNode
@@ -2969,6 +2980,12 @@ function SlurryPipeManager:applySprayerDisconnect(object, couplingId, couplingOb
 
     local partner = coupling.connectedPartnerCoupling
 
+    -- [SPS 1.0.1.9] Physical pipe plugged into THIS coupling: let its end go (the partner side's end, if any, stays
+    -- plugged in - one end was disconnected, not the pipe). Same hook as the slurry applyDisconnect.
+    if coupling.physPipe ~= nil and self._physFreeCoupling ~= nil then
+        self:_physFreeCoupling(coupling)
+    end
+
     -- Stop any active flow for either end
     local ownerA = object or coupling.placeable or coupling.object
     local ownerB = partner ~= nil and (partner.object or partner.placeable) or nil
@@ -3017,12 +3034,13 @@ function SlurryPipeManager:applySprayerDisconnect(object, couplingId, couplingOb
         end
     end
 
-    -- Play connector animations reverse (pipe disconnection)
+    -- Play connector animations reverse (pipe disconnection). [SPS 1.0.1.9] A coupler that still holds a physical pipe
+    -- end keeps its clamps shut (the end comes off through spsDetachEnd, which opens them).
     if SPSCouplerAnimator ~= nil then
-        if coupling.connectorAnim ~= nil then
+        if coupling.connectorAnim ~= nil and coupling.physPipe == nil then
             SPSCouplerAnimator.play(coupling.connectorAnim, -1)
         end
-        if partner ~= nil and partner.connectorAnim ~= nil then
+        if partner ~= nil and partner.connectorAnim ~= nil and partner.physPipe == nil then
             SPSCouplerAnimator.play(partner.connectorAnim, -1)
         end
     end
@@ -3709,7 +3727,9 @@ function SlurryPipeManager:updateSprayers(dt)
         self._sprayerDistCheckTick = 0
         for _, vEntry in ipairs(self.registeredSprayerVehicles) do
             for _, c in ipairs(vEntry.couplings) do
+                -- [SPS 1.0.1.9] PHYSICAL pipes have their own overstretch rule per pipe (SPSHoseItem:spsUpdateEnds)
                 if c.isConnected
+                and c.physPipe == nil
                 and c.mountNode ~= nil
                 and c.connectedPartnerCoupling ~= nil
                 and c.connectedPartnerCoupling.mountNode ~= nil then
@@ -3717,6 +3737,9 @@ function SlurryPipeManager:updateSprayers(dt)
                     local bx, by, bz = getWorldTranslation(c.connectedPartnerCoupling.mountNode)
                     local dist = MathUtil.vector3Length(ax-bx, ay-by, az-bz)
                     if dist > (c.maxPipeLength or 7.5) then
+                        -- [SPS 1.0.1.9] always say why (William 2026-10-26: "the pipe disconnects instantly")
+                        print(string.format("[SPS SPR] sprayer hose dropped: couplers %.1f m apart, reach %.1f m (%s coupling id=%s)",
+                            dist, c.maxPipeLength or 7.5, tostring(vEntry.object and vEntry.object.configFileName), tostring(c.id)))
                         self:applySprayerDisconnect(vEntry.object, c.id, c)
                         SPSSprayerDisconnectEvent.sendEvent(vEntry.object, c.id)
                     end

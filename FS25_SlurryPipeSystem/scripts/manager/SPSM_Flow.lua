@@ -3256,10 +3256,15 @@ function SlurryPipeManager:addToSource(sourceEntry, amount, fillType, farmVehicl
                 if sourceEntry.thickeningEnabled then
                     self:_ensureStorePools(sourceEntry)
                     local solidsIn = 0
+                    local crustIn  = 0
                     if fillType ~= FillType.WATER and farmVehicle ~= nil then
                         solidsIn = toAdd * self:gaugeToDM(self:getTankerThickness(farmVehicle))
+                        crustIn  = self:getTankerCrust(farmVehicle)
                     end
                     sourceEntry.solids = (sourceEntry.solids or 0) + solidsIn
+                    -- [SPS 1.0.1.9] the store's crust is volume-blended with what comes in
+                    -- (a tanker's carried crust; water dilutes it) - see applyStoreCrustBlend.
+                    self:applyStoreCrustBlend(sourceEntry, self:_getStoreTotalFill(sourceEntry), toAdd, crustIn)
                 end
                 storage:setFillLevel((storage:getFillLevel(depositFillType) or 0) + toAdd, depositFillType)
                 if sourceEntry.thickeningEnabled then

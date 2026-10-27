@@ -225,6 +225,17 @@
 		<text name="warning_spsSepOutputFull"			text="Separátor: Zásobník na tuhý separát je plný" />
 		<text name="warning_spsSepReturnFull"			text="Separátor: Cílové místo pro vrácenou kejdu je plné" />
 		<text name="info_spsSeparatorRunning"			text="Provozní náklady separátoru kejdy" />
+		<text name="sps_infoSepBunker"            text="Bunker" />
+		<text name="sps_infoSepManure"           text="Manure" />
+		<text name="sps_infoSepSource"            text="Source" />
+		<text name="sps_infoSepReturn"            text="Return" />
+		<text name="sps_infoSepStatus"            text="Status" />
+		<text name="sps_infoSepRunning"           text="Running" />
+		<text name="sps_infoSepStopped"           text="Stopped" />
+		<text name="sps_infoSepIntake"            text="Intake" />
+		<text name="sps_infoSepSolids"            text="Solids" />
+		<text name="sps_infoSepNoPipe"            text="No pipe" />
+		<text name="sps_infoSepUnknown"           text="-" />
 		<text name="warning_spsSepNoDm"					text="Separátor: V kejdě nezůstala žádná sušina — zařízení čeká na přítok čerstvé kejdy" />
 
 		<!-- Buying station -->

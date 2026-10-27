@@ -321,7 +321,7 @@
             <TransformGroup name="ladder01HydrCylin01Pipes01" translation="0.0515248 0.73384 -0.236494" nodeId="180"/>
             <TransformGroup name="cameras" translation="0 0 2.98023e-08" nodeId="181">
               <TransformGroup name="outdoorCameraTarget" translation="0 1 -0.124855" nodeId="182">
-                <Camera name="outdoorCamera1" translation="0 1.4 4.5" rotation="-15 -0 1.49843e-06" nodeId="183" fov="60" nearClip="0.1" farClip="1000" orthographicHeight="1"/>
+                <Camera name="outdoorCamera1" translation="1.13497 -4.38545 3.84028" rotation="-14.5416 3.89571 1.32374e-06" nodeId="183" fov="60" nearClip="0.1" farClip="1000" orthographicHeight="1"/>
               </TransformGroup>
               <Camera name="indoorCamera1" translation="0 1.3 0.8" rotation="-15 0 3.33572e-08" nodeId="184" fov="60" nearClip="0.1" farClip="1000" orthographicHeight="1"/>
               <TransformGroup name="cameraRaycastNode1" translation="0 0.264953 -12.5197" nodeId="185"/>
@@ -371,6 +371,7 @@
           <TransformGroup name="outNode" rotation="0 -1.88504e-05 6.3435e-06" nodeId="220"/>
         </TransformGroup>
       </TransformGroup>
+      <TransformGroup name="shopLevel" translation="0 -0.491 0" nodeId="224"/>
     </Shape>
   </Scene>
 

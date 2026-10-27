@@ -92,7 +92,7 @@ function SPSWaterPlaneManager:loadWaterPlanes()
         --      BaseMission.lua:297 and never cleared). No SPS edit, no manifest.
         rootNode = self:_findWaterNodesInMapScenegraph()
         if rootNode ~= nil then
-            print("[SPS WPM] Found SPS_waterNodes in map scenegraph (deep search)")
+            if spsInfo ~= nil then spsInfo("[SPS WPM] Found SPS_waterNodes in map scenegraph (deep search)") end
         end
         if rootNode == nil then
             rootNode = self:_loadMapFolderWaterNodes()
@@ -101,14 +101,14 @@ function SPSWaterPlaneManager:loadWaterPlanes()
             end
         end
         if rootNode == nil then
-            print("[SPS WPM] No SPS_waterNodes in map scenegraph, checking for external i3d...")
+            if spsInfo ~= nil then spsInfo("[SPS WPM] No SPS_waterNodes in map scenegraph, checking for external i3d...") end
             rootNode = self:_loadExternalWaterNodes()
             if rootNode ~= nil then
                 loadedFromExternal = true
             end
         end
     else
-        print("[SPS WPM] Found SPS_waterNodes in map scenegraph")
+        if spsInfo ~= nil then spsInfo("[SPS WPM] Found SPS_waterNodes in map scenegraph") end
     end
     
     if rootNode == nil or not entityExists(rootNode) then

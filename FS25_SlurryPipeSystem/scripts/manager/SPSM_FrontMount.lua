@@ -766,9 +766,9 @@ function SlurryPipeManager:spsInjectConfiguredHoses(vehicle, entry)
             entry.frontMount.hoseSuppressedOn = nil   -- tractor whose specType circuit owns this joint
             entry.frontMount.hoseRetryTimer   = nil   -- ms since a dead connect attempt (see self-heal)
             entry.frontMount.hoseObjectChange = spsMakeObjectChangeState(entry.frontMount.hoseDef, hoseEntry)
-            print(string.format("[SPS] frontMount hose injected on '%s' (node='%s' type=%s)",
+            if spsInfo ~= nil then spsInfo(string.format("[SPS] frontMount hose injected on '%s' (node='%s' type=%s)",
                 tostring(vehicle.configFileName), tostring(entry.frontMount.hoseDef.nodeName),
-                tostring(hoseEntry.type)))
+                tostring(hoseEntry.type))) end
         else
             print(string.format("[SPS] WARNING: frontMount hose injection FAILED on '%s' (%s)",
                 tostring(vehicle.configFileName), tostring(reason)))

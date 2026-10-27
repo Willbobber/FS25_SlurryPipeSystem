@@ -2,120 +2,174 @@
 
 <i3D name="borger125FixedBunker.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
   <Asset>
-    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
+    <Export program="GIANTS Editor 64bit" version="10.0.14"/>
   </Asset>
 
   <Files>
-    <File fileId="31" filename="$data/maps/textures/shared/concreteGeneric_diffuse.dds"/>
-    <File fileId="32" filename="$data/maps/textures/shared/concreteGeneric_normal.dds"/>
-    <File fileId="33" filename="$data/maps/textures/shared/concreteGeneric_specular.dds"/>
+    <File fileId="32" filename="$data/maps/textures/shared/concreteGeneric_diffuse.dds"/>
+    <File fileId="33" filename="$data/maps/textures/shared/concreteGeneric_normal.dds"/>
+    <File fileId="34" filename="$data/maps/textures/shared/concreteGeneric_specular.dds"/>
+    <File fileId="35" filename="$data/shaders/buildingShader.xml"/>
     <File fileId="5" filename="$data/shaders/vehicleShader.xml"/>
     <File fileId="3" filename="$data/shared/default_normal.dds"/>
-    <File fileId="25" filename="$data/shared/default_specular.dds"/>
-    <File fileId="4" filename="$data/shared/default_vmask.dds"/>
+    <File fileId="23" filename="$data/shared/default_specular.dds"/>
     <File fileId="7" filename="$data/shared/detailLibrary/flat_normal.png"/>
-    <File fileId="30" filename="$data/shared/detailLibrary/metallic/clear_diffuse.png"/>
-    <File fileId="29" filename="$data/shared/detailLibrary/metallic/glass/glassClear02_specular.png"/>
-    <File fileId="17" filename="$data/shared/detailLibrary/metallic/metalGalvanized_diffuse.png"/>
-    <File fileId="16" filename="$data/shared/detailLibrary/metallic/metalGalvanized_normal.png"/>
-    <File fileId="15" filename="$data/shared/detailLibrary/metallic/metalGalvanized_specular.png"/>
-    <File fileId="19" filename="$data/shared/detailLibrary/metallic/silverScratched_diffuse.png"/>
-    <File fileId="18" filename="$data/shared/detailLibrary/metallic/silverScratched_specular.png"/>
+    <File fileId="31" filename="$data/shared/detailLibrary/metallic/clear_diffuse.png"/>
+    <File fileId="30" filename="$data/shared/detailLibrary/metallic/glass/glassClear02_specular.png"/>
+    <File fileId="15" filename="$data/shared/detailLibrary/metallic/metalGalvanized_diffuse.png"/>
+    <File fileId="14" filename="$data/shared/detailLibrary/metallic/metalGalvanized_normal.png"/>
+    <File fileId="13" filename="$data/shared/detailLibrary/metallic/metalGalvanized_specular.png"/>
+    <File fileId="17" filename="$data/shared/detailLibrary/metallic/silverScratched_diffuse.png"/>
+    <File fileId="16" filename="$data/shared/detailLibrary/metallic/silverScratched_specular.png"/>
     <File fileId="22" filename="$data/shared/detailLibrary/metallic/zincGalvanized_diffuse.png"/>
     <File fileId="21" filename="$data/shared/detailLibrary/metallic/zincGalvanized_normal.png"/>
     <File fileId="20" filename="$data/shared/detailLibrary/metallic/zincGalvanized_specular.png"/>
     <File fileId="8" filename="$data/shared/detailLibrary/nonMetallic/metal/metalPainted_diffuse.png"/>
     <File fileId="6" filename="$data/shared/detailLibrary/nonMetallic/metal/metalPainted_specular.png"/>
-    <File fileId="14" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_diffuse.png"/>
-    <File fileId="13" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_specular.png"/>
+    <File fileId="19" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_diffuse.png"/>
+    <File fileId="18" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_specular.png"/>
     <File fileId="2" filename="$data/shared/white_diffuse.dds"/>
-    <File fileId="27" filename="$data/shared/window_diffuse.dds"/>
-    <File fileId="28" filename="$data/shared/window_specular.dds"/>
+    <File fileId="28" filename="$data/shared/window_diffuse.dds"/>
+    <File fileId="29" filename="$data/shared/window_specular.dds"/>
+    <File fileId="40" filename="textures/InOutSign.dds"/>
+    <File fileId="27" filename="textures/borger125_decal_vmask.dds"/>
+    <File fileId="4" filename="textures/borger125_vmask.dds"/>
     <File fileId="26" filename="textures/borger_decal.dds"/>
-    <File fileId="23" filename="textures/controlPanel_diffuse.dds"/>
+    <File fileId="36" filename="textures/bunker_vmask.dds"/>
+    <File fileId="24" filename="textures/controlPanel_diffuse.dds"/>
+    <File fileId="25" filename="textures/controlPanel_vmask.dds"/>
   </Files>
 
 
   <Materials>
-    <Material name="borger_mat" materialId="5" specularColor="0.501961 1 0">
+    <Material name="borger_mat" materialId="5" customShaderId="5">
       <Texture fileId="26"/>
-    </Material>
-    <Material name="concrete_mat" materialId="6">
-      <Texture fileId="31"/>
-      <Normalmap fileId="32"/>
-      <Glossmap fileId="33"/>
-    </Material>
-    <Material name="controlPanel_mat" materialId="7" specularColor="0.501961 1 0">
-      <Texture fileId="23"/>
-    </Material>
-    <Material name="glassClear02_mat" materialId="118" customShaderId="5">
-      <Texture fileId="27"/>
       <Normalmap fileId="3"/>
-      <Glossmap fileId="28"/>
-      <Custommap name="detailSpecular" fileId="29"/>
+      <Glossmap fileId="27"/>
+      <Custommap name="detailSpecular" fileId="18"/>
       <Custommap name="detailNormal" fileId="7"/>
-      <Custommap name="detailDiffuse" fileId="30"/>
+      <Custommap name="detailDiffuse" fileId="19"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0.15 0.5 0 0"/>
+      <CustomParameter name="dirtColor" value="0.16 0.11 0.06"/>
     </Material>
-    <Material name="lambert1" materialId="9" diffuseColor="0.501961 0.501961 0.501961 1">
+    <Material name="concrete_mat" materialId="6" customShaderId="35">
+      <Texture fileId="32"/>
+      <Normalmap fileId="33"/>
+      <Glossmap fileId="34"/>
+      <Custommap name="mMaskMap" fileId="36"/>
+      <CustomParameter name="dirtMossMix" value="1 0.5"/>
     </Material>
-    <Material name="lambert1" materialId="10" diffuseColor="0.501961 0.501961 0.501961 1" specularColor="0.501961 1 0">
-    </Material>
-    <Material name="metalGalvanized_mat" materialId="11" customShaderId="5">
-      <Texture fileId="2"/>
-      <Normalmap fileId="3"/>
-      <Glossmap fileId="4"/>
-      <Custommap name="detailSpecular" fileId="15"/>
-      <Custommap name="detailNormal" fileId="16"/>
-      <Custommap name="detailDiffuse" fileId="17"/>
-    </Material>
-    <Material name="metalPainted_mat_borger" materialId="12" customShaderId="5">
-      <Texture fileId="2"/>
-      <Normalmap fileId="3"/>
-      <Glossmap fileId="4"/>
-      <Custommap name="detailSpecular" fileId="6"/>
-      <Custommap name="detailNormal" fileId="7"/>
-      <Custommap name="detailDiffuse" fileId="8"/>
-      <CustomParameter name="colorScale" value="0 0.447 0.545"/>
-    </Material>
-    <Material name="metalPainted_mat_Red" materialId="13" customShaderId="5">
-      <Texture fileId="2"/>
-      <Normalmap fileId="3"/>
-      <Glossmap fileId="4"/>
-      <Custommap name="detailSpecular" fileId="6"/>
-      <Custommap name="detailNormal" fileId="7"/>
-      <Custommap name="detailDiffuse" fileId="8"/>
-      <CustomParameter name="colorScale" value="0.359 0.033 0.035"/>
-    </Material>
-    <Material name="plasticPainted_mat" materialId="148">
-      <Texture fileId="2"/>
+    <Material name="controlPanel_mat" materialId="7" customShaderId="5">
+      <Texture fileId="24"/>
       <Normalmap fileId="3"/>
       <Glossmap fileId="25"/>
+      <Custommap name="detailSpecular" fileId="18"/>
+      <Custommap name="detailNormal" fileId="7"/>
+      <Custommap name="detailDiffuse" fileId="19"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0.15 0.3 0 0"/>
+      <CustomParameter name="dirtColor" value="0.16 0.11 0.06"/>
     </Material>
-    <Material name="plasticPaintedShinyBlack_mat" materialId="15" customShaderId="5">
+    <Material name="controlPanel_mat" materialId="8" customShaderId="5">
+      <Texture fileId="24"/>
+      <Normalmap fileId="3"/>
+      <Glossmap fileId="25"/>
+      <Custommap name="detailSpecular" fileId="18"/>
+      <Custommap name="detailNormal" fileId="7"/>
+      <Custommap name="detailDiffuse" fileId="19"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0.15 0.5 0 0"/>
+      <CustomParameter name="dirtColor" value="0.16 0.11 0.06"/>
+    </Material>
+    <Material name="default_mat_pbr_debug_100" materialId="9" specularColor="0.6 1 0">
+      <Texture fileId="3"/>
+    </Material>
+    <Material name="glassClear02_mat" materialId="10" customShaderId="5">
+      <Texture fileId="28"/>
+      <Normalmap fileId="3"/>
+      <Glossmap fileId="29"/>
+      <Custommap name="detailSpecular" fileId="30"/>
+      <Custommap name="detailNormal" fileId="7"/>
+      <Custommap name="detailDiffuse" fileId="31"/>
+    </Material>
+    <Material name="inOutSign" materialId="123" specularColor="0.501961 1 0">
+      <Texture fileId="40"/>
+    </Material>
+    <Material name="lambert1" materialId="12" diffuseColor="0.501961 0.501961 0.501961 1">
+    </Material>
+    <Material name="lambert1" materialId="13" diffuseColor="0.501961 0.501961 0.501961 1" specularColor="0.501961 1 0">
+    </Material>
+    <Material name="lambert1_pbr_debug_9" materialId="14" diffuseColor="0.8 0.8 0.8 1" specularColor="0.6 1 0">
+    </Material>
+    <Material name="metalGalvanized_mat" materialId="15" customShaderId="5" customShaderVariation="vmaskUV2">
       <Texture fileId="2"/>
       <Normalmap fileId="3"/>
       <Glossmap fileId="4"/>
       <Custommap name="detailSpecular" fileId="13"/>
-      <Custommap name="detailNormal" fileId="7"/>
-      <Custommap name="detailDiffuse" fileId="14"/>
-      <CustomParameter name="colorScale" value="0.012 0.012 0.012"/>
-      <CustomParameter name="smoothnessScale" value="1.52"/>
+      <Custommap name="detailNormal" fileId="14"/>
+      <Custommap name="detailDiffuse" fileId="15"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0.15 0.4 0 0"/>
+      <CustomParameter name="dirtColor" value="0.16 0.11 0.06"/>
     </Material>
-    <Material name="silverScratched_mat" materialId="16" customShaderId="5">
+    <Material name="metalPainted_mat_borger" materialId="16" customShaderId="5" customShaderVariation="vmaskUV2">
+      <Texture fileId="2"/>
+      <Normalmap fileId="3"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="6"/>
+      <Custommap name="detailNormal" fileId="7"/>
+      <Custommap name="detailDiffuse" fileId="8"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0.15 0.4 0 0"/>
+      <CustomParameter name="dirtColor" value="0.16 0.11 0.06"/>
+      <CustomParameter name="colorScale" value="0 0.447 0.545"/>
+    </Material>
+    <Material name="metalPainted_mat_Red" materialId="17" customShaderId="5" customShaderVariation="vmaskUV2">
+      <Texture fileId="2"/>
+      <Normalmap fileId="3"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="6"/>
+      <Custommap name="detailNormal" fileId="7"/>
+      <Custommap name="detailDiffuse" fileId="8"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0.15 0.5 0 0"/>
+      <CustomParameter name="dirtColor" value="0.16 0.11 0.06"/>
+      <CustomParameter name="colorScale" value="0.359 0.033 0.035"/>
+    </Material>
+    <Material name="plasticPainted_mat" materialId="18">
+      <Texture fileId="2"/>
+      <Normalmap fileId="3"/>
+      <Glossmap fileId="23"/>
+    </Material>
+    <Material name="plasticPaintedShinyBlack_mat" materialId="19" customShaderId="5" customShaderVariation="vmaskUV2">
       <Texture fileId="2"/>
       <Normalmap fileId="3"/>
       <Glossmap fileId="4"/>
       <Custommap name="detailSpecular" fileId="18"/>
       <Custommap name="detailNormal" fileId="7"/>
       <Custommap name="detailDiffuse" fileId="19"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0.15 0.5 0 0"/>
+      <CustomParameter name="dirtColor" value="0.16 0.11 0.06"/>
+      <CustomParameter name="colorScale" value="0.012 0.012 0.012"/>
+      <CustomParameter name="smoothnessScale" value="1.52"/>
     </Material>
-    <Material name="zincGalvanized_mat" materialId="17" customShaderId="5">
+    <Material name="silverScratched_mat" materialId="20" customShaderId="5" customShaderVariation="vmaskUV2">
+      <Texture fileId="2"/>
+      <Normalmap fileId="3"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="16"/>
+      <Custommap name="detailNormal" fileId="7"/>
+      <Custommap name="detailDiffuse" fileId="17"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0.15 0.5 0 0"/>
+      <CustomParameter name="dirtColor" value="0.16 0.11 0.06"/>
+    </Material>
+    <Material name="unloadMap_mat" materialId="21" diffuseColor="0.501961 0.501961 0.501961 1" alphaBlending="true">
+      <Normalmap fileId="3"/>
+    </Material>
+    <Material name="zincGalvanized_mat" materialId="22" customShaderId="5" customShaderVariation="vmaskUV2">
       <Texture fileId="2"/>
       <Normalmap fileId="3"/>
       <Glossmap fileId="4"/>
       <Custommap name="detailSpecular" fileId="20"/>
       <Custommap name="detailNormal" fileId="21"/>
       <Custommap name="detailDiffuse" fileId="22"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0.15 0.5 0 0"/>
+      <CustomParameter name="dirtColor" value="0.16 0.11 0.06"/>
     </Material>
   </Materials>
 
@@ -124,101 +178,121 @@
   </Shapes>
 
   <Scene>
-    <TransformGroup name="separatorFixedBunker" nodeId="35">
-      <TransformGroup name="clearAreas" nodeId="36">
-        <TransformGroup name="clearAreaStart01" translation="-4.6 0 -4.5" nodeId="37">
-          <TransformGroup name="clearAreaWidth01" translation="0 0 9.2" nodeId="38"/>
-          <TransformGroup name="clearAreaHeight01" translation="9.2 0 0" nodeId="39"/>
+    <TransformGroup name="separatorFixedBunker" nodeId="44">
+      <TransformGroup name="clearAreas" nodeId="45">
+        <TransformGroup name="clearAreaStart01" translation="-4.6 0 -4.5" nodeId="46">
+          <TransformGroup name="clearAreaWidth01" translation="0 0 9.2" nodeId="47"/>
+          <TransformGroup name="clearAreaHeight01" translation="9.2 0 0" nodeId="48"/>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="levelAreas" nodeId="40">
-        <TransformGroup name="levelAreaStart01" translation="-4.6 0 -4.5" nodeId="41">
-          <TransformGroup name="levelAreaWidth01" translation="0 0 9.2" nodeId="42"/>
-          <TransformGroup name="levelAreaHeight01" translation="9.2 0 0" nodeId="43"/>
+      <TransformGroup name="levelAreas" nodeId="49">
+        <TransformGroup name="levelAreaStart01" translation="-4.6 0 -4.5" nodeId="50">
+          <TransformGroup name="levelAreaWidth01" translation="0 0 9.2" nodeId="51"/>
+          <TransformGroup name="levelAreaHeight01" translation="9.2 0 0" nodeId="52"/>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="indoorAreas" nodeId="44">
-        <TransformGroup name="indoorAreaStart01" translation="-2.8 0 -2.7" nodeId="45">
-          <TransformGroup name="indoorAreaWidth01" translation="0 0 5.9" nodeId="46"/>
-          <TransformGroup name="indoorAreaHeight01" translation="5.6 0 0" nodeId="47"/>
+      <TransformGroup name="indoorAreas" nodeId="53">
+        <TransformGroup name="indoorAreaStart01" translation="-2.8 0 -2.7" nodeId="54">
+          <TransformGroup name="indoorAreaWidth01" translation="0 0 5.9" nodeId="55"/>
+          <TransformGroup name="indoorAreaHeight01" translation="5.6 0 0" nodeId="56"/>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="testAreas" nodeId="48">
-        <TransformGroup name="testAreaStart01" translation="-4.6 0 -4.5" nodeId="49">
-          <TransformGroup name="testAreaEnd01" translation="9.2 0 9.2" nodeId="50"/>
+      <TransformGroup name="testAreas" nodeId="57">
+        <TransformGroup name="testAreaStart01" translation="-4.6 0 -4.5" nodeId="58">
+          <TransformGroup name="testAreaEnd01" translation="9.2 0 9.2" nodeId="59"/>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="tipOcclusionUpdateAreas" nodeId="51">
-        <TransformGroup name="tipOcclusionUpdateAreaStart01" translation="-4.6 0 -4.5" nodeId="52">
-          <TransformGroup name="tipOcclusionUpdateAreaEnd01" translation="9.2 0 9.2" nodeId="53"/>
+      <TransformGroup name="tipOcclusionUpdateAreas" nodeId="60">
+        <TransformGroup name="tipOcclusionUpdateAreaStart01" translation="-4.6 0 -4.5" nodeId="61">
+          <TransformGroup name="tipOcclusionUpdateAreaEnd01" translation="9.2 0 9.2" nodeId="62"/>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="manureHeap" nodeId="54">
-        <Shape name="loadingTrigger" translation="8 2 2.74805" shapeId="1" static="true" trigger="true" collisionFilterGroup="0x20000000" collisionFilterMask="0x40000000" nodeId="55" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="9"/>
-        <TransformGroup name="loadingTriggerAINode" translation="8.26762 0 3.12601" rotation="0 175 0" nodeId="56"/>
-        <TransformGroup name="loadingTriggerMarker" translation="8.19611 0 2.74805" nodeId="57"/>
-        <TransformGroup name="tipArea" translation="-4.1 0 -6.75" nodeId="58">
-          <TransformGroup name="tipAreaStart" translation="1.3 0 4.05" nodeId="59">
-            <TransformGroup name="tipAreaWidth" translation="5.6 0 0" nodeId="60"/>
-            <TransformGroup name="tipAreaHeight" translation="0 0 5.9" nodeId="61"/>
+      <TransformGroup name="manureHeap" nodeId="63">
+        <Shape name="loadingTrigger" translation="8 2 2.74805" shapeId="1" static="true" trigger="true" collisionFilterGroup="0x20000000" collisionFilterMask="0x40000000" nodeId="64" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="12"/>
+        <TransformGroup name="loadingTriggerAINode" translation="8.26762 0 3.12601" rotation="0 175 0" nodeId="65"/>
+        <TransformGroup name="loadingTriggerMarker" translation="8.19611 0 2.74805" nodeId="66"/>
+        <TransformGroup name="tipArea" translation="-4.1 0 -6.75" nodeId="67">
+          <TransformGroup name="tipAreaStart" translation="1.3 0 4.05" nodeId="68">
+            <TransformGroup name="tipAreaWidth" translation="5.6 0 0" nodeId="69"/>
+            <TransformGroup name="tipAreaHeight" translation="0 0 5.9" nodeId="70"/>
           </TransformGroup>
         </TransformGroup>
-        <Shape name="activationTrigger" translation="0 3.02749 1.5764" shapeId="2" static="true" trigger="true" collisionFilterGroup="0x20000000" collisionFilterMask="0x110000" nodeId="62" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="9"/>
-        <TransformGroup name="clearAreaStart" translation="-2.8 0 -2.7" nodeId="63">
-          <TransformGroup name="clearAreaWidth" translation="0 0 5.9" nodeId="64"/>
-          <TransformGroup name="clearAreaHeight" translation="5.6 0 0" nodeId="65"/>
+        <Shape name="activationTrigger" translation="0 3.02749 1.5764" shapeId="2" static="true" trigger="true" collisionFilterGroup="0x20000000" collisionFilterMask="0x110000" nodeId="71" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="12"/>
+        <TransformGroup name="clearAreaStart" translation="-2.8 0 -2.7" nodeId="72">
+          <TransformGroup name="clearAreaWidth" translation="0 0 5.9" nodeId="73"/>
+          <TransformGroup name="clearAreaHeight" translation="5.6 0 0" nodeId="74"/>
         </TransformGroup>
-        <Shape name="infoTrigger" translation="0 4.76788 -0.69793" shapeId="3" static="true" trigger="true" collisionFilterGroup="0x20000000" collisionFilterMask="0x110000" nodeId="66" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="9"/>
+        <Shape name="infoTrigger" translation="0 4.76788 -0.69793" shapeId="3" static="true" trigger="true" collisionFilterGroup="0x20000000" collisionFilterMask="0x110000" nodeId="75" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="12"/>
       </TransformGroup>
-      <TransformGroup name="visuals" nodeId="67">
-        <Shape name="borger125" shapeId="4" nodeId="68" castsShadows="false" receiveShadows="false" materialIds="12,15,13,11,16,17,7,148"/>
-        <Shape name="borger125Decal" shapeId="5" nodeId="69" castsShadows="false" receiveShadows="false" materialIds="5"/>
-        <Shape name="controlPanelFront" shapeId="6" nodeId="70" castsShadows="false" receiveShadows="false" materialIds="7"/>
-        <Shape name="controlPanelGlass" shapeId="7" nodeId="71" castsShadows="false" receiveShadows="false" materialIds="118"/>
-        <Shape name="manureHeap" shapeId="8" clipDistance="300" nodeId="72" castsShadows="true" receiveShadows="true" materialIds="6"/>
+      <TransformGroup name="visuals" nodeId="76">
+        <Shape name="borger125" shapeId="4" nodeId="77" castsShadows="false" receiveShadows="false" materialIds="16,15,20,19,17,22,18,8"/>
+        <Shape name="borger125Decal" shapeId="5" nodeId="78" castsShadows="false" receiveShadows="false" materialIds="5"/>
+        <Shape name="controlPanelFront" shapeId="6" nodeId="79" castsShadows="false" receiveShadows="false" materialIds="7"/>
+        <Shape name="controlPanelGlass" shapeId="7" nodeId="80" castsShadows="false" receiveShadows="false" materialIds="10"/>
+        <Shape name="manureHeap" shapeId="8" clipDistance="300" nodeId="81" castsShadows="true" receiveShadows="true" materialIds="6"/>
+        <Shape name="inOutSign" shapeId="9" nodeId="128" castsShadows="false" receiveShadows="false" materialIds="123"/>
       </TransformGroup>
-      <TransformGroup name="collisions" nodeId="73">
-        <Shape name="col01" shapeId="9" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="74" castsShadows="false" receiveShadows="false" nonRenderable="true" materialIds="10"/>
-        <Shape name="col02" shapeId="10" static="true" collisionFilterGroup="0x8" collisionFilterMask="0x1" nodeId="75" castsShadows="false" receiveShadows="false" nonRenderable="true" materialIds="10"/>
-        <Shape name="col03" shapeId="11" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="76" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="9"/>
-        <Shape name="col04" translation="0 0 -1.7649" shapeId="12" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="77" castsShadows="false" receiveShadows="false" nonRenderable="true" materialIds="10"/>
-        <Shape name="col05" shapeId="13" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="78" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="9"/>
-        <Shape name="col06" shapeId="14" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="79" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="9"/>
-        <Shape name="tipCollision" translation="8.04223 0 2.88724" shapeId="15" static="true" collisionFilterGroup="0x8" collisionFilterMask="0x1" nodeId="80" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="9"/>
+      <TransformGroup name="collisions" nodeId="83">
+        <Shape name="col01" shapeId="10" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="84" castsShadows="false" receiveShadows="false" nonRenderable="true" materialIds="13"/>
+        <Shape name="col02" shapeId="11" static="true" collisionFilterGroup="0x8" collisionFilterMask="0x1" nodeId="85" castsShadows="false" receiveShadows="false" nonRenderable="true" materialIds="13"/>
+        <Shape name="col03" shapeId="12" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="86" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="12"/>
+        <Shape name="col04" translation="0 0 -1.7649" shapeId="13" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="87" castsShadows="false" receiveShadows="false" nonRenderable="true" materialIds="13"/>
+        <Shape name="col05" shapeId="14" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="88" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="12"/>
+        <Shape name="col06" shapeId="15" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="89" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="12"/>
+        <Shape name="tipCollision" translation="8.04223 0 2.88724" shapeId="16" static="true" collisionFilterGroup="0x8" collisionFilterMask="0x1" nodeId="90" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="12"/>
       </TransformGroup>
-      <Shape name="occluderMesh" rotation="0 -0 -90" shapeId="16" clipDistance="200" nodeId="81" castsShadows="true" receiveShadows="true" nonRenderable="true" occluder="true" materialIds="9"/>
-      <TransformGroup name="SPS_separator" nodeId="82">
-        <TransformGroup name="pipeCouplers" nodeId="83">
-          <TransformGroup name="borger125" nodeId="84">
-            <TransformGroup name="SPS_pipeCoupler01" translation="-0.716101 0.740574 -3.67163" nodeId="85">
-              <TransformGroup name="SPS_pipeCoupler01Arcs" nodeId="86">
-                <TransformGroup name="SPS_pipeCoupler01Arc01" translation="0.25 0 -2.5" nodeId="87"/>
-                <TransformGroup name="SPS_pipeCoupler01Arc02" translation="-1.5 0 -2.5" nodeId="88"/>
+      <Shape name="occluderMesh" rotation="0 -0 -90" shapeId="17" clipDistance="200" nodeId="91" castsShadows="true" receiveShadows="true" nonRenderable="true" occluder="true" materialIds="12"/>
+      <TransformGroup name="SPS_separator" nodeId="92">
+        <TransformGroup name="pipeCouplers" nodeId="93">
+          <TransformGroup name="borger125" nodeId="94">
+            <TransformGroup name="SPS_pipeCoupler01" translation="-0.716101 0.740574 -3.67163" nodeId="95">
+              <TransformGroup name="SPS_pipeCoupler01Arcs" nodeId="96">
+                <TransformGroup name="SPS_pipeCoupler01Arc01" translation="0.25 0 -2.5" nodeId="97"/>
+                <TransformGroup name="SPS_pipeCoupler01Arc02" translation="-1.5 0 -2.5" nodeId="98"/>
               </TransformGroup>
-              <TransformGroup name="inNode" nodeId="89"/>
-              <TransformGroup name="outNode" rotation="0 180 0" nodeId="90"/>
+              <TransformGroup name="inNode" nodeId="99"/>
+              <TransformGroup name="outNode" rotation="0 180 0" nodeId="100"/>
             </TransformGroup>
-            <TransformGroup name="SPS_pipeCoupler02" translation="0.785697 0.740574 -3.6713" nodeId="91">
-              <TransformGroup name="SPS_pipeCoupler02Arcs" nodeId="92">
-                <TransformGroup name="SPS_pipeCoupler02Arc01" translation="0.25 0 -2.5" nodeId="93"/>
-                <TransformGroup name="SPS_pipeCoupler02Arc02" translation="-1.5 0 -2.5" nodeId="94"/>
+            <TransformGroup name="SPS_pipeCoupler02" translation="0.785697 0.740574 -3.6713" nodeId="101">
+              <TransformGroup name="SPS_pipeCoupler02Arcs" nodeId="102">
+                <TransformGroup name="SPS_pipeCoupler02Arc01" translation="0.25 0 -2.5" nodeId="103"/>
+                <TransformGroup name="SPS_pipeCoupler02Arc02" translation="-1.5 0 -2.5" nodeId="104"/>
               </TransformGroup>
-              <TransformGroup name="inNode" nodeId="95"/>
-              <TransformGroup name="outNode" rotation="0 180 0" nodeId="96"/>
+              <TransformGroup name="inNode" nodeId="105"/>
+              <TransformGroup name="outNode" rotation="0 180 0" nodeId="106"/>
             </TransformGroup>
           </TransformGroup>
-          <TransformGroup name="SPS_separatorPanel" translation="2.14631 0.5 -3.37049" nodeId="97"/>
-          <TransformGroup name="SPS_dropNode" translation="0 3.98773 -0.49278" nodeId="98"/>
+          <TransformGroup name="SPS_separatorPanel" translation="2.14631 0.5 -3.37049" nodeId="107"/>
+          <TransformGroup name="SPS_dropNode" translation="0 3.98773 -0.49278" nodeId="108">
+            <Shape name="SPS_dropStream" shapeId="18" visibility="false" clipDistance="100" nodeId="109" castsShadows="true" receiveShadows="true" materialIds="9"/>
+            <Shape name="SPS_dropSmoke" shapeId="19" visibility="false" clipDistance="100" nodeId="110" castsShadows="true" receiveShadows="true" materialIds="21"/>
+          </TransformGroup>
         </TransformGroup>
+        <Shape name="SPS_dropParticles" translation="0 3.98773 -0.49278" shapeId="20" clipDistance="300" nodeId="111" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="14"/>
       </TransformGroup>
+      <TransformGroup name="display" translation="0 0 -0.01" nodeId="112">
+        <TransformGroup name="LTRSin" translation="1.71319 1.69267 -3.29809" rotation="0 180 0" nodeId="113"/>
+        <TransformGroup name="DMin" translation="1.71319 1.66352 -3.29809" rotation="0 180 0" nodeId="114"/>
+        <TransformGroup name="LTRSout" translation="1.73693 1.34378 -3.29809" rotation="0 180 0" nodeId="115"/>
+        <TransformGroup name="DMout" translation="1.73693 1.315 -3.29809" rotation="0 180 0" nodeId="116"/>
+        <TransformGroup name="screwDisplay" translation="2.01352 1.33145 -3.29809" rotation="0 180 0" nodeId="117"/>
+        <TransformGroup name="manureDisplay" translation="2.26834 1.32961 -3.29809" rotation="0 180 0" nodeId="118"/>
+      </TransformGroup>
+      <TransformGroup name="icon" translation="1.90686 0.267737 -5.02041" nodeId="119"/>
     </TransformGroup>
   </Scene>
 
   <UserAttributes>
-    <UserAttribute nodeId="74">
+    <UserAttribute nodeId="77">
+      <Attribute name="originalNodeId" type="integer" value="68"/>
+    </UserAttribute>
+    <UserAttribute nodeId="128">
+      <Attribute name="originalNodeId" type="integer" value="68"/>
+    </UserAttribute>
+    <UserAttribute nodeId="84">
       <Attribute name="collisionHeight" type="float" value="3"/>
     </UserAttribute>
-    <UserAttribute nodeId="75">
+    <UserAttribute nodeId="85">
       <Attribute name="collisionHeight" type="float" value="3"/>
     </UserAttribute>
   </UserAttributes>

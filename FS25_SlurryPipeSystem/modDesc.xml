@@ -2,7 +2,7 @@
 <modDesc descVersion="115">
 
     <author>Oscar Mods</author>
-    <version>1.0.1.8</version>
+    <version>1.0.1.9</version>
     <title>
         <en>Slurry Pipe System</en>
         <de>Gülle-Rohrsystem</de>
@@ -385,19 +385,15 @@ Funkce:
         <storeItem xmlFilename="vehicles/PTOSlurryPump/PTOSlurryPump.xml"/>
         <storeItem xmlFilename="placeables/spsWater/spsWaterCourseDraw.xml"/>
         <storeItem xmlFilename="placeables/spsWater/spsWaterCourseRemove.xml"/>
-        <!-- [SPS 1.0.1.8] ONE shop item for every physical pipe: Type / Length / Ends selectors (vehicles/hoses/spsPipe.xml) -->
         <storeItem xmlFilename="vehicles/hoses/spsPipe.xml"/>
         <storeItem xmlFilename="vehicles/dockingStation/dockingStation.xml"/>
         <storeItem xmlFilename="vehicles/towerMixer/towerMixer.xml"/>
-		<storeItem xmlFilename="placeables/separators/borger125FixedBunker/borger125FixedBunker.xml"/>
+        <storeItem xmlFilename="placeables/separators/borger125FixedBunker/borger125FixedBunker.xml"/>
 		<storeItem xmlFilename="placeables/silos/fertHerbSilo/sprayerSilo.xml"/>
 		<storeItem xmlFilename="placeables/husbandry/cowBarnMediumSPS/cowBarnMedium.xml"/>
     </storeItems>
 
-    <!-- [SPS 1.0.1.8] the pipe and the docking station together on one tile (shop > Packs); both stay in Slurry Tanks too
-         (a mod cannot add its own shop category - mods.lua reads modDesc storeCategories for DLCs only) -->
     <storePacks>
-        <!-- name UPPERCASE: StoreManager:addPack stores string.upper(name) but addPackItem looks up the name as written; title literal: mods.lua resolves it with the global g_i18n before mod texts apply -->
         <storePack name="SPSPIPES" title="SPS Slurry Kit" image="vehicles/hoses/icon_slurryPipe.png">
             <storeItem>vehicles/hoses/spsPipe.xml</storeItem>
             <storeItem>vehicles/dockingStation/dockingStation.xml</storeItem>

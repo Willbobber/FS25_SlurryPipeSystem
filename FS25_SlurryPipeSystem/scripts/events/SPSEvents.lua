@@ -1628,7 +1628,7 @@ function SPSPhysPipeConnectEvent.emptyNew()
     return Event.new(SPSPhysPipeConnectEvent_mt)
 end
 
-function SPSPhysPipeConnectEvent.new(pipe, endIdx, object, isPlaceable, couplingId, isLane)
+function SPSPhysPipeConnectEvent.new(pipe, endIdx, object, isPlaceable, couplingId, isLane, isSprayer)
     local self = SPSPhysPipeConnectEvent.emptyNew()
     self.pipe        = pipe
     self.endIdx      = endIdx
@@ -1636,6 +1636,7 @@ function SPSPhysPipeConnectEvent.new(pipe, endIdx, object, isPlaceable, coupling
     self.isPlaceable = isPlaceable == true
     self.couplingId  = couplingId
     self.isLane      = isLane == true      -- [SPS 1.0.1.8] 80 mm lane coupler (liquid-lane registry) vs slurry coupling
+    self.isSprayer   = isSprayer == true   -- [SPS 1.0.1.9] sprayer-system coupler (fert / herb)
     return self
 end
 
@@ -1646,6 +1647,7 @@ function SPSPhysPipeConnectEvent:readStream(streamId, connection)
     self.isPlaceable = streamReadBool(streamId)
     self.couplingId  = streamReadUIntN(streamId, 8)
     self.isLane      = streamReadBool(streamId)
+    self.isSprayer   = streamReadBool(streamId)
     self:run(connection)
 end
 
@@ -1656,6 +1658,7 @@ function SPSPhysPipeConnectEvent:writeStream(streamId, connection)
     streamWriteBool(streamId, self.isPlaceable == true)
     streamWriteUIntN(streamId, self.couplingId or 0, 8)
     streamWriteBool(streamId, self.isLane == true)
+    streamWriteBool(streamId, self.isSprayer == true)
 end
 
 function SPSPhysPipeConnectEvent:run(connection)
@@ -1663,20 +1666,20 @@ function SPSPhysPipeConnectEvent:run(connection)
     -- refused request (busy coupling, taken slot, stale client) never reaches the other clients
     local ok = false
     if g_slurryPipeManager ~= nil and g_slurryPipeManager.applyPhysPipeConnect ~= nil then
-        ok = g_slurryPipeManager:applyPhysPipeConnect(self.pipe, self.endIdx, self.object, self.isPlaceable, self.couplingId, self.isLane)
+        ok = g_slurryPipeManager:applyPhysPipeConnect(self.pipe, self.endIdx, self.object, self.isPlaceable, self.couplingId, self.isLane, self.isSprayer)
     end
     if not connection:getIsServer() and ok then
         g_server:broadcastEvent(self, false, nil, self.pipe, nil, nil, true)
     end
 end
 
-function SPSPhysPipeConnectEvent.sendEvent(pipe, endIdx, object, isPlaceable, couplingId, isLane, noEventSend)
+function SPSPhysPipeConnectEvent.sendEvent(pipe, endIdx, object, isPlaceable, couplingId, isLane, isSprayer, noEventSend)
     if noEventSend == true then return end
     if g_server ~= nil then
-        g_server:broadcastEvent(SPSPhysPipeConnectEvent.new(pipe, endIdx, object, isPlaceable, couplingId, isLane), nil, nil, pipe, nil, nil, true)
+        g_server:broadcastEvent(SPSPhysPipeConnectEvent.new(pipe, endIdx, object, isPlaceable, couplingId, isLane, isSprayer), nil, nil, pipe, nil, nil, true)
         return
     end
-    spsSendEventToServer(SPSPhysPipeConnectEvent.new(pipe, endIdx, object, isPlaceable, couplingId, isLane))
+    spsSendEventToServer(SPSPhysPipeConnectEvent.new(pipe, endIdx, object, isPlaceable, couplingId, isLane, isSprayer))
 end
 
 SPSPhysPipeDisconnectEvent = {}
@@ -1881,6 +1884,63 @@ end
 
 function SPSPhysPipeFreeEvent.sendEvent(pipe)
     spsSendEventToServer(SPSPhysPipeFreeEvent.new(pipe))
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.1.9] Grab hint: WHICH body of a physical pipe the player's hand hit. The game's own
+-- HandsPickUpObjectEvent carries only the OBJECT (readStream :26-28 rebuilds the target as object.rootNode), and a
+-- pipe's rootNode is the i3d's FIRST body whatever the component configuration (Vehicle.lua :619; the unused bodies
+-- stay in the scene with rigid body NONE, :672-690). On a dedicated server an F/M pipe was therefore always held by
+-- its female end, and an F/F or M/M pipe (rootNode = the inactive FM_col01) could not be picked up at all (server
+-- tester 2026-10-25). A joined client sends this BEFORE the vanilla event (same connection, delivered in order); the
+-- server stores it on the hands and rebroadcasts it; the pickUpTarget hook in SPSHoseItem then swaps the vanilla
+-- target to that body. Host / SP never send it (the hit node is local there).
+-- ---------------------------------------------------------------------------
+SPSPhysPipeGrabEvent = {}
+local SPSPhysPipeGrabEvent_mt = Class(SPSPhysPipeGrabEvent, Event)
+InitEventClass(SPSPhysPipeGrabEvent, "SPSPhysPipeGrabEvent")
+
+function SPSPhysPipeGrabEvent.emptyNew()
+    return Event.new(SPSPhysPipeGrabEvent_mt)
+end
+
+function SPSPhysPipeGrabEvent.new(hands, pipe, componentIndex)
+    local self = SPSPhysPipeGrabEvent.emptyNew()
+    self.hands, self.pipe, self.componentIndex = hands, pipe, componentIndex
+    return self
+end
+
+function SPSPhysPipeGrabEvent:readStream(streamId, connection)
+    self.hands = NetworkUtil.readNodeObject(streamId)
+    self.pipe = NetworkUtil.readNodeObject(streamId)
+    self.componentIndex = streamReadUIntN(streamId, 6)   -- 1..63 (long pipes have 19 bodies)
+    self:run(connection)
+end
+
+function SPSPhysPipeGrabEvent:writeStream(streamId, connection)
+    NetworkUtil.writeNodeObject(streamId, self.hands)
+    NetworkUtil.writeNodeObject(streamId, self.pipe)
+    streamWriteUIntN(streamId, self.componentIndex, 6)
+end
+
+function SPSPhysPipeGrabEvent:run(connection)
+    if not connection:getIsServer() then
+        -- the other clients get it before the vanilla pick-up broadcast, so they hold the right body too
+        g_server:broadcastEvent(self, false, connection, self.hands)
+    end
+    if SPSHoseItem ~= nil and SPSHoseItem.spsSetGrabHint ~= nil then
+        SPSHoseItem.spsSetGrabHint(self.hands, self.pipe, self.componentIndex)
+    end
+    -- proven on the tester's server 2026-10-25 20:12 - Info channel from here on (spsDebug Info on)
+    spsInfo(string.format("[SPS PHYS] grab hint RECEIVED (%s): pipe %s body %d, hands %s",
+        connection:getIsServer() and "from the server" or "server, from a client",
+        tostring(self.pipe ~= nil and self.pipe.configFileName or self.pipe), tostring(self.componentIndex),
+        tostring(self.hands ~= nil)))
+end
+
+function SPSPhysPipeGrabEvent.sendEvent(hands, pipe, componentIndex)
+    if g_server ~= nil or hands == nil or pipe == nil or componentIndex == nil then return end
+    spsSendEventToServer(SPSPhysPipeGrabEvent.new(hands, pipe, componentIndex))
 end
 
 -- ---------------------------------------------------------------------------

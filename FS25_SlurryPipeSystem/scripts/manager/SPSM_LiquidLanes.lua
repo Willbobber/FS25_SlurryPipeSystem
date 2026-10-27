@@ -934,7 +934,9 @@ function SlurryPipeManager:findOverlappingLiquidLaneCoupler(coupling)
         local apexB, arc1B, arc2B = self:_getCouplingArcNodes(sc)
         if apexB == nil or not entityExists(apexB) then return end
         local bx, by, bz = getWorldTranslation(apexB)
-        if MathUtil.vector3Length(ax - bx, ay - by, az - bz) > SPS_MAX_CONNECT_DIST then return end
+        -- [SPS 1.0.1.9] reach rule 6c at the connect range too (see SPSM_Sprayers findOverlappingSprayerCoupler)
+        local reach = math.min(SPS_MAX_CONNECT_DIST, coupling.maxPipeLength or 7.5, sc.maxPipeLength or 7.5)
+        if MathUtil.vector3Length(ax - bx, ay - by, az - bz) > reach then return end
         if not self:_arcsOverlap(apexA, arc1A, arc2A, apexB, arc1B, arc2B) then return end
         local d = MathUtil.vector3Length(refX - bx, refY - by, refZ - bz)
         if d < bestDist then best, bestDist, bestLane = sc, d, lane end
@@ -1854,7 +1856,11 @@ function SlurryPipeManager:updateLiquidLanes(dt)
                 if c.isConnected and c.bridgeCoupling == nil and c.physPipe == nil and c.mountNode ~= nil and p ~= nil and p.mountNode ~= nil then
                     local ax, ay, az = getWorldTranslation(c.mountNode)
                     local bx, by, bz = getWorldTranslation(p.mountNode)
-                    if MathUtil.vector3Length(ax - bx, ay - by, az - bz) > (c.maxPipeLength or 7.5) then
+                    local dist = MathUtil.vector3Length(ax - bx, ay - by, az - bz)
+                    if dist > (c.maxPipeLength or 7.5) then
+                        -- [SPS 1.0.1.9] always say why (one line per drop)
+                        print(string.format("%s hose dropped: fittings %.1f m apart, reach %.1f m (%s connector id=%s)",
+                            SPS_LL_TAG, dist, c.maxPipeLength or 7.5, tostring(entry.object and entry.object.configFileName), tostring(c.id)))
                         self:applyLiquidLaneDisconnect(entry.object, c.id, c)
                         SPSLiquidLaneDisconnectEvent.sendEvent(entry.object, c.id)
                     end

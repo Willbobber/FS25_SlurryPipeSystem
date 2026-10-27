@@ -202,8 +202,10 @@ function SPSSprayerPipeVisual:delete()
     self._isLoaded = false
 end
 
+-- [SPS 1.0.1.9] also ready when the new hoses can draw (old sprayerPipe.i3d gone since 1.0.1.8): SPSM_Sprayers and
+-- SPSM_LiquidLanes gate on this, so sprayer + water/milk lane hoses were never drawn in ORIGINAL mode
 function SPSSprayerPipeVisual:isReady()
-    return self._isLoaded
+    return self._isLoaded or (SPSHoseVisual ~= nil and SPSHoseVisual.LIVE and g_spsHoseVisual ~= nil and g_spsHoseVisual:isReady())
 end
 
 -- ---------------------------------------------------------------------------

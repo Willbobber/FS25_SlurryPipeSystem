@@ -85,6 +85,17 @@ Where nothing SPS applies, left and right mouse do what they always do (pick up,
 ## 5. Water and milk hoses
 
 The 80 mm hoses plug into the barn's and the carrier's water / milk fittings (README 05).
+Which hose goes where: the **water hose** plugs into water fittings, milk fittings and the
+fert / herb couplers of sprayers, fert / herb silos, IBCs and buying stations; the **milk
+hose** plugs into milk fittings only, and a chain that holds a milk hose connects milk
+fittings only.
+
+**Fert / herb.** Plug a water hose into a sprayer's coupler (open its cover first if it has
+one, X) and the other end into a fert / herb silo, an IBC or a buying station - or into a
+second sprayer. The sprayer's own keys then work as in the original system: **B** at the
+sprayer starts and stops the flow, **Y** sets Load / Unload. The hose cannot be unplugged
+while the flow is on. A sprayer with a physical hose on its coupler no longer offers the
+original walk-up connect; without a hose it still does.
 Every fitting has its own ball valve: plug in, then open each fitting with R. The pump at
 the carrier (B) will not start until both valves are open, and closing a valve stops it.
 With both valves open and the pump off, liquid also flows by **gravity** from the higher
@@ -111,8 +122,10 @@ running game.
 ## 8. For modders: making a coupler work with physical pipes
 
 Nothing new is needed for a coupler to accept physical pipes. Every SPS slurry coupler
-(`<pipeCouplings><pipeCoupling>`, README 01 §7 and README 03 §4) and every water / milk
-fitting (README 05) takes them. Three things matter:
+(`<pipeCouplings><pipeCoupling>`, README 01 §7 and README 03 §4), every water / milk
+fitting (README 05) and every sprayer coupler (`<sprayerPipeCouplings>`, README 02 §5 -
+the water hose plugs in; its `inNode` is where the hose end lands) takes them. Three things
+matter:
 
 - **`connector`** on a slurry coupler is the pipe **end** it takes: `male` (default) = a male
   pipe end plugs in, `female` = a female pipe end. Store couplers usually take the male end,

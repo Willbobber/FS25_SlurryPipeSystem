@@ -107,7 +107,7 @@ local function findConnectCandidate(mgr, pipe, heldNode)
         if (onlyIdx == nil or onlyIdx == idx) and e ~= nil and e.coupling == nil and e.joinedTo == nil and nodeOk(e.node) then
             local x, y, z = getWorldTranslation(e.node)
             if hx ~= nil then x, y, z = hx, hy, hz end
-            local c, owner, isPlaceable, d = mgr:findCouplingForPhysPipeEnd(x, y, z, e.gender)
+            local c, owner, isPlaceable, d = mgr:findCouplingForPhysPipeEnd(x, y, z, e.gender, nil, pipe:spsGetHoseKey())
             if c ~= nil and d < bestD then
                 bestD, bestKind, bestIdx, a1, a2, a3 = d, "coupling", idx, c, owner, isPlaceable
             end
@@ -120,6 +120,16 @@ local function findConnectCandidate(mgr, pipe, heldNode)
         end
     end
     return bestKind, bestIdx, a1, a2, a3
+end
+
+-- [SPS 1.0.1.9] A vanilla hands target that is a VEHICLE but nothing the hands could ever pick up (tanker, tractor,
+-- trailer...) - i.e. the hull in front of a pipe. Pipes, docking stations and pallets are vehicles too and are NOT hulls.
+function SPSHoseItemHands.isHullTarget(node)
+    if not nodeOk(node) or g_currentMission == nil then return false end
+    local obj = g_currentMission:getNodeObject(node)
+    if obj == nil or obj.components == nil then return false end          -- bale, hand tool, loose object: not a hull
+    if obj.spsGetEnd ~= nil or obj.spsDsStow ~= nil or obj.isPallet then return false end
+    return true
 end
 
 -- Aimed-at body -> (pipe, plugged end index) when the body is in the zone of a PLUGGED end.
@@ -254,6 +264,14 @@ function SPSHoseItemHands.onUpdate(hands, dt)
     local near = player.targeter.closestTargetsByKey[HandToolHands]
     local far  = player.targeter.closestTargetsByKey[SPSHoseItemHands]
     local targetNode = near ~= nil and near.node or nil
+    -- [SPS 1.0.1.9] Look THROUGH a tanker to the pipe behind it. HandToolHands.TARGET_MASK includes VEHICLE, so when
+    -- the aim crosses the plugged vehicle's hull before it reaches the pipe (the grab cube sits 10 cm inside the
+    -- fitting), the tanker is the vanilla "near" target and the pipe body was never looked at - aiming at the grab
+    -- cube of a plugged end gave no prompt (William 2026-10-25). A near target that is a vehicle but not a pipe, a
+    -- docking station or a pallet (the only hand-pickable vehicles) is the hull: use the pipe target behind it.
+    if near ~= nil and far ~= nil and SPSHoseItemHands.isHullTarget(near.node) and pipeOf(far.node) ~= nil then
+        near, targetNode = nil, nil
+    end
     if targetNode == nil and far ~= nil and pipeOf(far.node) ~= nil then
         -- beyond the vanilla reach but a pipe body: aim at it, and offer the plain pick-up from here
         targetNode = far.node
@@ -335,7 +353,7 @@ function SPSHoseItemHands.onThrowAction(hands, superFunc, actionName, inputValue
                     local e = pipe:spsGetEnd(idx)
                     if e ~= nil and nodeOk(e.node) then
                         local x, y, z = getWorldTranslation(e.node)
-                        local c, _, _, d, miss = mgr:findCouplingForPhysPipeEnd(x, y, z, e.gender, 6.0)
+                        local c, _, _, d, miss = mgr:findCouplingForPhysPipeEnd(x, y, z, e.gender, 6.0, pipe:spsGetHoseKey())
                         parts[#parts + 1] = string.format("end%d(%s%s): %s", idx, e.gender, e.coupling ~= nil and ", plugged" or "",
                             c ~= nil and string.format("free coupling id=%s at %.2f m", tostring(c.id), d) or (miss or "no coupling within 6 m"))
                     end
@@ -355,7 +373,9 @@ function SPSHoseItemHands.onPickUpAction(hands, superFunc, actionName, inputValu
     local byKey = player ~= nil and player.targeter ~= nil and player.targeter.closestTargetsByKey or nil
     if spec ~= nil and player ~= nil and player.isOwner and spec._spsUnplugPipe ~= nil
        and spec.football == nil and not hands:getIsHoldingItem() then
-        local target = byKey ~= nil and (byKey[HandToolHands] or byKey[SPSHoseItemHands]) or nil
+        -- [SPS 1.0.1.9] the pipe target, not the hull in front of it (see onUpdate): near only when it IS this pipe
+        local near = byKey ~= nil and byKey[HandToolHands] or nil
+        local target = (near ~= nil and pipeOf(near.node) ~= nil) and near or (byKey ~= nil and byKey[SPSHoseItemHands] or nil)
         local pipe = spec._spsUnplugPipe
         if target ~= nil and pipeOf(target.node) == pipe then
             local idx = spec._spsUnplugEnd
@@ -384,7 +404,8 @@ function SPSHoseItemHands.doAction(hands, spec)
         if hands:getIsHoldingItem() and hands.dropHeldItem ~= nil then
             hands:dropHeldItem()   -- the plugged body goes kinematic: it must not stay jointed to the hand
         end
-        mgr:physPipeConnect(pipe, idx, spec._spsOwner, spec._spsIsPlaceable, spec._spsCoupling.id, spec._spsCoupling.isLiquidLane == true)
+        mgr:physPipeConnect(pipe, idx, spec._spsOwner, spec._spsIsPlaceable, spec._spsCoupling.id,
+            spec._spsCoupling.isLiquidLane == true, spec._spsCoupling.isSprayerCoupling == true)
         spsInfo(string.format("[SPS PHYS] right mouse: connect end %d", idx))
     elseif spec._spsMode == "join" then
         if hands:getIsHoldingItem() and hands.dropHeldItem ~= nil then
@@ -431,7 +452,7 @@ function SPSHoseItemHands.doAction(hands, spec)
                 d = math.max(0.8, MathUtil.vector3Length(px - x, py - y, pz - z))
             end
             hands:pickUpTarget({ node = node, x = x, y = y, z = z, distance = d })
-            -- (the pickUpTarget hook in SPSHoseItem is an appendedFunction, which drops the return value - ask the hands)
+            -- (ask the hands: other mods may still wrap pickUpTarget with an appendedFunction, which drops the return value)
             local ok = hands:getIsHoldingItem()
             print(string.format("[SPS PHYS] right mouse: unplugged end %d and %s", idx, ok and "took it into the hands" or "could NOT pick it up"))
         end

@@ -240,5 +240,66 @@ function SPSPlaceableOverride.updateInfo(self, superFunc, infoTable)
                 })
             end
         end
+
+        -- [SPS 1.0.1.9] SEPARATOR (Borger): the placeable's display (William 2026-10-26: "a display like the pumps").
+        -- The vanilla heap row ("<Manure> 2,421 / 33,000 l") is re-texted to a plain "N l" so British Fill Units
+        -- turns it into kg (it converts a line whose TITLE is a fill type title and whose value reads "N l" - that is
+        -- how the P&H separator shows kg); the "level / capacity" view moves to a Bunker row. Then source, return,
+        -- status (reason while blocked) and the two L/h readouts (synced to clients by the STATE event).
+        local sepEntry = pEntry ~= nil and pEntry.separator or nil
+        if sepEntry ~= nil and SPSSeparator ~= nil then
+            local sep = sepEntry
+            local heap = sep.heap
+            -- William 2026-10-26 23:00: ONE manure row, as mass (kg / t), no litres rows. The vanilla heap row
+            -- (title fillType_manure, "N l") and the fill type's own title (British Fill Units renames it "Muck")
+            -- are dropped from the table; our row is titled Manure and converts the litres with the fill type's
+            -- massPerLiter (tonnes per litre at runtime), so it reads the same with or without that mod.
+            if heap ~= nil and heap.fillTypeIndex ~= nil then
+                local level = heap:getFillLevel(heap.fillTypeIndex) or 0
+                local manureTitle = g_fillTypeManager:getFillTypeTitleByIndex(FillType.MANURE)
+                local vanillaTitle = g_i18n:getText("fillType_manure")
+                for i = #infoTable, 1, -1 do
+                    local t = infoTable[i].title
+                    if t ~= nil and (t == manureTitle or t == vanillaTitle) then table.remove(infoTable, i) end
+                end
+                local desc = g_fillTypeManager:getFillTypeByIndex(FillType.MANURE)
+                local mpl = desc ~= nil and desc.massPerLiter or 0.0007
+                if mpl > 0.01 then mpl = mpl / 1000 end   -- kg per litre given -> tonnes per litre
+                local tonnes = level * mpl
+                local text
+                if tonnes >= 1 then text = string.format("%.2f t", tonnes) else text = string.format("%d kg", math.floor(tonnes * 1000 + 0.5)) end
+                table.insert(infoTable, { title = g_i18n:getText("sps_infoSepManure"), text = text })
+            end
+            local function endpointName(coupling)
+                local has, entry = SPSSeparator.resolveEndpoint(g_slurryPipeManager, coupling)
+                if not has then return g_i18n:getText("sps_infoSepNoPipe") end
+                if entry == nil then return g_i18n:getText("sps_infoSepUnknown") end
+                if entry.vehicle ~= nil and entry.vehicle.getFullName ~= nil then return entry.vehicle:getFullName() end
+                if entry.placeable ~= nil and entry.placeable.getName ~= nil then return entry.placeable:getName() end
+                return g_i18n:getText("sps_infoSepUnknown")
+            end
+            local function shorten(name)
+                name = tostring(name or "")
+                if utf8Strlen ~= nil and utf8Substr ~= nil and utf8Strlen(name) > 23 then return utf8Substr(name, 0, 23) .. "..." end
+                return name
+            end
+            table.insert(infoTable, { title = g_i18n:getText("sps_infoSepSource"), text = shorten(endpointName(sep.inCoupling)) })
+            table.insert(infoTable, { title = g_i18n:getText("sps_infoSepReturn"), text = shorten(endpointName(sep.outCoupling)) })
+            local reason = sep.blockReason or SPSSeparator.REASON_NONE
+            if not sep.isOn then
+                table.insert(infoTable, { title = g_i18n:getText("sps_infoSepStatus"), text = g_i18n:getText("sps_infoSepStopped") })
+            elseif reason ~= SPSSeparator.REASON_NONE then
+                local key = SPSSeparator.REASON_L10N[reason]
+                table.insert(infoTable, {
+                    title      = g_i18n:getText("sps_infoSepStatus"),
+                    text       = key ~= nil and g_i18n:getText(key) or tostring(reason),
+                    accentuate = true,
+                })
+            else
+                table.insert(infoTable, { title = g_i18n:getText("sps_infoSepStatus"), text = g_i18n:getText("sps_infoSepRunning") })
+                table.insert(infoTable, { title = g_i18n:getText("sps_infoSepIntake"), text = string.format("%d l/h", sep.statIntakeLph or 0) })
+                table.insert(infoTable, { title = g_i18n:getText("sps_infoSepSolids"), text = string.format("%d l/h", sep.statManureLph or 0) })
+            end
+        end
     end
 end

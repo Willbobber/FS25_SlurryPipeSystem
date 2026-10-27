@@ -105,6 +105,11 @@ There is no separate fill/empty split on sprayers — one rate is used for Load 
 
 ## 5. Pipe couplings — `<sprayerPipeCouplings>`
 
+> **Physical pipes (README 06):** the bought **water hose** plugs into these couplers too
+> (sprayer, silo, IBC, buying station). The hose end lands on the coupling's `inNode` with
+> +Z pointing into the coupler, so aim that node for a hose fitting as well as for the drawn
+> hose. Everything below is unchanged for the original system.
+
 The coupler the pipe connects to. At least one is required for anything to happen.
 
 ```xml
