@@ -1,3 +1,4 @@
+[README.md](https://github.com/user-attachments/files/34025540/README.md)
 # FS25_SlurryPipeSystem
 
 **Realistic physical slurry pipe system for Farming Simulator 2025.**
@@ -7,7 +8,27 @@ physically connect tanker fill arms or pipes, run a PTO-driven pump, build press
 flow direction, and watch slurry move through real plumbing — with a slurry that actually
 thickens, crusts and blocks if you neglect it.
 
-Current version: **1.0.1.8** — full list of changes in `RELEASE_NOTES_V1.0.1.8.md` inside the mod.
+Current version: **1.0.1.9** — full list of changes in `RELEASE_NOTES_V1.0.1.9.md` inside the mod
+(1.0.1.8 changes in `RELEASE_NOTES_V1.0.1.8.md`).
+
+---
+
+## What's new in 1.0.1.9
+
+- **Multiplayer fixes for the physical pipes** (reported on dedicated servers): picking up by
+  hand as a joined player, grabbing the end you aimed at, pipes hanging in mid-air, and pipes
+  plugged or stowed before you joined looking loose.
+- **Fert / herb through the water hose** — the 80 mm water hose plugs into sprayers, fert /
+  herb silos, IBCs and buying stations in the physical pipe system; the sprayer's own **B**
+  and **Y** keys run the flow.
+- **Original pipe system: invisible hoses fixed** (1.0.1.8 drew no hose between couplers);
+  sprayer / water / milk hoses no longer drop at once — the connect prompt appears within 4 m.
+- **Borger 125 separator** — info-box rows, live panel digits, a visible drop of solids, dirt /
+  wear / moss weathering, and the "source empty" refusal fixed.
+- **Tanker spin with a plugged pipe fixed**, grab cube prompts on plugged ends, reload keeps
+  physical pipes plugged, pipe no longer vanishes on a camera turn.
+- **Crust dilutes** when fresh slurry is pumped into a crusted store.
+- **Quiet log** — routine pipe lines only with `spsDebug Info on`.
 
 ---
 
@@ -166,6 +187,7 @@ and is **not** a supported way to add your own content — use the embedded path
 ```
 FS25_SlurryPipeSystem/
 ├── modDesc.xml
+├── RELEASE_NOTES_V1.0.1.9.md                  ← everything since 1.0.1.8
 ├── RELEASE_NOTES_V1.0.1.8.md                  ← everything since 1.0.1.7
 ├── SPS_README_01 … 07_*.md                    ← player / modder guides (see documentation map)
 ├── SlurryPipeSystem_SlurryGuide.md            ← thickness, crust and mixing explained
