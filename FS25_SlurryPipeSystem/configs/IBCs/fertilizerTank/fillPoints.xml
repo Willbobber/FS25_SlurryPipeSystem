@@ -12,6 +12,17 @@
   outNode) is provided by the SPS liquidTank.i3d supplied through the init.lua
   i3d redirect; this file only tells SPS how to read those nodes.
 
+  [SPS 1.0.2.0] COUPLER KIT: when the loaded tank's geometry has NO #mountNodeName
+  node (a mod IBC with its own i3d, e.g. Soil & Fertilizer 2.6+), registration
+  clones the kit node out of #couplerKit and links it under the tank's root
+  component at identity, then reads the couplings as normal. Optional on
+  <sprayerPipeSystem>:
+    #couplerKit      mod-relative i3d of the kit (default i3d/IBCs/fertilizerTank/liquidTank.i3d)
+    #couplerKitNode  node to clone from it     (default SPS_fertilizerTank_vis)
+    #couplerKitLink  vehicle node to link under (default: root component)
+  Also: any pallet whose parentFile chain (3 hops) reaches a tank listed in the
+  manifest takes that tank's config automatically - no manifest line needed.
+
   #fillUnitIndex  the tank fill unit the sprayer draws from / unloads into (1).
   Per coupler:
     #mountNodeName  coupler root node in the tank i3d.

@@ -118,10 +118,15 @@ local SPS_IBC_CONFIG_TO_I3D = {
     ["objects/pallets/liquidtank/herbicidetank.xml"]      = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
     ["objects/pallets/liquidtank/herbicidetankhelm.xml"]  = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
 
-    -- [SPS +S&F] TheCodingDad Soil & Fertilizer liquid IBC tanks. All 12 parentFile the
-    -- vanilla fertilizerTankHelm / herbicideTankHelm, so they stream the same shared
-    -- liquidTank.i3d intercepted above and take the same SPS coupler-baked copy. Tail-keyed
-    -- on the S&F config path, so install-location-independent; inert if S&F is not present.
+    -- [SPS +S&F] TheCodingDad Soil & Fertilizer liquid IBC tanks. Up to S&F 2.4 these
+    -- parentFiled the vanilla fertilizerTankHelm / herbicideTankHelm and streamed the shared
+    -- vanilla liquidTank.i3d, so the redirect above caught them. S&F 2.6+ sets
+    -- vehicle.base.filename to its own objects/liquidTank/<tank>/liquidTank.i3d (own label
+    -- texture), which never matches SPS_IBC_VANILLA_I3D_TAIL, so this table no longer fires
+    -- for them - kept for anyone still on an older S&F. Since 1.0.2.0 the coupler branch is
+    -- linked in at registration instead (SPSM_Sprayers _ensureSprayerSourceCouplerKit) for
+    -- ANY tank whose geometry lacks it, and a pallet derived from a listed tank is matched by
+    -- its parentFile, so new S&F tanks need no entry anywhere.
     ["fs25_soilfertilizer/objects/liquidtank/uan32/liquidtank_uan32.xml"]                 = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
     ["fs25_soilfertilizer/objects/liquidtank/uan28/liquidtank_uan28.xml"]                 = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
     ["fs25_soilfertilizer/objects/liquidtank/anhydrous/liquidtank_anhydrous.xml"]         = "i3d/IBCs/fertilizerTank/liquidTank.i3d",
@@ -610,10 +615,12 @@ function SPSMod:loadMap(filename)
 
     -- Load SPS pipe effect material holder — provides "pipe" (slurry) and "spsWaterPipe" (water) materials.
     -- Scene order: child 0 = unload_materialHolder, child 1 = unloadSmoke_materialHolder,
-    --              child 2 = unloadPipe_materialHolder (slurry), child 3 = unloadWaterPipe_materialHolder (water)
+    --              child 2 = unloadPipe_materialHolder (slurry), child 3 = unloadWaterPipe_materialHolder (water),
+    --              child 4 = unloadMilkPipe_materialHolder (milk, [SPS 1.0.2.0] spsMilkPipeShader.xml)
     g_spsSlurryMaterial     = nil
     g_spsSlurryMaterialNode = nil
     g_spsWaterMaterial      = nil
+    g_spsMilkMaterial       = nil
     local matHolderPath = SPS_MOD_DIRECTORY .. "i3d/materials/unloadMeshes_materialHolder.i3d"
     local matNode = loadI3DFile(matHolderPath)
     if matNode ~= nil and matNode ~= 0 then
@@ -628,6 +635,12 @@ function SPSMod:loadMap(filename)
             g_spsWaterMaterial = getMaterial(waterMatShape, 0)
         else
             print("[SPS INIT] WARNING: unloadWaterPipe_materialHolder shape not found at child index 3")
+        end
+        local milkMatShape = getChildAt(matNode, 4)
+        if milkMatShape ~= nil and milkMatShape ~= 0 then
+            g_spsMilkMaterial = getMaterial(milkMatShape, 0)
+        else
+            print("[SPS INIT] WARNING: unloadMilkPipe_materialHolder shape not found at child index 4")
         end
         link(getRootNode(), matNode)
         setVisibility(matNode, false)
@@ -678,6 +691,15 @@ function SPSMod:loadMap(filename)
             print("[SPS INIT] tagSPSStoreItems error: " .. tostring(errTag))
         end
     end
+    -- [SPS 1.0.2.0] every SPS-compatible vehicle on the SPS brand tile and in the SPS pack (William 2026-11-03)
+    if SlurryPipeManager.installShopBrandHook ~= nil then
+        local okB, errB = pcall(SlurryPipeManager.installShopBrandHook)
+        if not okB then print("[SPS INIT] installShopBrandHook error: " .. tostring(errB)) end
+    end
+    if g_slurryPipeManager.syncSPSStorePack ~= nil then
+        local okP, errP = pcall(function() g_slurryPipeManager:syncSPSStorePack() end)
+        if not okP then print("[SPS INIT] syncSPSStorePack error: " .. tostring(errP)) end
+    end
 
     -- Top-centre spreader HUD (DB icon + section cells + slurry details)
     g_spsSpreaderHUD = SPSSpreaderHUD.new(SPS_MOD_DIRECTORY)
@@ -727,8 +749,18 @@ function SPSMod:loadMap(filename)
     g_slurryPipeManager:applyPhysicalPipesSetting()
     if SPSPipeModeDialog ~= nil then SPSPipeModeDialog.reset() end
     addConsoleCommand("spsPhysicalPipes", "Pipe mode: [on|off] - on = physical pipes only (original lay/connect prompts off), off = original system (physical pipes hidden in the shop)", "consolePhysicalPipes", g_slurryPipeManager)
+    addConsoleCommand("spsPipeDirt", "Set the dirt of every physical pipe: [0..1] (test aid for the Pipe dirt settings; no arg = report)", "consolePipeDirt", g_slurryPipeManager)   -- [SPS 1.0.2.0]
 
     registerOverrides()
+
+    -- [SPS CHEM 2026-11-05] Chem concentrate: fill unit / sprayer type overrides (same post-finalizeTypes timing,
+    -- before any vehicle loads) + concentrate and shop pallet prices for the loaded toggle / ratio.
+    if SPSChemMix ~= nil and g_vehicleTypeManager ~= nil then
+        local okCm, errCm = pcall(SPSChemMix.registerOverrides, g_vehicleTypeManager:getTypes())
+        if not okCm then print("[SPS INIT] chem mix registerOverrides error: " .. tostring(errCm)) end
+        okCm, errCm = pcall(SPSChemMix.applyPrices)
+        if not okCm then print("[SPS INIT] chem mix applyPrices error: " .. tostring(errCm)) end
+    end
 
     -- [SPS] Fixed-agitator tractor overrides: installs the movement lock
     -- (updateVehiclePhysics) on all drivable types and registers the
@@ -788,11 +820,13 @@ function FSCareerMissionInfo:saveToXMLFile()
 end
 
 function SPSMod:deleteMap()
+    if SPSLeakEffect ~= nil and SPSLeakEffect.removeAll ~= nil then SPSLeakEffect.removeAll() end   -- [SPS 1.0.2.0] leak streams
     if g_spsSlurryMaterialNode ~= nil and g_spsSlurryMaterialNode ~= 0 then
         delete(g_spsSlurryMaterialNode)
         g_spsSlurryMaterialNode = nil
         g_spsSlurryMaterial = nil
         g_spsWaterMaterial  = nil
+        g_spsMilkMaterial   = nil
     end
     if g_spsPipeVisual ~= nil then
         g_spsPipeVisual:delete()
@@ -838,6 +872,7 @@ function SPSMod:deleteMap()
     -- session re-adds them cleanly (the ones added at script load are left alone - they are only added once)
     if removeConsoleCommand ~= nil then
         removeConsoleCommand("spsPhysicalPipes")
+        removeConsoleCommand("spsPipeDirt")
         removeConsoleCommand("spsAgitatorDebug")
     end
     if SPSFixedAgitator ~= nil then
@@ -849,6 +884,7 @@ function SPSMod:draw()
     if g_spsSpreaderHUD ~= nil then
         g_spsSpreaderHUD:draw()
     end
+    if SPSChemHUD ~= nil then SPSChemHUD.draw() end   -- [SPS CHEM 2026-11-05]
 end
 
 function SPSMod:mouseEvent(posX, posY, isDown, isUp, button)

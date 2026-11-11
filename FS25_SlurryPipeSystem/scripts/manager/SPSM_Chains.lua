@@ -71,7 +71,6 @@ end
 function SlurryPipeManager:onChainStartLaying(coupling, anchorActivatable)
     SlurryPipeManager.log("onChainStartLaying: couplingId=%s", tostring(coupling and coupling.id))
     if coupling == nil then return end
-    --print("[SPS TRACE] ===== onChainStartLaying =====")
     self:_traceCoupling("onChainStartLaying.coupling", coupling)
     local chain = nil
     for _, c in ipairs(self.pipeChains) do

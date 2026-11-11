@@ -2,7 +2,7 @@
 <modDesc descVersion="115">
 
     <author>Oscar Mods</author>
-    <version>1.0.1.9</version>
+    <version>1.0.2.0</version>
     <title>
         <en>Slurry Pipe System</en>
         <de>Gülle-Rohrsystem</de>
@@ -172,6 +172,7 @@ Funkce:
     <iconFilename>icon_SPS.dds</iconFilename>
 	<multiplayer supported="true"/> 
     <l10n filenamePrefix="l10n/l10n" />
+    <fillTypes filename="fillTypes/spsChemFillTypes.xml" />   <!-- [SPS CHEM 2026-11-05] chemical concentrates -->
     <constructionCategories>
         <tab categoryName="landscaping" name="spsWater" title="$l10n_construction_tab_spsWater" iconFilename="icon_SPS.dds" refSize="1 1" iconUVs="0 0 1 1"/>
     </constructionCategories>
@@ -202,10 +203,13 @@ Funkce:
 		<sourceFile filename="scripts/couplers/SPSPipeActivatable.lua"/>
 		<sourceFile filename="scripts/couplers/SPSPipeVisual.lua"/>
 		<sourceFile filename="scripts/hoses/SPSHoseVisual.lua"/>
+		<sourceFile filename="scripts/hoses/SPSSpill.lua"/>   <!-- [SPS 1.0.2.0] leak puddles (Pipe leakage setting) -->
+		<sourceFile filename="scripts/hoses/SPSLeakEffect.lua"/>   <!-- [SPS 1.0.2.0] leak stream visual (shared i3d/effects/spsLeakStream.i3d) -->
 		<sourceFile filename="scripts/settings/SPSPipeModeDialog.lua"/>
 		<sourceFile filename="scripts/hoses/SPSHoseItemHands.lua"/>
 		<sourceFile filename="scripts/couplers/SPSPumpControlActivatable.lua"/>
 		<sourceFile filename="scripts/couplers/SPSOutsideControlActivatable.lua"/>
+		<sourceFile filename="scripts/couplers/SPSAnimationControlActivatable.lua"/>
 
 		<!-- blockages -->
 		<sourceFile filename="scripts/blockage/SPSBlockageEvent.lua"/>
@@ -253,10 +257,19 @@ Funkce:
 		<sourceFile filename="scripts/manager/SPSM_Stores.lua"/>
 		<sourceFile filename="scripts/manager/SPSM_Spreader.lua"/>
 		<sourceFile filename="scripts/manager/SPSM_Sprayers.lua"/>
+		<sourceFile filename="scripts/herbFertSprayer/SPSChemMix.lua"/>   <!-- [SPS CHEM 2026-11-05] concentrate + books (before SPSChemStation) -->
+		<sourceFile filename="scripts/herbFertSprayer/SPSChemWashout.lua"/>   <!-- [SPS CHEM 2026-11-06] sprayer washout -->
+		<sourceFile filename="scripts/manager/SPSFillSound.lua"/>   <!-- [SPS 2026-11-06] fill / pipe flow sounds -->
+		<sourceFile filename="scripts/hud/SPSChemHUD.lua"/>   <!-- [SPS CHEM 2026-11-05] chem mix panel -->
+		<sourceFile filename="scripts/herbFertSprayer/SPSChemStation.lua"/>   <!-- after SlurryPipeManager.lua: adds SlurryPipeManager:* functions -->
 		<sourceFile filename="scripts/manager/SPSM_IBC.lua"/>
 		<sourceFile filename="scripts/manager/SPSM_FrontMount.lua"/>
 		<sourceFile filename="scripts/manager/SPSM_LiquidLanes.lua"/>
 		<sourceFile filename="scripts/manager/SPSM_PhysPipes.lua"/>
+		<sourceFile filename="scripts/manager/SPSM_Leaks.lua"/>   <!-- [SPS 1.0.2.0] store / 80 mm fitting leaks + leak streams -->
+		<sourceFile filename="scripts/manager/SPSM_Drawbar.lua"/>   <!-- [SPS 1.0.2.0] drawbar suspension (Supercis 800 SPS) -->
+		<sourceFile filename="scripts/manager/SPSM_Gauges.lua"/>   <!-- [SPS 1.0.2.0] pressure gauges (display, Phase A) -->
+		<sourceFile filename="scripts/manager/SPSM_ActivatableGate.lua"/>
 		<sourceFile filename="scripts/manager/SPSM_Preview.lua"/>
 		<sourceFile filename="scripts/overrides/SPSRampConfiguration.lua"/>
 		
@@ -281,7 +294,6 @@ Funkce:
 		<action name="SPS_TOGGLE_FLOW"      		axisType="HALF"/>
 		<action name="SPS_TOGGLE_DIRECTION" 		axisType="HALF"/>
 		<action name="SPS_TOGGLE_SPREADER"  		axisType="HALF"/>
-		<action name="SPS_TOGGLE_ANIMATION_SPRAYER" axisType="HALF"/>
 		<action name="SPS_HUD_EDIT" 				axisType="HALF"/>
 		<action name="SPS_REPAIR_SHEARBOLT"			axisType="HALF"/>
 		<action name="SPS_TOGGLE_AGITATOR"			axisType="HALF"/>
@@ -292,6 +304,11 @@ Funkce:
 		<action name="SPS_STOW_PREV"				axisType="HALF"/>
 		<action name="SPS_FREE_PIPE"				axisType="HALF"/>
 		<action name="SPS_PUMPMIXER_VALVE"			axisType="HALF"/>
+		<action name="SPS_TOGGLE_ANIMATION_SPRAYER" axisType="HALF"/>
+		<action name="SPS_TOGGLE_ANIMATION"			axisType="HALF"/>
+		<action name="SPS_BOWSER_HOSE"				axisType="HALF"/>   <!-- [2026-11-10] H: take / put back the 550 bowser's wash hose (original mode); its own key - X is the hands' secondary action too -->
+		<action name="SPS_CHEM_WASHOUT"				axisType="HALF"/>
+		<action name="SPS_SELECT_TANK"				axisType="HALF"/>   <!-- [2026-11-11] Shift+Y: next tank of a multi-tank fitting (MKS 8 Dual Tank) -->
 	</actions>
 	
 	<inputBinding>
@@ -308,7 +325,19 @@ Funkce:
 			<binding device="KB_MOUSE_DEFAULT" input="KEY_z" axisComponent="+" index="1" />
 		</actionBinding>
 		<actionBinding action="SPS_TOGGLE_ANIMATION_SPRAYER">
+			<binding device="KB_MOUSE_DEFAULT" input="KEY_n" axisComponent="+" index="1" />
+		</actionBinding>
+		<actionBinding action="SPS_CHEM_WASHOUT">
+			<binding device="KB_MOUSE_DEFAULT" input="KEY_lctrl KEY_w" axisComponent="+" index="1" />
+		</actionBinding>
+		<actionBinding action="SPS_TOGGLE_ANIMATION">
 			<binding device="KB_MOUSE_DEFAULT" input="KEY_x" axisComponent="+" index="1" />
+		</actionBinding>
+		<actionBinding action="SPS_BOWSER_HOSE">
+			<binding device="KB_MOUSE_DEFAULT" input="KEY_h" axisComponent="+" index="1" />
+		</actionBinding>
+		<actionBinding action="SPS_SELECT_TANK">
+			<binding device="KB_MOUSE_DEFAULT" input="KEY_lshift KEY_y" axisComponent="+" index="1" />
 		</actionBinding>
 		<actionBinding action="SPS_HUD_EDIT">
 			<binding device="KB_MOUSE_DEFAULT" input="MOUSE_BUTTON_MIDDLE" axisComponent="+" index="1" />
@@ -385,15 +414,29 @@ Funkce:
         <storeItem xmlFilename="vehicles/PTOSlurryPump/PTOSlurryPump.xml"/>
         <storeItem xmlFilename="placeables/spsWater/spsWaterCourseDraw.xml"/>
         <storeItem xmlFilename="placeables/spsWater/spsWaterCourseRemove.xml"/>
+        <!-- [SPS 1.0.1.8] ONE shop item for every physical pipe: Type / Length / Ends selectors (vehicles/hoses/spsPipe.xml) -->
         <storeItem xmlFilename="vehicles/hoses/spsPipe.xml"/>
+        <storeItem xmlFilename="vehicles/hoses/spsBowserPipe.xml"/>   <!-- [SPS 2026-11-09] the 550 Water/Chem Bowser's three pipes (physical mode) -->
+        <storeItem xmlFilename="vehicles/hoses/spsCage.xml"/>   <!-- [SPS 2026-11-11] water cages (small = water / milk pipes, large = slurry pipe male end): a pipe draws water only through one -->
         <storeItem xmlFilename="vehicles/dockingStation/dockingStation.xml"/>
         <storeItem xmlFilename="vehicles/towerMixer/towerMixer.xml"/>
-        <storeItem xmlFilename="placeables/separators/borger125FixedBunker/borger125FixedBunker.xml"/>
+        <storeItem xmlFilename="vehicles/kotte_TSA_SPS/tsa.xml"/>
+        <storeItem xmlFilename="vehicles/kotte_FRC65/frc65_SPS.xml"/>   <!-- [SPS 1.0.2.0] Kotte FRC 65 SPS build (re-added 2026-11-02 after a workbench modDesc deploy dropped it) -->
+        <storeItem xmlFilename="vehicles/amazone_UX5201Super/ux5201Super.xml"/>
+        <storeItem xmlFilename="vehicles/waterTrailer550/waterTrailer550.xml"/>   <!-- [SPS CHEM 2026-11-09] 550 Water/Chem Bowser (William's build, chem bowl as a design configuration) -->
+        <storeItem xmlFilename="vehicles/farmtech_supercis800/supercis800.xml"/>   <!-- [SPS DEV 2026-11-04] Supercis 800 SPS build on William's supercis800.i3d re-export (supercis800_test.xml = the 03/11 line, not in the shop) -->   <!-- [SPS DEV 2026-10-28] UX5201 chem-station build, in test -->
+        <storeItem xmlFilename="vehicles/kaweco_Profi2_SPS/profi2.xml"/>
+		<storeItem xmlFilename="placeables/separators/borger125FixedBunker/borger125FixedBunker.xml"/>
 		<storeItem xmlFilename="placeables/silos/fertHerbSilo/sprayerSilo.xml"/>
+		<storeItem xmlFilename="placeables/washoutStation/washoutStation.xml"/>   <!-- [SPS 1.0.2.0] sprayer washout station (William's grate + 80 mm fitting, 2026-11-07) -->
 		<storeItem xmlFilename="placeables/husbandry/cowBarnMediumSPS/cowBarnMedium.xml"/>
+		<storeItem xmlFilename="vehicles/mks8_dualTank/mks8DualTank.xml"/>   <!-- [SPS MKS8 2026-11-10] William's two-tank MKS 8 (door, tube-stowed pipes, tank choice at the node) -->
     </storeItems>
 
+    <!-- [SPS 1.0.1.8] the pipe and the docking station together on one tile (shop > Packs); both stay in Slurry Tanks too
+         (a mod cannot add its own shop category - mods.lua reads modDesc storeCategories for DLCs only) -->
     <storePacks>
+        <!-- name UPPERCASE: StoreManager:addPack stores string.upper(name) but addPackItem looks up the name as written; title literal: mods.lua resolves it with the global g_i18n before mod texts apply -->
         <storePack name="SPSPIPES" title="SPS Slurry Kit" image="vehicles/hoses/icon_slurryPipe.png">
             <storeItem>vehicles/hoses/spsPipe.xml</storeItem>
             <storeItem>vehicles/dockingStation/dockingStation.xml</storeItem>

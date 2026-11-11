@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<!-- [SPS CHEM 2026-11-05] Chemical concentrates (Chem Mixing setting). Shop-bought chemical pallets (IBC, canister,
+     barrel, bag) spawn as these while Chem Mixing is on; diluted with water in a sprayer they become the normal
+     LIQUIDFERTILIZER / HERBICIDE. pricePerLiter here = 1:9 default; SPSChemMix sets base price x (water parts + 1)
+     at map load and whenever the ratio setting changes. -->
+<map>
+    <fillTypes>
+        <fillType name="LIQUIDFERTILIZER_CONC" title="$l10n_fillType_liquidFertilizerConc" showOnPriceTable="false" isBulkType="true" unitShort="$l10n_unit_literShort">
+            <physics massPerLiter="1.00" maxPhysicalSurfaceAngle="0" />
+            <economy pricePerLiter="12.0" />
+            <image   hud="$dataS/menu/hud/fillTypes/hud_fill_liquidFertilizer.png" />
+        </fillType>
+        <fillType name="HERBICIDE_CONC" title="$l10n_fillType_herbicideConc" showOnPriceTable="false" isBulkType="true" unitShort="$l10n_unit_literShort">
+            <physics massPerLiter="1.00" maxPhysicalSurfaceAngle="0" />
+            <economy pricePerLiter="12.0" />
+            <image   hud="$dataS/menu/hud/fillTypes/hud_fill_herbicide.png" />
+        </fillType>
+    </fillTypes>
+</map>

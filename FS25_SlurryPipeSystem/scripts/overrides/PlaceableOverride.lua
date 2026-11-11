@@ -241,7 +241,7 @@ function SPSPlaceableOverride.updateInfo(self, superFunc, infoTable)
             end
         end
 
-        -- [SPS 1.0.1.9] SEPARATOR (Borger): the placeable's display (William 2026-10-26: "a display like the pumps").
+        -- [SPS 1.0.2.0] SEPARATOR (Borger): the placeable's display (William 2026-10-26: "a display like the pumps").
         -- The vanilla heap row ("<Manure> 2,421 / 33,000 l") is re-texted to a plain "N l" so British Fill Units
         -- turns it into kg (it converts a line whose TITLE is a fill type title and whose value reads "N l" - that is
         -- how the P&H separator shows kg); the "level / capacity" view moves to a Bunker row. Then source, return,

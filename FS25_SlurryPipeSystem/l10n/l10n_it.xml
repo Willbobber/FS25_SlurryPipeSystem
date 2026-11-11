@@ -14,6 +14,9 @@
         
 		<!-- Settings menu -->
 		<text name="sps_settingsHeader"            		text="SISTEMA TUBI LIQUAME" />
+		<text name="sps_settingsSectionGeneral"  text="Slurry Pipe System - Generale" />
+		<text name="sps_settingsSectionSlurry"   text="Slurry Pipe System - Liquame" />
+		<text name="sps_settingsSectionSprayers" text="Slurry Pipe System - Irroratrici" />
 		<text name="sps_settingsSlurryPipe"        		text="Tubo liquame" />
 		<text name="sps_settingsSlurryPipeTooltip" 		text="Seleziona il colore del tubo" />
 		
@@ -43,6 +46,7 @@
         <text name="action_spsConnectPipe" 				text="Collega tubo"/>
 		<text name="action_spsDisconnectOrOpenValve" 	text="Scollega [R] | Apri valvola [tieni premuto R]"/>
 		<text name="action_spsCloseValve" 				text="Chiudi valvola [tieni premuto R]"/>
+		<text name="action_spsOpenValve" 				text="Apri valvola [tieni R]"/>
 		<text name="warning_slurryCloseValveFirst" 		text="Chiudi la valvola prima di scollegare"/>
 		<text name="action_spsLayFirstPipe"         	text="Posa il primo tubo" />
 		<text name="action_spsLayPipe"              	text="Posa tubo | Posiziona stazione di aggancio [tieni premuto R]" />
@@ -118,14 +122,27 @@
         <text name="sps_infoTankEmpty"               text="Vuoto" />
         <text name="shopItem_spsSprayerSilo"        text="Silo per irroratrici (4 serbatoi, SPS)" />
         <text name="function_spsSprayerSilo"        text="Quattro serbatoi separati dietro un unico attacco SPS. Entra nel quadro per scegliere il serbatoio; fertilizzante liquido o erbicida, ogni serbatoio resta vincolato al contenuto finché non si svuota. Solo tubo: nessun carico passando sotto." />
+        <text name="shopItem_spsWashoutStation"     text="Piazzola di lavaggio irroratrice (SPS)" />
+        <text name="function_spsWashoutStation"     text="Una piazzola grigliata con raccordo da 80 mm. Collega il tubo dell'acqua dell'irroratrice e impostala su scarico: l'acqua di risciacquo scende dalla griglia e viene trattata nel tempo. L'irroratrice può anche riprendere acqua di risciacquo." />
 		
 		<!-- Water -->
 		<text name="warning_spsPipeTooShort"			text="Tubo troppo corto (minimo 2 m)" />
 		
 		<!-- Sprayer -->
 		<text name="input_SPS_TOGGLE_ANIMATION_SPRAYER"	text="Apri coperchio | Chiudi coperchio" />
+		<text name="input_SPS_TOGGLE_ANIMATION"	text="SPS: animazione sul veicolo (scivolo ecc.)" />
+		<text name="input_SPS_BOWSER_HOSE"	text="SPS: bowser wash hose - take / put back" />
+		<text name="warning_spsChemBowlFirst"	text="Ripiegare prima la vasca chimici" />
+		<text name="warning_spsOpenDoorFirst"	text="Aprire prima lo sportello della stazione chimici" />
+		<text name="warning_spsChemDoor"	text="Aprire prima lo sportello della stazione chimici" />
+		<text name="warning_spsChemBowl"	text="Aprire la vasca premiscelazione per aggiungere il prodotto" />
+		<text name="warning_spsChemUseBowl"	text="Versare il prodotto nella vasca premiscelazione" />
+		<text name="warning_spsChemWashout"	text="Lavare prima" />
+		<text name="action_spsSpoutOut"			text="Ruota lo scivolo in fuori" />
+		<text name="action_spsSpoutBack"			text="Riporta lo scivolo" />
 		<text name="input_SPS_TOGGLE_PUMP_SPRAYER"		text="Avvia flusso | Ferma flusso" />
 		<text name="input_SPS_TOGGLE_DIRECTION_SPRAYER"	text="Carica | Scarica" />
+		<text name="input_SPS_SELECT_TANK"				text="Serbatoio successivo" />
 		<text name="action_sprayerCoverClosed"			text="Coperchio: CHIUSO" />
 		<text name="action_sprayerCoverOpen"			text="Coperchio: APERTO" />
 		<text name="action_sprayerFlowOff"				text="Flusso: FERMO" />
@@ -149,21 +166,21 @@
 		<text name="sps_hudEditHint"         			text="Trascina per spostare  -  Rotellina per ridimensionare  -  Clic centrale per bloccare" />
 		<text name="action_spsHudEdit"       			text="Sposta HUD spandiletame" />
 		<!-- SPS spreader HUD settings -->
-		<text name="sps_hudSettingsHeader"   			text="HUD spandiletame" />
-		<text name="sps_hudSetEnabled"       			text="Lettura DB" />
+		<text name="sps_hudSettingsHeader"   			text="Slurry Pipe System - HUD spandiliquame" />
+		<text name="sps_hudSetEnabled"       			text="HUD spandiliquame" />
 		<text name="sps_hudSetEnabledTooltip"			text="Mostra l'HUD dello spandiletame (icona DB, dettagli liquame e celle delle sezioni) in alto sullo schermo." />
-		<text name="sps_hudSetImage"         			text="Immagine DB" />
+		<text name="sps_hudSetImage"         			text="    Immagine DB" />
 		<text name="sps_hudSetImageTooltip"  			text="Mostra l'immagine della barra a pendaglio sull'HUD." />
-		<text name="sps_hudSetFill"          			text="Mostra livello liquame" />
-		<text name="sps_hudSetCrust"         			text="Mostra crosta" />
-		<text name="sps_hudSetThick"         			text="Mostra densità" />
-		<text name="sps_hudSetRisk"          			text="Mostra rischio intasamento" />
-		<text name="sps_hudSetPump"          			text="Mostra pompa / pressione" />
+		<text name="sps_hudSetFill"          			text="    Mostra livello liquame" />
+		<text name="sps_hudSetCrust"         			text="    Mostra crosta" />
+		<text name="sps_hudSetThick"         			text="    Mostra densità" />
+		<text name="sps_hudSetRisk"          			text="    Mostra rischio intasamento" />
+		<text name="sps_hudSetPump"          			text="    Mostra pompa / pressione" />
 		<text name="sps_hudSetFieldTooltip"  			text="Mostra o nasconde questa riga sull'HUD dello spandiletame." />
 		<text name="warning_spsFoldIsSpsControlled" 	text="Il cambio direzione della pompa è controllato dal Sistema Tubi Liquame" />
-		<text name="sps_hudSetHideHelp"      			text="Nascondi con il menu aiuto (F1)" />
+		<text name="sps_hudSetHideHelp"      			text="    Nascondi con il menu aiuto (F1)" />
 		<text name="sps_hudSetHideHelpTooltip" 		text="Sì: l'HUD SPS si nasconde insieme al menu di aiuto premendo F1. No: resta visibile." />
-		<text name="sps_hudSetScale"         			text="Scala HUD" />
+		<text name="sps_hudSetScale"         			text="    Scala HUD" />
 		<text name="sps_hudSetScaleTooltip"  			text="Dimensione dell'HUD dello spandiletame. Modificabile anche con la rotellina mentre si sposta l'HUD." />
 		<text name="sps_hudPressure" 					text="Pressione"/>
 		<text name="input_SPS_HUD_EDIT"          		text="Modifica HUD spandiletame" />
@@ -195,6 +212,93 @@
 		<text name="sps_settingsIbcPersistTooltip" 		text="Sì: gli IBC svuotati rimangono sulla mappa (riportali al negozio o riempili). No: scompaiono una volta svuotati (impostazione predefinita)."/>
 		<text name="sps_settingsPhysicalPipes" 			text="Tubi fisici"/>
 		<text name="sps_settingsPhysicalPipesTooltip" 	text="No: sistema originale - posa e collega i tubi a raccordi, catene, irroratrici e linee acqua/latte; i tubi acquistabili sono nascosti nel negozio. Sì: solo tubi fisici - compra i tubi nel negozio e trasportali a mano; tutti i comandi dei tubi originali sono disattivati. I due sistemi non funzionano mai insieme."/>
+		<text name="sps_settingsChemMixing"			text="Miscelazione chimici (irroratrici)"/>
+		<text name="sps_settingsChemMixingTooltip"	text="Sì: il prodotto va nella vasca premiscelazione a mano, l'acqua dal tubo; un prodotto alla volta, lavare con acqua per cambiare. No: riempimento diretto da silo o IBC"/>
+		<text name="fillType_liquidFertilizerConc" text="Concentrato di fertilizzante liquido"/>
+		<text name="fillType_herbicideConc" text="Concentrato di erbicida"/>
+		<text name="sps_chemConcTitle" text="Concentrato di %s"/>
+		<text name="sps_chemStoreConcName" text="%s (concentrato)"/>
+		<text name="sps_settingsChemRatio" text="    Rapporto di miscela"/>
+		<text name="sps_settingsChemRatioTooltip" text="Parti d'acqua per parte di concentrato. I prodotti comprati nel negozio (IBC, tanica, fusto) sono concentrato con prezzo corrispondente; le stazioni d'acquisto vendono la miscela pronta"/>
+		<text name="warning_spsDoorPipe" text="Togli il tubo prima di chiudere lo sportello"/>
+		<text name="sps_chemHudReadyMix" text="Miscela pronta"/>
+		<text name="sps_chemHudTitle" text="Miscela"/>
+		<text name="sps_chemHudEmpty" text="Vuoto"/>
+		<text name="sps_chemHudDirty" text="Serbatoio sporco di %s - prima lavare"/>
+		<text name="sps_chemHudWashout" text="Acqua / lavaggio"/>
+		<text name="sps_chemHudWater" text="Acqua"/>
+		<text name="sps_chemHudWashing" text="Lavaggio di %s"/>
+		<text name="sps_chemHudTarget" text="obiettivo"/>
+		<text name="sps_chemHudConc" text="Concentrato"/>
+		<text name="sps_chemHudMix" text="Miscela"/>
+		<text name="sps_chemHudAddWater" text="Aggiungi acqua"/>
+		<text name="sps_chemHudAddConc" text="Aggiungi concentrato"/>
+		<text name="input_SPS_CHEM_WASHOUT" text="Lavaggio irroratrice"/>
+		<text name="action_spsChemWashout" text="Lava l'irroratrice (risciacquo %d di %d)"/>
+		<text name="action_spsChemWashoutStop" text="Ferma lavaggio"/>
+		<text name="action_sprayerDirLoadRinse" text="Direzione: CARICO serbatoio lavaggio"/>
+		<text name="sps_settingsChemRinses" text="    Risciacqui"/>
+		<text name="sps_settingsChemRinsesTooltip" text="Quanti risciacqui servono prima che la cisterna sia pulita (ogni risciacquo va svuotato prima del successivo)"/>
+		<text name="sps_settingsWashoutValve" text="    Valvola piazzola di lavaggio"/>
+		<text name="sps_settingsWashoutValveTooltip" text="Automatica: la valvola segue il ciclo di lavaggio e l'impostazione carico / scarico dell'irroratrice. A mano: il giocatore la gira alla piazzola (acqua pulita in entrata / acqua sporca in uscita) e il lavaggio la aspetta."/>
+		<text name="sps_settingsWashoutValveAuto" text="Automatica"/>
+		<text name="sps_settingsWashoutValveManual" text="A mano"/>
+		<text name="warning_spsWashClean" text="La cisterna è pulita - nessun lavaggio necessario"/>
+		<text name="warning_spsWashChemIn" text="Svuota prima la cisterna (contiene %s)"/>
+		<text name="warning_spsWashDrain" text="Svuota prima l'acqua di risciacquo: spruzzala o pompala via"/>
+		<text name="warning_spsWashField" text="Lava in un campo o in un punto di lavaggio"/>
+		<text name="warning_spsWashFold" text="Apri prima la barra"/>
+		<text name="warning_spsWashWaterTank" text="Il serbatoio di lavaggio ha bisogno di %d l d'acqua"/>
+		<text name="warning_spsWashWaterPipe" text="Collega una piazzola di lavaggio o aggiungi prima %d l di acqua pulita nel serbatoio tramite tubo"/>
+		<text name="warning_spsWashContam" text="Non lavata: residui di %s nella nuova miscela - possono danneggiare la coltura"/>
+		<text name="sps_washDlgTitle" text="Lavaggio irroratrice"/>
+		<text name="sps_washDlgNext" text="Risciacquo %d di %d fatto. Avviare il prossimo?"/>
+		<text name="sps_washDlgNextYes" text="Prossimo risciacquo"/>
+		<text name="sps_washDlgFold" text="Chiudi la barra"/>
+		<text name="sps_washDlgClean" text="Lavaggio completato - la cisterna è pulita. Chiudere la barra?"/>
+		<text name="sps_washDlgLeave" text="Lascia aperta"/>
+		<text name="sps_chemHudRinse" text="Risciacquo %d di %d"/>
+		<text name="sps_chemHudPhasePrep" text="Apertura barra"/>
+		<text name="sps_chemHudPhaseTank" text="Lavaggio cisterna"/>
+		<text name="sps_chemHudPhaseBoom" text="Lavaggio barra"/>
+		<text name="sps_chemHudPhaseFinal" text="Ultimo lavaggio cisterna"/>
+		<text name="sps_chemHudPhaseDrain" text="L'acqua di risciacquo esce dagli ugelli"/>
+		<text name="sps_chemHudPhaseReturn" text="Acqua sporca di ritorno alla piazzola di lavaggio"/>
+		<text name="sps_chemHudStation" text="Piazzola di lavaggio"/>
+		<text name="sps_chemHudValveClean" text="valvola: acqua pulita in entrata"/>
+		<text name="sps_chemHudValveDirty" text="valvola: acqua sporca in uscita"/>
+		<text name="sps_chemHudValveManual" text="(impostata a mano)"/>
+		<text name="action_spsWashValveClean" text="Valvola piazzola: acqua pulita in entrata"/>
+		<text name="action_spsWashValveDirty" text="Valvola piazzola: acqua sporca in uscita"/>
+		<text name="warning_spsWashValveClean" text="Metti la valvola della piazzola su acqua pulita in entrata"/>
+		<text name="warning_spsWashValveDirty" text="Metti la valvola della piazzola su acqua sporca in uscita"/>
+		<text name="sps_chemHudDrainPaused" text="In pausa - premi Lava"/>
+		<text name="sps_chemHudRinsesDone" text="Risciacqui fatti"/>
+		<text name="sps_chemHudPoorRinse" text="Risciacquo scarso - ripeti con Lava"/>
+		<text name="sps_chemHudResidue" text="Residuo rimasto"/>
+		<text name="sps_chemHudRinseTank" text="Serbatoio lavaggio"/>
+		<text name="sps_chemHudEmptyClean" text="Vuota - pulita"/>
+		<text name="sps_chemHudPipeFills" text="Il tubo riempie"/>
+		<text name="sps_chemHudMainTank" text="Cisterna principale"/>
+		<text name="sps_chemHudContam" text="Residui di %s nella miscela"/>
+		<text name="sps_chemBandWeak" text="Troppo debole"/>
+		<text name="sps_chemBandGood" text="Buono"/>
+		<text name="sps_chemBandStrong" text="Forte"/>
+		<text name="sps_chemBandDouble" text="Dose doppia"/>
+		<text name="sps_chemBandScorch" text="Bruciatura"/>
+		<text name="sps_chemBandFlatten" text="Coltura distrutta"/>
+		<text name="sps_chemInfoMix" text="Forza della miscela"/>
+		<text name="sps_chemInfoConc" text="Concentrato"/>
+		<text name="warning_spsChemWeak" text="Miscela troppo debole - nulla applicato, aggiungi concentrato o fai un altro passaggio"/>
+		<text name="warning_spsChemScorch" text="Miscela troppo forte - la coltura si brucia"/>
+		<text name="warning_spsChemKill" text="Miscela troppo forte - la coltura viene distrutta"/>
+		<text name="warning_spsChemContamDamage" text="I residui di %s nella miscela danneggiano la coltura - lava il serbatoio"/>
+		<text name="sps_settingsHoseDirt"			text="Sporco dei tubi"/>
+		<text name="sps_settingsHoseDirtTooltip"	text="Sì: i tubi fisici si sporcano durante l'uso e quando restano a terra (pioggia o idropulitrice li lavano). No: i tubi non si sporcano mai; passando a No tutti i tubi vengono puliti una volta."/>
+		<text name="sps_settingsHoseDirtSpeed"		text="    Velocità sporco tubi"/>
+		<text name="sps_settingsHoseDirtSpeedTooltip"	text="Quanto velocemente si sporcano i tubi fisici: 1x = velocità propria del tubo, 0,25x = quattro volte più lenta, 3x = tre volte più veloce."/>
+		<text name="sps_settingsSpill"				text="Perdite dai tubi"/>
+		<text name="sps_settingsSpillTooltip"		text="Sì: un tubo fisico con l'estremità libera a terra conta come collegato - apri la valvola della botte e il liquame scorre a terra formando una pozza (l'estremità deve stare entro 1,5 m dal suolo). No: la valvola resta chiusa finché il tubo non è collegato."/>
 		<text name="sps_pipeModeTitle" 	text="Slurry Pipe System - scegli il sistema di tubi"/>
 		<text name="sps_pipeModeQuestion" 	text="Quale sistema di tubi vuoi usare in questa partita?&#xA;&#xA;ORIGINALE: posa e collega i tubi a raccordi, catene, irroratrici e linee acqua/latte come prima.&#xA;FISICO (nuovo): compra i tubi nel negozio e trasportali a mano; il sistema originale di posa/collegamento è disattivato.&#xA;&#xA;I due non funzionano mai insieme. Puoi cambiarlo in seguito in Impostazioni > Tubi fisici."/>
 		<text name="sps_pipeModeExisting" 	text="Questa partita ha già %s."/>
@@ -261,6 +365,8 @@
 		<text name="warning_spsFittingValveClosed"		text="Apri prima le valvole di entrambi i raccordi" />
 		<text name="warning_spsCloseValveFirst"		text="Chiudere la valvola prima di scollegare il tubo" />
 		<text name="sps_laneTransfer"					text="Da cisterna a cisterna" />
+		<text name="sps_laneBowserToTanker"				text="Da botte a cisterna" />
+		<text name="sps_laneTankerToBowser"				text="Da cisterna a botte" />
 		<text name="warning_spsTransferOtherEmpty"		text="L'altra cisterna è vuota" />
 		<text name="warning_spsTransferOtherFull"		text="L'altra cisterna è piena" />
 		<text name="warning_spsTransferType"			text="Le cisterne contengono liquidi diversi" />
@@ -290,6 +396,35 @@
 		<text name="configuration_spsPipeEnds"	text="Estremità (tubo liquame)" />
 		<text name="spsPipe_typeSlurry"		text="Tubo liquame 140 mm" />
 		<text name="spsPipe_typeWater"		text="Tubo acqua 80 mm" />
+		<text name="shopItem_spsBowserPipe"		text="550 Bowser Pipes" />
+		<text name="function_spsBowserPipe"		text="The 550 Water/Chem Bowser's own pipes (physical pipe mode). Suction pipe: start end on the bowser's water inlet, lay the far end in a river or pond and start the pump to fill the tank. Small water hose: bowser inlet to a sprayer's or tanker's water fitting. Wash hose: bowser spray outlet, the pump pours the tank out where the far end lies. Their start ends fit this bowser only." />
+		<text name="spsBowserPipe_suction"		text="Suction pipe (water course)" />
+		<text name="spsBowserPipe_wash"		text="Wash hose" />
+		<text name="spsBowserPipe_small"		text="Small water hose (sprayer / tanker)" />
+		<text name="warning_spsBowserEndNotInWater"		text="Lay the suction pipe's end in the water first" />
+		<text name="shopItem_spsCage"		text="Water Cage" />
+		<text name="function_spsCage"		text="Strainer cage for a pipe end lying in a lake, river or pond. A pipe only draws water with a cage fitted on its free end and the cage under the surface; pushing water out needs none. Small cage: 80 mm water and milk pipes, either end. Large cage: the male end of a slurry pipe. Carry it to the pipe end and join it like another pipe." />
+		<text name="spsCage_small"		text="Small cage (water / milk pipe)" />
+		<text name="spsCage_large"		text="Large cage (slurry pipe, male end)" />
+		<text name="warning_spsAddCage"		text="Fit a water cage on the pipe end first" />
+		<text name="action_spsCageStow"		text="Hang the water cage on holder %d" />
+		<text name="action_spsEngineOn"		text="Start engine" />
+		<text name="action_spsEngineOff"		text="Stop engine" />
+		<text name="action_spsPhysStowBowser"		text="Stow %s on the rack" />
+		<text name="warning_spsBowserInletValve"		text="Open the inlet valve first (R at the pump)" />
+		<text name="warning_spsWashHoldEnd"		text="Pick up the wash hose end to spray" />
+		<text name="action_spsLaySuction"		text="Lay suction pipe here" />
+		<text name="action_spsPickupSuction"		text="Remove suction pipe" />
+		<text name="action_spsReleaseSuction"		text="Release suction pipe" />
+		<text name="action_spsReturnSuction"		text="Put suction pipe back" />
+		<text name="action_spsTakeSuction"		text="Take suction pipe" />
+		<text name="action_spsTakeWash"		text="Take wash hose" />
+		<text name="action_spsReturnWash"		text="Put wash hose back" />
+		<text name="warning_spsSuctionReach"		text="Too far from the bowser for the suction pipe" />
+		<text name="action_spsLancePourOn"		text="Start pouring from the hose" />
+		<text name="action_spsLancePourOff"		text="Stop pouring" />
+		<text name="warning_spsLancePour"		text="Right mouse with the hose end in hand starts the pour" />
+		<text name="warning_spsWashEngineFirst"		text="Start the engine (B) before taking the wash hose" />
 		<text name="spsPipe_typeMilk"		text="Tubo latte 80 mm" />
 		<text name="spsPipe_length4"			text="4 m" />
 		<text name="spsPipe_length6"			text="6 m" />
@@ -330,5 +465,20 @@
         <text name="function_spsTowerMixer"		text="Un miscelatore per lagune azionato dal trattore su una torre pieghevole. Abbassa i piedi, apri il braccio nella vasca e miscela il liquame con la presa di forza; un tubo dalla sua pompa porta il liquame miscelato a una botte." />
         <text name="sps_hudPipeFlow"		text="Flusso tubo" />
         <text name="input_SPS_FREE_PIPE"		text="Libera il tubo incastrato" />
-	</texts>
+	        <!-- [SPS MKS8 2026-11-10] lane door, tank choice, tube stow -->
+        <text name="action_spsLaneDoorOpen"		text="Open door" />
+        <text name="action_spsLaneDoorClose"	text="Close door" />
+        <text name="warning_spsLaneDoorFirst"	text="Open the door first" />
+        <text name="action_spsLaneTank"			text="Tank: %s" />
+        <text name="sps_tankN"					text="tank %d" />
+        <text name="sps_tankEmpty"				text="empty" />
+        <text name="sps_chemHudTanks"				text="Serbatoi" />
+        <text name="action_spsPhysTakeTube"		text="Take pipe out of the tube" />
+        <text name="sps_mks8DoorOpen"			text="Open rear door" />
+        <text name="sps_mks8DoorClose"			text="Close rear door" />
+        <text name="sps_mks8TankFront"			text="front tank" />
+        <text name="sps_mks8TankRear"			text="rear tank" />
+        <text name="sps_mks8DualTankName"		text="MKS 8 Dual Tank SPS" />
+        <text name="sps_mks8DualTankFunction"	text="Two 4,000 l tanks (water, milk, chemicals - each its own), one SPS fitting behind the rear door, two short pipes in the side tubes (grab the end, walk back)." />
+</texts>
 </l10n>

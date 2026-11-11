@@ -216,7 +216,137 @@ across all couplings, played forward as part of connecting and reversed on disco
 the element if your sprayer has no such animation. (In the log, `loadAnimationName=nil`
 simply means none was declared — that is fine.)
 
+`doorCloseAuto` (optional, default `true`): with `true` the animation closes by itself when the
+pipe is removed; with `false` it stays as the player left it (N at the pump control closes it).
+If a `lockLoadAnimation` walk-up animation (e.g. a chem bowl) is out, the auto-close folds it in
+first and closes the door once it is fully in; putting the pipe back on in the meantime cancels it.
+
+```xml
+<loadAnimation name="chemStationDoor" doorCloseAuto="false"/>
+```
+
+### pump directionAnimation (vehicle-level, 1.0.2.0)
+
+```xml
+<pump selfPowered="true" directionAnimation="chemLever"/>
+```
+
+A three-position lever that shows the flow direction. Author the animation so that time 0.5
+is the rest pose, 1 is FILL and 0 is EMPTY (the UX5201: -45 -> 0 -> +45 over 0.6 s). With no
+pipe connected it sits at 0.5; when a pipe connects it moves to the current direction, Y at
+the pump control swings it across, and removing the pipe brings it back to 0.5. Every client
+derives it from the synced connect / direction state.
+
+### animationControls (vehicle-level, 1.0.2.0)
+
+```xml
+<animationControls>
+    <animationControl id="1" nodeName="chemStationBowl" radius="1.2" animation="chemBowl"
+                      textForward="Fold out chem bowl" textBackward="Fold in chem bowl"/>
+</animationControls>
+```
+
+A walk-up control: standing within `radius` of `nodeName`, X (SPS_TOGGLE_ANIMATION) plays
+`animation` forward, and back again next time. Same block the slurry vehicles use. The texts
+are l10n keys or plain text. The game shows ONE prompt per spot (the nearest node), so the
+simplest layout is `nodeName` = the pump control's node: the animation key then sits on the pump
+control's own prompt next to door / connect / flow. A separate node only makes sense if it is a
+different standing spot, well away from the pump control.
+
+Optional:
+- `lockLoadAnimation="true"` + `lockWarning="<l10n key or text>"` - the control sits behind the door: it can only come out while the `loadAnimation` is fully open, and while it is out
+  the `loadAnimation` (door) cannot be closed; N shows the warning instead.
+
+### loadAnimation and the base-game cover (1.0.2.0)
+
+The `loadAnimation` is on SPS_TOGGLE_ANIMATION_SPRAYER (N by default; rebindable on its own) at the pump
+control. If the vehicle also has a base-game `<cover>`, opening / closing the SPS `loadAnimation` sets
+the cover to open / closed as well (the UX5201's `toggleCover` = its ladder).
+
+### chemStation (vehicle-level, 1.0.2.0) - realistic filling
+
+```xml
+<chemStation bowlFillNode="chemBowlFillNode" bowlAnimation="chemBowl"/>
+```
+
+Only active with the SPS setting **Chem Mixing (sprayers)** on (default off = vanilla filling).
+`bowlFillNode` is an invisible FILLABLE shape in the bowl (kinematic, compound,
+`collisionFilterGroup="0x40000000" collisionFilterMask="0x20000000"`, nonRenderable - the same
+flags as the tank's `exactFillRootNode`); `bowlAnimation` is the animation that folds the bowl out
+(usually an `animationControl`). Rules while the setting is on:
+
+- Chemical (herbicide / liquid fertiliser) only goes in while the door is open AND the bowl is out,
+  and a hand pour (canister, barrel, any tipped object) must land in the bowl, not on the tank.
+  Chemical by pipe from an IBC or silo also needs the bowl out.
+- Water comes by pipe (the water pipe or a water source). With a chemical in the tank it dilutes
+  it; into an empty tank it is a washout. The tank shows the chemical's fill type while a
+  chemical is in and WATER while washing.
+- One chemical at a time: a different one is refused ("Wash out first") until the washout water
+  has left the tank (sprayed or discharged). Washout water sprays with the normal effects at the
+  herbicide rate but does nothing to the field.
+- SPS books the litres of concentrate and water separately (the mix ratio) and saves them with the
+  game. The strength drives the field effect (next section).
+
+### Concentrate and the mix ratio (1.0.2.0, Chem Mixing on)
+
+- Chemicals bought in the shop as a pallet (IBC, canister, barrel - base game or any mod) arrive as
+  **concentrate**: own fill types `LIQUIDFERTILIZER_CONC` / `HERBICIDE_CONC`. Their shop price is the
+  normal price x (water parts + 1), so the cost per hectare matches the base game at any ratio.
+  Buying stations, the silo "buy" menu, productions and the AI helper still give **ready mix**.
+- Setting **Chem mix ratio**: 1:4 / **1:9** (default) / 1:19 / 1:49 water parts per part of concentrate.
+- Concentrate goes into ANY sprayer: through the chem bowl on a sprayer with a `<chemStation>` (rules
+  above), or through the normal fill / lid on every other sprayer. In the tank it becomes the normal
+  fill type; SPS keeps the concentrate / water books and works out the **strength** (100% = on ratio).
+- Every fill unit that takes LIQUIDFERTILIZER / HERBICIDE also takes the concentrate (trailers,
+  bowsers, IBCs) - nothing to add to a vehicle XML.
+- **Mod liquids**: every fill type that sits in a sprayer-liquid category - one holding
+  LIQUIDFERTILIZER or HERBICIDE and none of the dry / slurry types - gets its own `<NAME>_CONC` twin
+  when the map loads, titled "<product> concentrate". Soil & Fertilizer's UAN32 / UAN28 / Anhydrous /
+  Starter / Liquid urea ... tubs therefore arrive as concentrate and are priced like one; its powders
+  (UREA, AN, MAP, DAP ...) are left alone - they go through dry spreaders. A tank that takes the family
+  type (liquid fertilizer or herbicide) takes the twin as well. Only liquids that some mod SELLS as a
+  pallet get a twin (a tank mix made in game, such as S&F's BLEND_* fungicide mixes, does not), and the
+  game's 255 fill type cap is respected - the log says which liquids were left without a twin and why.
+  Anhydrous ammonia and 10-34-0 starter are never concentrates (gas knifed in, neat in-furrow) and keep
+  their normal price. Every repriced shop pallet is renamed "<name> (concentrate)" while Chem Mixing is
+  on, so the price explains itself; off, names and prices go back to the mod's own.
+- Chem panel (top centre) in the cab or within 6 m on foot: concentrate and water with bars against
+  the target, the mix ratio, strength and band (Too weak < 80% / Good / Strong >= 120% / Double dose
+  >= 180% / Scorch >= 250% / Crop kill >= 400%) and what to add. The field effect of the bands is the
+  next step (not built yet).
+- Console: `spsChemMix` lists the books of every chem sprayer, the concentrate prices and the
+  repriced shop pallets. `spsChemPallets` lists the sprayer liquids and their twins, every fill type
+  category with its liquid verdict, and EVERY shop pallet that spawns with contents - repriced, or
+  skipped with the reason (`spsChemPallets rescan` re-reads the shop).
+
 ---
+
+### Mix strength on the field and through every tank (1.0.2.0, Chem Mixing on)
+
+**Field effect** (the strength of the tank feeding the boom, 100 % = on ratio):
+
+| Strength | Result |
+|---|---|
+| under 80 % | too weak: nothing is written to the field, the litres are used, "Mix too weak" is shown - make another pass or add concentrate |
+| 80-120 % | good: a normal pass |
+| 120-180 % | strong: a normal pass, concentrate wasted |
+| 180-250 % | double: fertiliser +2 levels (herbicide: a normal kill) |
+| 250 % and up | scorch: the patch's fertiliser level is stripped |
+| 400 % and up | crop destroyed |
+
+A chemical poured onto a tank not washed out of a **herbicide** carries the residue into the mix: 15 % residue
+strips the fertiliser, 50 % destroys the crop, on top of the pass. With **Soil & Fertilizer** loaded the litres it
+books are scaled by the strength and its own burn gets the strength (SPS scorch off). With **Precision Farming**
+on the sprayer the nitrogen it applies is scaled by the strength and its over-fertilisation curve does the damage
+(SPS scorch off). Too weak writes nothing in every case.
+
+**Strength through every tank.** Any trailer, IBC, bowser (any fill unit taking the chemical) and any silo /
+production storage keeps the same concentrate / water books, saved with the game. Litres moving by SPS pipe,
+by tipping / pumping into a trailer or a silo, or out of a silo at a fill trigger carry their strength with them
+and blend by volume in the receiver. A shop IBC holds **pure concentrate** (strength = water parts + 1): water
+into it makes it a mix, more concentrate keeps it pure. Rinse water pumped out of a washing sprayer into a tank
+that takes the chemical is booked as a very thin mix of it (reusable). The on-foot info box shows "Mix strength
+96 % Good" or "Concentrate" on every such tank; console `spsChemMix` lists every tank and silo.
 
 ## 8. Engine sound — `<sounds>` (optional)
 

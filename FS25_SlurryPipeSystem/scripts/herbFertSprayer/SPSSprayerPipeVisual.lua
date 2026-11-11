@@ -202,10 +202,37 @@ function SPSSprayerPipeVisual:delete()
     self._isLoaded = false
 end
 
--- [SPS 1.0.1.9] also ready when the new hoses can draw (old sprayerPipe.i3d gone since 1.0.1.8): SPSM_Sprayers and
+-- [SPS 1.0.2.0] also ready when the new hoses can draw (old sprayerPipe.i3d gone since 1.0.1.8): SPSM_Sprayers and
 -- SPSM_LiquidLanes gate on this, so sprayer + water/milk lane hoses were never drawn in ORIGINAL mode
 function SPSSprayerPipeVisual:isReady()
     return self._isLoaded or (SPSHoseVisual ~= nil and SPSHoseVisual.LIVE and g_spsHoseVisual ~= nil and g_spsHoseVisual:isReady())
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 2026-11-10] keyed hoses: the 550 bowser's own pipes drawn in ORIGINAL mode (hoses.xml WT_SUCTION /
+-- WT_WASH / WT_SMALL from i3d/pipes/bowserHoses.i3d). New-hose system only; nil when the key is not loaded.
+-- ---------------------------------------------------------------------------
+local function liveHoses()
+    if SPSHoseVisual ~= nil and SPSHoseVisual.LIVE and g_spsHoseVisual ~= nil and g_spsHoseVisual:isReady() then
+        return g_spsHoseVisual
+    end
+    return nil
+end
+
+function SPSSprayerPipeVisual:hasPipeVariant(key)
+    local hv = liveHoses()
+    return hv ~= nil and hv:hasVariant(key)
+end
+
+function SPSSprayerPipeVisual:pipeVariantRestLength(key)
+    local hv = liveHoses()
+    return hv ~= nil and hv:variantRestLength(key) or nil
+end
+
+function SPSSprayerPipeVisual:createPipeKeyed(key, nodeA, nodeB, opts)
+    local hv = liveHoses()
+    if hv == nil then return nil end
+    return hv:createKeyedLaneHose(key, nodeA, nodeB, opts)
 end
 
 -- ---------------------------------------------------------------------------

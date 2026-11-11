@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/34025540/README.md)
 # FS25_SlurryPipeSystem
 
 **Realistic physical slurry pipe system for Farming Simulator 2025.**
@@ -8,8 +7,30 @@ physically connect tanker fill arms or pipes, run a PTO-driven pump, build press
 flow direction, and watch slurry move through real plumbing — with a slurry that actually
 thickens, crusts and blocks if you neglect it.
 
-Current version: **1.0.1.9** — full list of changes in `RELEASE_NOTES_V1.0.1.9.md` inside the mod
-(1.0.1.8 changes in `RELEASE_NOTES_V1.0.1.8.md`).
+Current version: **1.0.2.0** — full list of changes in `RELEASE_NOTES_V1.0.2.0.md` inside the mod
+(1.0.1.9 changes in `RELEASE_NOTES_V1.0.1.9.md`, 1.0.1.8 in `RELEASE_NOTES_V1.0.1.8.md`).
+
+---
+
+## What's new in 1.0.2.0
+
+- **Pressure and vacuum** — vacuum tankers hold their vacuum and the flow follows it, high-volume
+  pump line suction and back pressure when spreading, a free pipe end in a pit's slurry draws from
+  the pit, and pressure gauges on the Supercis 800 and Kaweco Profi 2.
+- **Chemical mixing and washout** — concentrates mixed with water in the sprayer, the mix strength
+  carried through every tank, pipe and onto the field, a staged washout of a dirty sprayer and a
+  **washout station** placeable (paid clean water in, dirty water back down the pipe).
+- **New SPS vehicles** — MKS 8 Dual Tank (two tanks, tube-stowed pipes), 550 Water/Chem Bowser,
+  Supercis 800, Kotte FRC 65 and Amazone UX5201 Super.
+- **Water cages** — a pipe end lying in a lake, river, pond or water course draws water only
+  through a cage (small for water / milk, large for slurry); a vehicle can carry a cage on a
+  cage holder.
+- **Pipe leakage and pipe dirt settings** — open pipe ends on the ground leak and leave puddles.
+- **One reach rule and one coupler arc standard** for every coupler, and Soil & Fertilizer IBCs
+  connect again.
+- **Settings menu** — every SPS row in one place.
+- **Fixes** — washout boom spray with Soil & Fertilizer chemicals, picking up a hung cage or tube
+  pipe at the MKS 8 node, the washout station handle.
 
 ---
 
@@ -148,6 +169,7 @@ Add water sources to a map / draw water courses | **SPS_README_04_Map_Water.md**
 Animal drinking water in and milk out by pipe | **SPS_README_05_Animal_Water.md**
 Use physical pipes, pipe holders and the docking station | **SPS_README_06_Physical_Pipes.md**
 Use the SPS Tower Mixer | **SPS_README_07_Tower_Mixer.md**
+Use the MKS 8 tanker, coupler reach and arcs, settings (new in 1.0.2.0) | **SPS_README_08_New_in_1.0.2.0.md**
 Understand thickness, crust and mixing | **SlurryPipeSystem_SlurryGuide.md**
 
 ---
@@ -187,9 +209,10 @@ and is **not** a supported way to add your own content — use the embedded path
 ```
 FS25_SlurryPipeSystem/
 ├── modDesc.xml
+├── RELEASE_NOTES_V1.0.2.0.md                  ← everything since 1.0.1.9
 ├── RELEASE_NOTES_V1.0.1.9.md                  ← everything since 1.0.1.8
 ├── RELEASE_NOTES_V1.0.1.8.md                  ← everything since 1.0.1.7
-├── SPS_README_01 … 07_*.md                    ← player / modder guides (see documentation map)
+├── SPS_README_01 … 08_*.md                    ← player / modder guides (see documentation map)
 ├── SlurryPipeSystem_SlurryGuide.md            ← thickness, crust and mixing explained
 │
 ├── configs/

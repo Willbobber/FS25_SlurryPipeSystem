@@ -103,9 +103,9 @@
       <TransformGroup name="liquidPipeCouplers" nodeId="34">
         <TransformGroup name="tsa_vis" nodeId="35">
           <TransformGroup name="SPS_liquidPipeCoupler01" translation="0.29753 0.776475 -3.28902" rotation="0 -0 -90" nodeId="405">
-            <TransformGroup name="SPS_liquidPipeCoupler01Arcs" translation="0 -0.230638 -0.141638" rotation="-180 -1.9e-05 180" nodeId="406">
-              <TransformGroup name="SPS_liquidPipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="407"/>
-              <TransformGroup name="SPS_liquidPipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="408"/>
+            <TransformGroup name="SPS_liquidPipeCoupler01Arcs" rotation="180 -6.99722e-15 -90" nodeId="406">
+              <TransformGroup name="SPS_liquidPipeCoupler01Arc01" translation="1.5 0 2.5" nodeId="407"/>
+              <TransformGroup name="SPS_liquidPipeCoupler01Arc02" translation="-1.5 0 2.5" nodeId="408"/>
             </TransformGroup>
             <Shape name="waterHoseConnector02" translation="2.95872e-07 -0.230638 0.0346846" rotation="-90 -1.86693e-05 180" shapeId="2" clipDistance="300" nodeId="409" castsShadows="true" receiveShadows="true" materialIds="333,330">
               <Shape name="ballValve" translation="5.96046e-08 0.0369513 1.49012e-08" rotation="5.53671e-11 90 0" shapeId="3" clipDistance="300" nodeId="410" castsShadows="true" receiveShadows="true" materialIds="332,330,333">

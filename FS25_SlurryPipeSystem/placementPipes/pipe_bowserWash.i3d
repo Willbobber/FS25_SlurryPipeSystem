@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="pipe_bowserWash.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="SPS build_pipes_bowser.py (from i3dio export)" version="2026-11-09"/>
+  </Asset>
+
+  <Files>
+    <File fileId="1" filename="$data/shaders/vehicleShader.xml"/>
+    <File fileId="2" filename="$data/shared/white_diffuse.dds"/>
+    <File fileId="3" filename="$data/vehicles/abi/waterTrailer1600/waterTrailer1600Hose_normal.dds"/>
+    <File fileId="4" filename="$data/vehicles/abi/waterTrailer1600/waterTrailer1600Hoses_vmask.dds"/>
+    <File fileId="5" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_specular.png"/>
+    <File fileId="6" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_normal.png"/>
+    <File fileId="7" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_diffuse.png"/>
+    <File fileId="8" filename="$data/shared/detailLibrary/metallic/silverScratched_specular.png"/>
+    <File fileId="9" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="10" filename="$data/shared/detailLibrary/metallic/silverScratched_diffuse.png"/>
+    <File fileId="11" filename="$data/vehicles/abi/waterTrailer1600/waterTrailer1600_normal.dds"/>
+    <File fileId="12" filename="$data/vehicles/abi/waterTrailer1600/waterTrailer1600_vmask.dds"/>
+    <File fileId="13" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_specular.png"/>
+    <File fileId="14" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_diffuse.png"/>
+    <File fileId="15" filename="$data/vehicles/abi/waterTrailer1600/waterTrailer1600Decal_diffuse.dds"/>
+    <File fileId="16" filename="$data/vehicles/abi/waterTrailer1600/waterTrailer1600Decal_normal.dds"/>
+    <File fileId="17" filename="$data/shared/default_normal.dds"/>
+    <File fileId="18" filename="$data/shared/detailLibrary/metallic/zincGalvanized_specular.png"/>
+    <File fileId="19" filename="$data/shared/detailLibrary/metallic/zincGalvanized_normal.png"/>
+    <File fileId="20" filename="$data/shared/detailLibrary/metallic/zincGalvanized_diffuse.png"/>
+    <File fileId="21" filename="$data/shared/detailLibrary/metallic/scratched_specular.png"/>
+    <File fileId="22" filename="$data/shared/detailLibrary/metallic/scratched_diffuse.png"/>
+    <File fileId="23" filename="spsPipes_vmask.dds"/>
+  </Files>
+
+  <Materials>
+    <Material name="lambert1" materialId="1" diffuseColor="0.8 0.8 0.8 1" specularColor="0.501961 1 0">
+    </Material>
+    <Material name="waterTrailer1600Hose_rubber_02_mat" materialId="2" customShaderId="1" customShaderVariation="vmaskUV2">
+      <Texture fileId="2"/>
+      <Normalmap fileId="3"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="5"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="7"/>
+      <CustomParameter name="colorScale" value="0.006 0.205 0.138"/>
+      <CustomParameter name="porosity" value="0.5"/>
+    </Material>
+    <Material name="waterTrailer1600Hose_silverScratched_mat" materialId="3" customShaderId="1" customShaderVariation="vmaskUV2">
+      <Texture fileId="2"/>
+      <Normalmap fileId="3"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="8"/>
+      <Custommap name="detailNormal" fileId="9"/>
+      <Custommap name="detailDiffuse" fileId="10"/>
+    </Material>
+    <Material name="waterTrailer1600_silverScratched_mat" materialId="4" customShaderId="1">
+      <Texture fileId="2"/>
+      <Normalmap fileId="11"/>
+      <Glossmap fileId="12"/>
+      <Custommap name="detailSpecular" fileId="8"/>
+      <Custommap name="detailNormal" fileId="9"/>
+      <Custommap name="detailDiffuse" fileId="10"/>
+    </Material>
+    <Material name="waterTrailer1600_plasticPaintedBlack_mat" materialId="5" customShaderId="1">
+      <Texture fileId="2"/>
+      <Normalmap fileId="11"/>
+      <Glossmap fileId="12"/>
+      <Custommap name="detailSpecular" fileId="13"/>
+      <Custommap name="detailNormal" fileId="9"/>
+      <Custommap name="detailDiffuse" fileId="14"/>
+      <CustomParameter name="colorScale" value="0.012 0.012 0.012"/>
+    </Material>
+    <Material name="waterTrailer1600Decal_silverScratched_mat" materialId="6" customShaderId="1" customShaderVariation="vmaskUV2_normalUV3" alphaBlending="true">
+      <Texture fileId="15"/>
+      <Normalmap fileId="16"/>
+      <Glossmap fileId="12"/>
+      <Custommap name="detailSpecular" fileId="8"/>
+      <Custommap name="detailNormal" fileId="9"/>
+      <Custommap name="detailDiffuse" fileId="10"/>
+    </Material>
+    <Material name="waterTrailer1600Hose_rubber_01_mat" materialId="7" customShaderId="1" customShaderVariation="vmaskUV2">
+      <Texture fileId="2"/>
+      <Normalmap fileId="3"/>
+      <Glossmap fileId="4"/>
+      <Custommap name="detailSpecular" fileId="5"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="7"/>
+      <CustomParameter name="colorScale" value="0.02 0.02 0.02"/>
+      <CustomParameter name="porosity" value="0.5"/>
+    </Material>
+    <Material name="zincGalvanized_mat" materialId="8" customShaderId="1" customShaderVariation="vmaskUV2">
+      <Texture fileId="2"/>
+      <Normalmap fileId="17"/>
+      <Custommap name="detailSpecular" fileId="18"/>
+      <Custommap name="detailNormal" fileId="19"/>
+      <Custommap name="detailDiffuse" fileId="20"/>
+    </Material>
+    <Material name="brassScratched_mat" materialId="9" customShaderId="1" customShaderVariation="vmaskUV2">
+      <Texture fileId="2"/>
+      <Normalmap fileId="17"/>
+      <Custommap name="detailSpecular" fileId="21"/>
+      <Custommap name="detailNormal" fileId="9"/>
+      <Custommap name="detailDiffuse" fileId="22"/>
+      <CustomParameter name="colorScale" value="0.9647 0.7913 0.3095"/>
+    </Material>
+    <Material name="silverScratched_mat" materialId="10" customShaderId="1" customShaderVariation="vmaskUV2">
+      <Texture fileId="2"/>
+      <Normalmap fileId="17"/>
+      <Glossmap fileId="23"/>
+      <Custommap name="detailSpecular" fileId="8"/>
+      <Custommap name="detailNormal" fileId="9"/>
+      <Custommap name="detailDiffuse" fileId="10"/>
+    </Material>
+  </Materials>
+
+  <Shapes externalShapesFile="pipe_bowserWash.i3d.shapes">
+  </Shapes>
+
+  <Dynamics>
+  </Dynamics>
+
+  <Scene>
+    <TransformGroup name="pipe_bowserWash" nodeId="1">
+      <Shape name="bowserWashHose" translation="0 0 0" shapeId="7" clipDistance="150" nodeId="2" castsShadows="true" receiveShadows="true" skinBindNodeIds="3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21" materialIds="7 4 5">
+        <TransformGroup name="Bone01" translation="0 0 0.1707" nodeId="3">
+          <TransformGroup name="Bone02" translation="0 0 0.31568" nodeId="4">
+            <TransformGroup name="Bone03" translation="0 0 0.31568" nodeId="5">
+              <TransformGroup name="Bone04" translation="0 0 0.31568" nodeId="6">
+                <TransformGroup name="Bone05" translation="0 0 0.31568" nodeId="7">
+                  <TransformGroup name="Bone06" translation="0 0 0.31568" nodeId="8">
+                    <TransformGroup name="Bone07" translation="0 0 0.31568" nodeId="9">
+                      <TransformGroup name="Bone08" translation="0 0 0.31568" nodeId="10">
+                        <TransformGroup name="Bone09" translation="0 0 0.31568" nodeId="11">
+                          <TransformGroup name="Bone10" translation="0 0 0.31568" nodeId="12">
+                            <TransformGroup name="Bone11" translation="0 0 0.31568" nodeId="13">
+                              <TransformGroup name="Bone12" translation="0 0 0.31568" nodeId="14">
+                                <TransformGroup name="Bone13" translation="0 0 0.31568" nodeId="15">
+                                  <TransformGroup name="Bone14" translation="0 0 0.31568" nodeId="16">
+                                    <TransformGroup name="Bone15" translation="0 0 0.31568" nodeId="17">
+                                      <TransformGroup name="Bone16" translation="0 0 0.31568" nodeId="18">
+                                        <TransformGroup name="Bone17" translation="0 0 0.31568" nodeId="19">
+                                          <TransformGroup name="Bone18" translation="0 0 0.31568" nodeId="20">
+                                            <TransformGroup name="Bone19" translation="0 0 0.31568" nodeId="21"/>
+                                          </TransformGroup>
+                                        </TransformGroup>
+                                      </TransformGroup>
+                                    </TransformGroup>
+                                  </TransformGroup>
+                                </TransformGroup>
+                              </TransformGroup>
+                            </TransformGroup>
+                          </TransformGroup>
+                        </TransformGroup>
+                      </TransformGroup>
+                    </TransformGroup>
+                  </TransformGroup>
+                </TransformGroup>
+              </TransformGroup>
+            </TransformGroup>
+          </TransformGroup>
+        </TransformGroup>
+      </Shape>
+    </TransformGroup>
+  </Scene>
+
+</i3D>

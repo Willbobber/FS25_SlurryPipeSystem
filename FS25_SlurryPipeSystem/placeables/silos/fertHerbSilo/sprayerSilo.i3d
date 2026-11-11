@@ -2,7 +2,7 @@
 
 <i3D name="sprayerSilo.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
   <Asset>
-    <Export program="GIANTS Editor 64bit" version="10.0.13"/>
+    <Export program="GIANTS Editor 64bit" version="10.0.14"/>
   </Asset>
 
   <Files>
@@ -18,30 +18,26 @@
     <File fileId="26" filename="$data/placeables/shared/sellingStationGeneric/metalGridGeneric_specular.dds"/>
     <File fileId="20" filename="$data/shaders/buildingShader.xml"/>
     <File fileId="11" filename="$data/shaders/decalShader.xml"/>
-    <File fileId="48" filename="$data/shaders/glowShader.xml"/>
     <File fileId="5" filename="$data/shaders/placeableShader.xml"/>
     <File fileId="30" filename="$data/shaders/vehicleShader.xml"/>
     <File fileId="8" filename="$data/shared/assets/assetLibraryDecals_diffuse.png"/>
     <File fileId="9" filename="$data/shared/assets/assetLibraryDecals_normal.png"/>
     <File fileId="10" filename="$data/shared/assets/assetLibraryDecals_vmask.png"/>
-    <File fileId="45" filename="$data/shared/assets/lights/rudolfHormann/powerSwitch_diffuse.png"/>
-    <File fileId="46" filename="$data/shared/assets/lights/rudolfHormann/powerSwitch_normal.png"/>
-    <File fileId="47" filename="$data/shared/assets/lights/rudolfHormann/powerSwitch_specular.png"/>
-    <File fileId="43" filename="$data/shared/assets/lights/terraLed/switchDecals_diffuse.png"/>
-    <File fileId="40" filename="$data/shared/assets/lights/terraLed/switchGlass_diffuse.png"/>
-    <File fileId="41" filename="$data/shared/assets/lights/terraLed/switchGlass_normal.png"/>
-    <File fileId="42" filename="$data/shared/assets/lights/terraLed/switchGlass_specular.png"/>
-    <File fileId="37" filename="$data/shared/assets/lights/terraLed/switch_diffuse.png"/>
-    <File fileId="38" filename="$data/shared/assets/lights/terraLed/switch_normal.png"/>
-    <File fileId="39" filename="$data/shared/assets/lights/terraLed/switch_specular.png"/>
     <File fileId="12" filename="$data/shared/clearGlass_diffuse.png"/>
     <File fileId="13" filename="$data/shared/default_normal.png"/>
-    <File fileId="44" filename="$data/shared/default_specular.png"/>
-    <File fileId="29" filename="$data/shared/default_vmask.dds"/>
-    <File fileId="32" filename="$data/shared/detailLibrary/flat_normal.png"/>
-    <File fileId="33" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_diffuse.png"/>
-    <File fileId="31" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_specular.png"/>
+    <File fileId="38" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="39" filename="$data/shared/detailLibrary/metallic/scratched_diffuse.png"/>
+    <File fileId="37" filename="$data/shared/detailLibrary/metallic/scratched_specular.png"/>
+    <File fileId="41" filename="$data/shared/detailLibrary/metallic/silverScratched_diffuse.png"/>
+    <File fileId="40" filename="$data/shared/detailLibrary/metallic/silverScratched_specular.png"/>
+    <File fileId="33" filename="$data/shared/detailLibrary/metallic/zincGalvanized_diffuse.png"/>
+    <File fileId="32" filename="$data/shared/detailLibrary/metallic/zincGalvanized_normal.png"/>
+    <File fileId="31" filename="$data/shared/detailLibrary/metallic/zincGalvanized_specular.png"/>
+    <File fileId="44" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_diffuse.png"/>
+    <File fileId="43" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_normal.png"/>
+    <File fileId="42" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_specular.png"/>
     <File fileId="28" filename="$data/shared/white_diffuse.dds"/>
+    <File fileId="29" filename="../../../i3d/connectors/connectorsValve_vmask.dds"/>
     <File fileId="21" filename="sprayerSilo_Vmask.dds"/>
   </Files>
 
@@ -52,73 +48,69 @@
       <Normalmap fileId="9"/>
       <Glossmap fileId="10"/>
     </Material>
-    <Material name="black_plasticPainted_mat" materialId="182" customShaderId="30">
+    <Material name="brassScratched_mat" materialId="118" customShaderId="30" customShaderVariation="vmaskUV2">
       <Texture fileId="28"/>
       <Normalmap fileId="13"/>
       <Glossmap fileId="29"/>
-      <Custommap name="detailSpecular" fileId="31"/>
-      <Custommap name="detailNormal" fileId="32"/>
-      <Custommap name="detailDiffuse" fileId="33"/>
-      <CustomParameter name="colorScale" value="0.006 0.006 0.006"/>
+      <Custommap name="detailSpecular" fileId="37"/>
+      <Custommap name="detailNormal" fileId="38"/>
+      <Custommap name="detailDiffuse" fileId="39"/>
+      <CustomParameter name="colorScale" value="0.9647 0.7913 0.3095"/>
     </Material>
-    <Material name="clearGlass_mat" materialId="6" specularColor="1 1 0.25098" alphaBlending="true">
+    <Material name="clearGlass_mat" materialId="7" specularColor="1 1 0.25098" alphaBlending="true">
       <Texture fileId="12"/>
       <Normalmap fileId="13"/>
     </Material>
-    <Material name="lambert1" materialId="7" diffuseColor="0.501961 0.501961 0.501961 1">
+    <Material name="lambert1" materialId="8" diffuseColor="0.501961 0.501961 0.501961 1">
     </Material>
-    <Material name="liquidFlatBottomTank1630_mat" materialId="8" customShaderId="5">
+    <Material name="liquidFlatBottomTank1630_mat" materialId="9" customShaderId="5">
       <Texture fileId="2"/>
       <Normalmap fileId="3"/>
       <Glossmap fileId="4"/>
     </Material>
-    <Material name="meridianDecals_mat" materialId="9" specularColor="0.501961 1 0.501961" alphaBlending="true" customShaderId="11">
+    <Material name="meridianDecals_mat" materialId="10" specularColor="0.501961 1 0.501961" alphaBlending="true" customShaderId="11">
       <Texture fileId="15"/>
     </Material>
-    <Material name="powerSwitch_mat" materialId="225" customShaderId="48">
-      <Texture fileId="45"/>
-      <Normalmap fileId="46"/>
-      <Glossmap fileId="47"/>
-    </Material>
-    <Material name="red_plasticPainted_mat" materialId="183" customShaderId="30">
+    <Material name="rubber_mat" materialId="125" customShaderId="30" customShaderVariation="vmaskUV2">
       <Texture fileId="28"/>
       <Normalmap fileId="13"/>
       <Glossmap fileId="29"/>
-      <Custommap name="detailSpecular" fileId="31"/>
-      <Custommap name="detailNormal" fileId="32"/>
-      <Custommap name="detailDiffuse" fileId="33"/>
-      <CustomParameter name="colorScale" value="0.359 0.033 0.035"/>
+      <Custommap name="detailSpecular" fileId="42"/>
+      <Custommap name="detailNormal" fileId="43"/>
+      <Custommap name="detailDiffuse" fileId="44"/>
+      <CustomParameter name="colorScale" value="0.02 0.02 0.8"/>
     </Material>
-    <Material name="sprayerSilo" materialId="177" customShaderId="20">
+    <Material name="silverScratched_mat" materialId="128" customShaderId="30" customShaderVariation="vmaskUV2">
+      <Texture fileId="28"/>
+      <Normalmap fileId="13"/>
+      <Glossmap fileId="29"/>
+      <Custommap name="detailSpecular" fileId="40"/>
+      <Custommap name="detailNormal" fileId="38"/>
+      <Custommap name="detailDiffuse" fileId="41"/>
+    </Material>
+    <Material name="sprayerSilo" materialId="13" customShaderId="20">
       <Texture fileId="17"/>
       <Normalmap fileId="18"/>
       <Glossmap fileId="19"/>
       <Custommap name="mMaskMap" fileId="21"/>
       <CustomParameter name="dirtMossMix" value="1 0.5"/>
     </Material>
-    <Material name="sprayerSiloGrids" materialId="178" customShaderId="20">
+    <Material name="sprayerSiloGrids" materialId="14" customShaderId="20">
       <Texture fileId="24"/>
       <Normalmap fileId="25"/>
       <Glossmap fileId="26"/>
       <Custommap name="mMaskMap" fileId="21"/>
       <CustomParameter name="dirtMossMix" value="1 0.5"/>
     </Material>
-    <Material name="switch_mat" materialId="231" customShaderId="5">
-      <Texture fileId="37"/>
-      <Normalmap fileId="38"/>
-      <Glossmap fileId="39"/>
+    <Material name="UnnamedMaterial" materialId="18" diffuseColor="1 1 1 1">
     </Material>
-    <Material name="switchDecals_mat" materialId="229" alphaBlending="true" customShaderId="11">
-      <Texture fileId="43"/>
+    <Material name="zincGalvanized_mat" materialId="130" customShaderId="30" customShaderVariation="vmaskUV2">
+      <Texture fileId="28"/>
       <Normalmap fileId="13"/>
-      <Glossmap fileId="44"/>
-    </Material>
-    <Material name="switchGlass_mat" materialId="230" alphaBlending="true" customShaderId="5">
-      <Texture fileId="40"/>
-      <Normalmap fileId="41"/>
-      <Glossmap fileId="42"/>
-    </Material>
-    <Material name="UnnamedMaterial" materialId="148" diffuseColor="1 1 1 1">
+      <Glossmap fileId="29"/>
+      <Custommap name="detailSpecular" fileId="31"/>
+      <Custommap name="detailNormal" fileId="32"/>
+      <Custommap name="detailDiffuse" fileId="33"/>
     </Material>
   </Materials>
 
@@ -127,112 +119,108 @@
   </Shapes>
 
   <Scene>
-    <TransformGroup name="sprayerSiloSystem" clipDistance="500" nodeId="23">
-      <TransformGroup name="clearAreas" nodeId="97">
-        <TransformGroup name="clearAreaStart01" translation="-3.6 0 -3.7" nodeId="98">
-          <TransformGroup name="clearAreaWidth01" translation="3.6e-05 0 8.8" nodeId="99"/>
-          <TransformGroup name="clearAreaHeight01" translation="23.6 0 0" nodeId="100"/>
+    <TransformGroup name="sprayerSiloSystem" clipDistance="500" nodeId="40">
+      <TransformGroup name="clearAreas" nodeId="41">
+        <TransformGroup name="clearAreaStart01" translation="-3.6 0 -3.7" nodeId="42">
+          <TransformGroup name="clearAreaWidth01" translation="3.6e-05 0 8.8" nodeId="43"/>
+          <TransformGroup name="clearAreaHeight01" translation="23.6 0 0" nodeId="44"/>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="levelAreas" nodeId="101">
-        <TransformGroup name="levelAreaStart01" translation="-3.6 0 -3.7" nodeId="102">
-          <TransformGroup name="levelAreaWidth01" translation="3.6e-05 0 8.8" nodeId="103"/>
-          <TransformGroup name="levelAreaHeight01" translation="23.6 0 0" nodeId="104"/>
+      <TransformGroup name="levelAreas" nodeId="45">
+        <TransformGroup name="levelAreaStart01" translation="-3.6 0 -3.7" nodeId="46">
+          <TransformGroup name="levelAreaWidth01" translation="3.6e-05 0 8.8" nodeId="47"/>
+          <TransformGroup name="levelAreaHeight01" translation="23.6 0 0" nodeId="48"/>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="testAreas" nodeId="105">
-        <TransformGroup name="testAreaStart01" translation="-3.6 0 -3.7" nodeId="106">
-          <TransformGroup name="testAreaEnd01" translation="23.6 0 8.8" nodeId="107"/>
+      <TransformGroup name="testAreas" nodeId="49">
+        <TransformGroup name="testAreaStart01" translation="-3.6 0 -3.7" nodeId="50">
+          <TransformGroup name="testAreaEnd01" translation="23.6 0 8.8" nodeId="51"/>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="tipOcclusionUpdateAreas" nodeId="108">
-        <TransformGroup name="tipOcclusionUpdateAreaStart01" translation="-3.6 0 -3.7" nodeId="109">
-          <TransformGroup name="tipOcclusionUpdateAreaEnd01" translation="23.6 0 8.8" nodeId="110"/>
+      <TransformGroup name="tipOcclusionUpdateAreas" nodeId="52">
+        <TransformGroup name="tipOcclusionUpdateAreaStart01" translation="-3.6 0 -3.7" nodeId="53">
+          <TransformGroup name="tipOcclusionUpdateAreaEnd01" translation="23.6 0 8.8" nodeId="54"/>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="silo" nodeId="111">
-        <Shape name="refillPlayerTrigger" translation="-2.60315 0 1.46772" shapeId="3" static="true" trigger="true" collisionFilterGroup="0x20000000" collisionFilterMask="0x100000" nodeId="118" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="7"/>
-        <TransformGroup name="refillMarker" translation="-2.60315 0 1.46772" nodeId="119"/>
-        <TransformGroup name="storage" nodeId="120"/>
-        <TransformGroup name="mapPosition" translation="5 0 10" nodeId="121"/>
-        <Shape name="infoTrigger" shapeId="4" static="true" trigger="true" collisionFilterGroup="0x20000000" collisionFilterMask="0x100000" nodeId="123" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="7"/>
+      <TransformGroup name="silo" nodeId="55">
+        <Shape name="refillPlayerTrigger" translation="-2.60315 0 1.46772" shapeId="1" static="true" trigger="true" collisionFilterGroup="0x20000000" collisionFilterMask="0x100000" nodeId="56" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="8"/>
+        <TransformGroup name="refillMarker" translation="-2.60315 0 1.46772" nodeId="57"/>
+        <TransformGroup name="storage" nodeId="58"/>
+        <TransformGroup name="mapPosition" translation="5 0 10" nodeId="59"/>
+        <Shape name="infoTrigger" shapeId="2" static="true" trigger="true" collisionFilterGroup="0x20000000" collisionFilterMask="0x100000" nodeId="60" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="8"/>
       </TransformGroup>
-      <TransformGroup name="visuals" translation="0 0.1 0" nodeId="124">
-        <TransformGroup name="visuals_lod" lodDistance="0 70" nodeId="125">
-          <TransformGroup name="liquidFlatBottomTank1630_lod0" nodeId="126">
-            <Shape name="liquidFlatBottomTank1630_vis" shapeId="5" clipDistance="300" nodeId="127" castsShadows="true" receiveShadows="true" materialIds="8"/>
-            <Shape name="screwDecals" shapeId="6" clipDistance="35" nodeId="128" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="5"/>
-            <Shape name="glass" shapeId="7" clipDistance="30" nodeId="129" castsShadows="true" receiveShadows="true" materialIds="6"/>
-            <Shape name="liquidFlatBottomTank1630_vis" translation="5.5 0 0" shapeId="5" clipDistance="300" nodeId="151" castsShadows="true" receiveShadows="true" materialIds="8"/>
-            <Shape name="screwDecals" translation="5.5 0 0" shapeId="6" clipDistance="35" nodeId="152" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="5"/>
-            <Shape name="glass" translation="5.5 0 0" shapeId="7" clipDistance="30" nodeId="153" castsShadows="true" receiveShadows="true" materialIds="6"/>
-            <Shape name="liquidFlatBottomTank1630_vis" translation="11 0 0" shapeId="5" clipDistance="300" nodeId="155" castsShadows="true" receiveShadows="true" materialIds="8"/>
-            <Shape name="screwDecals" translation="11 0 0" shapeId="6" clipDistance="35" nodeId="156" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="5"/>
-            <Shape name="glass" translation="11 0 0" shapeId="7" clipDistance="30" nodeId="157" castsShadows="true" receiveShadows="true" materialIds="6"/>
-            <Shape name="liquidFlatBottomTank1630_vis" translation="16.5 0 0" shapeId="5" clipDistance="300" nodeId="159" castsShadows="true" receiveShadows="true" materialIds="8"/>
-            <Shape name="screwDecals" translation="16.5 0 0" shapeId="6" clipDistance="35" nodeId="160" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="5"/>
-            <Shape name="glass" translation="16.5 0 0" shapeId="7" clipDistance="30" nodeId="161" castsShadows="true" receiveShadows="true" materialIds="6"/>
+      <TransformGroup name="visuals" translation="0 0.1 0" nodeId="61">
+        <TransformGroup name="visuals_lod" lodDistance="0 70" nodeId="62">
+          <TransformGroup name="liquidFlatBottomTank1630_lod0" nodeId="63">
+            <Shape name="liquidFlatBottomTank1630_vis" shapeId="3" clipDistance="300" nodeId="64" castsShadows="true" receiveShadows="true" materialIds="9"/>
+            <Shape name="screwDecals" shapeId="4" clipDistance="35" nodeId="65" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="5"/>
+            <Shape name="glass" shapeId="5" clipDistance="30" nodeId="66" castsShadows="true" receiveShadows="true" materialIds="7"/>
+            <Shape name="liquidFlatBottomTank1630_vis" translation="5.5 0 0" shapeId="3" clipDistance="300" nodeId="67" castsShadows="true" receiveShadows="true" materialIds="9"/>
+            <Shape name="screwDecals" translation="5.5 0 0" shapeId="4" clipDistance="35" nodeId="68" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="5"/>
+            <Shape name="glass" translation="5.5 0 0" shapeId="5" clipDistance="30" nodeId="69" castsShadows="true" receiveShadows="true" materialIds="7"/>
+            <Shape name="liquidFlatBottomTank1630_vis" translation="11 0 0" shapeId="3" clipDistance="300" nodeId="70" castsShadows="true" receiveShadows="true" materialIds="9"/>
+            <Shape name="screwDecals" translation="11 0 0" shapeId="4" clipDistance="35" nodeId="71" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="5"/>
+            <Shape name="glass" translation="11 0 0" shapeId="5" clipDistance="30" nodeId="72" castsShadows="true" receiveShadows="true" materialIds="7"/>
+            <Shape name="liquidFlatBottomTank1630_vis" translation="16.5 0 0" shapeId="3" clipDistance="300" nodeId="73" castsShadows="true" receiveShadows="true" materialIds="9"/>
+            <Shape name="screwDecals" translation="16.5 0 0" shapeId="4" clipDistance="35" nodeId="74" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="5"/>
+            <Shape name="glass" translation="16.5 0 0" shapeId="5" clipDistance="30" nodeId="75" castsShadows="true" receiveShadows="true" materialIds="7"/>
           </TransformGroup>
-          <TransformGroup name="liquidFlatBottomTank1630_lod1" nodeId="130">
-            <Shape name="liquidFlatBottomTank1630_vis" shapeId="8" nodeId="131" castsShadows="true" receiveShadows="true" materialIds="8"/>
-            <Shape name="liquidFlatBottomTank1630_vis" translation="5.5 0 0" shapeId="8" nodeId="162" castsShadows="true" receiveShadows="true" materialIds="8"/>
-            <Shape name="liquidFlatBottomTank1630_vis" translation="11 0 0" shapeId="8" nodeId="163" castsShadows="true" receiveShadows="true" materialIds="8"/>
-            <Shape name="liquidFlatBottomTank1630_vis" translation="16.5 0 0" shapeId="8" nodeId="164" castsShadows="true" receiveShadows="true" materialIds="8"/>
+          <TransformGroup name="liquidFlatBottomTank1630_lod1" nodeId="76">
+            <Shape name="liquidFlatBottomTank1630_vis" shapeId="6" nodeId="77" castsShadows="true" receiveShadows="true" materialIds="9"/>
+            <Shape name="liquidFlatBottomTank1630_vis" translation="5.5 0 0" shapeId="6" nodeId="78" castsShadows="true" receiveShadows="true" materialIds="9"/>
+            <Shape name="liquidFlatBottomTank1630_vis" translation="11 0 0" shapeId="6" nodeId="79" castsShadows="true" receiveShadows="true" materialIds="9"/>
+            <Shape name="liquidFlatBottomTank1630_vis" translation="16.5 0 0" shapeId="6" nodeId="80" castsShadows="true" receiveShadows="true" materialIds="9"/>
           </TransformGroup>
         </TransformGroup>
-        <Shape name="meridianDecals" shapeId="9" clipDistance="120" nodeId="132" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="9">
-          <Shape name="meridianDecals" translation="5.5 0 0" shapeId="9" clipDistance="120" nodeId="165" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="9"/>
-          <Shape name="meridianDecals" translation="11 0 0" shapeId="9" clipDistance="120" nodeId="166" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="9"/>
-          <Shape name="meridianDecals" translation="16.5 0 0" shapeId="9" clipDistance="120" nodeId="167" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="9"/>
+        <Shape name="meridianDecals" shapeId="7" clipDistance="120" nodeId="81" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="10">
+          <Shape name="meridianDecals" translation="5.5 0 0" shapeId="7" clipDistance="120" nodeId="82" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="10"/>
+          <Shape name="meridianDecals" translation="11 0 0" shapeId="7" clipDistance="120" nodeId="83" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="10"/>
+          <Shape name="meridianDecals" translation="16.5 0 0" shapeId="7" clipDistance="120" nodeId="84" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="10"/>
         </Shape>
-        <Shape name="outerWall" shapeId="10" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="300" nodeId="69" castsShadows="true" receiveShadows="true" materialIds="177,178"/>
+        <Shape name="outerWall" shapeId="8" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="300" nodeId="85" castsShadows="true" receiveShadows="true" materialIds="13,14"/>
       </TransformGroup>
-      <TransformGroup name="collisions" translation="0 0.1 0" nodeId="133">
-        <Shape name="collision" translation="0 3.3549 0" shapeId="11" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="134" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="7">
-          <Shape name="collision" translation="5.5 0 0" shapeId="11" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="168" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="7"/>
-          <Shape name="collision" translation="11 0 0" shapeId="11" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="169" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="7"/>
-          <Shape name="collision" translation="16.5 0 0" shapeId="11" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="170" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="7"/>
+      <TransformGroup name="collisions" translation="0 0.1 0" nodeId="86">
+        <Shape name="collision" translation="0 3.3549 0" shapeId="9" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="87" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="8">
+          <Shape name="collision" translation="5.5 0 0" shapeId="9" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="88" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="8"/>
+          <Shape name="collision" translation="11 0 0" shapeId="9" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="89" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="8"/>
+          <Shape name="collision" translation="16.5 0 0" shapeId="9" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="90" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="8"/>
         </Shape>
-        <Shape name="tipCollision" shapeId="12" static="true" collisionFilterGroup="0x8" collisionFilterMask="0x1" nodeId="147" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="148"/>
+        <Shape name="tipCollision" shapeId="10" static="true" collisionFilterGroup="0x8" collisionFilterMask="0x1" nodeId="91" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="18"/>
       </TransformGroup>
-      <Shape name="occluder" translation="0 0.1 0" shapeId="13" clipDistance="200" nodeId="136" castsShadows="true" receiveShadows="true" nonRenderable="true" occluder="true" materialIds="7">
-        <Shape name="occluder" translation="5.5 0 0" shapeId="13" clipDistance="200" nodeId="171" castsShadows="true" receiveShadows="true" nonRenderable="true" occluder="true" materialIds="7"/>
-        <Shape name="occluder" translation="11 0 0" shapeId="13" clipDistance="200" nodeId="172" castsShadows="true" receiveShadows="true" nonRenderable="true" occluder="true" materialIds="7"/>
-        <Shape name="occluder" translation="16.5 0 0" shapeId="13" clipDistance="200" nodeId="173" castsShadows="true" receiveShadows="true" nonRenderable="true" occluder="true" materialIds="7"/>
+      <Shape name="occluder" translation="0 0.1 0" shapeId="11" clipDistance="200" nodeId="92" castsShadows="true" receiveShadows="true" nonRenderable="true" occluder="true" materialIds="8">
+        <Shape name="occluder" translation="5.5 0 0" shapeId="11" clipDistance="200" nodeId="93" castsShadows="true" receiveShadows="true" nonRenderable="true" occluder="true" materialIds="8"/>
+        <Shape name="occluder" translation="11 0 0" shapeId="11" clipDistance="200" nodeId="94" castsShadows="true" receiveShadows="true" nonRenderable="true" occluder="true" materialIds="8"/>
+        <Shape name="occluder" translation="16.5 0 0" shapeId="11" clipDistance="200" nodeId="95" castsShadows="true" receiveShadows="true" nonRenderable="true" occluder="true" materialIds="8"/>
       </Shape>
-      <TransformGroup name="SPS_sprayerSiloSystem" nodeId="187">
-        <TransformGroup name="sprayerPipeCouplers" nodeId="188">
-          <TransformGroup name="storage" nodeId="189">
-            <TransformGroup name="SPS_sprayerPipeCoupler01" translation="0.628336 0.761001 3.86073" rotation="45 -0 0" nodeId="190">
-              <TransformGroup name="SPS_sprayerPipeCoupler01Arcs" rotation="-45 -0 0" nodeId="191">
-                <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="-1.2 0 3.5" nodeId="192"/>
-                <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="1.2 0 3.5" nodeId="193"/>
+      <TransformGroup name="SPS_sprayerSiloSystem" nodeId="96">
+        <TransformGroup name="sprayerPipeCouplers" nodeId="97">
+          <TransformGroup name="storage" nodeId="98">
+            <TransformGroup name="SPS_liquidPipeCoupler01" translation="0.628336 0.675314 3.94642" rotation="135 -1.86696e-05 -180" nodeId="242">
+              <TransformGroup name="SPS_liquidPipeCoupler01Arcs" rotation="135 -1.47286e-15 -180" nodeId="243">
+                <TransformGroup name="SPS_liquidPipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="244"/>
+                <TransformGroup name="SPS_liquidPipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="245"/>
               </TransformGroup>
-              <Shape name="sprayerConnector" shapeId="14" clipDistance="150" nodeId="194" castsShadows="true" receiveShadows="true" materialIds="182">
-                <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="15" clipDistance="150" nodeId="195" castsShadows="true" receiveShadows="true" materialIds="183"/>
-                <TransformGroup name="inNode" translation="2.49905e-08 1.64534e-08 0.205501" rotation="0 180 0" nodeId="196"/>
-                <TransformGroup name="outNode" translation="2.49905e-08 1.64534e-08 0.205501" nodeId="197"/>
+              <Shape name="waterHoseConnector01" translation="2.38419e-07 0 -0.061" rotation="-90 -0 0" shapeId="12" clipDistance="300" nodeId="246" castsShadows="true" receiveShadows="true" materialIds="130,118">
+                <Shape name="ballValve" translation="0 -0.146139 0" shapeId="13" clipDistance="300" nodeId="247" castsShadows="true" receiveShadows="true" materialIds="128,118,130">
+                  <Shape name="handle" translation="0 0 0.078824" shapeId="14" clipDistance="300" nodeId="248" castsShadows="true" receiveShadows="true" materialIds="128,125"/>
+                </Shape>
               </Shape>
+              <TransformGroup name="inNode" translation="0 0 -0.061" rotation="0 1.4e-05 5e-06" nodeId="249"/>
+              <TransformGroup name="outNode" translation="0 0 -0.061" rotation="180 0 -180" nodeId="250"/>
             </TransformGroup>
-            <Shape name="SPS_playerTrigger" translation="2.01559 -1.78814e-07 3.63576" shapeId="16" static="true" trigger="true" collisionFilterGroup="0x20000000" collisionFilterMask="0x100000" nodeId="223" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="148">
-              <TransformGroup name="SPS_tankSwitchMarker" translation="0 1.78814e-07 0.741501" clipDistance="150" nodeId="224"/>
+            <Shape name="SPS_playerTrigger" translation="2.01559 -1.78814e-07 3.63576" shapeId="15" static="true" trigger="true" collisionFilterGroup="0x20000000" collisionFilterMask="0x100000" nodeId="107" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="18">
+              <TransformGroup name="SPS_tankSwitchMarker" translation="0 1.78814e-07 0.741501" clipDistance="150" nodeId="108"/>
             </Shape>
           </TransformGroup>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="transform" nodeId="239">
-        <TransformGroup name="lightSwitch" translation="1.86745 1.45448 3.68418" rotation="90 -0 0" nodeId="241">
-        </TransformGroup>
-        <TransformGroup name="powerSwitch01" translation="1.66809 1.06929 3.68305" nodeId="240">
-        </TransformGroup>
-        <TransformGroup name="powerSwitch02" translation="1.86743 1.06929 3.68305" nodeId="242">
-        </TransformGroup>
-        <TransformGroup name="powerSwitch03" translation="1.9926 1.06929 3.68305" nodeId="244">
-        </TransformGroup>
-        <TransformGroup name="powerSwitch04" translation="2.11836 1.06929 3.68305" nodeId="246">
-        </TransformGroup>
-        <TransformGroup name="powerSwitch05" translation="2.24267 1.06929 3.68305" nodeId="248">
-        </TransformGroup>
+      <TransformGroup name="transform" nodeId="109">
+        <TransformGroup name="lightSwitch" translation="1.86745 1.45448 3.68418" rotation="90 -0 0" nodeId="110"/>
+        <TransformGroup name="powerSwitch01" translation="1.66809 1.06929 3.68305" nodeId="111"/>
+        <TransformGroup name="powerSwitch02" translation="1.86743 1.06929 3.68305" nodeId="112"/>
+        <TransformGroup name="powerSwitch03" translation="1.9926 1.06929 3.68305" nodeId="113"/>
+        <TransformGroup name="powerSwitch04" translation="2.11836 1.06929 3.68305" nodeId="114"/>
+        <TransformGroup name="powerSwitch05" translation="2.24267 1.06929 3.68305" nodeId="115"/>
       </TransformGroup>
     </TransformGroup>
   </Scene>

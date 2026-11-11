@@ -60,7 +60,7 @@
 
     <triggerMarkers>
         <triggerMarker node="loadingTriggerMarker" filename="$data/shared/assets/marker/markerIconLoad.i3d"/>
-        <!-- [SPS 1.0.1.9] the on / off spot (William 2026-10-26: "add an icon on the spot where we turn on and off") -->
+        <!-- [SPS 1.0.2.0] the on / off spot (William 2026-10-26: "add an icon on the spot where we turn on and off") -->
         <triggerMarker node="icon" filename="$data/shared/assets/marker/markerIconWrench.i3d"/>
     </triggerMarkers>
 
@@ -109,11 +109,11 @@
 		           inCouplingId="1" outCouplingId="2"
 		           panelNodeName="SPS_separatorPanel" dropNodeName="SPS_dropNode"
 		           interactRadius="4.0">
-			<!-- [SPS 1.0.1.9] Manure drop effect, loaded by the game's own effect loader (same layout as the Albutt
+			<!-- [SPS 1.0.2.0] Manure drop effect, loaded by the game's own effect loader (same layout as the Albutt
 			     manure fork's unload effect: a stream plane, chunk particles, dust). The three meshes are the fork's,
 			     under SPS_dropNode / SPS_separator (GE script SPS_BorgerAddDropEffect, 2026-10-26). The old
 			     dropChunks* motion-path layer is off (attributes removed). -->
-			<!-- [SPS 1.0.1.9] Digit read-outs on the panel (William's empties, 2026-10-26). node = the empty's name; the
+			<!-- [SPS 1.0.2.0] Digit read-outs on the panel (William's empties, 2026-10-26). node = the empty's name; the
 			     number ends on the node and grows to its left; size in metres per digit; colours r g b a. Values: intakeLph,
 			     returnLph, solidsLph, dmIn, dmOut (dry matter %), screwPct, manureKg, manureT. -->
 			<panelDisplays>

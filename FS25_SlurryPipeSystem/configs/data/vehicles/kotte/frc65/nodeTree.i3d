@@ -2,7 +2,7 @@
 
 <i3D name="nodeTree.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
   <Asset>
-    <Export program="GIANTS Editor 64bit" version="10.0.12"/>
+    <Export program="GIANTS Editor 64bit" version="10.0.14"/>
   </Asset>
 
   <Files>
@@ -38,44 +38,27 @@
             <TransformGroup name="outNode" rotation="3.48205e-06 180 5.5877e-08" nodeId="21"/>
           </TransformGroup>
           <TransformGroup name="SPS_pipeCoupler02" translation="0.630567 1.04131 4.59047" rotation="171.324 -48.84 180" nodeId="22">
-            <TransformGroup name="SPS_pipeCoupler02Arcs" rotation="-180 48.84 -180" nodeId="23">
-              <TransformGroup name="SPS_pipeCoupler02Arc01" translation="5.44009e-14 1.12757e-16 2.5" nodeId="24"/>
-              <TransformGroup name="SPS_pipeCoupler02Arc02" translation="2.5 1.11022e-16 0" nodeId="25"/>
+            <TransformGroup name="SPS_pipeCoupler02Arcs" rotation="171.304 3.8398 179.413" nodeId="23">
+              <TransformGroup name="SPS_pipeCoupler02Arc01" translation="-1.5 0 2.5" nodeId="24"/>
+              <TransformGroup name="SPS_pipeCoupler02Arc02" translation="1.5 0 2.5" nodeId="25"/>
             </TransformGroup>
             <TransformGroup name="inNode" nodeId="26"/>
             <TransformGroup name="outNode" rotation="0 180 0" nodeId="27"/>
           </TransformGroup>
           <TransformGroup name="SPS_pipeCoupler03" translation="-0.63472 1.04147 4.59826" rotation="172.451 42.428 -180" nodeId="28">
-            <TransformGroup name="SPS_pipeCoupler03Arcs" rotation="180 -42.428 180" nodeId="29">
-              <TransformGroup name="SPS_pipeCoupler03Arc01" translation="5.44009e-14 1.12757e-16 2.5" nodeId="30"/>
-              <TransformGroup name="SPS_pipeCoupler03Arc02" translation="-2.5 3.18508e-14 -1.20126e-13" nodeId="31"/>
+            <TransformGroup name="SPS_pipeCoupler03Arcs" rotation="172.443 2.57195 179.659" nodeId="29">
+              <TransformGroup name="SPS_pipeCoupler03Arc01" translation="1.5 0 2.5" nodeId="30"/>
+              <TransformGroup name="SPS_pipeCoupler03Arc02" translation="-1.5 0 2.5" nodeId="31"/>
             </TransformGroup>
             <TransformGroup name="inNode" nodeId="32"/>
             <TransformGroup name="outNode" rotation="0 180 0" nodeId="33"/>
           </TransformGroup>
         </TransformGroup>
       </TransformGroup>
-      <TransformGroup name="slurryHeight" nodeId="253">
-        <TransformGroup name="frc65_vis" nodeId="254">
-          <TransformGroup name="emptyNode" translation="0 0.783 0" nodeId="255"/>
-          <TransformGroup name="fullNode" translation="0 3.71894 0" nodeId="256"/>
-        </TransformGroup>
-      </TransformGroup>
-      <TransformGroup name="liquidPipeCouplers" nodeId="257">
-        <TransformGroup name="frc65_vis" nodeId="258">
-          <TransformGroup name="SPS_liquidPipeCoupler01" nodeId="259">
-            <TransformGroup name="SPS_liquidPipeCoupler01Arcs" nodeId="260">
-              <TransformGroup name="SPS_liquidPipeCoupler01Arc01" translation="3.5 0 -1.5" nodeId="261"/>
-              <TransformGroup name="SPS_liquidPipeCoupler01Arc02" translation="3.5 0 1.5" nodeId="262"/>
-            </TransformGroup>
-            <TransformGroup name="inNode" rotation="0 180 0" nodeId="263"/>
-            <TransformGroup name="outNode" nodeId="264"/>
-          </TransformGroup>
-        </TransformGroup>
-      </TransformGroup>
-      <TransformGroup name="liquidPumpControls" nodeId="265">
-        <TransformGroup name="frc65_vis" nodeId="266">
-          <TransformGroup name="SPS_liquidControlNode" translation="1 0 0" nodeId="267"/>
+      <TransformGroup name="slurryHeight" nodeId="34">
+        <TransformGroup name="frc65_vis" nodeId="35">
+          <TransformGroup name="emptyNode" translation="0 0.783 0" nodeId="36"/>
+          <TransformGroup name="fullNode" translation="0 3.71894 0" nodeId="37"/>
         </TransformGroup>
       </TransformGroup>
     </TransformGroup>

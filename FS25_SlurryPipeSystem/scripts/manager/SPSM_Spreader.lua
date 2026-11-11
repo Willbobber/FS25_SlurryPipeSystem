@@ -293,7 +293,11 @@ function SlurryPipeManager:updateBlockages(dt)
                         -- roughly 6 loads in 10 of perfectly clean, freshly mixed slurry.
                         local open = {}
                         for _, b in ipairs(list) do
-                            if not b.isMacerator and not b.blocked then
+                            -- [SPS 1.0.2.0] an outlet whose band is out of play (its ground reference lifted by the mode /
+                            -- cover animation: splash plate vs dribble bar) cannot clog - nothing flows through it.
+                            local grn = b.workArea ~= nil and b.workArea.groundReferenceNode or nil
+                            local inPlay = grn == nil or grn.isActive ~= false
+                            if not b.isMacerator and not b.blocked and inPlay then
                                 open[#open + 1] = b
                             end
                         end
@@ -438,7 +442,15 @@ function SlurryPipeManager:isSpreaderDischargeActive(vehicle)
     local state = entry.state
     local cfg   = entry.pressure
     if not self:usesPressureModel(entry) then
-        return state.pumpRunning == true
+        -- [SPS 1.0.2.0] HVP (William 2026-11-08): the pump pushes, so "pump running" still opens the gate at once (the
+        -- RATE ramps with the back pressure, getSpreaderPressureScalar); pump switched off with the valve still open =
+        -- the back pressure drains and the last of it keeps coming out until it is gone (taper, as a vac tank does).
+        if state.pumpRunning == true then return true end
+        if self.usesLinePressure ~= nil and self:usesLinePressure(entry) and state.spreaderValveOpen == true
+        and state.direction == SPS_DIRECTION_DISCHARGE and (state.spreadPressure or 0) > 0.01 then
+            return true
+        end
+        return false
     end
     if state.direction ~= SPS_DIRECTION_DISCHARGE then return false end
     if (state.pressure or 0) >= cfg.minThreshold then return true end
@@ -468,7 +480,21 @@ end
 function SlurryPipeManager:getSpreaderPressureScalar(vehicle)
     local entry = self:getVehicleEntry(vehicle)
     if entry == nil or entry.state == nil then return 1.0 end
-    if not self:usesPressureModel(entry) then return 1.0 end
+    if not self:usesPressureModel(entry) then
+        -- [SPS 1.0.2.0] HVP (William 2026-11-08): the spread rate and the effect follow the pump's BACK PRESSURE -
+        -- max(gravity floor, spreadPressure / pressure limit) - so the bar starts at the floor the moment the pump
+        -- runs and reaches full rate as the pump works up to its limit (tickSpreadPressure). Other exempt endpoints
+        -- (conduit, open top, fert sprayer) keep spreading at full rate.
+        if self.usesLinePressure ~= nil and self:usesLinePressure(entry) then
+            local cfg  = entry.pressure
+            local maxB = SlurryPipeManager.pcfgMax(cfg, false)
+            local g = (cfg.gravityFlowScalar ~= nil) and cfg.gravityFlowScalar
+                or SlurryPipeManager.DEFAULT_GRAVITY_FLOW_SCALAR
+            local prop = math.min(1, math.max(0, (entry.state.spreadPressure or 0) / maxB))
+            return math.max(g, prop)
+        end
+        return 1.0
+    end
     local cfg  = entry.pressure
     local maxP = cfg.maxPressure
     if maxP == nil or maxP <= 0 then maxP = SlurryPipeManager.DEFAULT_MAX_PRESSURE end

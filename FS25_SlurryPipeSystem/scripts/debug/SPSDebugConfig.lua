@@ -42,7 +42,10 @@ SPSDebugConfig.channels = {
     -- ------------------------------------------------------------- manager
     ["SlurryPipeManager"]              = false, -- [SPS PM] main manager trace
     ["SlurryPipeManager.MP"]           = false, -- [SPS MP]/[SPS MP RX] multiplayer trace
-    ["SlurryPipeManager.SprayerTrace"] = false, -- [SPS SPRAY] sprayer fill/turn-on path (manager side)
+    ["SPSSpill"]                       = false, -- [SPS SPILL] leak puddles (Pipe leakage setting)
+    ["SPSM_Leaks"]                     = false, -- [SPS LEAK] store / 80 mm fitting leaks + leak stream visuals
+    ["SPSM_Gauges"]                    = false, -- [SPS GAUGE] pressure gauge parse / needle values (change-deduped)
+    ["SlurryPipeManager.SprayerTrace"] = false,  -- [SPS SPRAY] sprayer fill/turn-on path (manager side)
 
     -- ------------------------------------------- manager domain modules
     ["SPSM_Chains"]                    = false, -- RESERVED (module logs via SlurryPipeManager channels for now)
@@ -57,6 +60,8 @@ SPSDebugConfig.channels = {
     ["SPSM_Sprayers"]                  = false, -- RESERVED
     ["SPSM_Sprayers.FrontTank"]        = false, -- [SPS FT-BAL] front/rear tank combo link + FlowControl balancer trace
     ["SPSM_IBC"]                       = false, -- RESERVED
+    ["SPSM_ActivatableGate"]           = false, -- [SPS GATE] proximity gate add/drop/pass trace
+    ["SPSHoseItemHands.Aim"]           = false,  -- [SPS AIM] what the hands aim at / which grab rule fires / what is grabbed (TEMP: cage + tube pick-up test 2026-11-11, ship false)
 
     -- ----------------------------------------------------------- overrides
     ["ManureBarrelOverride.SprayerTrace"] = false, -- [SPS SPRAY] override-side sprayer trace
@@ -87,6 +92,7 @@ SPSDebugConfig.channels = {
     ["SPSSprayerPipeActivatable"]      = false, -- [SPS SPR ACT] (class currently dormant)
     ["SPSSprayerPipeVisual"]           = false, -- [SPS SSPV]
     ["SPSSprayerPumpControl"]          = false, -- [SPS SPR CTRL]
+    ["SPSChemStation"]                 = false,  -- [SPS CHEM] chem bowl / water / washout bookkeeping  (TEMP ON 2026-11-07 washout test)
     ["SPSSprayerTankSwitch"]           = false, -- [SPS TANK SW] multi-tank coupler walk-up switch (1.0.1.8)
 
     -- ------------------------------------------------------------ agitators
@@ -108,8 +114,8 @@ SPSDebugConfig.channels = {
     ["SPSChainBondPersistence"]        = false, -- [SPS BOND SAVE] non-vehicle bond save trace
 
     -- ------------------------------------------- farm liquid lanes (water / milk)
-    ["SPSM_LiquidLanes"]               = false, -- [SPS LL] register / connect / flow trace
-    ["SPSLiquidLaneControl"]           = false, -- [SPS LL CTRL] walk-up control trace
+    ["SPSM_LiquidLanes"]               = false,  -- [SPS LL] register / connect / flow trace  (TEMP ON 2026-11-09 bowser test)
+    ["SPSLiquidLaneControl"]           = false,  -- [SPS LL CTRL] walk-up control trace       (TEMP ON 2026-11-09 bowser test)
     ["SPSLiquidLaneEvent"]             = false, -- [SPS LL EVT] MP event trace
     ["SPSM_Preview"]                   = false, -- [SPS PREVIEW] build-menu preview dressing
 

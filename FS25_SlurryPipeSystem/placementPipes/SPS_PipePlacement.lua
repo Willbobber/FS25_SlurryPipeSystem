@@ -31,6 +31,7 @@
 -- One slurry placement serves F/M, F/F and M/M (pose with pipe_FF, the longest); one water placement serves the
 -- water AND the milk hose.
 
+source("EditorSettings.lua")
 source("editorUtils.lua")
 
 SPSPipePlacement = {}
@@ -46,9 +47,48 @@ local DONORS = {
     { file = "pipe_FF_long.i3d",    label = "pipe_FF_long (slurry F/F 6 m)" },
     { file = "pipe_MM_long.i3d",    label = "pipe_MM_long (slurry M/M 6 m)" },
     { file = "pipe_water_long.i3d", label = "pipe_water_long (water + milk 6 m)" },
+    -- [SPS 2026-11-10] the 550 Water/Chem Bowser's three pipes (tools/build_bowser_donors.py). Their hose keys start
+    -- WT_, which is the "bowser" stow family: name the slot explicitly in the XML, e.g.
+    --   <placement node="bowserSuction01" pipes="WT_SUCTION"/>  <placement node="bowserSmall01" pipes="WT_SMALL"/>
+    { file = "pipe_bowserSuction.i3d", label = "pipe_bowserSuction (550 bowser suction, 25 bodies)" },
+    { file = "pipe_bowserWash.i3d",    label = "pipe_bowserWash (550 bowser wash hose, 19 bodies)" },
+    { file = "pipe_bowserSmall.i3d",   label = "pipe_bowserSmall (550 bowser small hose, 25 bodies)" },
 }
 
 local function say(fmt, ...) print("[SPS placement] " .. string.format(fmt, ...)) end
+
+-- Editor labels don't wrap long text (it gets cut off at the window edge), so notes are wrapped by hand.
+-- Long words (paths) are split after a slash. Same approach as MapOverviewTool's wrapDialogText.
+local NOTE_LINE_LENGTH = 62
+local function wrapText(text, lineLength)
+    local maxLength = lineLength or NOTE_LINE_LENGTH
+    local out = {}
+    for line in string.gmatch((text or "") .. "\n", "(.-)\n") do
+        local current = ""
+        for word in string.gmatch(line, "%S+") do
+            while word ~= "" do
+                local sep = current == "" and "" or " "
+                local room = maxLength - #current - #sep
+                if #word <= room then
+                    current = current .. sep .. word
+                    word = ""
+                else
+                    local cut = nil
+                    if room > 10 then cut = string.find(string.sub(word, 1, room), "[/\\][^/\\]*$") end
+                    if cut == nil and current == "" then cut = maxLength end
+                    if cut ~= nil then
+                        current = current .. sep .. string.sub(word, 1, cut)
+                        word = string.sub(word, cut + 1)
+                    end
+                    out[#out + 1] = current
+                    current = ""
+                end
+            end
+        end
+        out[#out + 1] = current
+    end
+    return table.concat(out, "\n")
+end
 
 -- ---------------------------------------------------------------------------
 -- scene scans
@@ -111,6 +151,90 @@ local function bodiesOf(root)
     return list
 end
 
+-- ---------------------------------------------------------------------------
+-- [2026-11-02] SPLIT / REJOIN BONES (William: the Bone01 > Bone02 > ... chain is what the script needs, but it gets in
+-- the way when placing bones by hand). Split: every bone of the selected pipe becomes a direct child of the pipe MESH
+-- (the node that holds Bone01), keeping its world position + rotation, so each bone can be moved on its own. Rejoin:
+-- Bone(k) goes back under Bone(k-1), again keeping world transforms, so the chain the capture / import code reads is
+-- back. Selection: the pipe root, the mesh or any of its bones.
+-- ---------------------------------------------------------------------------
+local function boneNumber(node)
+    return tonumber(string.match(getName(node) or "", "^Bone(%d+)$"))
+end
+
+-- every BoneNN below `mesh`, sorted by number, wherever it sits now (chain or flat)
+local function collectBones(mesh)
+    local list = {}
+    walk(mesh, function(n) if n ~= mesh and isBone(n) then list[#list + 1] = n end end)
+    table.sort(list, function(a, b) return boneNumber(a) < boneNumber(b) end)
+    return list
+end
+
+-- the mesh node of the pipe the selection belongs to: a non-bone node with a Bone child, found on the node itself,
+-- one level below it (the pipe root) or above it (a selected bone)
+local function findBoneMesh(node)
+    local n = node
+    for _ = 1, 10 do
+        if n == nil or n == 0 then return nil end
+        if not isBone(n) and boneChild(n) ~= nil then return n end
+        if not isBone(n) then
+            for i = 0, getNumOfChildren(n) - 1 do
+                local c = getChildAt(n, i)
+                if not isBone(c) and boneChild(c) ~= nil then return c end
+            end
+        end
+        n = getParent(n)
+    end
+    return nil
+end
+
+local function relinkKeepWorld(child, newParent)
+    local x, y, z = getWorldTranslation(child)
+    local rx, ry, rz = getWorldRotation(child)
+    link(newParent, child)
+    setWorldTranslation(child, x, y, z)
+    setWorldRotation(child, rx, ry, rz)
+end
+
+local function selectedBoneMesh()
+    if getNumSelected() == 0 then say("ERROR: select the pipe (its root, mesh or a bone) first"); return nil end
+    local mesh = findBoneMesh(getSelection(0))
+    if mesh == nil then say("ERROR: '%s' is not part of a pipe with Bone01.. bones", getName(getSelection(0)) or "?"); return nil end
+    return mesh
+end
+
+local function splitBones()
+    local mesh = selectedBoneMesh()
+    if mesh == nil then return end
+    local bones = collectBones(mesh)
+    if #bones < 2 then say("ERROR: '%s' has %d bone(s) - nothing to split", getName(mesh), #bones); return end
+    local moved = 0
+    for _, b in ipairs(bones) do          -- in number order: a parent is re-linked before its children, world kept
+        if getParent(b) ~= mesh then relinkKeepWorld(b, mesh); moved = moved + 1 end
+    end
+    say("'%s': %d bones split - all %d are direct children of the mesh now (world positions kept). Move them, then Rejoin bones. The pipe is NOT listed in 'Pipe' / 'Create nodes' while split.",
+        getName(mesh), moved, #bones)
+end
+
+local function rejoinBones()
+    local mesh = selectedBoneMesh()
+    if mesh == nil then return end
+    local bones = collectBones(mesh)
+    if #bones < 2 then say("ERROR: '%s' has %d bone(s) - nothing to rejoin", getName(mesh), #bones); return end
+    for k = 2, #bones do
+        if boneNumber(bones[k]) ~= boneNumber(bones[k - 1]) + 1 then
+            say("WARNING: bone numbers are not continuous (%s after %s) - chaining them anyway", getName(bones[k]), getName(bones[k - 1]))
+        end
+    end
+    local moved = 0
+    if getParent(bones[1]) ~= mesh then relinkKeepWorld(bones[1], mesh); moved = moved + 1 end
+    for k = 2, #bones do
+        if getParent(bones[k]) ~= bones[k - 1] then relinkKeepWorld(bones[k], bones[k - 1]); moved = moved + 1 end
+    end
+    say("'%s': chain rebuilt Bone01 > ... > Bone%02d (%d re-linked, world positions kept) - Refresh lists to pick it again",
+        getName(mesh), boneNumber(bones[#bones]) or #bones, moved)
+end
+
 local function findHolders()
     local out = {}
     walk(getRootNode(), function(n)
@@ -163,18 +287,130 @@ local function existingAttachName()
     return nil
 end
 
--- placementPipes/ : next to this mod, found by walking up from the open scene file
-local function donorDir()
-    local scene = getSceneFilename ~= nil and getSceneFilename() or nil
-    if scene == nil or scene == "" then return nil end
-    local dir = string.gsub(scene, "\\", "/")
-    for _ = 1, 12 do
-        dir = string.match(dir, "^(.*)/[^/]*$")
-        if dir == nil or dir == "" then break end
-        if fileExists(dir .. "/placementPipes/pipe_FM.i3d") then return dir .. "/placementPipes/" end
+-- The donor folder picked by hand in the window (only asked for when auto-detection fails) is remembered in the
+-- editor's configs folder (EditorSettings "spsPipePlacement", key donorFolder) - same as MapOverviewTool's settings.
+local CONFIG_NAME = "spsPipePlacement"
+local CONFIG_KEY_DONOR_DIR = "donorFolder"
+
+-- reads the remembered donor folder ("" when none / EditorSettings unavailable)
+local function loadSavedDonorDir()
+    if EditorSettings == nil then return "" end
+    local ok, value = pcall(function()
+        local config = EditorSettings.new(CONFIG_NAME)
+        local v = config:getValue(CONFIG_KEY_DONOR_DIR, "")
+        config:delete()
+        return v
+    end)
+    return (ok and type(value) == "string") and value or ""
+end
+
+-- writes the donor folder to the configs folder; returns true when saved
+local function saveDonorDir(dir)
+    if EditorSettings == nil then return false end
+    local ok = pcall(function()
+        local config = EditorSettings.new(CONFIG_NAME)
+        config:setValue(CONFIG_KEY_DONOR_DIR, dir or "")
+        config:saveSettings()
+        config:delete()
+    end)
+    return ok
+end
+
+-- folder names the SPS mod may be unpacked under (checked as siblings of every folder above the open scene)
+local SPS_MOD_FOLDERS = { "FS25_SlurryPipeSystem", "FS25_SlurryPipeSystem-main", "FS25_SlurryPipeSystem_dev" }
+
+local function normDir(path)
+    if path == nil or path == "" then return nil end
+    path = string.gsub(path, "\\", "/")
+    if string.sub(path, -1) ~= "/" then path = path .. "/" end
+    return path
+end
+
+local function hasDonors(dir)
+    return dir ~= nil and fileExists(dir .. "pipe_FM.i3d")
+end
+
+-- checks <dir>/placementPipes/ and <dir>/<SPS mod folder>/placementPipes/
+local function donorDirIn(dir)
+    local d = normDir(dir)
+    if d == nil then return nil end
+    if hasDonors(d .. "placementPipes/") then return d .. "placementPipes/" end
+    for _, modName in ipairs(SPS_MOD_FOLDERS) do
+        local cand = d .. modName .. "/placementPipes/"
+        if hasDonors(cand) then return cand end
     end
     return nil
 end
+
+-- walks up from a file/folder path, testing every parent with donorDirIn
+local function donorDirAbove(path)
+    if path == nil or path == "" then return nil end
+    local dir = (string.gsub(path, "\\", "/"))
+    for _ = 1, 12 do
+        dir = string.match(dir, "^(.*)/[^/]*$")
+        if dir == nil or dir == "" then break end
+        local found = donorDirIn(dir)
+        if found ~= nil then return found end
+    end
+    return nil
+end
+
+-- placementPipes/ : found in this order
+--   1. walking up from the open scene: inside the scene's own mod, OR in a sibling FS25_SlurryPipeSystem mod
+--      (a node tree open in mods/FS25_majorLGP2050_2400/... finds mods/FS25_SlurryPipeSystem/placementPipes/).
+--      This comes FIRST so the copy of the SPS mod the open scene belongs to always wins over a remembered folder.
+--   2. the remembered donor folder from the configs folder (set with Browse / Set folder in the window)
+--   3. the folder this script was run from (the script ships in placementPipes/)
+--   4. the user's FS25 mods folder (getUserProfileAppPath, if the editor exposes it)
+local cachedDonorDir = nil
+local function donorDir()
+    if cachedDonorDir ~= nil and hasDonors(cachedDonorDir) then return cachedDonorDir end
+    local found = nil
+
+    -- 1. above the open scene (own mod, or sibling SPS mod in the same mods folder)
+    local scene = getSceneFilename ~= nil and getSceneFilename() or nil
+    found = donorDirAbove(scene)
+
+    -- 2. remembered donor folder (configs folder)
+    if found == nil then
+        local saved = loadSavedDonorDir()
+        if saved ~= "" then
+            local d = normDir(saved)
+            if hasDonors(d) then
+                found = d
+            else
+                say("WARNING: remembered donor folder '%s' has no pipe_FM.i3d any more - trying the other locations", saved)
+            end
+        end
+    end
+
+    -- 3. this script's own location (getinfo must run inside a function of THIS file: level 1 = that function)
+    if found == nil and debug ~= nil and debug.getinfo ~= nil then
+        local ok, info = pcall(function() return debug.getinfo(1, "S") end)
+        local src = ok and info ~= nil and info.source or nil
+        if src ~= nil and string.sub(src, 1, 1) == "@" then
+            src = (string.gsub(string.sub(src, 2), "\\", "/"))
+            local own = string.match(src, "^(.*/)[^/]*$")
+            if hasDonors(own) then found = own else found = donorDirAbove(src) end
+        end
+    end
+
+    -- 4. the user's FS25 mods folder
+    if found == nil and getUserProfileAppPath ~= nil then
+        local ok, profile = pcall(getUserProfileAppPath)
+        if ok and profile ~= nil and profile ~= "" then
+            found = donorDirIn(normDir(profile) .. "mods")
+        end
+    end
+
+    if found ~= nil then
+        say("donor pipes: %s", found)
+        cachedDonorDir = found
+    end
+    return found
+end
+
+local DONOR_DIR_ERROR = "ERROR: placementPipes/ not found - looked above the open scene and in a sibling FS25_SlurryPipeSystem mod folder (it must be UNZIPPED). Set the donor folder in the window - it is remembered from then on."
 
 -- ---------------------------------------------------------------------------
 -- actions
@@ -291,7 +527,7 @@ end
 local function importOntoSlot(slot, donor)
     if slot == nil then say("ERROR: no captured slot chosen (a holder child with p01..pNN)"); return end
     local dir = donorDir()
-    if dir == nil then say("ERROR: placementPipes/ not found above the open scene - open a node tree that lives inside FS25_SlurryPipeSystem"); return end
+    if dir == nil then say(DONOR_DIR_ERROR); return end
     local path = dir .. donor.file
     if not fileExists(path) then say("ERROR: %s not found", path); return end
     local pts = pointsOf(slot.node)
@@ -318,7 +554,7 @@ end
 
 local function importDonor(donor)
     local dir = donorDir()
-    if dir == nil then say("ERROR: placementPipes/ not found above the open scene - open a node tree that lives inside FS25_SlurryPipeSystem"); return end
+    if dir == nil then say(DONOR_DIR_ERROR); return end
     local path = dir .. donor.file
     if not fileExists(path) then say("ERROR: %s not found", path); return end
     local parent = (getNumSelected() > 0) and getSelection(0) or getRootNode()
@@ -371,7 +607,7 @@ function SPSPipePlacement.open(selectHolderName)
         return col
     end
     local function note(text)
-        UILabel.new(rows, text, false, TextAlignment.LEFT, VerticalAlignment.TOP, -1, -1, W - 20, -1, BorderDirection.BOTTOM, 6)   -- TOP: label sits in a row sizer
+        UILabel.new(rows, wrapText(text), false, TextAlignment.LEFT, VerticalAlignment.TOP, -1, -1, W - 20, -1, BorderDirection.BOTTOM, 6)   -- TOP: label sits in a row sizer
     end
 
     -- STEP 0: a new pipe set = the holder node structure on the vehicle
@@ -387,6 +623,53 @@ function SPSPipePlacement.open(selectHolderName)
 
     UIHorizontalLine.new(rows, -1, -1, -1, -1, BorderDirection.BOTTOM, 8, 0)
 
+    -- DONOR FOLDER: always shown, so a wrong remembered folder can be changed. Auto-detection (the open scene's own
+    -- SPS copy, else the remembered folder, else the script's / the mods folder) fills it in; Browse / Set folder
+    -- override it for this run and remember it for scenes that have no SPS copy of their own.
+    local currentDonor = donorDir()
+    if currentDonor == nil then
+        note("placementPipes/ was NOT found automatically. Click Browse and pick the SPS mod's placementPipes folder (the one with pipe_FM.i3d) - or the FS25_SlurryPipeSystem folder itself. It is remembered from then on.")
+    else
+        note("Donor pipes: " .. currentDonor .. " (auto-detected - Browse / Set folder to use another copy; remembered for scenes without an SPS copy next to them)")
+    end
+
+    -- accepts the placementPipes folder itself, or a folder that contains it (the SPS mod folder / the mods folder)
+    local function applyDonorFolder(value)
+        value = string.gsub(value or "", "^%s*\"?(.-)\"?%s*$", "%1")   -- trim spaces / quotes from a pasted path
+        local d = normDir(value)
+        if d ~= nil and not hasDonors(d) then d = donorDirIn(d) end
+        if d == nil or not hasDonors(d) then
+            say("ERROR: no pipe_FM.i3d in '%s' - pick the placementPipes folder of the unzipped FS25_SlurryPipeSystem mod", value)
+            return
+        end
+        cachedDonorDir = d
+        if saveDonorDir(d) then
+            say("donor folder set and remembered: %s", d)
+        else
+            say("donor folder set: %s (could not write it to the configs folder - it is kept until the script is run again)", d)
+        end
+        local h = self.holders[self.holderIdx]
+        SPSPipePlacement.open(h and h.name)
+    end
+
+    local cd = row("Donor folder")
+    self.donorDirBox = UITextArea.new(cd, currentDonor or loadSavedDonorDir(), TextAlignment.LEFT, false, false, -1, -1, 220, -1, -1, 0)
+    UIButton.new(cd, "Browse...", function()
+        if openDirDialog == nil then say("ERROR: this editor has no folder dialog - type the path and click Set folder"); return end
+        local start = self.donorDirBox:getValue() or ""
+        local folder = openDirDialog(start)
+        if folder == nil or string.match(folder, "^%s*$") then return end   -- cancelled
+        self.donorDirBox:setValue(folder)
+        applyDonorFolder(folder)
+    end, nil, -1, -1, 75, 24, BorderDirection.LEFT, 6, 0)
+
+    local bd = UIColumnLayoutSizer.new()
+    UIPanel.new(rows, bd, -1, -1, -1, -1, BorderDirection.BOTTOM, 8)
+    UIButton.new(bd, "Set folder", function()
+        applyDonorFolder(self.donorDirBox:getValue())
+    end, nil, -1, -1, 140, 26, BorderDirection.RIGHT, 10, 0)
+    UIHorizontalLine.new(rows, -1, -1, -1, -1, BorderDirection.BOTTOM, 8, 0)
+
     -- STEP 1: import a donor pipe, position its root, pose its bones
     note("1. Import a pipe (under the selected node, else the scene root), position its root, pose its BONES.")
     local c5 = row("Donor")
@@ -395,6 +678,17 @@ function SPSPipePlacement.open(selectHolderName)
     UIPanel.new(rows, b2, -1, -1, -1, -1, BorderDirection.BOTTOM, 8)
     UIButton.new(b2, "Import pipe", function()
         importDonor(DONORS[self.donorIdx] or DONORS[2])
+        local h = self.holders[self.holderIdx]
+        SPSPipePlacement.open(h and h.name)
+    end, nil, -1, -1, 140, 26, BorderDirection.RIGHT, 10, 0)
+
+    -- 1b. bones of the SELECTED pipe: split flat for free placing, rejoin into the chain afterwards
+    note("1b. Posing help: select the pipe (root, mesh or a bone). Split bones makes every bone a direct child of the mesh so each can be moved on its own; Rejoin bones puts the Bone01 > Bone02 > ... chain back. World positions are kept both ways.")
+    local b2b = UIColumnLayoutSizer.new()
+    UIPanel.new(rows, b2b, -1, -1, -1, -1, BorderDirection.BOTTOM, 8)
+    UIButton.new(b2b, "Split bones", function() splitBones() end, nil, -1, -1, 140, 26, BorderDirection.RIGHT, 10, 0)
+    UIButton.new(b2b, "Rejoin bones", function()
+        rejoinBones()
         local h = self.holders[self.holderIdx]
         SPSPipePlacement.open(h and h.name)
     end, nil, -1, -1, 140, 26, BorderDirection.RIGHT, 10, 0)

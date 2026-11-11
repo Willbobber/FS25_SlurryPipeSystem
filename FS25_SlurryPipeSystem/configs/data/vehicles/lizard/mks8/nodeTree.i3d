@@ -46,9 +46,9 @@
       <TransformGroup name="liquidPipeCouplers" nodeId="102">
         <TransformGroup name="mks8_vis" nodeId="103">
           <TransformGroup name="SPS_liquidPipeCoupler01" translation="0.00458412 1.03329 -2.26157" rotation="180 -1.86693e-05 180" nodeId="104">
-            <TransformGroup name="SPS_liquidPipeCoupler01Arcs" rotation="0 -90 0" nodeId="105">
-              <TransformGroup name="SPS_liquidPipeCoupler01Arc01" translation="3.5 0 -1.5" nodeId="106"/>
-              <TransformGroup name="SPS_liquidPipeCoupler01Arc02" translation="3.5 0 1.5" nodeId="107"/>
+            <TransformGroup name="SPS_liquidPipeCoupler01Arcs" rotation="7.01671e-15 3.37268e-15 -7.01671e-15" nodeId="105">
+              <TransformGroup name="SPS_liquidPipeCoupler01Arc01" translation="1.5 0 2.5" nodeId="106"/>
+              <TransformGroup name="SPS_liquidPipeCoupler01Arc02" translation="-1.5 0 2.5" nodeId="107"/>
             </TransformGroup>
             <Shape name="sprayerConnector" shapeId="1" clipDistance="150" nodeId="233" castsShadows="true" receiveShadows="true" materialIds="228">
               <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="234" castsShadows="true" receiveShadows="true" materialIds="229"/>

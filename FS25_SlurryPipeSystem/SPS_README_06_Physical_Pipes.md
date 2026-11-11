@@ -51,6 +51,13 @@ rules while carried or riding a moving tanker. Rain and the pressure washer clea
 Wear is cosmetic: no damage, no repair bill. Modders can set the rates per pipe XML with
 the game's own `<washable dirtDuration="" workMultiplier=""/>` and `<wearable wearDuration=""/>`.
 
+Two settings (SPS settings, General settings tab; the admin sets them in multiplayer):
+- **Pipe dirt** on / off and **Pipe dirt speed** (0.25x to 3x): how fast pipes get dirty. Off keeps them clean.
+- **Pipe leakage** (default off): with it on, a pipe plugged into a machine whose far end lies open on the ground
+  (within 1.5 m, not in water, not held) counts as an open end: the valve prompt appears at the machine, the liquid runs
+  out, and a puddle grows under the end (it merges with nearby ones and dries after a while) with a leak stream at the end.
+  Lift the end and it stops. Puddles are not saved. Store and 80 mm fittings can leak the same way.
+
 ## 3. Controls (the game's own hands)
 
 | You | Mouse | Result |
@@ -145,3 +152,77 @@ Log lines (`spsDebug SPSM_PhysPipes on` for more):
 [SPS PHYS] chain complete: coupling id=1 <-> id=1 connected (valve / pump / flow as the original system)
 [SPS PHYS] unplug of end 1 refused: the coupler's valve is still open
 ```
+
+## Trailer-specific pipes: the 550 Water/Chem Bowser (2026-11-09, untested)
+
+A vehicle fitting (`<liquidPipeCoupling>`) can take only its own pipes. Attributes, all optional:
+
+- `acceptPipes="WT_SUCTION WT_SMALL"` hose keys allowed on the fitting; nothing else plugs in there.
+- `acceptEnd="start"` only the pipe's start end (gender `bowser`) plugs in; `end` = the far (water) end.
+- `waterSource="WT_SUCTION"` that pipe's free far end lying in a water course is an intake: B at the control node pumps water into the tank.
+- `washOutlet="WT_WASH"` that pipe's free far end pours the tank out where it lies (stream + puddle); `washLitersPerSecond` (default 40).
+- `connectorAnimationName="..."` a vehicle animation held open while a pipe is on the fitting (caps, handles).
+
+`<generator pullAnimation pulls pullSpeed pullPause revsAnimation>` with `<sounds><pull/><start/><engineLoop/></sounds>` is the
+small pump engine: B pulls the cord `pulls` times, then the engine runs and liquid moves. `<physicalModeHide>` and `<pipeHolders>`
+work inside `<liquidPipeSystem>` exactly as inside `<slurryPipeSystem>`.
+
+The pipes themselves are `vehicles/hoses/spsBowserPipe.xml` (shop: "550 Bowser Pipes", one Pipe row, physical mode only), built by
+`tools/build_pipes_bowser.py` from William's Blender export. Hose keys `WT_SUCTION`, `WT_WASH`, `WT_SMALL`; start gender `bowser`.
+
+**Original mode (2026-11-10, untested).** The same three pipes are drawn by the live hose system from a second template file,
+`i3d/pipes/bowserHoses.i3d` (built by `tools/build_hoses_bowser.py` from the same export), listed in `i3d/pipes/hoses.xml` with
+`i3d="bowserHoses.i3d"`. A fitting's `waterSource` / `washOutlet` key names the hose drawn for it, so any bowser tagged like the
+550 gets its own pipes. The prompts show at the pump control node AND anywhere inside a fitting's arc, as at a tanker's coupler:
+
+- **R** at the inlet: a partner fitting in reach (a barn lane, an IBC, a sprayer vehicle's water fitting) = the small hose and the
+  normal connect; nothing in reach = **Take suction pipe**: the end into your hands. Walk it out (up to the pipe's own length,
+  7.75 m) and **right mouse** or R (**Release suction pipe**) lays the end where it is, on the ground or the river bed. B then
+  pumps water in. R at the bowser (**Remove suction pipe**) puts it back on the rack; H with the end in hand puts it back too.
+- **H** (`SPS_BOWSER_HOSE`): the wash hose into your hands - only with the engine running (B first; otherwise "Start the engine
+  (B) before taking the wash hose"). Its end follows you up to the hose's length. **Right mouse** (the hands' secondary action,
+  the same button as in pipe mode) starts and stops the pour: a chem tank's fill point within 1.5 m of the end takes the liquid at
+  the bowser's strength, anywhere else it lands on the ground. H puts it back from anywhere; H also puts a carried suction end back.
+- A tanker's water fitting arc over the bowser's inlet arc: R = Connect (Bowser to tanker / Tanker to bowser), B pumps,
+  Y = load / unload. The connection swings both fittings' handles over (the bowser's inlet valve too); they come back on
+  the disconnect.
+- Carried and laid pipes have no collision and droop to the ground between the fitting and the hands.
+- **Reach (every original-mode hose, 2026-11-10):** two couplers connect while their mount nodes are within the hose's
+  reach (80 mm water / milk / sprayer hose 5.0 m = the two 2.5 m arcs nose to nose; the bowser's small hose 7.4 m;
+  slurry couplers 5.9 m) and their arcs overlap. A connected hose is dropped only 0.5 m beyond that reach, so a pair
+  connected at the edge stays connected until a vehicle actually drives off.
+- **Arcs (2026-11-10):** every SPS fitting's arc is the same 2.5 m deep x 3.0 m wide level triangle in front of the fitting
+  (`tools/sps_arcscan.py` audits them, `tools/sps_arcrelay.py --apply` re-lays any that drift). Two arcs nose to nose
+  overlap up to 5 m, which is the 80 mm hose reach. Physical pipes never use the arcs.
+  **Modders:** SPS re-lays every arc to this standard at run time, on every machine, from the arc you placed - only its
+  pointing direction is read, projected flat in your vehicle's or building's own space. So an Arcs group under a fitting
+  that points up or down, or one made with the old 3.5 m / 2 m template, works exactly like a standard one; one
+  `[SPS ARC] ... arc re-laid` log line tells you it was corrected. Arc01 / Arc02 keep their sides.
+- Nothing is saved: the pipes vanish on reload.
+
+## Water cages and the cage holder (1.0.2.0, physical pipes)
+
+A pipe end lying in open water (lake, river, pond or a build-menu water course) draws only through a **water cage**.
+Discharge into water and the gravity return need no cage; open air gives nothing and no message. Buy the cages in the
+shop (**Water Cage**, one item with a Small / Large selector; Slurry Tools section):
+- **Small** cage: fits either end of an 80 mm water or milk pipe. **Large** cage: the male end of a slurry pipe (it refuses
+  a female end).
+- Pick the cage up by hand and join it to the free pipe end like another pipe. Lay the cage in the water: its water-level
+  mark must be under the surface. Without a cage the player sees "Fit a water cage on the pipe end first" and no litres move.
+  The bowser's own suction pipe needs no cage. A cage never plugs into a coupling.
+- Original pipe mode (strap pipes) is unchanged: it does not use cages.
+
+**Cage holder (modders).** A vehicle can carry one parked cage on a node, taken from the pipe-holder system:
+```xml
+<pipeHolders>
+    <cageHolder id="3" nodeName="SPS_cageHolder01" radius="1.5" cages="CAGE_SMALL"
+                requiresAnimation="rearDoor" requiredAnimationTime="0.95"/>
+</pipeHolders>
+```
+- `nodeName` is a transform in the vehicle (mapped in `i3dMappings`); the cage hangs on its frame (+Z along the cage, +Y up).
+- `cages` is `CAGE_SMALL`, `CAGE_LARGE` or both, space separated. `radius` is the reach for hanging it.
+- `requiresAnimation` (optional): the cage can be hung and taken only while that vehicle animation is at or beyond
+  `requiredAnimationTime` (default 0.95), for example a door. A wrong name does not lock the holder.
+- `offset="x y z"` (optional, node-local metres) moves the hung cage.
+- Hang a cage with the hands' stow action while holding it near the holder; look at it and grab it to take it off. A cage
+  hung on a holder cannot take a pipe. Hung cages are saved.

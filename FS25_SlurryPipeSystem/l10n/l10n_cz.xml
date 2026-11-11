@@ -14,6 +14,9 @@
         
 		<!-- Settings menu -->
 		<text name="sps_settingsHeader"            		text="HADICOVÝ SYSTÉM NA KEJDU (SPS)" />
+		<text name="sps_settingsSectionGeneral"  text="Slurry Pipe System - Obecné" />
+		<text name="sps_settingsSectionSlurry"   text="Slurry Pipe System - Kejda" />
+		<text name="sps_settingsSectionSprayers" text="Slurry Pipe System - Postřikovače" />
 		<text name="sps_settingsSlurryPipe"        		text="Hadice na kejdu" />
 		<text name="sps_settingsSlurryPipeTooltip" 		text="Vyberte barvu hadice" />
 		
@@ -43,6 +46,7 @@
 		<text name="action_spsConnectPipe" 				text="Připojit hadici"/>
 		<text name="action_spsDisconnectOrOpenValve" 	text="Odpojit [R] | Otevřít ventil [podržet R]"/>
 		<text name="action_spsCloseValve" 				text="Zavřít ventil [podržet R]"/>
+		<text name="action_spsOpenValve" 				text="Otevřít ventil [podržet R]"/>
 		<text name="warning_slurryCloseValveFirst" 		text="Před odpojením nejprve zavřete ventil"/>
 		<text name="action_spsLayFirstPipe"         	text="Položit první hadici" />
 		<text name="action_spsLayPipe"              	text="Položit hadici | Umístit dokovací stanici [podržet R]" />
@@ -118,14 +122,27 @@
         <text name="sps_infoTankEmpty"					text="Prázdná" />
         <text name="shopItem_spsSprayerSilo" text="Silo na postřiky (4 nádrže, SPS)" />
         <text name="function_spsSprayerSilo" text="Čtyři samostatné nádrže na kapaliny za jednou přípojkou SPS. Vstupte do spínací skříňky a vyberte nádrž; každá nádrž pojme kapalné hnojivo nebo herbicid a zůstane mu vyhrazena, dokud se nevyprázdní. Jen potrubím: bez plnění podjetím." />
+        <text name="shopItem_spsWashoutStation"     text="Mycí místo pro postřikovač (SPS)" />
+        <text name="function_spsWashoutStation"     text="Mycí plocha s roštem a 80mm hadicovou přípojkou. Připojte vodní hadici postřikovače a nastavte vyprazdňování: oplachová voda odtéká roštem a časem se vyčistí. Postřikovač si z ní může oplachovou vodu také načerpat." />
 		
 		<!-- Water -->
 		<text name="warning_spsPipeTooShort"			text="Hadice je příliš krátká (minimálně 2 m)" />
 		
 		<!-- Sprayer -->
 		<text name="input_SPS_TOGGLE_ANIMATION_SPRAYER"	text="Otevřít kryt | Zavřít kryt" />
+		<text name="input_SPS_TOGGLE_ANIMATION"	text="SPS: animace u vozidla (výsypka atd.)" />
+		<text name="input_SPS_BOWSER_HOSE"	text="SPS: bowser wash hose - take / put back" />
+		<text name="warning_spsChemBowlFirst"	text="Nejprve sklopte misku na chemii" />
+		<text name="warning_spsOpenDoorFirst"	text="Nejprve otevřete dvířka chemické stanice" />
+		<text name="warning_spsChemDoor"	text="Nejprve otevřete dvířka chemické stanice" />
+		<text name="warning_spsChemBowl"	text="Vyklopte míchací nádrž pro přidání chemie" />
+		<text name="warning_spsChemUseBowl"	text="Nalijte chemii do míchací nádrže" />
+		<text name="warning_spsChemWashout"	text="Nejprve vypláchněte" />
+		<text name="action_spsSpoutOut"			text="Vyklopit výsypku" />
+		<text name="action_spsSpoutBack"			text="Sklopit výsypku" />
 		<text name="input_SPS_TOGGLE_PUMP_SPRAYER"		text="Spustit průtok | Zastavit průtok" />
 		<text name="input_SPS_TOGGLE_DIRECTION_SPRAYER"	text="Plnit | Vyprazdňovat" />
+		<text name="input_SPS_SELECT_TANK"				text="Další nádrž" />
 		<text name="action_sprayerCoverClosed"			text="Kryt: ZAVŘENÝ" />
 		<text name="action_sprayerCoverOpen"			text="Kryt: OTEVŘENÝ" />
 		<text name="action_sprayerFlowOff"				text="Průtok: ZASTAVEN" />
@@ -149,21 +166,21 @@
 		<text name="sps_hudEditHint"         			text="Tažením přesuňte  -  Kolečkem myši změňte velikost  -  Kliknutím prostředním tlačítkem uzamkněte" />
 		<text name="action_spsHudEdit"       			text="Přesunout HUD rozmetadla" />
 		<!-- SPS spreader HUD settings -->
-		<text name="sps_hudSettingsHeader"   			text="HUD rozmetadla" />
-		<text name="sps_hudSetEnabled"       			text="Zobrazení hadicového aplikátoru" />
+		<text name="sps_hudSettingsHeader"   			text="Slurry Pipe System - HUD rozmetadla" />
+		<text name="sps_hudSetEnabled"       			text="HUD rozmetadla" />
 		<text name="sps_hudSetEnabledTooltip"			text="Zobrazí HUD rozmetadla (ikonu aplikátoru, informace o kejdě a stav jednotlivých sekcí) v horní části obrazovky." />
-		<text name="sps_hudSetImage"         			text="Obrázek aplikátoru" />
+		<text name="sps_hudSetImage"         			text="    Obrázek aplikátoru" />
 		<text name="sps_hudSetImageTooltip"  			text="Zobrazí obrázek hadicového aplikátoru na HUD rozmetadla." />
-		<text name="sps_hudSetFill"          			text="Zobrazit úroveň kejdy" />
-		<text name="sps_hudSetCrust"         			text="Zobrazit krustu" />
-		<text name="sps_hudSetThick"         			text="Zobrazit hustotu" />
-		<text name="sps_hudSetRisk"          			text="Zobrazit riziko ucpání" />
-		<text name="sps_hudSetPump"          			text="Zobrazit čerpadlo / tlak" />
+		<text name="sps_hudSetFill"          			text="    Zobrazit úroveň kejdy" />
+		<text name="sps_hudSetCrust"         			text="    Zobrazit krustu" />
+		<text name="sps_hudSetThick"         			text="    Zobrazit hustotu" />
+		<text name="sps_hudSetRisk"          			text="    Zobrazit riziko ucpání" />
+		<text name="sps_hudSetPump"          			text="    Zobrazit čerpadlo / tlak" />
 		<text name="sps_hudSetFieldTooltip"  			text="Zobrazí nebo skryje tento řádek na HUD rozmetadla." />
 		<text name="warning_spsFoldIsSpsControlled" 	text="Přepínání čerpadla je řízeno systémem Slurry Pipe System" />
-		<text name="sps_hudSetHideHelp"      			text="Skrýt s nabídkou nápovědy (F1)" />
+		<text name="sps_hudSetHideHelp"      			text="    Skrýt s nabídkou nápovědy (F1)" />
 		<text name="sps_hudSetHideHelpTooltip" 		text="Ano: SPS HUD se skryje spolu s nabídkou nápovědy po stisknutí F1. Ne: zůstane na obrazovce." />
-		<text name="sps_hudSetScale"         			text="Měřítko HUD" />
+		<text name="sps_hudSetScale"         			text="    Měřítko HUD" />
 		<text name="sps_hudSetScaleTooltip"  			text="Velikost HUD rozmetadla. Lze také změnit kolečkem myši během přesouvání HUD." />
 		<text name="sps_hudPressure" 					text="Tlak"/>
 		<text name="input_SPS_HUD_EDIT"          		text="Upravit HUD rozmetadla" />
@@ -195,6 +212,93 @@
 		<text name="sps_settingsIbcPersistTooltip" 		text="Ano: Prázdné IBC kontejnery zůstanou na mapě (můžete je vrátit do obchodu nebo znovu naplnit). Ne: Po vyprázdnění zmizí (výchozí)."/>
 		<text name="sps_settingsPhysicalPipes" 			text="Fyzické hadice"/>
 		<text name="sps_settingsPhysicalPipesTooltip" 	text="Ne: původní systém - pokládání a připojování hadic u spojek, řetězů, postřikovačů a vedení vody/mléka; kupované hadice jsou v obchodě skryté. Ano: jen fyzické hadice - hadice koupíte v obchodě a nosíte je v rukou; všechny původní volby hadic jsou vypnuté. Oba systémy nikdy neběží současně."/>
+		<text name="sps_settingsChemMixing"			text="Míchání chemie (postřikovače)"/>
+		<text name="sps_settingsChemMixingTooltip"	text="Ano: chemie ručně přes míchací nádrž, voda potrubím; jedna chemie, před výměnou vypláchnout vodou. Ne: standardně přímo ze sila nebo IBC"/>
+		<text name="fillType_liquidFertilizerConc" text="Koncentrát kapalného hnojiva"/>
+		<text name="fillType_herbicideConc" text="Koncentrát herbicidu"/>
+		<text name="sps_chemConcTitle" text="Koncentrát %s"/>
+		<text name="sps_chemStoreConcName" text="%s (koncentrát)"/>
+		<text name="sps_settingsChemRatio" text="    Poměr ředění chemie"/>
+		<text name="sps_settingsChemRatioTooltip" text="Díly vody na díl koncentrátu. Chemie koupená v obchodě (IBC, kanystr, sud) je koncentrát s odpovídající cenou; výkupní stanice prodávají hotovou směs"/>
+		<text name="warning_spsDoorPipe" text="Před zavřením dvířek odpojte hadici"/>
+		<text name="sps_chemHudReadyMix" text="Hotová směs"/>
+		<text name="sps_chemHudTitle" text="Směs chemie"/>
+		<text name="sps_chemHudEmpty" text="Prázdné"/>
+		<text name="sps_chemHudDirty" text="Nádrž znečištěná (%s) - nejdřív vypláchnout"/>
+		<text name="sps_chemHudWashout" text="Voda / výplach"/>
+		<text name="sps_chemHudWater" text="Voda"/>
+		<text name="sps_chemHudWashing" text="Vyplachuje se %s"/>
+		<text name="sps_chemHudTarget" text="cíl"/>
+		<text name="sps_chemHudConc" text="Koncentrát"/>
+		<text name="sps_chemHudMix" text="Směs"/>
+		<text name="sps_chemHudAddWater" text="Přidat vodu"/>
+		<text name="sps_chemHudAddConc" text="Přidat koncentrát"/>
+		<text name="input_SPS_CHEM_WASHOUT" text="Proplach postřikovače"/>
+		<text name="action_spsChemWashout" text="Propláchnout postřikovač (proplach %d z %d)"/>
+		<text name="action_spsChemWashoutStop" text="Zastavit proplach"/>
+		<text name="action_sprayerDirLoadRinse" text="Směr: PLNIT nádrž na proplach"/>
+		<text name="sps_settingsChemRinses" text="    Proplachy"/>
+		<text name="sps_settingsChemRinsesTooltip" text="Kolik proplachů postřikovač potřebuje, než je nádrž čistá (každý proplach se musí před dalším vyprázdnit)"/>
+		<text name="sps_settingsWashoutValve" text="    Ventil mycího místa"/>
+		<text name="sps_settingsWashoutValveTooltip" text="Automaticky: ventil sleduje cyklus oplachu a nastavení nakládání / vykládání postřikovače. Ručně: hráč ho přepíná u mycího místa (čistá voda dovnitř / špinavá voda ven) a oplach na něj čeká."/>
+		<text name="sps_settingsWashoutValveAuto" text="Automaticky"/>
+		<text name="sps_settingsWashoutValveManual" text="Ručně"/>
+		<text name="warning_spsWashClean" text="Nádrž je čistá - proplach není potřeba"/>
+		<text name="warning_spsWashChemIn" text="Nejdřív vyprázdni nádrž (je v ní %s)"/>
+		<text name="warning_spsWashDrain" text="Nejdřív vyprázdni oplachovou vodu: vystříkej ji nebo odčerpej"/>
+		<text name="warning_spsWashField" text="Proplachuj na poli nebo na mycím místě"/>
+		<text name="warning_spsWashFold" text="Nejdřív rozlož ramena"/>
+		<text name="warning_spsWashWaterTank" text="Nádrž na proplach potřebuje %d l vody"/>
+		<text name="warning_spsWashWaterPipe" text="Připojte mycí místo nebo nejprve napusťte do nádrže %d l čisté vody potrubím"/>
+		<text name="warning_spsWashContam" text="Nepropláchnuto: zbytky %s jsou v nové směsi - může poškodit plodinu"/>
+		<text name="sps_washDlgTitle" text="Proplach postřikovače"/>
+		<text name="sps_washDlgNext" text="Proplach %d z %d hotov. Spustit další proplach?"/>
+		<text name="sps_washDlgNextYes" text="Další proplach"/>
+		<text name="sps_washDlgFold" text="Složit ramena"/>
+		<text name="sps_washDlgClean" text="Proplach hotov - nádrž je čistá. Složit ramena?"/>
+		<text name="sps_washDlgLeave" text="Nechat rozložené"/>
+		<text name="sps_chemHudRinse" text="Proplach %d z %d"/>
+		<text name="sps_chemHudPhasePrep" text="Rozkládání ramen"/>
+		<text name="sps_chemHudPhaseTank" text="Proplach nádrže"/>
+		<text name="sps_chemHudPhaseBoom" text="Proplach ramen"/>
+		<text name="sps_chemHudPhaseFinal" text="Poslední proplach nádrže"/>
+		<text name="sps_chemHudPhaseDrain" text="Oplachová voda odtéká tryskami"/>
+		<text name="sps_chemHudPhaseReturn" text="Špinavá voda zpět do mycího místa"/>
+		<text name="sps_chemHudStation" text="Mycí místo"/>
+		<text name="sps_chemHudValveClean" text="ventil: čistá voda dovnitř"/>
+		<text name="sps_chemHudValveDirty" text="ventil: špinavá voda ven"/>
+		<text name="sps_chemHudValveManual" text="(nastaven ručně)"/>
+		<text name="action_spsWashValveClean" text="Ventil mycího místa: čistá voda dovnitř"/>
+		<text name="action_spsWashValveDirty" text="Ventil mycího místa: špinavá voda ven"/>
+		<text name="warning_spsWashValveClean" text="Nastavte ventil mycího místa na čistou vodu dovnitř"/>
+		<text name="warning_spsWashValveDirty" text="Nastavte ventil mycího místa na špinavou vodu ven"/>
+		<text name="sps_chemHudDrainPaused" text="Pozastaveno - stiskni Proplach"/>
+		<text name="sps_chemHudRinsesDone" text="Hotové proplachy"/>
+		<text name="sps_chemHudPoorRinse" text="Špatný proplach - opakuj přes Proplach"/>
+		<text name="sps_chemHudResidue" text="Zbytek"/>
+		<text name="sps_chemHudRinseTank" text="Nádrž na proplach"/>
+		<text name="sps_chemHudEmptyClean" text="Prázdná - čistá"/>
+		<text name="sps_chemHudPipeFills" text="Hadice plní"/>
+		<text name="sps_chemHudMainTank" text="Hlavní nádrž"/>
+		<text name="sps_chemHudContam" text="Zbytky %s ve směsi"/>
+		<text name="sps_chemBandWeak" text="Příliš slabé"/>
+		<text name="sps_chemBandGood" text="Dobré"/>
+		<text name="sps_chemBandStrong" text="Silné"/>
+		<text name="sps_chemBandDouble" text="Dvojitá dávka"/>
+		<text name="sps_chemBandScorch" text="Popálení"/>
+		<text name="sps_chemBandFlatten" text="Zničení plodiny"/>
+		<text name="sps_chemInfoMix" text="Síla směsi"/>
+		<text name="sps_chemInfoConc" text="Koncentrát"/>
+		<text name="warning_spsChemWeak" text="Směs je příliš slabá - nic nebylo aplikováno, přidejte koncentrát nebo jeďte znovu"/>
+		<text name="warning_spsChemScorch" text="Směs je příliš silná - plodina je spálená"/>
+		<text name="warning_spsChemKill" text="Směs je příliš silná - plodina je zničena"/>
+		<text name="warning_spsChemContamDamage" text="Zbytky %s ve směsi poškozují plodinu - vypláchněte"/>
+		<text name="sps_settingsHoseDirt"			text="Špína na trubkách"/>
+		<text name="sps_settingsHoseDirtTooltip"	text="Ano: fyzické trubky se při používání a povalování špiní (umyje je déšť nebo tlaková myčka). Ne: trubky se nikdy nezašpiní; přepnutí na Ne všechny trubky jednou vyčistí."/>
+		<text name="sps_settingsHoseDirtSpeed"		text="    Rychlost špinění"/>
+		<text name="sps_settingsHoseDirtSpeedTooltip"	text="Jak rychle se fyzické trubky špiní: 1x = vlastní rychlost trubky, 0,25x = čtyřikrát pomaleji, 3x = třikrát rychleji."/>
+		<text name="sps_settingsSpill"				text="Únik z trubek"/>
+		<text name="sps_settingsSpillTooltip"		text="Ano: fyzická trubka s volným koncem na zemi se počítá jako připojená - otevřete ventil cisterny a kejda vyteče na zem a vytvoří louži (konec musí ležet do 1,5 m nad zemí). Ne: ventil zůstane zavřený, dokud trubka není připojena."/>
 		<text name="sps_pipeModeTitle" 	text="Slurry Pipe System - vyberte systém hadic"/>
 		<text name="sps_pipeModeQuestion" 	text="Který systém hadic chcete v této hře používat?&#xA;&#xA;PŮVODNÍ: pokládání a připojování hadic u spojek, řetězů, postřikovačů a vedení vody/mléka jako dosud.&#xA;FYZICKÉ (nové): hadice koupíte v obchodě a nosíte je v rukou; původní systém pokládání/připojování je vypnutý.&#xA;&#xA;Oba systémy nikdy neběží současně. Později to můžete změnit v Nastavení > Fyzické hadice."/>
 		<text name="sps_pipeModeExisting" 	text="Tato hra už má %s."/>
@@ -261,6 +365,8 @@
 		<text name="warning_spsFittingValveClosed"		text="Nejprve otevřete ventily na obou přípojkách" />
 		<text name="warning_spsCloseValveFirst"		text="Před odpojením trubky zavřete ventil" />
 		<text name="sps_laneTransfer"					text="Z cisterny do cisterny" />
+		<text name="sps_laneBowserToTanker"				text="Z cisternového vozu do cisterny" />
+		<text name="sps_laneTankerToBowser"				text="Z cisterny do cisternového vozu" />
 		<text name="warning_spsTransferOtherEmpty"		text="Druhá nádrž je prázdná" />
 		<text name="warning_spsTransferOtherFull"		text="Druhá nádrž je plná" />
 		<text name="warning_spsTransferType"			text="Nádrže obsahují různé kapaliny" />
@@ -290,6 +396,35 @@
 		<text name="configuration_spsPipeEnds"	text="Konce (hadice na kejdu)" />
 		<text name="spsPipe_typeSlurry"		text="Hadice na kejdu 140 mm" />
 		<text name="spsPipe_typeWater"		text="Hadice na vodu 80 mm" />
+		<text name="shopItem_spsBowserPipe"		text="550 Bowser Pipes" />
+		<text name="function_spsBowserPipe"		text="The 550 Water/Chem Bowser's own pipes (physical pipe mode). Suction pipe: start end on the bowser's water inlet, lay the far end in a river or pond and start the pump to fill the tank. Small water hose: bowser inlet to a sprayer's or tanker's water fitting. Wash hose: bowser spray outlet, the pump pours the tank out where the far end lies. Their start ends fit this bowser only." />
+		<text name="spsBowserPipe_suction"		text="Suction pipe (water course)" />
+		<text name="spsBowserPipe_wash"		text="Wash hose" />
+		<text name="spsBowserPipe_small"		text="Small water hose (sprayer / tanker)" />
+		<text name="warning_spsBowserEndNotInWater"		text="Lay the suction pipe's end in the water first" />
+		<text name="shopItem_spsCage"		text="Water Cage" />
+		<text name="function_spsCage"		text="Strainer cage for a pipe end lying in a lake, river or pond. A pipe only draws water with a cage fitted on its free end and the cage under the surface; pushing water out needs none. Small cage: 80 mm water and milk pipes, either end. Large cage: the male end of a slurry pipe. Carry it to the pipe end and join it like another pipe." />
+		<text name="spsCage_small"		text="Small cage (water / milk pipe)" />
+		<text name="spsCage_large"		text="Large cage (slurry pipe, male end)" />
+		<text name="warning_spsAddCage"		text="Fit a water cage on the pipe end first" />
+		<text name="action_spsCageStow"		text="Hang the water cage on holder %d" />
+		<text name="action_spsEngineOn"		text="Start engine" />
+		<text name="action_spsEngineOff"		text="Stop engine" />
+		<text name="action_spsPhysStowBowser"		text="Stow %s on the rack" />
+		<text name="warning_spsBowserInletValve"		text="Open the inlet valve first (R at the pump)" />
+		<text name="warning_spsWashHoldEnd"		text="Pick up the wash hose end to spray" />
+		<text name="action_spsLaySuction"		text="Lay suction pipe here" />
+		<text name="action_spsPickupSuction"		text="Remove suction pipe" />
+		<text name="action_spsReleaseSuction"		text="Release suction pipe" />
+		<text name="action_spsReturnSuction"		text="Put suction pipe back" />
+		<text name="action_spsTakeSuction"		text="Take suction pipe" />
+		<text name="action_spsTakeWash"		text="Take wash hose" />
+		<text name="action_spsReturnWash"		text="Put wash hose back" />
+		<text name="warning_spsSuctionReach"		text="Too far from the bowser for the suction pipe" />
+		<text name="action_spsLancePourOn"		text="Start pouring from the hose" />
+		<text name="action_spsLancePourOff"		text="Stop pouring" />
+		<text name="warning_spsLancePour"		text="Right mouse with the hose end in hand starts the pour" />
+		<text name="warning_spsWashEngineFirst"		text="Start the engine (B) before taking the wash hose" />
 		<text name="spsPipe_typeMilk"		text="Hadice na mléko 80 mm" />
 		<text name="spsPipe_length4"			text="4 m" />
 		<text name="spsPipe_length6"			text="6 m" />
@@ -330,5 +465,20 @@
         <text name="function_spsTowerMixer"		text="Traktorem poháněné míchadlo lagun na sklopné věži. Spusťte podpěry, sklopte rameno do jímky a míchejte kejdu vývodovým hřídelem; potrubí z jeho čerpadla dopraví promíchanou kejdu do cisterny." />
         <text name="sps_hudPipeFlow"		text="Průtok potrubím" />
         <text name="input_SPS_FREE_PIPE"		text="Uvolnit zaseknuté potrubí" />
-	</texts>
+	        <!-- [SPS MKS8 2026-11-10] lane door, tank choice, tube stow -->
+        <text name="action_spsLaneDoorOpen"		text="Open door" />
+        <text name="action_spsLaneDoorClose"	text="Close door" />
+        <text name="warning_spsLaneDoorFirst"	text="Open the door first" />
+        <text name="action_spsLaneTank"			text="Tank: %s" />
+        <text name="sps_tankN"					text="tank %d" />
+        <text name="sps_tankEmpty"				text="empty" />
+        <text name="sps_chemHudTanks"				text="Nádrže" />
+        <text name="action_spsPhysTakeTube"		text="Take pipe out of the tube" />
+        <text name="sps_mks8DoorOpen"			text="Open rear door" />
+        <text name="sps_mks8DoorClose"			text="Close rear door" />
+        <text name="sps_mks8TankFront"			text="front tank" />
+        <text name="sps_mks8TankRear"			text="rear tank" />
+        <text name="sps_mks8DualTankName"		text="MKS 8 Dual Tank SPS" />
+        <text name="sps_mks8DualTankFunction"	text="Two 4,000 l tanks (water, milk, chemicals - each its own), one SPS fitting behind the rear door, two short pipes in the side tubes (grab the end, walk back)." />
+</texts>
 </l10n>

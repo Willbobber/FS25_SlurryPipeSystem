@@ -1529,8 +1529,12 @@ function SPSSettingsSyncEvent.emptyNew()
     return self
 end
 
-function SPSSettingsSyncEvent.new(realismEnabled, thicknessFlow, blockages, lengthFalloff, shearBoltEnabled, ibcPersistWhenEmpty, physicalPipesEnabled)
+function SPSSettingsSyncEvent.new(realismEnabled, thicknessFlow, blockages, lengthFalloff, shearBoltEnabled, ibcPersistWhenEmpty, physicalPipesEnabled, chemMixing, hoseDirtEnabled, hoseDirtSpeed, spillEnabled, chemRatio, chemRinses, washoutValveManual)
     local self = SPSSettingsSyncEvent.emptyNew()
+    self.washoutValveManual  = washoutValveManual == true   -- [SPS CHEM 2026-11-07] washout station valve by hand
+    self.chemRinses          = math.clamp(tonumber(chemRinses) or 3, 1, 3)   -- [SPS CHEM 2026-11-06]
+    self.chemRatio           = math.clamp(tonumber(chemRatio) or 9, 1, 255)   -- [SPS CHEM 2026-11-05]
+    self.spillEnabled        = spillEnabled == true             -- [SPS 1.0.2.0] pipe leakage (default off)
     self.realismEnabled      = realismEnabled ~= false
     self.thicknessFlow       = thicknessFlow ~= false
     self.blockages           = blockages ~= false
@@ -1538,6 +1542,9 @@ function SPSSettingsSyncEvent.new(realismEnabled, thicknessFlow, blockages, leng
     self.shearBoltEnabled    = shearBoltEnabled ~= false
     self.ibcPersistWhenEmpty = ibcPersistWhenEmpty == true
     self.physicalPipesEnabled = physicalPipesEnabled == true   -- [SPS 1.0.1.8] pipe mode
+    self.chemMixing          = chemMixing == true               -- [SPS CHEM]
+    self.hoseDirtEnabled     = hoseDirtEnabled ~= false         -- [SPS 1.0.2.0] pipe dirt on/off
+    self.hoseDirtSpeed       = math.clamp(tonumber(hoseDirtSpeed) or 1.0, 0.1, 5.0)   -- [SPS 1.0.2.0] pipe dirt speed
     return self
 end
 
@@ -1549,6 +1556,13 @@ function SPSSettingsSyncEvent:readStream(streamId, connection)
     self.shearBoltEnabled    = streamReadBool(streamId)
     self.ibcPersistWhenEmpty = streamReadBool(streamId)
     self.physicalPipesEnabled = streamReadBool(streamId)
+    self.chemMixing          = streamReadBool(streamId)
+    self.hoseDirtEnabled     = streamReadBool(streamId)
+    self.hoseDirtSpeed       = streamReadFloat32(streamId)
+    self.spillEnabled        = streamReadBool(streamId)
+    self.chemRatio           = streamReadUInt8(streamId)
+    self.chemRinses          = streamReadUInt8(streamId)
+    self.washoutValveManual  = streamReadBool(streamId)   -- [SPS CHEM 2026-11-07]
     self:run(connection)
 end
 
@@ -1560,6 +1574,13 @@ function SPSSettingsSyncEvent:writeStream(streamId, connection)
     streamWriteBool(streamId, self.shearBoltEnabled)
     streamWriteBool(streamId, self.ibcPersistWhenEmpty)
     streamWriteBool(streamId, self.physicalPipesEnabled)
+    streamWriteBool(streamId, self.chemMixing)
+    streamWriteBool(streamId, self.hoseDirtEnabled)
+    streamWriteFloat32(streamId, self.hoseDirtSpeed)
+    streamWriteBool(streamId, self.spillEnabled == true)
+    streamWriteUInt8(streamId, self.chemRatio or 9)
+    streamWriteUInt8(streamId, self.chemRinses or 3)
+    streamWriteBool(streamId, self.washoutValveManual == true)   -- [SPS CHEM 2026-11-07]
 end
 
 function SPSSettingsSyncEvent:run(connection)
@@ -1588,6 +1609,13 @@ function SPSSettingsSyncEvent:run(connection)
             shearBoltEnabled    = self.shearBoltEnabled,
             ibcPersistWhenEmpty = self.ibcPersistWhenEmpty,
             physicalPipesEnabled = self.physicalPipesEnabled,
+            chemMixing          = self.chemMixing,
+            hoseDirtEnabled     = self.hoseDirtEnabled,
+            hoseDirtSpeed       = self.hoseDirtSpeed,
+            spillEnabled        = self.spillEnabled,
+            chemRatio           = self.chemRatio,
+            chemRinses          = self.chemRinses,
+            washoutValveManual  = self.washoutValveManual,
         })
     end
 end
@@ -1600,7 +1628,8 @@ function SPSSettingsSyncEvent.sendCurrent(connection)
     local ft = mgr.featureToggles or {}
     connection:sendEvent(SPSSettingsSyncEvent.new(
         mgr.realismEnabled, ft.thicknessFlow, ft.blockages, ft.lengthFalloff,
-        mgr.shearBoltEnabled, mgr.ibcPersistWhenEmpty, mgr.physicalPipesEnabled))
+        mgr.shearBoltEnabled, mgr.ibcPersistWhenEmpty, mgr.physicalPipesEnabled, ft.chemMixing,
+        mgr.hoseDirtEnabled, mgr.hoseDirtSpeed, mgr.spillEnabled, ft.chemRatio, ft.chemRinses, ft.washoutValveManual))
 end
 
 function SPSSettingsSyncEvent.sendRequest()
@@ -1612,7 +1641,60 @@ function SPSSettingsSyncEvent.sendRequest()
     local ft = mgr.featureToggles or {}
     spsSendEventToServer(SPSSettingsSyncEvent.new(
         mgr.realismEnabled, ft.thicknessFlow, ft.blockages, ft.lengthFalloff,
-        mgr.shearBoltEnabled, mgr.ibcPersistWhenEmpty, mgr.physicalPipesEnabled))
+        mgr.shearBoltEnabled, mgr.ibcPersistWhenEmpty, mgr.physicalPipesEnabled, ft.chemMixing,
+        mgr.hoseDirtEnabled, mgr.hoseDirtSpeed, mgr.spillEnabled, ft.chemRatio, ft.chemRinses, ft.washoutValveManual))
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.2.0] Leak puddle (server -> clients). One event per puddle create / grow step / removal (litres 0).
+-- Visual only: the server owns the puddle list (SPSSpill), clients mirror it. Also sent in the join dump.
+-- ---------------------------------------------------------------------------
+SPSSpillPuddleEvent = {}
+local SPSSpillPuddleEvent_mt = Class(SPSSpillPuddleEvent, Event)
+InitEventClass(SPSSpillPuddleEvent, "SPSSpillPuddleEvent")
+
+function SPSSpillPuddleEvent.emptyNew()
+    return Event.new(SPSSpillPuddleEvent_mt)
+end
+
+function SPSSpillPuddleEvent.new(id, x, y, z, litres, fillType, len, wid, rotY)
+    local self = SPSSpillPuddleEvent.emptyNew()
+    self.id, self.x, self.y, self.z = id, x, y, z
+    self.litres   = litres or 0
+    self.fillType = fillType or 0
+    self.len, self.wid, self.rotY = len or 0, wid or 0, rotY or 0   -- [SPS CHEM 2026-11-07] strip puddle (len 0 = round)
+    return self
+end
+
+function SPSSpillPuddleEvent:readStream(streamId, connection)
+    self.id       = streamReadUIntN(streamId, 16)
+    self.x        = streamReadFloat32(streamId)
+    self.y        = streamReadFloat32(streamId)
+    self.z        = streamReadFloat32(streamId)
+    self.litres   = streamReadFloat32(streamId)
+    self.fillType = streamReadUIntN(streamId, FillTypeManager.SEND_NUM_BITS or 8)
+    self.len      = streamReadFloat32(streamId)
+    self.wid      = streamReadFloat32(streamId)
+    self.rotY     = streamReadFloat32(streamId)
+    self:run(connection)
+end
+
+function SPSSpillPuddleEvent:writeStream(streamId, connection)
+    streamWriteUIntN(streamId, self.id or 0, 16)
+    streamWriteFloat32(streamId, self.x or 0)
+    streamWriteFloat32(streamId, self.y or 0)
+    streamWriteFloat32(streamId, self.z or 0)
+    streamWriteFloat32(streamId, self.litres or 0)
+    streamWriteUIntN(streamId, self.fillType or 0, FillTypeManager.SEND_NUM_BITS or 8)
+    streamWriteFloat32(streamId, self.len or 0)
+    streamWriteFloat32(streamId, self.wid or 0)
+    streamWriteFloat32(streamId, self.rotY or 0)
+end
+
+function SPSSpillPuddleEvent:run(connection)
+    if connection:getIsServer() and SPSSpill ~= nil and SPSSpill.applyRemote ~= nil then
+        SPSSpill.applyRemote(self.id, self.x, self.y, self.z, self.litres, self.fillType, self.len, self.wid, self.rotY)
+    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -1636,7 +1718,7 @@ function SPSPhysPipeConnectEvent.new(pipe, endIdx, object, isPlaceable, coupling
     self.isPlaceable = isPlaceable == true
     self.couplingId  = couplingId
     self.isLane      = isLane == true      -- [SPS 1.0.1.8] 80 mm lane coupler (liquid-lane registry) vs slurry coupling
-    self.isSprayer   = isSprayer == true   -- [SPS 1.0.1.9] sprayer-system coupler (fert / herb)
+    self.isSprayer   = isSprayer == true   -- [SPS 1.0.2.0] sprayer-system coupler (fert / herb)
     return self
 end
 
@@ -1887,7 +1969,7 @@ function SPSPhysPipeFreeEvent.sendEvent(pipe)
 end
 
 -- ---------------------------------------------------------------------------
--- [SPS 1.0.1.9] Grab hint: WHICH body of a physical pipe the player's hand hit. The game's own
+-- [SPS 1.0.2.0] Grab hint: WHICH body of a physical pipe the player's hand hit. The game's own
 -- HandsPickUpObjectEvent carries only the OBJECT (readStream :26-28 rebuilds the target as object.rootNode), and a
 -- pipe's rootNode is the i3d's FIRST body whatever the component configuration (Vehicle.lua :619; the unused bodies
 -- stay in the scene with rigid body NONE, :672-690). On a dedicated server an F/M pipe was therefore always held by
@@ -1947,6 +2029,50 @@ end
 -- [SPS 1.0.1.8] SPS Docking Station placed on / taken off a vehicle's docking station holder (SPSM_PhysPipes
 -- dsStow / dsUnstow). stow=true: vehicle + holderId; stow=false: off (vehicle nil, holderId 0).
 -- ---------------------------------------------------------------------------
+-- ---------------------------------------------------------------------------
+-- [SPS MKS8 2026-11-10] a pipe sliding out of a TUBE slot: how many bodies are out (server -> clients)
+-- ---------------------------------------------------------------------------
+SPSPhysPipeSlideEvent = {}
+local SPSPhysPipeSlideEvent_mt = Class(SPSPhysPipeSlideEvent, Event)
+InitEventClass(SPSPhysPipeSlideEvent, "SPSPhysPipeSlideEvent")
+
+function SPSPhysPipeSlideEvent.emptyNew()
+    return Event.new(SPSPhysPipeSlideEvent_mt)
+end
+
+function SPSPhysPipeSlideEvent.new(pipe, released)
+    local self = SPSPhysPipeSlideEvent.emptyNew()
+    self.pipe     = pipe
+    self.released = released or 0
+    return self
+end
+
+function SPSPhysPipeSlideEvent:readStream(streamId, connection)
+    self.pipe     = NetworkUtil.readNodeObject(streamId)
+    self.released = streamReadUIntN(streamId, 8)
+    self:run(connection)
+end
+
+function SPSPhysPipeSlideEvent:writeStream(streamId, connection)
+    NetworkUtil.writeNodeObject(streamId, self.pipe)
+    streamWriteUIntN(streamId, self.released or 0, 8)
+end
+
+function SPSPhysPipeSlideEvent:run(connection)
+    if self.pipe ~= nil and self.pipe.spsApplySlide ~= nil then self.pipe:spsApplySlide(self.released) end
+    if not connection:getIsServer() then
+        g_server:broadcastEvent(SPSPhysPipeSlideEvent.new(self.pipe, self.released), false, nil, self.pipe, nil, nil, true)
+    end
+end
+
+function SPSPhysPipeSlideEvent.sendEvent(pipe, released)
+    if g_server ~= nil then
+        g_server:broadcastEvent(SPSPhysPipeSlideEvent.new(pipe, released), nil, nil, pipe, nil, nil, true)
+    else
+        g_client:getServerConnection():sendEvent(SPSPhysPipeSlideEvent.new(pipe, released))
+    end
+end
+
 SPSDsStowEvent = {}
 local SPSDsStowEvent_mt = Class(SPSDsStowEvent, Event)
 InitEventClass(SPSDsStowEvent, "SPSDsStowEvent")
@@ -2004,4 +2130,68 @@ function SPSDsStowEvent.sendEvent(station, vehicle, holderId, stow, noEventSend)
         return
     end
     spsSendEventToServer(SPSDsStowEvent.new(station, vehicle, holderId, stow))
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.2.0 B2] SPSLinePressureEvent
+-- Server -> client only: the real line pressure (signed bar) of ONE HVP flow path - a pipe coupling (partKind 0) or
+-- a fill arm (partKind 1), by its XML id - see SPSM_Pressure tickLinePressure. Sent at the 0.1 bar quantum, on the
+-- return to 0, and in the join-dump for held lines. Clients only store it (the outer gauges read it); the flow gate
+-- runs server-side. Same scoping as SPSPressureStateEvent (vehicle ghost).
+-- ---------------------------------------------------------------------------
+SPSLinePressureEvent = {}
+local SPSLinePressureEvent_mt = Class(SPSLinePressureEvent, Event)
+InitEventClass(SPSLinePressureEvent, "SPSLinePressureEvent")
+
+function SPSLinePressureEvent.emptyNew()
+    local self = Event.new(SPSLinePressureEvent_mt)
+    return self
+end
+
+function SPSLinePressureEvent.new(vehicle, partKind, partId, pressure)
+    local self = SPSLinePressureEvent.emptyNew()
+    self.vehicle  = vehicle
+    self.partKind = partKind
+    self.partId   = partId
+    self.pressure = pressure
+    return self
+end
+
+function SPSLinePressureEvent:readStream(streamId, connection)
+    self.vehicle  = NetworkUtil.readNodeObject(streamId)
+    self.partKind = streamReadUIntN(streamId, 1)
+    self.partId   = streamReadUIntN(streamId, 8)
+    self.pressure = streamReadFloat32(streamId)
+    self:run(connection)
+end
+
+function SPSLinePressureEvent:writeStream(streamId, connection)
+    NetworkUtil.writeNodeObject(streamId, self.vehicle)
+    streamWriteUIntN(streamId, (self.partKind == 1) and 1 or 0, 1)
+    streamWriteUIntN(streamId, math.max(0, math.min(255, self.partId or 0)), 8)
+    streamWriteFloat32(streamId, self.pressure or 0)
+end
+
+function SPSLinePressureEvent:run(connection)
+    -- server -> client only; no rebroadcast (clients never originate line pressure).
+    if self.vehicle ~= nil and g_slurryPipeManager ~= nil then
+        local kind, id, pressure = self.partKind, self.partId, self.pressure
+        g_slurryPipeManager:applyOrDeferVehicleState(self.vehicle, "LinePressureEvent", function(entry, state)
+            local list = (kind == 1) and entry.armEntries or entry.couplingEntries
+            if list == nil then return end
+            for _, part in ipairs(list) do
+                if part.id == id then
+                    part.linePressure = pressure
+                    return
+                end
+            end
+        end)
+    end
+end
+
+function SPSLinePressureEvent.sendEvent(vehicle, partKind, partId, pressure)
+    -- Server only. Scoped to the vehicle ghost so only connections that already know the vehicle receive it.
+    if g_server ~= nil then
+        g_server:broadcastEvent(SPSLinePressureEvent.new(vehicle, partKind, partId, pressure), nil, nil, vehicle, nil, nil, true)
+    end
 end

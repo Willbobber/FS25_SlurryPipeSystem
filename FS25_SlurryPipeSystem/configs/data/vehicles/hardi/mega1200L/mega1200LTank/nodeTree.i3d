@@ -46,9 +46,9 @@
       <TransformGroup name="sprayerPipeCouplers" nodeId="11">
         <TransformGroup name="mega1200LTank_vis" nodeId="12">
           <TransformGroup name="SPS_sprayerPipeCoupler01" translation="0.896573 0.528 -0.268159" rotation="66.6589 90 0" nodeId="13">
-            <TransformGroup name="SPS_sprayerPipeCoupler01Arcs" translation="-1.08183e-07 0 0" rotation="-66.6589 2.03555e-13 -4.07111e-13" nodeId="14">
-              <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="-1 0 3.5" rotation="0 0 6.87363e-05" nodeId="15"/>
-              <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="1 0 3.5" rotation="0 0 -0.000314568" nodeId="16"/>
+            <TransformGroup name="SPS_sprayerPipeCoupler01Arcs" rotation="-66.6589 1.79971e-13 -4.17065e-13" nodeId="14">
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="15"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="16"/>
             </TransformGroup>
             <Shape name="sprayerConnector" shapeId="1" clipDistance="150" nodeId="17" castsShadows="true" receiveShadows="true" materialIds="5">
               <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="18" castsShadows="true" receiveShadows="true" materialIds="6"/>

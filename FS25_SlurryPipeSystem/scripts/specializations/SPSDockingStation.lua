@@ -403,7 +403,7 @@ if HandToolHands ~= nil and HandToolHands.getCanPickUpNode ~= nil and not SPSDoc
 end
 
 -- Hook 2: runs BEFORE HandToolHands.pickUpTarget. A frozen station must be dynamic for the hand joint to move it.
--- [SPS 1.0.1.9] overwritten (was prepended): Utils.prependedFunction drops the return value, and this hook is the OUTER
+-- [SPS 1.0.2.0] overwritten (was prepended): Utils.prependedFunction drops the return value, and this hook is the OUTER
 -- wrapper (spsDockingStation is registered after spsHoseItem in modDesc). HandsPickUpObjectEvent:run (ref :58) reads that
 -- return on the server: nil = "failed" -> HandsPickUpFailedEvent -> the CLIENT let go while the SERVER kept holding, for
 -- every pick-up by a joined player (any object). The server hands then sat on a node that was later deleted.

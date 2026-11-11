@@ -84,6 +84,10 @@ function SPSHoseVisual.loadDefinitions(modDirectory)
                 -- design); true = the settings-menu pipe colour is applied to hose_mat.
                 tintable     = xmlFile:getBool(key .. "#tintable", true),
             }
+            -- [SPS 2026-11-10] #i3d: this hose's shape lives in ANOTHER template file next to hoses.xml (the 550 bowser's
+            -- three pipes, i3d/pipes/bowserHoses.i3d); no attribute = the file named on <hoses i3d=...>
+            local own = xmlFile:getString(key .. "#i3d")
+            if own ~= nil and own ~= "" then SPSHoseVisual.VARIANTS[string.upper(k)].i3dPath = modDirectory .. folder .. own end
             n = n + 1
         else
             print(string.format("[SPS HOSE] loadDefinitions: WARNING hose(%d) needs key= and shape=", idx))
@@ -192,7 +196,10 @@ SPSHoseVisual.LIVE = true
 -- new one is 4.16 m, so a coupling declaring (or defaulting to) 7.5 m would stretch it x1.8.
 -- Work-up 6c (William 2026-10-02): effective reach = min(XML reach, hose reach); nobody edits an
 -- XML, a 7.5 simply behaves as 4.0. Slurry couplings are NOT capped (their reach is already 4.0).
-SPSHoseVisual.REACH_80MM = 4.0
+-- [SPS 2026-11-10] 5.0 m (William): every 80 mm arc is 2.5 m deep, so two arcs nose to nose overlap up to 5 m apex to
+-- apex, and the 4.0 m cap left a 4-5 m band where the arcs overlapped but nothing connected. The 4.16 m hose mesh
+-- stretches x1.2 at full reach (the metal ends stay rigid). Drop = this + SPS_REACH_DROP_MARGIN.
+SPSHoseVisual.REACH_80MM = 5.0
 
 function SPSHoseVisual.capReach80(reach, label)
     if not SPSHoseVisual.LIVE then return reach end
@@ -242,7 +249,7 @@ local function dbg(fmt, ...)
         print("[SPS HOSE] " .. string.format(fmt, ...))
     end
 end
--- [SPS 1.0.1.9] quiet log: say() = routine load / LIVE lines, only with `spsDebug Info on`;
+-- [SPS 1.0.2.0] quiet log: say() = routine load / LIVE lines, only with `spsDebug Info on`;
 -- sayAlways() = errors, warnings and the console report / proof commands.
 local function say(fmt, ...)
     if spsInfoOn ~= nil and spsInfoOn() then print("[SPS HOSE] " .. string.format(fmt, ...)) end
@@ -317,42 +324,62 @@ function SPSHoseVisual:load()
         sayAlways("load: ERROR not found %s", path)
         return
     end
-    local root = loadI3DFile(path)
-    if root == nil or root == 0 then
-        sayAlways("load: ERROR loadI3DFile failed %s", path)
-        return
+    -- [SPS 2026-11-10] one template root per DISTINCT file: hoses.i3d plus every <hose i3d=...> file (bowserHoses.i3d)
+    local roots, byPath = {}, {}
+    local function loadTemplate(p)
+        if byPath[p] ~= nil then return byPath[p] end
+        if p ~= path and not fileExists(p) then
+            sayAlways("load: ERROR not found %s", p)
+            byPath[p] = false
+            return nil
+        end
+        local root = loadI3DFile(p)
+        if root == nil or root == 0 then
+            sayAlways("load: ERROR loadI3DFile failed %s", p)
+            byPath[p] = false
+            return nil
+        end
+        -- Floor ray must never see any SPS hose (same rule as the old pipes).
+        if SPSPipeVisual ~= nil and SPSPipeVisual._stripFloorBitsRec ~= nil then
+            SPSPipeVisual._stripFloorBitsRec(root)
+        end
+        link(getRootNode(), root)
+        setTranslation(root, 0, SPSHoseVisual.TEMPLATE_Y, 0)
+        setVisibility(root, false)
+        -- The template is never played with: take its 52 kinematic capsules out of
+        -- physics (vanilla pairs addToPhysics/removeFromPhysics the same way,
+        -- FenceSegment.lua, HandToolHands.lua). Clones get physics added in place.
+        removeFromPhysics(root)
+        local byName = {}
+        for i = 0, getNumOfChildren(root) - 1 do
+            local c = getChildAt(root, i)
+            byName[getName(c) or ""] = c
+        end
+        local t = { root = root, byName = byName, path = p }
+        byPath[p] = t
+        roots[#roots + 1] = t
+        return t
     end
-    -- Floor ray must never see any SPS hose (same rule as the old pipes).
-    if SPSPipeVisual ~= nil and SPSPipeVisual._stripFloorBitsRec ~= nil then
-        SPSPipeVisual._stripFloorBitsRec(root)
-    end
-    link(getRootNode(), root)
-    setTranslation(root, 0, SPSHoseVisual.TEMPLATE_Y, 0)
-    setVisibility(root, false)
-    -- The template is never played with: take its 52 kinematic capsules out of
-    -- physics (vanilla pairs addToPhysics/removeFromPhysics the same way,
-    -- FenceSegment.lua, HandToolHands.lua). Clones get physics added in place.
-    removeFromPhysics(root)
-    self.templateRoot = root
+    local main = loadTemplate(path)
+    if main == nil then return end
+    self.templateRoot  = main.root
+    self.templateRoots = roots
 
-    local byName = {}
-    for i = 0, getNumOfChildren(root) - 1 do
-        local c = getChildAt(root, i)
-        byName[getName(c) or ""] = c
-    end
     local found = 0
     for key, v in pairs(SPSHoseVisual.VARIANTS) do
-        local shape = byName[v.shape]
+        local t = loadTemplate(v.i3dPath or path)
+        local shape = t ~= nil and t.byName[v.shape] or nil
         if shape ~= nil then
             local d = SPSHoseVisual._describeShape(shape, key, v)
+            d.templatePath = t.path
             self.descriptors[key] = d
             found = found + 1
             say("load: %-5s shape='%s' skinned=%s shapeBones=%d childBones=%d rest=%.3f m first=%s@%.3f last=%s@%.3f end=%s",
                 key, v.shape, tostring(d.skinned), d.numShapeBones, d.numBones, d.restLength,
                 tostring(d.boneNames[1]), d.boneRestZ[1] or -1,
                 tostring(d.boneNames[d.numBones]), d.boneRestZ[d.numBones] or -1, tostring(d.endNodeName))
-        else
-            sayAlways("load: WARNING variant %s: shape '%s' not in %s", key, v.shape, path)
+        elseif t ~= nil then
+            sayAlways("load: WARNING variant %s: shape '%s' not in %s", key, v.shape, t.path)
         end
     end
     local defined = 0
@@ -367,10 +394,13 @@ function SPSHoseVisual:delete()
         self:destroyHose(self.hoses[i])
     end
     self.hoses = {}
-    if valid(self.templateRoot) then delete(self.templateRoot) end
-    self.templateRoot = nil
-    self.descriptors  = {}
-    self._isLoaded    = false
+    for _, t in ipairs(self.templateRoots or {}) do
+        if valid(t.root) then delete(t.root) end
+    end
+    self.templateRoots = nil
+    self.templateRoot  = nil
+    self.descriptors   = {}
+    self._isLoaded     = false
 end
 
 -- ---------------------------------------------------------------------------
@@ -381,7 +411,7 @@ end
 function SPSHoseVisual:_instantiate(d, mode, addPhysics)
     local shape, owner
     if mode == "load" then
-        local path = self.modDirectory .. SPSHoseVisual.FILE
+        local path = d.templatePath or (self.modDirectory .. SPSHoseVisual.FILE)
         local root = loadI3DFile(path)
         if root == nil or root == 0 then return nil end
         if SPSPipeVisual ~= nil and SPSPipeVisual._stripFloorBitsRec ~= nil then SPSPipeVisual._stripFloorBitsRec(root) end
@@ -482,6 +512,7 @@ function SPSHoseVisual:createHose(variantKey, startNode, endNode, opts)
         startNode = startNode, endNodeTarget = endNode,
         startSign = opts.startSign or 1, endSign = opts.endSign or 1,
         noFloor = opts.noFloor == true,   -- shop preview: no terrain/floor clamp (hangar is its own scene)
+        sagFactor = opts.sagFactor,       -- [2026-11-10] per-hose droop (nil = SAG_FACTOR); carried / laid bowser pipes lie on the ground
         _lastPose = nil, _floorCache = nil, _poly = nil,
     }
 
@@ -570,6 +601,41 @@ function SPSHoseVisual:createLaneHose(nodeA, nodeB, fluid, opts)
             key, tostring(fluid or "water"), tostring(getName(nodeA)), tostring(getName(nodeB)), #self.hoses)
     end
     return inst
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 2026-11-10] createKeyedLaneHose — a lane hose of ONE named variant (the 550 bowser's own pipes in
+-- ORIGINAL mode: WT_SUCTION laid to a point, WT_WASH into a player's hands, WT_SMALL to a partner). Same
+-- node convention as createLaneHose: nodeA = the fitting's outNode (hose leaves along its +Z), nodeB = the
+-- end node (hose arrives along its +Z). nil when the variant is not loaded - callers fall back to the lane hose.
+-- ---------------------------------------------------------------------------
+-- opts: startSign (-1 when nodeA is the fitting's inNode / mount: a pipe LEAVES a fitting along its inNode's -Z, the
+-- physical plug convention SPSHoseItem:spsPlaceEnd), physics (false = no kinematic capsules: a hose carried by hand
+-- must not block its carrier), sagFactor (droop as a share of the span; large = the hose lies on the ground).
+function SPSHoseVisual:createKeyedLaneHose(key, nodeA, nodeB, opts)
+    key = string.upper(tostring(key or ""))
+    if self.descriptors[key] == nil then return nil end
+    local o = opts or {}
+    o.mode = o.mode or "clone"
+    if o.physics == nil then o.physics = true end
+    o.startSign, o.endSign = o.startSign or 1, 1
+    local inst = self:createHose(key, nodeA, nodeB, o)
+    if inst ~= nil then
+        inst.liveLane = true
+        say("LIVE: %s hose drawn (keyed) start=%s end=%s, %d hose(s) owned",
+            key, tostring(getName(nodeA)), tostring(getName(nodeB)), #self.hoses)
+    end
+    return inst
+end
+
+function SPSHoseVisual:hasVariant(key)
+    return key ~= nil and self.descriptors[string.upper(tostring(key))] ~= nil
+end
+
+-- rest length (m, start coupling point to far coupling point) of a loaded variant, else nil
+function SPSHoseVisual:variantRestLength(key)
+    local d = key ~= nil and self.descriptors[string.upper(tostring(key))] or nil
+    return d ~= nil and d.restLength or nil
 end
 
 -- ---------------------------------------------------------------------------
@@ -690,7 +756,7 @@ function SPSHoseVisual:updateHose(inst, force)
     if poly == nil then poly = { x = {}, y = {}, z = {}, c = {} }; inst._poly = poly end
     local via = inst.via
     local splitZ, lenA = nil, nil
-    local sag = inst.noFloor and 0 or span * SPSHoseVisual.SAG_FACTOR
+    local sag = inst.noFloor and 0 or span * (inst.sagFactor or SPSHoseVisual.SAG_FACTOR)
     local cps = {}   -- list of cubic control point sets {p0x..p3z}
     if via ~= nil and via[4] > zr[ra] + 0.05 and via[4] < zr[rb] - 0.05 then
         local vx, vy, vz = via[1], via[2], via[3]

@@ -18,6 +18,7 @@
     <File fileId="8" filename="$data/shared/default_specular.png"/>
     <File fileId="11" filename="spsSlurryPipeShader.xml"/>
     <File fileId="14" filename="spsWaterPipeShader.xml"/>
+    <File fileId="15" filename="spsMilkPipeShader.xml"/>
   </Files>
 
 
@@ -32,6 +33,10 @@
       <Normalmap fileId="5"/>
     </Material>
     <Material name="unload_waterPipeEffect_mat" materialId="118" customShaderId="14" customShaderVariation="pipeEffect">
+      <Texture fileId="13"/>
+      <Normalmap fileId="5"/>
+    </Material>
+    <Material name="unload_milkPipeEffect_mat" materialId="120" customShaderId="15" customShaderVariation="pipeEffect">
       <Texture fileId="13"/>
       <Normalmap fileId="5"/>
     </Material>
@@ -51,6 +56,7 @@
     <Shape name="unloadSmoke_materialHolder" shapeId="2" clipDistance="10" nodeId="124" castsShadows="true" receiveShadows="true" materialHolder="true" materialIds="119"/>
     <Shape name="unloadPipe_materialHolder" shapeId="1" clipDistance="10" nodeId="125" castsShadows="true" receiveShadows="true" materialHolder="true" materialIds="117"/>
     <Shape name="unloadWaterPipe_materialHolder " shapeId="1" clipDistance="10" nodeId="126" castsShadows="true" receiveShadows="true" materialHolder="true" materialIds="118"/>
+    <Shape name="unloadMilkPipe_materialHolder" shapeId="1" clipDistance="10" nodeId="127" castsShadows="true" receiveShadows="true" materialHolder="true" materialIds="120"/>
   </Scene>
 
   <UserAttributes>
@@ -68,6 +74,10 @@
     </UserAttribute>
     <UserAttribute nodeId="126">
       <Attribute name="materialName" type="string" value="waterPipe"/>
+      <Attribute name="onCreate" type="scriptCallback" value="MaterialUtil.onCreateBaseMaterial"/>
+    </UserAttribute>
+    <UserAttribute nodeId="127">
+      <Attribute name="materialName" type="string" value="milkPipe"/>
       <Attribute name="onCreate" type="scriptCallback" value="MaterialUtil.onCreateBaseMaterial"/>
     </UserAttribute>
   </UserAttributes>

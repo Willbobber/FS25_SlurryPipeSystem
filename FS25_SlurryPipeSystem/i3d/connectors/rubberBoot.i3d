@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="rubberBoot.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.14"/>
+  </Asset>
+
+  <Files>
+    <File fileId="3" filename="$data/shaders/vehicleShader.xml"/>
+    <File fileId="6" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubberBlack_diffuse.png"/>
+    <File fileId="5" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_normal.png"/>
+    <File fileId="4" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_specular.png"/>
+  </Files>
+
+
+  <Materials>
+    <Material name="frc_rubberBlackHoses_mat" materialId="1797" diffuseColor="0.8 0.8 0.8 1" specularColor="0.501961 1 0" customShaderId="3">
+      <Custommap name="detailSpecular" fileId="4"/>
+      <Custommap name="detailNormal" fileId="5"/>
+      <Custommap name="detailDiffuse" fileId="6"/>
+      <CustomParameter name="colorScale" value="0.01 0.01 0.01"/>
+      <CustomParameter name="porosity" value="0.5"/>
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="rubberBoot.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <Shape name="rubberBoot" shapeId="1" clipDistance="300" nodeId="1800" castsShadows="true" receiveShadows="true" skinBindNodeIds="1805 1802" materialIds="1797">
+      <TransformGroup name="fillarmConnectNode" translation="-1.63312e-08 0.25 -4.76837e-07" nodeId="1801">
+        <TransformGroup name="rubberBootUpper" translation="0 0.130105 0" rotation="2.50448e-06 -0 0" nodeId="1802"/>
+      </TransformGroup>
+      <TransformGroup name="rubberBootLower" translation="-1.63312e-08 0.059032 -4.76837e-07" rotation="2.50448e-06 -0 0" nodeId="1805"/>
+      <TransformGroup name="SPS_rubberBootUpper01" translation="0 0.3801 0" nodeId="1804"/>
+      <TransformGroup name="SPS_rubberBootLower01" translation="0 0.059032 0" nodeId="1803"/>
+    </Shape>
+  </Scene>
+
+  <UserAttributes>
+    <UserAttribute nodeId="1800">
+      <Attribute name="originalNodeId" type="integer" value="2"/>
+    </UserAttribute>
+  </UserAttributes>
+
+</i3D>

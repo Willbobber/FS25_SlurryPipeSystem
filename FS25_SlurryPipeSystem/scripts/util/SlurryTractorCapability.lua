@@ -78,7 +78,6 @@ function SlurryTractorCapability._ensureList()
         idx = idx + 1
     end
     xmlFile:delete()
-    --print("[SPS CAP] loaded " .. tostring(count) .. " tractor entries from spsVehList.xml")
 end
 
 -- ---------------------------------------------------------------------------
@@ -186,11 +185,6 @@ function SlurryTractorCapability.consoleCap()
     local tractor = SlurryTractorCapability.resolveTractor(vehicle)
     local caps, src = SlurryTractorCapability.getForImplement(vehicle)
 
-    --print("[SPS CAP] current vehicle : " .. tostring(vehicle.configFileName))
-    --print("[SPS CAP] resolved tractor: " .. tostring(tractor ~= nil and tractor.configFileName or "nil"))
-    --print("[SPS CAP] source          : " .. tostring(src))
-    --print(string.format("[SPS CAP] caps -> pto=%s hydraulics=%s lift=%s",
-    --    tostring(caps.pto), tostring(caps.hydraulics), tostring(caps.lift)))
     return "[SPS CAP] done — see lines above"
 end
 

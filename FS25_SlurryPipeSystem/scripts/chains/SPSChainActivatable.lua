@@ -59,7 +59,17 @@ end
 
 function SPSChainActivatable:getIsActivatable()
     if g_localPlayer == nil then return false end
-    if g_slurryPipeManager ~= nil and g_slurryPipeManager.physicalPipesEnabled == true then return false end   -- [SPS 1.0.1.8] pipe mode: physical pipes only
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.physicalPipesEnabled == true then
+        -- [SPS 1.0.1.8] pipe mode: physical pipes only - every drawn-pipe prompt stays off.
+        -- [SPS 1.0.2.0] EXCEPT deploy / retract of a deployable store coupling (hatch stores): this anchor prompt is
+        -- the only place onCouplingDeploy is reachable, and _physCouplingFree refuses an undeployed coupling, so
+        -- without it a hatch store could never take a hose in pipe mode (player report 2026-11-02). Short press is
+        -- ignored in pipe mode (see _onShortPress); long press deploys / retracts as in the standard mode.
+        if self.arcIndex ~= 0 or self.coupling == nil or not self.coupling.deployable then return false end
+        if self.coupling.isConnected or self.coupling.physPipe ~= nil then return false end
+        local physState = self:_getState()
+        if physState ~= "deployCoupling" and physState ~= "deployedCoupling" then return false end
+    end
     local node = self:_getNode()
     if node == nil or node == 0 or not entityExists(node) then return false end
     -- AI guard: hide activatable if either end of this chain (anchor coupling,
@@ -221,6 +231,9 @@ function SPSChainActivatable:_onActivateInput(actionName, inputValue, callbackSt
 end
 
 function SPSChainActivatable:_onShortPress()
+    -- [SPS 1.0.2.0] pipe mode: the anchor prompt only exists for deploy / retract (long press) - a short press must
+    -- never start a drawn pipe ("deployedCoupling" would call onChainStartLaying)
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.physicalPipesEnabled == true then return end
     local state = self:_getState()
     SPSChainActivatable.log("shortPress: arc=%s isEnd=%s state=%s",
         tostring(self.arcIndex), tostring(self.isEndActivatable), tostring(state))
@@ -574,9 +587,6 @@ function SPSChainActivatable:_getState()
         if self.coupling ~= nil and self.coupling.isConnected then
             -- Still allow finalise if a live pipe is being walked
             if self.chain == nil or self.chain.liveSegment == nil then
-                --SlurryDebug.log(string.format(
-                --    "_getState: layFirstPipe refused — coupling id=%s already isConnected",
-                --    tostring(self.coupling.id)))
                 return nil
             end
         end
@@ -605,9 +615,6 @@ function SPSChainActivatable:_getState()
             -- in getIsActivatable.
             if self.coupling ~= nil and self.coupling.placeable == nil and g_slurryPipeManager ~= nil then
                 if g_slurryPipeManager:findOverlappingCoupler(self.coupling) ~= nil then
-                    --SlurryDebug.log(string.format(
-                    --    "_getState: layFirstPipe refused — coupling id=%s has overlapping connectable coupler",
-                    --    tostring(self.coupling.id)))
                     return nil  -- Block: a connectable coupler overlaps — offer connect instead
                 end
             end
@@ -626,9 +633,6 @@ function SPSChainActivatable:_getState()
             -- in getIsActivatable.
             if self.coupling ~= nil and self.coupling.placeable == nil and g_slurryPipeManager ~= nil then
                 if g_slurryPipeManager:findOverlappingCoupler(self.coupling) ~= nil then
-                    --SlurryDebug.log(string.format(
-                    --    "_getState: layFirstPipe refused (no-seg path) — coupling id=%s has overlapping connectable coupler",
-                    --    tostring(self.coupling.id)))
                     return nil  -- Block: a connectable coupler overlaps — offer connect instead
                 end
             end
@@ -745,9 +749,6 @@ function SPSChainActivatable:_getState()
         -- removal, otherwise the final chainStart segment can never be removed and it
         -- re-broadcasts as a residual segment to every peer (host/guest desync on restart).
         if self.chain == nil or (self.chain.localStart == true and self.chain.anchorCoupling ~= nil) then
-            --print(string.format(
-            --    "[SPS] _getState arcIndex==1: suppress remove — chain=%s localStart=%s",
-            --    tostring(self.chain ~= nil), tostring(self.chain and self.chain.localStart)))
             return nil
         end
     end

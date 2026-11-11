@@ -14,6 +14,9 @@
         
 		<!-- Settings menu -->
 		<text name="sps_settingsHeader"            		text="SLURRY PIPE SYSTEM" />
+		<text name="sps_settingsSectionGeneral"  text="Slurry Pipe System - General" />
+		<text name="sps_settingsSectionSlurry"   text="Slurry Pipe System - Slurry" />
+		<text name="sps_settingsSectionSprayers" text="Slurry Pipe System - Sprayers" />
 		<text name="sps_settingsSlurryPipe"        		text="Slurry Pipe" />
 		<text name="sps_settingsSlurryPipeTooltip" 		text="Select pipe colour" />
 		
@@ -43,6 +46,7 @@
         <text name="action_spsConnectPipe" 				text="Connect pipe"/>
 		<text name="action_spsDisconnectOrOpenValve" 	text="Disconnect [R] | Open valve [hold R]"/>
 		<text name="action_spsCloseValve" 				text="Close valve [hold R]"/>
+		<text name="action_spsOpenValve" 				text="Open valve [hold R]"/>
 		<text name="warning_slurryCloseValveFirst" 		text="Close valve before disconnecting"/>
 		<text name="action_spsLayFirstPipe"         	text="Lay first pipe" />
 		<text name="action_spsLayPipe"              	text="Lay pipe | Place docking station [hold R]" />
@@ -118,14 +122,27 @@
         <text name="sps_infoTankEmpty"               text="Empty" />
         <text name="shopItem_spsSprayerSilo"        text="Sprayer Silo (4 tanks, SPS)" />
         <text name="function_spsSprayerSilo"        text="Four separate liquid tanks behind one SPS pipe connection. Walk into the switch box to choose the tank; any liquid fertiliser or herbicide, each tank locks to what it holds until empty. Pipe-only: no drive-under loading." />
+        <text name="shopItem_spsWashoutStation"     text="Sprayer Washout Station (SPS)" />
+        <text name="function_spsWashoutStation"     text="A grated washout bay with an 80 mm hose fitting. Connect a sprayer's water hose and set it to unload: the rinse water from a washout goes down the grate and is treated away over time. A sprayer can also draw rinse water back out of it." />
 		
 		<!-- Water -->
 		<text name="warning_spsPipeTooShort"			text="Pipe too short (minimum 2m)" />
 		
 		<!-- Sprayer -->
 		<text name="input_SPS_TOGGLE_ANIMATION_SPRAYER"	text="Open Cover | Close Cover" />
+		<text name="input_SPS_TOGGLE_ANIMATION"	text="SPS: walk-up animation (spout etc.)" />
+		<text name="input_SPS_BOWSER_HOSE"	text="SPS: bowser wash hose - take / put back" />
+		<text name="warning_spsChemBowlFirst"	text="Fold in the chem bowl first" />
+		<text name="warning_spsOpenDoorFirst"	text="Open the chem station door first" />
+		<text name="warning_spsChemDoor"	text="Open the chem station door first" />
+		<text name="warning_spsChemBowl"	text="Fold out the chem bowl to add chemical" />
+		<text name="warning_spsChemUseBowl"	text="Pour the chemical into the bowl" />
+		<text name="warning_spsChemWashout"	text="Wash out first" />
+		<text name="action_spsSpoutOut"			text="Rotate spout out" />
+		<text name="action_spsSpoutBack"			text="Rotate spout back" />
 		<text name="input_SPS_TOGGLE_PUMP_SPRAYER"		text="Start Flow | Stop Flow" />
 		<text name="input_SPS_TOGGLE_DIRECTION_SPRAYER"	text="Load | Unload" />
+		<text name="input_SPS_SELECT_TANK"				text="Next tank" />
 		<text name="action_sprayerCoverClosed"			text="Cover: CLOSED" />
 		<text name="action_sprayerCoverOpen"			text="Cover: OPEN" />
 		<text name="action_sprayerFlowOff"				text="Flow: STOPPED" />
@@ -149,21 +166,21 @@
 		<text name="sps_hudEditHint"         			text="Drag to move  -  Scroll to scale  -  Middle-click to lock" />
 		<text name="action_spsHudEdit"       			text="Move spreader HUD" />
 		<!-- SPS spreader HUD settings -->
-		<text name="sps_hudSettingsHeader"   			text="Spreader HUD" />
-		<text name="sps_hudSetEnabled"       			text="DB readout" />
+		<text name="sps_hudSettingsHeader"   			text="Slurry Pipe System - Spreader HUD" />
+		<text name="sps_hudSetEnabled"       			text="Spreader HUD" />
 		<text name="sps_hudSetEnabledTooltip"			text="Show the spreader HUD (DB icon, slurry details and section cells) at the top of the screen." />
-		<text name="sps_hudSetImage"         			text="DB image" />
+		<text name="sps_hudSetImage"         			text="    DB image" />
 		<text name="sps_hudSetImageTooltip"  			text="Show the dribble-bar image on the spreader HUD." />
-		<text name="sps_hudSetFill"          			text="Show slurry level" />
-		<text name="sps_hudSetCrust"         			text="Show crust" />
-		<text name="sps_hudSetThick"         			text="Show thickness" />
-		<text name="sps_hudSetRisk"          			text="Show blockage risk" />
-		<text name="sps_hudSetPump"          			text="Show pump / pressure" />
+		<text name="sps_hudSetFill"          			text="    Show slurry level" />
+		<text name="sps_hudSetCrust"         			text="    Show crust" />
+		<text name="sps_hudSetThick"         			text="    Show thickness" />
+		<text name="sps_hudSetRisk"          			text="    Show blockage risk" />
+		<text name="sps_hudSetPump"          			text="    Show pump / pressure" />
 		<text name="sps_hudSetFieldTooltip"  			text="Show or hide this row on the spreader HUD." />
 		<text name="warning_spsFoldIsSpsControlled" 	text="The pump changeover is controlled by the Slurry Pipe System" />
-		<text name="sps_hudSetHideHelp"      			text="Hide with help menu (F1)" />
+		<text name="sps_hudSetHideHelp"      			text="    Hide with help menu (F1)" />
 		<text name="sps_hudSetHideHelpTooltip" 		text="Yes: the SPS HUD hides together with the help menu when F1 is pressed. No: it stays on screen." />
-		<text name="sps_hudSetScale"         			text="HUD scale" />
+		<text name="sps_hudSetScale"         			text="    HUD scale" />
 		<text name="sps_hudSetScaleTooltip"  			text="Size of the spreader HUD. Can also be changed with the scroll wheel while moving the HUD." />
 		<text name="sps_hudPressure" 					text="Pressure"/>
 		<text name="input_SPS_HUD_EDIT"          		text="Edit spreader HUD" />
@@ -195,6 +212,93 @@
 		<text name="sps_settingsIbcPersistTooltip" 		text="Yes: emptied IBCs stay on the map (return to store or refill them). No: they disappear when emptied (default)."/>
 		<text name="sps_settingsPhysicalPipes" 			text="Physical Pipes"/>
 		<text name="sps_settingsPhysicalPipesTooltip" 	text="No: original system - lay and connect pipes at the couplings, chains, sprayer and water/milk lanes; the bought pipes are hidden in the shop. Yes: physical pipes only - buy pipes in the shop, carry them with your hands; every original pipe prompt is switched off. The two systems never run together."/>
+		<text name="sps_settingsChemMixing"			text="Chem Mixing (sprayers)"/>
+		<text name="sps_settingsChemMixingTooltip"	text="Yes: chemicals bought in the shop are concentrate - pour it into the chem bowl (or any sprayer's tank) and add water to the set ratio; one chemical at a time, wash out with water to change. No: fill straight from silo or IBC as standard"/>
+		<text name="fillType_liquidFertilizerConc" text="Liquid fertilizer concentrate"/>
+		<text name="fillType_herbicideConc" text="Herbicide concentrate"/>
+		<text name="sps_chemConcTitle" text="%s concentrate"/>
+		<text name="sps_chemStoreConcName" text="%s (concentrate)"/>
+		<text name="sps_settingsChemRatio" text="    Chem mix ratio"/>
+		<text name="sps_settingsChemRatioTooltip" text="Water parts per part of concentrate. Chemicals bought in the shop (IBC, canister, barrel) are concentrate and priced to match; buying stations sell ready mix"/>
+		<text name="warning_spsDoorPipe" text="Take the pipe off before closing the door"/>
+		<text name="sps_chemHudReadyMix" text="Ready mix"/>
+		<text name="sps_chemHudTitle" text="Chem mix"/>
+		<text name="sps_chemHudEmpty" text="Empty"/>
+		<text name="sps_chemHudDirty" text="Tank dirty with %s - wash out first"/>
+		<text name="sps_chemHudWashout" text="Water / washout"/>
+		<text name="sps_chemHudWater" text="Water"/>
+		<text name="sps_chemHudWashing" text="Washing out %s"/>
+		<text name="sps_chemHudTarget" text="target"/>
+		<text name="sps_chemHudConc" text="Concentrate"/>
+		<text name="sps_chemHudMix" text="Mix"/>
+		<text name="sps_chemHudAddWater" text="Add water"/>
+		<text name="sps_chemHudAddConc" text="Add concentrate"/>
+		<text name="input_SPS_CHEM_WASHOUT" text="Sprayer washout"/>
+		<text name="action_spsChemWashout" text="Wash out sprayer (rinse %d of %d)"/>
+		<text name="action_spsChemWashoutStop" text="Stop washout"/>
+		<text name="action_sprayerDirLoadRinse" text="Direction: LOAD rinse tank"/>
+		<text name="sps_settingsChemRinses" text="    Washout rinses"/>
+		<text name="sps_settingsChemRinsesTooltip" text="How many rinses a sprayer washout needs before the tank counts as clean (each rinse must be emptied before the next)"/>
+		<text name="sps_settingsWashoutValve" text="    Washout station valve"/>
+		<text name="sps_settingsWashoutValveTooltip" text="Automatic: the station valve follows the washout cycle and the sprayer's load / unload setting. By hand: the player flips it at the station (clean water in / dirty water out) and the washout waits for it."/>
+		<text name="sps_settingsWashoutValveAuto" text="Automatic"/>
+		<text name="sps_settingsWashoutValveManual" text="By hand"/>
+		<text name="warning_spsWashClean" text="The tank is clean - no washout needed"/>
+		<text name="warning_spsWashChemIn" text="Empty the tank first (it holds %s)"/>
+		<text name="warning_spsWashDrain" text="Empty the rinse water first: spray it out or pump it off"/>
+		<text name="warning_spsWashField" text="Wash out in a field or at a washout point"/>
+		<text name="warning_spsWashFold" text="Unfold the boom first"/>
+		<text name="warning_spsWashWaterTank" text="The rinse tank needs %d l of water"/>
+		<text name="warning_spsWashWaterPipe" text="Connect a washout station, or add %d l of clean water to the tank by pipe first"/>
+		<text name="warning_spsWashContam" text="Not washed out: %s residue is in the new mix - it may damage the crop"/>
+		<text name="sps_washDlgTitle" text="Sprayer washout"/>
+		<text name="sps_washDlgNext" text="Rinse %d of %d done. Start the next rinse?"/>
+		<text name="sps_washDlgNextYes" text="Next rinse"/>
+		<text name="sps_washDlgFold" text="Fold boom"/>
+		<text name="sps_washDlgClean" text="Washout complete - the tank is clean. Fold the boom?"/>
+		<text name="sps_washDlgLeave" text="Leave unfolded"/>
+		<text name="sps_chemHudRinse" text="Rinse %d of %d"/>
+		<text name="sps_chemHudPhasePrep" text="Unfolding the boom"/>
+		<text name="sps_chemHudPhaseTank" text="Flushing the tank"/>
+		<text name="sps_chemHudPhaseBoom" text="Flushing the boom"/>
+		<text name="sps_chemHudPhaseFinal" text="Final tank flush"/>
+		<text name="sps_chemHudPhaseDrain" text="Rinse water out through the nozzles"/>
+		<text name="sps_chemHudPhaseReturn" text="Dirty water back to the washout station"/>
+		<text name="sps_chemHudStation" text="Washout station"/>
+		<text name="sps_chemHudValveClean" text="valve: clean water in"/>
+		<text name="sps_chemHudValveDirty" text="valve: dirty water out"/>
+		<text name="sps_chemHudValveManual" text="(set by hand)"/>
+		<text name="action_spsWashValveClean" text="Station valve: clean water in"/>
+		<text name="action_spsWashValveDirty" text="Station valve: dirty water out"/>
+		<text name="warning_spsWashValveClean" text="Set the washout station valve to clean water in"/>
+		<text name="warning_spsWashValveDirty" text="Set the washout station valve to dirty water out"/>
+		<text name="sps_chemHudDrainPaused" text="Paused - press Wash out"/>
+		<text name="sps_chemHudRinsesDone" text="Rinses done"/>
+		<text name="sps_chemHudPoorRinse" text="Poor rinse - use Wash out and do it again"/>
+		<text name="sps_chemHudResidue" text="Residue left"/>
+		<text name="sps_chemHudRinseTank" text="Rinse tank"/>
+		<text name="sps_chemHudEmptyClean" text="Empty - clean"/>
+		<text name="sps_chemHudPipeFills" text="Pipe fills"/>
+		<text name="sps_chemHudMainTank" text="Main tank"/>
+		<text name="sps_chemHudContam" text="%s residue in the mix"/>
+		<text name="sps_chemBandWeak" text="Too weak"/>
+		<text name="sps_chemBandGood" text="Good"/>
+		<text name="sps_chemBandStrong" text="Strong"/>
+		<text name="sps_chemBandDouble" text="Double dose"/>
+		<text name="sps_chemBandScorch" text="Scorch"/>
+		<text name="sps_chemBandFlatten" text="Crop kill"/>
+		<text name="sps_chemInfoMix" text="Mix strength"/>
+		<text name="sps_chemInfoConc" text="Concentrate"/>
+		<text name="warning_spsChemWeak" text="Mix too weak - nothing applied, add concentrate or make another pass"/>
+		<text name="warning_spsChemScorch" text="Mix far too strong - the crop is scorched"/>
+		<text name="warning_spsChemKill" text="Mix far too strong - the crop is being destroyed"/>
+		<text name="warning_spsChemContamDamage" text="%s residue in the mix is damaging the crop - wash out"/>
+		<text name="sps_settingsHoseDirt"			text="Pipe dirt"/>
+		<text name="sps_settingsHoseDirtTooltip"	text="Yes: the physical pipes build dirt while in use and lying about (wash them with rain or the pressure washer). No: the pipes never get dirty; switching to No cleans every pipe once."/>
+		<text name="sps_settingsHoseDirtSpeed"		text="    Pipe dirt speed"/>
+		<text name="sps_settingsHoseDirtSpeedTooltip"	text="How fast the physical pipes get dirty: 1x = the pipe's own rate, 0.25x = four times slower, 3x = three times faster."/>
+		<text name="sps_settingsSpill"				text="Pipe leakage"/>
+		<text name="sps_settingsSpillTooltip"		text="Yes: a physical pipe whose free end lies on the ground counts as connected - open the tanker valve and the slurry runs out onto the ground, leaving a puddle (valves need the pipe lying within 1.5 m of the ground). No: the valve stays shut until the pipe is plugged in."/>
 		<text name="sps_pipeModeTitle" 	text="Slurry Pipe System - choose your pipe system"/>
 		<text name="sps_pipeModeQuestion" 	text="Which pipe system do you want to use in this game?&#xA;&#xA;ORIGINAL: lay and connect pipes at the couplings, chains, sprayers and water/milk lanes as before.&#xA;PHYSICAL (new): buy pipes in the shop, carry them with your hands; the original lay/connect system is switched off.&#xA;&#xA;The two never run together. You can change this later under Settings > Physical Pipes."/>
 		<text name="sps_pipeModeExisting" 	text="This game already has %s."/>
@@ -261,6 +365,8 @@
 		<text name="warning_spsFittingValveClosed"		text="Open the valves at both fittings first" />
 		<text name="warning_spsCloseValveFirst"		text="Close the valve before unplugging the pipe" />
 		<text name="sps_laneTransfer"					text="Tanker to tanker" />
+		<text name="sps_laneBowserToTanker"				text="Bowser to tanker" />
+		<text name="sps_laneTankerToBowser"				text="Tanker to bowser" />
 		<text name="warning_spsTransferOtherEmpty"		text="The other tank is empty" />
 		<text name="warning_spsTransferOtherFull"		text="The other tank is full" />
 		<text name="warning_spsTransferType"			text="The tanks hold different liquids" />
@@ -290,6 +396,35 @@
 		<text name="configuration_spsPipeEnds"	text="Ends (slurry pipe)" />
 		<text name="spsPipe_typeSlurry"		text="Slurry pipe 140 mm" />
 		<text name="spsPipe_typeWater"		text="Water hose 80 mm" />
+		<text name="shopItem_spsBowserPipe"		text="550 Bowser Pipes" />
+		<text name="function_spsBowserPipe"		text="The 550 Water/Chem Bowser's own pipes (physical pipe mode). Suction pipe: start end on the bowser's water inlet, lay the far end in a river or pond and start the pump to fill the tank. Small water hose: bowser inlet to a sprayer's or tanker's water fitting. Wash hose: bowser spray outlet, the pump pours the tank out where the far end lies. Their start ends fit this bowser only." />
+		<text name="spsBowserPipe_suction"		text="Suction pipe (water course)" />
+		<text name="spsBowserPipe_wash"		text="Wash hose" />
+		<text name="spsBowserPipe_small"		text="Small water hose (sprayer / tanker)" />
+		<text name="warning_spsBowserEndNotInWater"		text="Lay the suction pipe's end in the water first" />
+		<text name="shopItem_spsCage"		text="Water Cage" />
+		<text name="function_spsCage"		text="Strainer cage for a pipe end lying in a lake, river or pond. A pipe only draws water with a cage fitted on its free end and the cage under the surface; pushing water out needs none. Small cage: 80 mm water and milk pipes, either end. Large cage: the male end of a slurry pipe. Carry it to the pipe end and join it like another pipe." />
+		<text name="spsCage_small"		text="Small cage (water / milk pipe)" />
+		<text name="spsCage_large"		text="Large cage (slurry pipe, male end)" />
+		<text name="warning_spsAddCage"		text="Fit a water cage on the pipe end first" />
+		<text name="action_spsCageStow"		text="Hang the water cage on holder %d" />
+		<text name="action_spsEngineOn"		text="Start engine" />
+		<text name="action_spsEngineOff"		text="Stop engine" />
+		<text name="action_spsPhysStowBowser"		text="Stow %s on the rack" />
+		<text name="warning_spsBowserInletValve"		text="Open the inlet valve first (R at the pump)" />
+		<text name="warning_spsWashHoldEnd"		text="Pick up the wash hose end to spray" />
+		<text name="action_spsLaySuction"		text="Lay suction pipe here" />
+		<text name="action_spsPickupSuction"		text="Remove suction pipe" />
+		<text name="action_spsReleaseSuction"		text="Release suction pipe" />
+		<text name="action_spsReturnSuction"		text="Put suction pipe back" />
+		<text name="action_spsTakeSuction"		text="Take suction pipe" />
+		<text name="action_spsTakeWash"		text="Take wash hose" />
+		<text name="action_spsReturnWash"		text="Put wash hose back" />
+		<text name="warning_spsSuctionReach"		text="Too far from the bowser for the suction pipe" />
+		<text name="action_spsLancePourOn"		text="Start pouring from the hose" />
+		<text name="action_spsLancePourOff"		text="Stop pouring" />
+		<text name="warning_spsLancePour"		text="Right mouse with the hose end in hand starts the pour" />
+		<text name="warning_spsWashEngineFirst"		text="Start the engine (B) before taking the wash hose" />
 		<text name="spsPipe_typeMilk"		text="Milk hose 80 mm" />
 		<text name="spsPipe_length4"			text="4 m" />
 		<text name="spsPipe_length6"			text="6 m" />
@@ -330,5 +465,20 @@
         <text name="function_spsTowerMixer"		text="A tractor-driven lagoon mixer on a folding tower. Lower the legs, fold the boom into the store and mix the slurry with the PTO; a pipe from its pump moves the mixed slurry to a tanker." />
         <text name="sps_hudPipeFlow"		text="Pipe flow" />
         <text name="input_SPS_FREE_PIPE"		text="Free stuck pipe" />
-	</texts>
+	        <!-- [SPS MKS8 2026-11-10] lane door, tank choice, tube stow -->
+        <text name="action_spsLaneDoorOpen"		text="Open door" />
+        <text name="action_spsLaneDoorClose"	text="Close door" />
+        <text name="warning_spsLaneDoorFirst"	text="Open the door first" />
+        <text name="action_spsLaneTank"			text="Tank: %s" />
+        <text name="sps_tankN"					text="tank %d" />
+        <text name="sps_tankEmpty"				text="empty" />
+        <text name="sps_chemHudTanks"				text="Tanks" />
+        <text name="action_spsPhysTakeTube"		text="Take pipe out of the tube" />
+        <text name="sps_mks8DoorOpen"			text="Open rear door" />
+        <text name="sps_mks8DoorClose"			text="Close rear door" />
+        <text name="sps_mks8TankFront"			text="front tank" />
+        <text name="sps_mks8TankRear"			text="rear tank" />
+        <text name="sps_mks8DualTankName"		text="MKS 8 Dual Tank SPS" />
+        <text name="sps_mks8DualTankFunction"	text="Two 4,000 l tanks (water, milk, chemicals - each its own), one SPS fitting behind the rear door, two short pipes in the side tubes (grab the end, walk back)." />
+</texts>
 </l10n>

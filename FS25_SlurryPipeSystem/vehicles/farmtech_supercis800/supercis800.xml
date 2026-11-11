@@ -1,0 +1,669 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<vehicle type="manureBarrel" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../shared/xml/schema/vehicle.xsd">
+    <annotation>Base vehicle Copyright (C) GIANTS Software GmbH. SPS build by Oscar Mods.</annotation>
+
+    <storeData>
+        <name>Supercis 800 SPS</name>
+        <specs>
+            <neededPower>80</neededPower>
+            <workingWidth>15</workingWidth>
+        </specs>
+        <functions>
+            <function>$l10n_function_slurrySpreader</function>
+        </functions>
+        <image>$data/vehicles/farmtech/supercis800/store_supercis800.png</image>
+        <price>33000</price>
+        <lifetime>600</lifetime>
+        <rotation>0</rotation>
+        <brand>SPS</brand>
+        <category>slurryTanks</category>
+        <shopTranslationOffset>0 -0.002 0</shopTranslationOffset>
+        <shopRotationOffset>-3.56 0 0</shopRotationOffset>
+        <vertexBufferMemoryUsage>1214208</vertexBufferMemoryUsage>
+        <indexBufferMemoryUsage>352256</indexBufferMemoryUsage>
+        <textureMemoryUsage>524288</textureMemoryUsage>
+        <instanceVertexBufferMemoryUsage>0</instanceVertexBufferMemoryUsage>
+        <instanceIndexBufferMemoryUsage>0</instanceIndexBufferMemoryUsage>
+        <audioMemoryUsage>0</audioMemoryUsage>
+    </storeData>
+
+    <base>
+        <typeDesc>$l10n_typeDesc_manureBarrel</typeDesc>
+        <filename>vehicles/farmtech_supercis800/supercis800.i3d</filename>
+        <size width="2.95" length="7.3" height="2.9" lengthOffset="1.15"/>
+        <speedLimit value="16" />
+        <components maxMass="10500">
+            <component centerOfMass="0 0.75 0.7" solverIterationCount="20" mass="2175"/>
+        </components>
+        <schemaOverlay attacherJointPosition="0 0" name="IMPLEMENT" />
+        <mapHotspot type="TRAILER" />
+    </base>
+
+    <designConfigurations title="Couplers">
+        <designConfiguration name="Left + Right">
+            <objectChange node="couplerLeft"  visibilityActive="true"/>
+            <objectChange node="couplerRight" visibilityActive="true"/>
+            <objectChange node="couplerRear"  visibilityActive="false"/>
+        </designConfiguration>
+        <designConfiguration name="Left + Right + Rear" price="400">
+            <objectChange node="couplerLeft"  visibilityActive="true"/>
+            <objectChange node="couplerRight" visibilityActive="true"/>
+            <objectChange node="couplerRear"  visibilityActive="true"/>
+        </designConfiguration>
+        <designConfiguration name="Left only">
+            <objectChange node="couplerLeft"  visibilityActive="true"/>
+            <objectChange node="couplerRight" visibilityActive="false"/>
+            <objectChange node="couplerRear"  visibilityActive="false"/>
+        </designConfiguration>
+        <designConfiguration name="Right only">
+            <objectChange node="couplerLeft"  visibilityActive="false"/>
+            <objectChange node="couplerRight" visibilityActive="true"/>
+            <objectChange node="couplerRear"  visibilityActive="false"/>
+        </designConfiguration>
+        <designConfiguration name="Rear only" price="400">
+            <objectChange node="couplerLeft"  visibilityActive="false"/>
+            <objectChange node="couplerRight" visibilityActive="false"/>
+            <objectChange node="couplerRear"  visibilityActive="true"/>
+        </designConfiguration>
+        <designConfiguration name="Left + Rear" price="400">
+            <objectChange node="couplerLeft"  visibilityActive="true"/>
+            <objectChange node="couplerRight" visibilityActive="false"/>
+            <objectChange node="couplerRear"  visibilityActive="true"/>
+        </designConfiguration>
+        <designConfiguration name="Right + Rear" price="400">
+            <objectChange node="couplerLeft"  visibilityActive="false"/>
+            <objectChange node="couplerRight" visibilityActive="true"/>
+            <objectChange node="couplerRear"  visibilityActive="true"/>
+        </designConfiguration>
+    </designConfigurations>
+
+    <wheels>
+        <wheelConfigurations tireCategories="TRAILER">
+            <wheelConfiguration name="$l10n_configuration_valueDefault" price="0" saveId="DEFAULT" numDynamicConfigurations="1">
+                <wheels>
+                    <wheel dimensions="710_50R26_5" isLeft="true" hasTireTracks="true" hasParticles="true">
+                        <physics restLoad="1.2" repr="wheelLeft"  forcePointRatio="0.25" initialCompression="12" suspTravel="0.1" spring="80" damper="45" yOffset="0.03"/>
+                        <wheelChock parkingNode="wheelChock01"/>
+                        <wheelChock parkingNode="wheelChock02" isInverted="true" />
+                    </wheel>
+                    <wheel dimensions="710_50R26_5" isLeft="false" hasTireTracks="true" hasParticles="true">
+                        <physics restLoad="1.2" repr="wheelRight" forcePointRatio="0.25" initialCompression="12" suspTravel="0.1" spring="80" damper="45" yOffset="0.03"/>
+                    </wheel>
+                </wheels>
+            </wheelConfiguration>
+
+            <wheelConfiguration name="$l10n_configuration_valueWheelBroad" price="750" saveId="BROAD" numDynamicConfigurations="1">
+                <wheels baseConfig="DEFAULT">
+                    <wheel dimensions="800_40R26_5"/>
+                    <wheel dimensions="800_40R26_5"/>
+                </wheels>
+            </wheelConfiguration>
+        </wheelConfigurations>
+
+        <rimMaterial materialTemplateName="RIM_DEFAULT" />
+        <hubMaterial materialTemplateName="HUB_DEFAULT" />
+
+        <hubs>
+            <hub linkNode="wheelLeft"  filename="$data/shared/wheels/hubs/hub_n10_5.xml" isLeft="true"  scale="0.3 0.3 0.3" offset="-0.002"/>
+            <hub linkNode="wheelRight" filename="$data/shared/wheels/hubs/hub_n10_5.xml" isLeft="false" scale="0.3 0.3 0.3" offset="-0.002"/>
+        </hubs>
+    </wheels>
+
+    <attachable>
+        <inputAttacherJoints>
+            <inputAttacherJoint node="attacherJoint" jointType="trailer" attacherHeight="0.6"/>
+        </inputAttacherJoints>
+        <brakeForce force="0.6" maxForce="2" maxForceMass="10000"/>
+        <support animationName="moveSupport" />
+        <sounds>
+            <active file="$data/sounds/tools/trailer/trailerRattle_02.wav" innerRadius="10" outerRadius="50" volumeScale="5.3" isLocalSound="true" pitchScale="1.2">
+                <volume indoor="0.7" outdoor="0.9" >
+                    <modifier type="WHEEL_SUSPENSION" value="-0.04" modifiedValue="0.2"/>
+                    <modifier type="WHEEL_SUSPENSION" value="-0.02" modifiedValue="0.13"/>
+                    <modifier type="WHEEL_SUSPENSION" value="-0.01" modifiedValue="0.05"/>
+                    <modifier type="WHEEL_SUSPENSION" value="-0.00" modifiedValue="0.03"/>
+                    <modifier type="WHEEL_SUSPENSION" value="0.01" modifiedValue="0.05"/>
+                    <modifier type="WHEEL_SUSPENSION" value="0.02" modifiedValue="0.13"/>
+                    <modifier type="WHEEL_SUSPENSION" value="0.04" modifiedValue="0.2"/>
+
+                    <modifier type="SPEED" value="0.0" modifiedValue="0.0"/>
+                    <modifier type="SPEED" value="2.0" modifiedValue="1.0"/>
+                    <modifier type="SPEED" value="40.0" modifiedValue="1.0"/>
+                </volume>
+                <lowpassCutoffFrequency indoor="250" outdoor="20000" />
+                <lowpassGain indoor="0.5" outdoor="1" />
+            </active>
+        </sounds>
+    </attachable>
+
+    <powerTakeOffs>
+        <input inputAttacherJointIndices="1" inputNode="ptoInputNode" aboveAttacher="true" detachNode="ptoDetachNode"/>
+        <sounds>
+            <turnedOn template="tractorPTO" volumeScale="0.7" linkNode="attacherJoint"/>
+        </sounds>
+    </powerTakeOffs>
+
+    <connectionHoses>
+        <hose inputAttacherJointIndices="1" type="hydraulicIn"  node="hydraulicIn01"  length="0.8" diameter="0.015" straighteningFactor="0.5" adapterNode="hydraulicIn01_detachedAdapter">
+            <objectChange node="hydraulicIn01_detached" visibilityActive="false" visibilityInactive="true"/>
+        </hose>
+        <hose inputAttacherJointIndices="1" type="hydraulicOut" node="hydraulicOut01" length="0.8" diameter="0.015" straighteningFactor="0.5" adapterNode="hydraulicIOut01_detachedAdapter">
+            <objectChange node="hydraulicOut01_detached" visibilityActive="false" visibilityInactive="true"/>
+        </hose>
+        <hose inputAttacherJointIndices="1" type="hydraulicIn"  node="hydraulicIn02"  length="0.8" diameter="0.015" straighteningFactor="0.5" adapterNode="hydraulicIn02_detachedAdapter">
+            <objectChange node="hydraulicIn02_detached" visibilityActive="false" visibilityInactive="true"/>
+        </hose>
+        <hose inputAttacherJointIndices="1" type="electric" node="electric" length="1.4" diameter="0.015" straighteningFactor="1" adapterNode="electric_detachedAdapter">
+            <objectChange node="electric_detached" visibilityActive="false" visibilityInactive="true" />
+        </hose>
+        <hose inputAttacherJointIndices="1" type="airDoubleRed" node="airIn" length="1.4" diameter="0.015" straighteningFactor="1" adapterNode="airIn_detachedAdapter">
+            <objectChange node="airIn_detached" visibilityActive="false" visibilityInactive="true" />
+        </hose>
+        <hose inputAttacherJointIndices="1" type="airDoubleYellow" node="airOut" length="1.4" diameter="0.015" straighteningFactor="1" adapterNode="airOut_detachedAdapter">
+            <objectChange node="airOut_detached" visibilityActive="false" visibilityInactive="true" />
+        </hose>
+        <sounds>
+            <connect    type="airDoubleRed" template="hydraulicHosesAttach" volumeScale="0.7" linkNode="attacherJoint"/>
+            <connect    type="electric"     template="generalConnection"    volumeScale="0.7" linkNode="attacherJoint"/>
+            <disconnect type="airDoubleRed" template="hydraulicHosesDetach" volumeScale="0.7" linkNode="attacherJoint"/>
+            <disconnect type="electric"     template="generalConnection"    volumeScale="0.7" linkNode="attacherJoint"/>
+        </sounds>
+    </connectionHoses>
+
+    <powerConsumer ptoRpm="400" neededMinPtoPower="10" neededMaxPtoPower="10"/>
+
+    <lights>
+        <sharedLight linkNode="sideMarker24_left" filename="$data/shared/assets/lights/lizard/sideMarker24_left.xml" />
+        <sharedLight linkNode="sideMarker24_right" filename="$data/shared/assets/lights/lizard/sideMarker24_right.xml" />
+        <sharedLight linkNode="frontLight06Orange" lightTypes="0" filename="$data/shared/assets/lights/lizard/frontLight06Orange.xml" />
+        <sharedLight linkNode="frontLight06Orange1" lightTypes="0" filename="$data/shared/assets/lights/lizard/frontLight06Orange.xml" />
+        <sharedLight linkNode="rearLight52Left" filename="$data/shared/assets/lights/lizard/rearLight52_left.xml" />
+        <sharedLight linkNode="rearLight52Right" filename="$data/shared/assets/lights/lizard/rearLight52_right.xml" />
+        <sharedLight linkNode="plateNumberLight02" filename="$data/shared/assets/lights/lizard/plateNumberLight02.xml" />
+
+        <realLights>
+            <high>
+                <light node="backLightsHigh1" lightTypes="0" />
+                <light node="licensePlateLightHigh" lightTypes="0" />
+                <turnLightLeft node="turnLightLeftBack" />
+                <turnLightRight node="turnLightRightBack" />
+                <brakeLight node="backLightsHigh1" />
+                <reverseLight node="reverseLightHigh1" />
+            </high>
+        </realLights>
+    </lights>
+
+    <workAreas>
+        <workArea type="sprayer" functionName="processSprayerArea" disableBackwards="false" requiresGroundContact="false">
+            <area startNode="workAreaStart" widthNode="workAreaWidth" heightNode="workAreaHeight" />
+            <onlyActiveWhenLowered value="false"/>
+        </workArea>
+    </workAreas>
+
+    <licensePlates>
+        <licensePlate node="licensePlateNodeBack" frame="false" position="BACK" preferedType="SQUARISH" placementArea="0.094 0.135 0.095 0.135"/>
+    </licensePlates>
+
+    <sprayer activateOnLowering="true">
+        <usageScales workingWidth="15" scale="1"/>
+
+        <effects>
+            <effectNode effectClass="SlurrySideToSideEffect" effectNode="effectSlurry" materialType="slurrySideToSide" fadeOutTime="2" fadeInTime="2" refAnimation="sprayerAnimation" />
+        </effects>
+
+        <sounds>
+            <spray template="defaultRefuelSound" pitchScale="0.7" volumeScale="1.6" fadeIn="0.5" fadeOut="1"/>
+        </sounds>
+    </sprayer>
+
+    <animations>
+        <animation name="moveSupport">
+            <part node="supportArmTrans"      startTime="0" endTime="0.5" startTrans="0.488 -0.03 0.504" endTrans="0.499 -0.357 0.495" />
+            <part node="supportLegHandleNode" startTime="0" endTime="0.5" startRot="0 0 0" endRot="0 360 0" />
+
+            <sound template="slideOpen"  startTime="0.01" endTime="0.49" volumeScale="2" pitchScale="2" linkNode="attacherJoint"/>
+            <sound template="metalClose" startTime="0.01" direction="-1" volumeScale="2" pitchScale="2" linkNode="attacherJoint"/>
+        </animation>
+        <animation name="clampA">
+            <part node="couplerLeftClamp01Bone" startTime="0.0000" endTime="0.1339" startRot="-0.0007 -0.0012 0" endRot="-0.0009 -0.0011 10"/>
+            <part node="couplerLeftClamp01Bone" startTime="0.1339" endTime="0.2677" startRot="-0.0009 -0.0011 10" endRot="-0.0011 -0.0009 20"/>
+            <part node="couplerLeftClamp01Bone" startTime="0.2677" endTime="0.4016" startRot="-0.0011 -0.0009 20" endRot="-0.0012 -0.0007 30"/>
+            <part node="couplerLeftClamp01Bone" startTime="0.4016" endTime="0.5354" startRot="-0.0012 -0.0007 30" endRot="-0.0013 -0.0005 40"/>
+            <part node="couplerLeftClamp01Bone" startTime="0.5354" endTime="0.6693" startRot="-0.0013 -0.0005 40" endRot="-0.0014 -0.0002 50"/>
+            <part node="couplerLeftClamp01Bone" startTime="0.6693" endTime="0.8031" startRot="-0.0014 -0.0002 50" endRot="-0.0014 0 60"/>
+            <part node="couplerLeftClamp01Bone" startTime="0.8031" endTime="0.9370" startRot="-0.0014 0 60" endRot="-0.0014 0.0003 70"/>
+            <part node="couplerLeftClamp01Bone" startTime="0.9370" endTime="1.0000" startRot="-0.0014 0.0003 70" endRot="-0.0013 0.0004 74.71"/>
+            <part node="couplerLeftClamp02Bone" startTime="0.0000" endTime="0.1339" startRot="0 0 0" endRot="0 0 -9.654"/>
+            <part node="couplerLeftClamp02Bone" startTime="0.1339" endTime="0.2677" startRot="0 0 -9.654" endRot="0 0 -18.748"/>
+            <part node="couplerLeftClamp02Bone" startTime="0.2677" endTime="0.4016" startRot="0 0 -18.748" endRot="0 0 -27.282"/>
+            <part node="couplerLeftClamp02Bone" startTime="0.4016" endTime="0.5354" startRot="0 0 -27.282" endRot="0 0 -35.282"/>
+            <part node="couplerLeftClamp02Bone" startTime="0.5354" endTime="0.6693" startRot="0 0 -35.282" endRot="0 0 -42.804"/>
+            <part node="couplerLeftClamp02Bone" startTime="0.6693" endTime="0.8031" startRot="0 0 -42.804" endRot="0 0 -49.924"/>
+            <part node="couplerLeftClamp02Bone" startTime="0.8031" endTime="0.9370" startRot="0 0 -49.924" endRot="0 0 -56.736"/>
+            <part node="couplerLeftClamp02Bone" startTime="0.9370" endTime="1.0000" startRot="0 0 -56.736" endRot="0 0 -59.865"/>
+            <part node="couplerLeftClamp03Bone" startTime="0.0000" endTime="0.1339" startRot="0 0 0" endRot="0 0 1.616"/>
+            <part node="couplerLeftClamp03Bone" startTime="0.1339" endTime="0.2677" startRot="0 0 1.616" endRot="0 0 2.443"/>
+            <part node="couplerLeftClamp03Bone" startTime="0.2677" endTime="0.4016" startRot="0 0 2.443" endRot="0 0 2.435"/>
+            <part node="couplerLeftClamp03Bone" startTime="0.4016" endTime="0.5354" startRot="0 0 2.435" endRot="0 0 1.595"/>
+            <part node="couplerLeftClamp03Bone" startTime="0.5354" endTime="0.6693" startRot="0 0 1.595" endRot="0 0 -0.033"/>
+            <part node="couplerLeftClamp03Bone" startTime="0.6693" endTime="0.8031" startRot="0 0 -0.033" endRot="0 0 -2.365"/>
+            <part node="couplerLeftClamp03Bone" startTime="0.8031" endTime="0.9370" startRot="0 0 -2.365" endRot="0 0 -5.292"/>
+            <part node="couplerLeftClamp03Bone" startTime="0.9370" endTime="1.0000" startRot="0 0 -5.292" endRot="0 0 -6.844"/>
+        </animation>
+        <animation name="valveA">
+            <part node="couplerLeftValve01Bone" startTime="0.0000" endTime="0.0953" startRot="0 0 0" endRot="0 0 5"/>
+            <part node="couplerLeftValve01Bone" startTime="0.0953" endTime="0.1906" startRot="0 0 5" endRot="0 0 10"/>
+            <part node="couplerLeftValve01Bone" startTime="0.1906" endTime="0.2859" startRot="0 0 10" endRot="0 0 15"/>
+            <part node="couplerLeftValve01Bone" startTime="0.2859" endTime="0.3812" startRot="0 0 15" endRot="0 0 20"/>
+            <part node="couplerLeftValve01Bone" startTime="0.3812" endTime="0.4765" startRot="0 0 20" endRot="0 0 25"/>
+            <part node="couplerLeftValve01Bone" startTime="0.4765" endTime="0.5000" startRot="0 0 25" endRot="0 0 26.231"/>
+            <part node="couplerLeftValve02Bone" startTime="0.0000" endTime="0.0953" startRot="0 0 0" endRot="0 0 -23.849"/>
+            <part node="couplerLeftValve02Bone" startTime="0.0953" endTime="0.1906" startRot="0 0 -23.849" endRot="0 0 -37.98"/>
+            <part node="couplerLeftValve02Bone" startTime="0.1906" endTime="0.2859" startRot="0 0 -37.98" endRot="0 0 -50.374"/>
+            <part node="couplerLeftValve02Bone" startTime="0.2859" endTime="0.3812" startRot="0 0 -50.374" endRot="0 0 -61.905"/>
+            <part node="couplerLeftValve02Bone" startTime="0.3812" endTime="0.4765" startRot="0 0 -61.905" endRot="0 0 -72.897"/>
+            <part node="couplerLeftValve02Bone" startTime="0.4765" endTime="0.5000" startRot="0 0 -72.897" endRot="0 0 -75.541"/>
+            <part node="couplerLeftValve03Bone" startTime="0.0000" endTime="0.0953" startRot="0 0 0" endRot="0 0 18.849"/>
+            <part node="couplerLeftValve03Bone" startTime="0.0953" endTime="0.1906" startRot="0 0 18.849" endRot="0 0 27.98"/>
+            <part node="couplerLeftValve03Bone" startTime="0.1906" endTime="0.2859" startRot="0 0 27.98" endRot="0 0 35.374"/>
+            <part node="couplerLeftValve03Bone" startTime="0.2859" endTime="0.3812" startRot="0 0 35.374" endRot="0 0 41.905"/>
+            <part node="couplerLeftValve03Bone" startTime="0.3812" endTime="0.4765" startRot="0 0 41.905" endRot="0 0 47.897"/>
+            <part node="couplerLeftValve03Bone" startTime="0.4765" endTime="0.5000" startRot="0 0 47.897" endRot="0 0 49.31"/>
+        </animation>
+        <animation name="clampB">
+            <part node="couplerRightClamp01Bone" startTime="0.0000" endTime="0.1339" startRot="0 0 0" endRot="0 0 -10"/>
+            <part node="couplerRightClamp01Bone" startTime="0.1339" endTime="0.2677" startRot="0 0 -10" endRot="0 0 -20"/>
+            <part node="couplerRightClamp01Bone" startTime="0.2677" endTime="0.4016" startRot="0 0 -20" endRot="0 0 -30"/>
+            <part node="couplerRightClamp01Bone" startTime="0.4016" endTime="0.5354" startRot="0 0 -30" endRot="0 0 -40"/>
+            <part node="couplerRightClamp01Bone" startTime="0.5354" endTime="0.6693" startRot="0 0 -40" endRot="0 0 -50"/>
+            <part node="couplerRightClamp01Bone" startTime="0.6693" endTime="0.8031" startRot="0 0 -50" endRot="0 0 -60"/>
+            <part node="couplerRightClamp01Bone" startTime="0.8031" endTime="0.9370" startRot="0 0 -60" endRot="0 0 -70"/>
+            <part node="couplerRightClamp01Bone" startTime="0.9370" endTime="1.0000" startRot="0 0 -70" endRot="0 0 -74.71"/>
+            <part node="couplerRightClamp02Bone" startTime="0.0000" endTime="0.1339" startRot="0 0 0" endRot="0 0 9.654"/>
+            <part node="couplerRightClamp02Bone" startTime="0.1339" endTime="0.2677" startRot="0 0 9.654" endRot="0 0 18.748"/>
+            <part node="couplerRightClamp02Bone" startTime="0.2677" endTime="0.4016" startRot="0 0 18.748" endRot="0 0 27.282"/>
+            <part node="couplerRightClamp02Bone" startTime="0.4016" endTime="0.5354" startRot="0 0 27.282" endRot="0 0 35.282"/>
+            <part node="couplerRightClamp02Bone" startTime="0.5354" endTime="0.6693" startRot="0 0 35.282" endRot="0 0 42.804"/>
+            <part node="couplerRightClamp02Bone" startTime="0.6693" endTime="0.8031" startRot="0 0 42.804" endRot="0 0 49.924"/>
+            <part node="couplerRightClamp02Bone" startTime="0.8031" endTime="0.9370" startRot="0 0 49.924" endRot="0 0 56.736"/>
+            <part node="couplerRightClamp02Bone" startTime="0.9370" endTime="1.0000" startRot="0 0 56.736" endRot="0 0 59.865"/>
+            <part node="couplerRightClamp03Bone" startTime="0.0000" endTime="0.1339" startRot="0 0 0" endRot="0 0 -1.616"/>
+            <part node="couplerRightClamp03Bone" startTime="0.1339" endTime="0.2677" startRot="0 0 -1.616" endRot="0 0 -2.443"/>
+            <part node="couplerRightClamp03Bone" startTime="0.2677" endTime="0.4016" startRot="0 0 -2.443" endRot="0 0 -2.435"/>
+            <part node="couplerRightClamp03Bone" startTime="0.4016" endTime="0.5354" startRot="0 0 -2.435" endRot="0 0 -1.595"/>
+            <part node="couplerRightClamp03Bone" startTime="0.5354" endTime="0.6693" startRot="0 0 -1.595" endRot="0 0 0.033"/>
+            <part node="couplerRightClamp03Bone" startTime="0.6693" endTime="0.8031" startRot="0 0 0.033" endRot="0 0 2.365"/>
+            <part node="couplerRightClamp03Bone" startTime="0.8031" endTime="0.9370" startRot="0 0 2.365" endRot="0 0 5.292"/>
+            <part node="couplerRightClamp03Bone" startTime="0.9370" endTime="1.0000" startRot="0 0 5.292" endRot="0 0 6.844"/>
+        </animation>
+        <animation name="valveB">
+            <part node="couplerRightValve01Bone" startTime="0.0000" endTime="0.0953" startRot="0 0 0" endRot="0 0 5"/>
+            <part node="couplerRightValve01Bone" startTime="0.0953" endTime="0.1906" startRot="0 0 5" endRot="0 0 10"/>
+            <part node="couplerRightValve01Bone" startTime="0.1906" endTime="0.2859" startRot="0 0 10" endRot="0 0 15"/>
+            <part node="couplerRightValve01Bone" startTime="0.2859" endTime="0.3812" startRot="0 0 15" endRot="0 0 20"/>
+            <part node="couplerRightValve01Bone" startTime="0.3812" endTime="0.4765" startRot="0 0 20" endRot="0 0 25"/>
+            <part node="couplerRightValve01Bone" startTime="0.4765" endTime="0.5000" startRot="0 0 25" endRot="0 0 26.231"/>
+            <part node="couplerRightValve02Bone" startTime="0.0000" endTime="0.0953" startRot="0 0 0" endRot="0 0 -23.849"/>
+            <part node="couplerRightValve02Bone" startTime="0.0953" endTime="0.1906" startRot="0 0 -23.849" endRot="0 0 -37.98"/>
+            <part node="couplerRightValve02Bone" startTime="0.1906" endTime="0.2859" startRot="0 0 -37.98" endRot="0 0 -50.374"/>
+            <part node="couplerRightValve02Bone" startTime="0.2859" endTime="0.3812" startRot="0 0 -50.374" endRot="0 0 -61.905"/>
+            <part node="couplerRightValve02Bone" startTime="0.3812" endTime="0.4765" startRot="0 0 -61.905" endRot="0 0 -72.897"/>
+            <part node="couplerRightValve02Bone" startTime="0.4765" endTime="0.5000" startRot="0 0 -72.897" endRot="0 0 -75.541"/>
+            <part node="couplerRightValve03Bone" startTime="0.0000" endTime="0.0953" startRot="0 0 0" endRot="0 0 18.849"/>
+            <part node="couplerRightValve03Bone" startTime="0.0953" endTime="0.1906" startRot="0 0 18.849" endRot="0 0 27.98"/>
+            <part node="couplerRightValve03Bone" startTime="0.1906" endTime="0.2859" startRot="0 0 27.98" endRot="0 0 35.374"/>
+            <part node="couplerRightValve03Bone" startTime="0.2859" endTime="0.3812" startRot="0 0 35.374" endRot="0 0 41.905"/>
+            <part node="couplerRightValve03Bone" startTime="0.3812" endTime="0.4765" startRot="0 0 41.905" endRot="0 0 47.897"/>
+            <part node="couplerRightValve03Bone" startTime="0.4765" endTime="0.5000" startRot="0 0 47.897" endRot="0 0 49.31"/>
+        </animation>
+        <animation name="clampC">
+            <part node="couplerRearClamp01Bone" startTime="0.0000" endTime="0.1339" startRot="89.9958 75.0001 89.9961" endRot="89.9974 65.0001 89.9978"/>
+            <part node="couplerRearClamp01Bone" startTime="0.1339" endTime="0.2677" startRot="89.9974 65.0001 89.9978" endRot="89.9981 55.0001 89.9986"/>
+            <part node="couplerRearClamp01Bone" startTime="0.2677" endTime="0.4016" startRot="89.9981 55.0001 89.9986" endRot="89.9985 45.0001 89.9991"/>
+            <part node="couplerRearClamp01Bone" startTime="0.4016" endTime="0.5354" startRot="89.9985 45.0001 89.9991" endRot="89.9987 35.0001 89.9994"/>
+            <part node="couplerRearClamp01Bone" startTime="0.5354" endTime="0.6693" startRot="89.9987 35.0001 89.9994" endRot="89.9988 25.0001 89.9996"/>
+            <part node="couplerRearClamp01Bone" startTime="0.6693" endTime="0.8031" startRot="89.9988 25.0001 89.9996" endRot="89.9989 15.0001 89.9999"/>
+            <part node="couplerRearClamp01Bone" startTime="0.8031" endTime="0.9370" startRot="89.9989 15.0001 89.9999" endRot="89.9989 5.0001 90.0001"/>
+            <part node="couplerRearClamp01Bone" startTime="0.9370" endTime="1.0000" startRot="89.9989 5.0001 90.0001" endRot="89.9989 0.2901 90.0002"/>
+            <part node="couplerRearClamp02Bone" startTime="0.0000" endTime="0.1339" startRot="0 0 0" endRot="0 0 -9.654"/>
+            <part node="couplerRearClamp02Bone" startTime="0.1339" endTime="0.2677" startRot="0 0 -9.654" endRot="0 0 -18.748"/>
+            <part node="couplerRearClamp02Bone" startTime="0.2677" endTime="0.4016" startRot="0 0 -18.748" endRot="0 0 -27.282"/>
+            <part node="couplerRearClamp02Bone" startTime="0.4016" endTime="0.5354" startRot="0 0 -27.282" endRot="0 0 -35.282"/>
+            <part node="couplerRearClamp02Bone" startTime="0.5354" endTime="0.6693" startRot="0 0 -35.282" endRot="0 0 -42.804"/>
+            <part node="couplerRearClamp02Bone" startTime="0.6693" endTime="0.8031" startRot="0 0 -42.804" endRot="0 0 -49.924"/>
+            <part node="couplerRearClamp02Bone" startTime="0.8031" endTime="0.9370" startRot="0 0 -49.924" endRot="0 0 -56.736"/>
+            <part node="couplerRearClamp02Bone" startTime="0.9370" endTime="1.0000" startRot="0 0 -56.736" endRot="0 0 -59.865"/>
+            <part node="couplerRearClamp03Bone" startTime="0.0000" endTime="0.1339" startRot="0 0 0" endRot="0 0 1.616"/>
+            <part node="couplerRearClamp03Bone" startTime="0.1339" endTime="0.2677" startRot="0 0 1.616" endRot="0 0 2.443"/>
+            <part node="couplerRearClamp03Bone" startTime="0.2677" endTime="0.4016" startRot="0 0 2.443" endRot="0 0 2.435"/>
+            <part node="couplerRearClamp03Bone" startTime="0.4016" endTime="0.5354" startRot="0 0 2.435" endRot="0 0 1.595"/>
+            <part node="couplerRearClamp03Bone" startTime="0.5354" endTime="0.6693" startRot="0 0 1.595" endRot="0 0 -0.033"/>
+            <part node="couplerRearClamp03Bone" startTime="0.6693" endTime="0.8031" startRot="0 0 -0.033" endRot="0 0 -2.365"/>
+            <part node="couplerRearClamp03Bone" startTime="0.8031" endTime="0.9370" startRot="0 0 -2.365" endRot="0 0 -5.292"/>
+            <part node="couplerRearClamp03Bone" startTime="0.9370" endTime="1.0000" startRot="0 0 -5.292" endRot="0 0 -6.844"/>
+        </animation>
+        <animation name="valveC">
+            <part node="couplerRearValve01Bone" startTime="0.0000" endTime="0.0953" startRot="-0.0558 -0.3658 -0.098" endRot="-0.0874 -0.3595 4.9021"/>
+            <part node="couplerRearValve01Bone" startTime="0.0953" endTime="0.1906" startRot="-0.0874 -0.3595 4.9021" endRot="-0.1184 -0.3506 9.9022"/>
+            <part node="couplerRearValve01Bone" startTime="0.1906" endTime="0.2859" startRot="-0.1184 -0.3506 9.9022" endRot="-0.1485 -0.3389 14.9022"/>
+            <part node="couplerRearValve01Bone" startTime="0.2859" endTime="0.3812" startRot="-0.1485 -0.3389 14.9022" endRot="-0.1775 -0.3247 19.9023"/>
+            <part node="couplerRearValve01Bone" startTime="0.3812" endTime="0.4765" startRot="-0.1775 -0.3247 19.9023" endRot="-0.2051 -0.308 24.9024"/>
+            <part node="couplerRearValve01Bone" startTime="0.4765" endTime="0.5000" startRot="-0.2051 -0.308 24.9024" endRot="-0.2117 -0.3035 26.1334"/>
+            <part node="couplerRearValve02Bone" startTime="0.0000" endTime="0.0953" startRot="0 0 0" endRot="0 0 -23.849"/>
+            <part node="couplerRearValve02Bone" startTime="0.0953" endTime="0.1906" startRot="0 0 -23.849" endRot="0 0 -37.98"/>
+            <part node="couplerRearValve02Bone" startTime="0.1906" endTime="0.2859" startRot="0 0 -37.98" endRot="0 0 -50.374"/>
+            <part node="couplerRearValve02Bone" startTime="0.2859" endTime="0.3812" startRot="0 0 -50.374" endRot="0 0 -61.905"/>
+            <part node="couplerRearValve02Bone" startTime="0.3812" endTime="0.4765" startRot="0 0 -61.905" endRot="0 0 -72.897"/>
+            <part node="couplerRearValve02Bone" startTime="0.4765" endTime="0.5000" startRot="0 0 -72.897" endRot="0 0 -75.541"/>
+            <part node="couplerRearValve03Bone" startTime="0.0000" endTime="0.0953" startRot="0 0 0" endRot="0 0 18.849"/>
+            <part node="couplerRearValve03Bone" startTime="0.0953" endTime="0.1906" startRot="0 0 18.849" endRot="0 0 27.98"/>
+            <part node="couplerRearValve03Bone" startTime="0.1906" endTime="0.2859" startRot="0 0 27.98" endRot="0 0 35.374"/>
+            <part node="couplerRearValve03Bone" startTime="0.2859" endTime="0.3812" startRot="0 0 35.374" endRot="0 0 41.905"/>
+            <part node="couplerRearValve03Bone" startTime="0.3812" endTime="0.4765" startRot="0 0 41.905" endRot="0 0 47.897"/>
+            <part node="couplerRearValve03Bone" startTime="0.4765" endTime="0.5000" startRot="0 0 47.897" endRot="0 0 49.31"/>
+        </animation>
+        <animation name="pumpLever">
+            <part node="pumpFillLever" startTime="0" endTime="0.6" startRot="0 90 0" endRot="0 180 0" />
+        </animation>
+        <animation name="fillLevel">
+            <part node="fillLevelIndicator"       startTime="0" endTime="1" startRot="0 0 0" endRot="0 0 92" />
+            <part node="fillLevelIndicatorPart01" startTime="0" endTime="1" startRot="0 0 0" endRot="40 0 0" />
+        </animation>
+        <animation name="airBall">
+            <part node="pumpAirBall" startTime="0" endTime="1" startTrans="-0.256 1.77017 3.17327" endTrans="-0.256 1.87017 3.17327" />
+        </animation>
+        <animation name="sprayerAnimation" looping="true">
+            <part node="spreader"     startTime="0"   endTime="0.5" startRot="0 -45 0" endRot="0 45 0" tangentType="spline"/>
+            <part node="spreader"     startTime="0.5" endTime="1.0" startRot="0 45 0"  endRot="0 -45 0" tangentType="spline"/>
+            <part node="spreaderPart" startTime="0.35"   endTime="0.5" startRot="0 0 18" endRot="0 0 -18"/>
+            <part node="spreaderPart" startTime="0.85" endTime="1.0" startRot="0 0 -18"  endRot="0 0 18"/>
+        </animation>
+    </animations>
+
+    <cylindered>
+        <movingTools>
+            <movingTool node="spreader" playSound="false">
+                <dependentPart node="spreaderSpring" />
+            </movingTool>
+            <movingTool node="fillLevelIndicator" playSound="false">
+                <dependentPart node="fillLevelIndicatorPart02" />
+                <dependentPart node="fillLevelIndicatorPart02Cable" />
+            </movingTool>
+        </movingTools>
+
+        <movingParts>
+            <movingPart node="spreaderSpring" referencePoint="spreaderSpringRef" referenceFrame="spreaderSpringRef" scaleZ="true"/>
+            <movingPart node="fillLevelIndicatorPart02" referencePoint="fillLevelIndicatorPart02Ref" referenceFrame="fillLevelIndicatorPart02Ref"/>
+            <movingPart node="fillLevelIndicatorPart02Cable" referencePoint="fillLevelIndicatorPart02CableRef" referenceFrame="fillLevelIndicatorPart02CableRef" scaleZ="true"/>
+        </movingParts>
+    </cylindered>
+
+    <fillUnit>
+        <fillUnitConfigurations>
+            <fillUnitConfiguration>
+                <fillUnits>
+                    <fillUnit shopDisplayUnit="CUBICMETER" fillTypeCategories="slurryTank" capacity="8200">
+                        <dashboard displayType="ANIMATION" valueType="fillLevel" animName="fillLevel"/>
+                        <!-- airBall is driven by SPS (<slurryPipeSystem><sounds fullAnimation="airBall">), not by the fill level -->
+                        <exactFillRootNode node="exactFillRootNode" />
+                    </fillUnit>
+                    <fillTrigger consumePtoPower="true" litersPerSecond="410"/>
+                </fillUnits>
+            </fillUnitConfiguration>
+        </fillUnitConfigurations>
+
+        <sounds>
+            <fill template="slurry01" />
+        </sounds>
+    </fillUnit>
+
+    <fillTriggerVehicle triggerNode="fillTrigger" fillUnitIndex="1" litersPerSecond="410"/>
+
+    <dischargeable requiresTipOcclusionArea="false">
+        <dischargeNode node="dischargeNode" emptySpeed="410" fillUnitIndex="1" allowAIDischarge="true" canDischargeToGround="false">
+            <info width="1.0" length="0.5" zOffset="0.4" />
+            <trigger node="dischargeTrigger" />
+            <dischargeSound template="slurry01"/>
+        </dischargeNode>
+    </dischargeable>
+
+    <turnOnVehicle turnOffIfNotAllowed="true">
+        <turnedOnAnimation name="sprayerAnimation"/>
+        <activatableFillUnits>
+            <activatableFillUnit index="1" />
+        </activatableFillUnits>
+
+        <sounds>
+            <work template="slurry01">
+                <pitch indoor="0.75" outdoor="0.75" />
+            </work>
+        </sounds>
+    </turnOnVehicle>
+
+    <foliageBending>
+        <bendingNode wheelIndices="1 2" minZ="-1.7" maxZ="1.2" yOffset="0.5" />
+        <bendingNode minX="-1.1" maxX="1.1" minZ="1.2" maxZ="3.3" yOffset="0.4" />
+        <bendingNode minX="-0.3" maxX="0.3" minZ="3.3" maxZ="4.7" yOffset="0.2" />
+    </foliageBending>
+
+    <ai>
+        <areaMarkers leftNode="aiMarkerLeft" rightNode="aiMarkerRight" backNode="aiMarkerBack" />
+        <allowTurnBackward value="false" />
+        <toolReverserDirectionNode node="aiMarkerBack"/>
+        <turningRadiusLimitation radius="6"/>
+        <collisionTrigger node="aiCollisionNode" width="3" height="2.9"/>
+        <agentAttachment jointNode="attacherJoint" rotCenterWheelIndices="1 2" width="3.02" height="2.75" length="7.25" lengthOffset="1.1"/>
+    </ai>
+
+    <wearable wearDuration="480" workMultiplier="5" fieldMultiplier="2"/>
+    <washable dirtDuration="90" washDuration="1" workMultiplier="4" fieldMultiplier="2"/>
+
+    <slurryPipeSystem>
+        <flow fillLitersPerSecond="410" emptyLitersPerSecond="410"/>
+        <pump pumpType="vacuum" directionAnimation="pumpLever"/>
+        <spreaderAnimation name="sprayerAnimation" stopDelay="1.5"/>
+        <shearBolt bolt="true"/>
+        <surfaceRef emptyNode="emptyNode" fullNode="fullNode"/>
+        <!-- Pressure section optional. Omit entirely to use the SPS defaults shown below.
+            maxPressure     : ±bar ceiling; HUD reads from -this to +this
+            minThreshold    : bar of stored pressure needed before flow can start
+            minBuildTime    : seconds to reach max at a FULL tank (fast build)
+            maxBuildTime    : seconds to reach max at an EMPTY tank (slow build); scales by fill ratio
+            fallTimeWorking : seconds max->0 while fluid is still transferring (slow taper)
+            fallTimeEmpty   : seconds max->0 while venting with no transfer (faster)
+            purgeTime       : seconds to vent max->0 when flipping direction against stored pressure
+            openTop         : true = passive open-top vessel (FRC-style), never holds pressure, no gauge
+
+            Battioni Pagani Pompe MEC/8000/M
+            Tank capacity : 10,911 litres
+
+            Pump nameplate:
+              Max pressure : +3.5 bar
+              Max vacuum   : -2.5 bar
+              Max power    : 24 kW
+              Max speed    : 600 rpm
+              Max capacity : 8,100 l/min
+
+            Approx theoretical empty-tank build times:
+              Atmospheric tank-volume displacement : ~81 sec
+              Vacuum to -0.94 bar                  : ~213 sec (pump efficiency falls off near full vacuum)
+              Pressure to +1.5 bar                 : ~120 sec
+
+            Realistic SPS tuning:
+              minBuildTime    : 12 sec
+              maxBuildTime    : 140 sec
+              fallTimeWorking : 48 sec
+              fallTimeEmpty   : 30 sec
+              purgeTime       : 14 sec
+
+            [SPS 1.0.2.0] Pressure and vacuum now have their own limits: maxPressure is the positive limit (+1.5 bar),
+            maxVacuum the negative one as a magnitude (0.94 = -0.94 bar). Every *Vacuum attribute is optional and falls
+            back to its pressure twin. The vacuum build is slower than the pressure build (real pumps pull
+            harder at the start and fall off near full vacuum), so its build times are longer. -->
+        <pressure maxPressure="3.5" minThreshold="0.30" minBuildTime="20" maxBuildTime="150" fallTimeWorking="60" fallTimeEmpty="35" purgeTime="16" maxVacuum="2.5"
+					minThresholdVacuum="0.20" minBuildTimeVacuum="28" maxBuildTimeVacuum="220" fallTimeWorkingVacuum="50" fallTimeEmptyVacuum="30" openTop="false"/>
+
+        <!-- couplers 01 left / 02 right / 03 rear, each gated on the "Couplers" design option (see designConfigurations) -->
+        <pipeCouplings>
+            <pipeCoupling id="1" mountNodeName="SPS_pipeCoupler01" connectorAnimationName="clampA" valveAnimationName="valveA" valveType="MANUAL" maxPipeLength="4.0"
+                          fillUnitIndex="1" valveFromRearControl="false" connector="male"
+                          configType="design" cylinderedConfigIndex="0,1,2,5"/>
+            <pipeCoupling id="2" mountNodeName="SPS_pipeCoupler02" connectorAnimationName="clampB" valveAnimationName="valveB" valveType="MANUAL" maxPipeLength="4.0"
+                          fillUnitIndex="1" valveFromRearControl="false" connector="male"
+                          configType="design" cylinderedConfigIndex="0,1,3,6"/>
+            <pipeCoupling id="3" mountNodeName="SPS_pipeCoupler03" connectorAnimationName="clampC" valveAnimationName="valveC" valveType="MANUAL" maxPipeLength="4.0"
+                          fillUnitIndex="1" valveFromRearControl="false" connector="male"
+                          configType="design" cylinderedConfigIndex="1,4,5,6"/>
+        </pipeCouplings>
+        <rubberBootPorts/>
+
+        <outsideControls>
+            <outsideControl mountNodeName="pumpControl01" pto="true" direction="true"/>
+        </outsideControls>
+
+        <drawbarSuspension node="drawbar" cylinderNode="drawbarHydrCylin" punchNode="drawbarHydrPunch"
+                           punchRefNode="drawbarHydrPunchRef" cylinderAxis="y" bodyNode="tankBody"
+                           loadAngle="1.0" maxAngle="2.5" emptyScale="0.35" fullScale="1.0" bumpGain="3.0" accelGain="0.6"
+                           spring="40" damper="7"/>
+
+        <pressureGauges>
+            <pressureGauge type="tank"      node="pressureGauge_tank01" dial="compound"/>
+            <pressureGauge type="tank"      node="pressureGauge_tank02" dial="compound"/>
+            <pressureGauge type="discharge" node="pressureGauge_tank03" dial="pressure" thicknessGain="1.0" blockedPressure="4.0"/>
+            <pressureGauge type="outer" couplingId="1" node="pressureGauge_tank04" dial="compound"
+                           configType="design" cylinderedConfigIndex="0,1,2,5"/>
+            <pressureGauge type="outer" couplingId="2" node="pressureGauge_tank05" dial="compound"
+                           configType="design" cylinderedConfigIndex="0,1,3,6"/>
+            <pressureGauge type="outer" couplingId="3" node="pressureGauge_tank06" dial="compound"
+                           configType="design" cylinderedConfigIndex="1,4,5,6"/>
+        </pressureGauges>
+
+        <blockageNodes baseChance="0.0005" outletCrustMinRaw="0.85" outletChance="0.010" dmBonus="0.25">
+            <blockageNode mountNodeName="SPS_blockageNodeSplashPlate" workAreaNode="workArea01" blockageAnimation="splashPlate"/>
+        </blockageNodes>
+        <sounds fullThreshold="0.99" fullAnimation="airBall">
+            <vacPumpFilling template="slurry01"/>
+            <vacPumpFull    template="slurry02"/>
+        </sounds>
+        <pipeHolders>
+            <pipeHolder id="1" nodeName="SPS_pipeHolder01" radius="1.0"/>
+            <pipeHolder id="2" nodeName="SPS_pipeHolder02" radius="1.0"/>
+			
+			<cageHolder id="3" nodeName="SPS_cageHolder01" radius="1.5" cages="CAGE_LARGE"/>
+        </pipeHolders>
+        <liquidPipeSystem>
+            <liquidPipeCouplings>
+                <liquidPipeCoupling id="1" mountNodeName="SPS_liquidPipeCoupler01" fillUnitIndex="1" lanes="WATER"
+                                    maxPipeLength="7.5" connectorAnimation="4"/>
+            </liquidPipeCouplings>
+            <liquidPumpControls>
+                <liquidPumpControl id="1" nodeName="SPS_liquidControlNode" radius="1.5"/>
+            </liquidPumpControls>
+        </liquidPipeSystem>
+    </slurryPipeSystem>
+
+    <i3dMappings>
+        <i3dMapping id="supercis800_main_component1" node="0>" />
+        <i3dMapping id="supercis800_vis" node="0>0" />
+        <i3dMapping id="attacherJoint" node="0>0|0|0|0" />
+        <i3dMapping id="ptoInputNode" node="0>0|0|0|1" />
+        <i3dMapping id="ptoDetachNode" node="0>0|0|0|2" />
+        <i3dMapping id="supportArmTrans" node="0>0|0|0|3|0" />
+        <i3dMapping id="supportArm" node="0>0|0|0|3" />
+        <i3dMapping id="supportLegHandleNode" node="0>0|0|0|3|1|0" />
+        <i3dMapping id="hydraulicIn02" node="0>0|0|0|4|0" />
+        <i3dMapping id="hydraulicOut01" node="0>0|0|0|4|1" />
+        <i3dMapping id="hydraulicIn01" node="0>0|0|0|4|2" />
+        <i3dMapping id="electric" node="0>0|0|0|4|3" />
+        <i3dMapping id="airIn" node="0>0|0|0|4|4" />
+        <i3dMapping id="airOut" node="0>0|0|0|4|5" />
+        <i3dMapping id="airOut_detached" node="0>0|0|0|4|6" />
+        <i3dMapping id="airOut_detachedAdapter" node="0>0|0|0|4|6|0" />
+        <i3dMapping id="airIn_detached" node="0>0|0|0|4|7" />
+        <i3dMapping id="airIn_detachedAdapter" node="0>0|0|0|4|7|0" />
+        <i3dMapping id="electric_detached" node="0>0|0|0|4|8" />
+        <i3dMapping id="electric_detachedAdapter" node="0>0|0|0|4|8|0" />
+        <i3dMapping id="hydraulicIn01_detached" node="0>0|0|0|4|9" />
+        <i3dMapping id="hydraulicIn01_detachedAdapter" node="0>0|0|0|4|9|0" />
+        <i3dMapping id="hydraulicOut01_detached" node="0>0|0|0|4|10" />
+        <i3dMapping id="hydraulicIOut01_detachedAdapter" node="0>0|0|0|4|10|0" />
+        <i3dMapping id="hydraulicIn02_detached" node="0>0|0|0|4|11" />
+        <i3dMapping id="hydraulicIn02_detachedAdapter" node="0>0|0|0|4|11|0" />
+        <i3dMapping id="drawbarHydrCylin" node="0>0|0|0|5" />
+        <i3dMapping id="drawbarHydrPunch" node="0>0|0|0|5|0|1" />
+        <i3dMapping id="pumpAirPipeLower" node="0>0|0|0|6" />
+        <i3dMapping id="pumpFillLever" node="0>0|0|0|7" />
+        <i3dMapping id="wheelLeft" node="0>0|1|0" />
+        <i3dMapping id="wheelRight" node="0>0|1|1" />
+        <i3dMapping id="wheelChock01" node="0>0|3|0|5|3" />
+        <i3dMapping id="wheelChock02" node="0>0|3|0|5|4" />
+        <i3dMapping id="sideMarker24_right" node="0>0|3|0|1|0|0" />
+        <i3dMapping id="sideMarker24_left" node="0>0|3|0|1|0|1" />
+        <i3dMapping id="rearLight52Left" node="0>0|3|0|1|0|2" />
+        <i3dMapping id="rearLight52Right" node="0>0|3|0|1|0|3" />
+        <i3dMapping id="frontLight06Orange" node="0>0|3|0|1|0|4" />
+        <i3dMapping id="frontLight06Orange1" node="0>0|3|0|1|0|5" />
+        <i3dMapping id="yellowRound_02" node="0>0|3|0|1|0|6" />
+        <i3dMapping id="yellowRound_03" node="0>0|3|0|1|0|7" />
+        <i3dMapping id="yellowRound_04" node="0>0|3|0|1|0|8" />
+        <i3dMapping id="yellowRound_05" node="0>0|3|0|1|0|9" />
+        <i3dMapping id="plateNumberLight02" node="0>0|3|0|1|0|10" />
+        <i3dMapping id="backLightsHigh1" node="0>0|3|0|1|1|0" />
+        <i3dMapping id="licensePlateLightHigh" node="0>0|3|0|1|1|1" />
+        <i3dMapping id="turnLightLeftBack" node="0>0|3|0|1|2|0" />
+        <i3dMapping id="turnLightRightBack" node="0>0|3|0|1|2|1" />
+        <i3dMapping id="reverseLightHigh1" node="0>0|3|0|1|3|0" />
+        <i3dMapping id="spreader" node="0>0|3|0|2|0" />
+        <i3dMapping id="spreaderPart" node="0>0|3|0|2|0|0|0" />
+        <i3dMapping id="spreaderSpringRef" node="0>0|3|0|2|0|1" />
+        <i3dMapping id="spreaderSpring" node="0>0|3|0|2|1" />
+        <i3dMapping id="fillLevelIndicator" node="0>0|3|0|2|2|0" />
+        <i3dMapping id="fillLevelIndicatorPart02" node="0>0|3|0|2|2|0|1" />
+        <i3dMapping id="fillLevelIndicatorPart02Cable" node="0>0|3|0|2|2|0|1|0" />
+        <i3dMapping id="fillLevelIndicatorPart01" node="0>0|3|0|2|3|0" />
+        <i3dMapping id="fillLevelIndicatorPart02Ref" node="0>0|3|0|2|3|0|0" />
+        <i3dMapping id="fillLevelIndicatorPart02CableRef" node="0>0|3|0|2|3|0|1" />
+        <i3dMapping id="exactFillRootNode" node="0>0|2|0" />
+        <i3dMapping id="fillTrigger" node="0>0|2|1" />
+        <i3dMapping id="dischargeTrigger" node="0>0|2|2" />
+        <i3dMapping id="dischargeNode" node="0>0|2|3" />
+        <i3dMapping id="workAreaStart" node="0>0|4|0" />
+        <i3dMapping id="workAreaWidth" node="0>0|4|1" />
+        <i3dMapping id="workAreaHeight" node="0>0|4|2" />
+        <i3dMapping id="aiMarkerLeft" node="0>0|5|0" />
+        <i3dMapping id="aiMarkerRight" node="0>0|5|1" />
+        <i3dMapping id="aiMarkerBack" node="0>0|5|2" />
+        <i3dMapping id="aiCollisionNode" node="0>0|5|3" />
+        <i3dMapping id="licensePlateNodeBack" node="0>0|3|0|3" />
+        <i3dMapping id="effectSlurry" node="0>0|3|0|4|0|0" />
+        <i3dMapping id="rootBone" node="0>0|3|0|0|1" />
+        <i3dMapping id="pumpAirPipeUpper" node="0>0|3|0|0|1|2" />
+        <i3dMapping id="drawbarHydrPunchRef" node="0>0|3|0|0|1|0" />
+        <i3dMapping id="pumpAirBall" node="0>0|3|0|0|1|1" />
+        <i3dMapping id="couplerLeft" node="0>0|3|0|0|0|0|0" />
+        <i3dMapping id="couplerRight" node="0>0|3|0|0|0|1|0" />
+        <i3dMapping id="couplerRear" node="0>0|3|0|0|0|2|0" />
+        <i3dMapping id="tankBody" node="0>0|3" />
+        <i3dMapping id="tankBodyOffset" node="0>0|3|0" />
+        <i3dMapping id="drawbarNode" node="0>0|0|0" />
+        <i3dMapping id="supportLegHandleRefNode" node="0>0|0|0|3|1" />
+        <i3dMapping id="couplerLeftClamp01Bone" node="0>0|3|0|0|0|0|0|0|0" />
+        <i3dMapping id="couplerRightClamp01Bone" node="0>0|3|0|0|0|1|0|0|0" />
+        <i3dMapping id="couplerRearClamp01Bone" node="0>0|3|0|0|0|2|0|0|0" />
+        <i3dMapping id="couplerLeftValve01Bone" node="0>0|3|0|0|0|0|0|0|1|0" />
+        <i3dMapping id="couplerRightValve01Bone" node="0>0|3|0|0|0|1|0|0|1|0" />
+        <i3dMapping id="couplerRearValve01Bone" node="0>0|3|0|0|0|2|0|0|1" />
+        <i3dMapping id="couplerLeftClamp02Bone" node="0>0|3|0|0|0|0|0|0|0|0" />
+        <i3dMapping id="couplerLeftClamp03Bone" node="0>0|3|0|0|0|0|0|0|0|0|0" />
+        <i3dMapping id="couplerLeftValve02Bone" node="0>0|3|0|0|0|0|0|0|1|0|0" />
+        <i3dMapping id="couplerLeftValve03Bone" node="0>0|3|0|0|0|0|0|0|1|0|0|0" />
+        <i3dMapping id="couplerRightClamp02Bone" node="0>0|3|0|0|0|1|0|0|0|0" />
+        <i3dMapping id="couplerRightClamp03Bone" node="0>0|3|0|0|0|1|0|0|0|0|0" />
+        <i3dMapping id="couplerRightValve02Bone" node="0>0|3|0|0|0|1|0|0|1|0|0" />
+        <i3dMapping id="couplerRightValve03Bone" node="0>0|3|0|0|0|1|0|0|1|0|0|0" />
+        <i3dMapping id="couplerRearClamp02Bone" node="0>0|3|0|0|0|2|0|0|0|0" />
+        <i3dMapping id="couplerRearClamp03Bone" node="0>0|3|0|0|0|2|0|0|0|0|0" />
+        <i3dMapping id="couplerRearValve02Bone" node="0>0|3|0|0|0|2|0|0|1|0" />
+        <i3dMapping id="couplerRearValve03Bone" node="0>0|3|0|0|0|2|0|0|1|0|0" />
+    </i3dMappings>
+</vehicle>

@@ -15,6 +15,22 @@
 	
 	<shearBolt bolt="true"/>
 	
+	<washout rinseFillUnitIndex="2" rinseShare="0.03" sumpShare="0.01" tankFlushTime="30" boomFlushTime="30"
+        finalFlushTime="10" rinseFillTime="10" boomFlushShare="0.1" drainTime="20" requireField="true" autoUnfold="true"
+        nozzlePuddles="true" puddleLength="4" puddleWidth="1.2" puddleOverlap="1.15">
+        <sounds>
+            <tankFlush  file="$data/sounds/vehicles/surfaces/surWaterLoop_03.ogg"   innerRadius="4" outerRadius="35" fadeIn="0.6" fadeOut="0.8">
+                <volume indoor="0.45" outdoor="1.0"/>
+                </tankFlush>
+                <tankFlush2 file="$data/sounds/vehicles/surfaces/vehWaterSplash_01.ogg" innerRadius="4" outerRadius="30" fadeIn="0.6" fadeOut="0.8">
+                    <volume indoor="0.35" outdoor="0.8"/>
+                </tankFlush2>
+                <tankFlush3 file="$data/sounds/vehicles/shared/rainInVehicle.ogg"       innerRadius="3" outerRadius="25" fadeIn="0.6" fadeOut="0.8">
+                    <volume indoor="0.4" outdoor="0.7"/>
+                </tankFlush3>
+        </sounds>
+    </washout>
+	
     <sounds>
         <engineLoop
             file="$data/vehicles/agi/utx44/sounds/utx44_loop.gls"

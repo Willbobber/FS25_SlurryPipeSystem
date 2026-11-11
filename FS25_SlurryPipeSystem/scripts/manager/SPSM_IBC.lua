@@ -84,14 +84,17 @@ function SlurryPipeManager:_ibcTankXmlForSprayer(sprayerObject, coupling)
     -- legacy branches below, so native behaviour is unchanged and unknown types still no-op.
     if fillType ~= nil and fillType ~= FillType.UNKNOWN and g_fillTypeManager ~= nil then
         local desc = g_fillTypeManager:getFillTypeByIndex(fillType)
-        if desc ~= nil and desc.palletFilename ~= nil and self.sprayerSourceVehicleConfigMap ~= nil then
-            local palletLower = desc.palletFilename:lower():gsub("\\", "/")
-            for matchPathLower in pairs(self.sprayerSourceVehicleConfigMap) do
-                if palletLower:sub(-#matchPathLower) == matchPathLower then
-                    SlurryPipeManager.log("_ibcTankXmlForSprayer: fillType=%s -> registered pallet '%s'",
-                        tostring(fillType), tostring(desc.palletFilename))
-                    return desc.palletFilename
-                end
+        -- [SPS 1.0.2.0 IBC KIT] Goes through the (cached) sprayer-source finder with a
+        -- bare shim, so the parentFile rule applies: a pallet derived from a listed tank
+        -- (every S&F tank, listed in the manifest or not) spawns with its own label and
+        -- gets the coupler kit at registration. No propertyState on the shim = never
+        -- mistaken for a mission vehicle.
+        if desc ~= nil and desc.palletFilename ~= nil then
+            local srcCfg = self:findSprayerSourceVehicleConfigForVehicle({ configFileName = desc.palletFilename })
+            if srcCfg ~= nil then
+                SlurryPipeManager.log("_ibcTankXmlForSprayer: fillType=%s -> registered pallet '%s'",
+                    tostring(fillType), tostring(desc.palletFilename))
+                return desc.palletFilename
             end
         end
 

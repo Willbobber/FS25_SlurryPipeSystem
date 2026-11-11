@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<vehicle type="waterTrailer" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../shared/xml/schema/vehicle.xsd">
+    <annotation>Copyright (C) GIANTS Software GmbH, All Rights Reserved.</annotation>
+
+    <storeData>
+        <name>Water/Chem Bowser</name>
+        <functions>
+            <function>$l10n_function_tank</function>
+        </functions>
+        <image>vehicles/waterTrailer550/icon_waterTrailer550.png</image>
+        <price>7850</price>
+        <lifetime>600</lifetime>
+        <rotation>0</rotation>
+        <brand>SPS</brand>
+        <category>barrels</category>
+        <shopTranslationOffset>0 0.212 0</shopTranslationOffset>
+        <shopRotationOffset>0.99 0 0</shopRotationOffset>
+        <vertexBufferMemoryUsage>699904</vertexBufferMemoryUsage>
+        <indexBufferMemoryUsage>213760</indexBufferMemoryUsage>
+        <textureMemoryUsage>458752</textureMemoryUsage>
+        <instanceVertexBufferMemoryUsage>0</instanceVertexBufferMemoryUsage>
+        <instanceIndexBufferMemoryUsage>0</instanceIndexBufferMemoryUsage>
+        <audioMemoryUsage>0</audioMemoryUsage>
+    </storeData>
+
+    <base>
+        <typeDesc>$l10n_typeDesc_waterTrailer</typeDesc>
+        <filename>vehicles/waterTrailer550/waterTrailer550.i3d</filename>   <!-- [SPS 2026-11-09] paths in <base> are MOD-relative, not XML-relative (log 22:00: "i3d ... /FS25_SlurryPipeSystem/waterTrailer550.i3d could not be found") -->
+        <size width="2.05" length="3.85" height="1.78" lengthOffset="0.38"/>
+        <components maxMass="2700">
+            <component centerOfMass="0 0.45 -0.3" solverIterationCount="10" mass="374" />
+        </components>
+        <schemaOverlay attacherJointPosition="0 0" name="IMPLEMENT" />
+        <mapHotspot type="TOOL_TRAILED" />
+    </base>
+
+    <wheels>
+        <wheelConfigurations>
+            <wheelConfiguration name="$l10n_configuration_valueDefault" price="0" brand="CONTINENTAL" saveId="CONTINENTAL_DEFAULT">
+                <wheels>
+                    <wheel filename="$data/shared/wheels/tires/continental/terrainContactHT/275_65R18.xml" isLeft="true" hasTireTracks="true" hasParticles="true" configId="rimsPickup06">
+                        <physics tipOcclusionAreaGroupId="1" rotSpeed="0" restLoad="0.2" repr="wheelLeft"  forcePointRatio="0.15" initialCompression="5" suspTravel="0.05" spring="60" damper="20"/>
+                    </wheel>
+                    <wheel filename="$data/shared/wheels/tires/continental/terrainContactHT/275_65R18.xml" isLeft="false" hasTireTracks="true" hasParticles="true" configId="rimsPickup06">
+                        <physics tipOcclusionAreaGroupId="1" rotSpeed="0" restLoad="0.2" repr="wheelRight" forcePointRatio="0.15" initialCompression="5" suspTravel="0.05" spring="60" damper="20"/>
+                    </wheel>
+                </wheels>
+            </wheelConfiguration>
+        </wheelConfigurations>
+    </wheels>
+
+    <attachable>
+        <inputAttacherJoints>
+            <inputAttacherJoint node="attacherJoint" jointType="trailerLow" attacherHeight="0.45" />
+            <inputAttacherJoint node="attacherJoint" jointType="trailerCar" attacherHeight="0.45" />
+        </inputAttacherJoints>
+        <brakeForce force="0.1" maxForce="0.25" maxForceMass="2600"/>
+        <support animationName="moveSupport" />
+        <sounds>
+            <active file="$data/sounds/tools/sowing/generalRattle_02.wav" innerRadius="10" outerRadius="50" volumeScale="8.6" isLocalSound="true" pitchScale="1.2">
+                <volume indoor="0.7" outdoor="0.9" >
+                    <modifier type="WHEEL_SUSPENSION" value="-0.08" modifiedValue="0.2"/>
+                    <modifier type="WHEEL_SUSPENSION" value="-0.06" modifiedValue="0.2"/>
+                    <modifier type="WHEEL_SUSPENSION" value="-0.04" modifiedValue="0.2"/>
+                    <modifier type="WHEEL_SUSPENSION" value="-0.03" modifiedValue="0.2"/>
+                    <modifier type="WHEEL_SUSPENSION" value="-0.02" modifiedValue="0.2"/>
+                    <modifier type="WHEEL_SUSPENSION" value="-0.01" modifiedValue="0.1"/>
+                    <modifier type="WHEEL_SUSPENSION" value="-0.00" modifiedValue="0.0"/>
+                    <modifier type="WHEEL_SUSPENSION" value="0.01" modifiedValue="0.1"/>
+                    <modifier type="WHEEL_SUSPENSION" value="0.02" modifiedValue="0.2"/>
+                    <modifier type="WHEEL_SUSPENSION" value="0.03" modifiedValue="0.2"/>
+                    <modifier type="WHEEL_SUSPENSION" value="0.04" modifiedValue="0.2"/>
+                    <modifier type="WHEEL_SUSPENSION" value="0.06" modifiedValue="0.2"/>
+                    <modifier type="WHEEL_SUSPENSION" value="0.08" modifiedValue="0.2"/>
+
+                    <modifier type="SPEED" value="0.0" modifiedValue="0.0"/>
+                    <modifier type="SPEED" value="2.0" modifiedValue="1.0"/>
+                    <modifier type="SPEED" value="40.0" modifiedValue="1.0"/>
+                </volume>
+                <lowpassCutoffFrequency indoor="250" outdoor="20000" />
+                <lowpassGain indoor="0.5" outdoor="1" />
+            </active>
+        </sounds>
+    </attachable>
+
+    <licensePlates>
+        <licensePlate node="licensePlateBack" position="BACK" preferedType="SQUARISH" placementArea="0.06 0.26 0.09 0.15"/>
+    </licensePlates>
+
+    <lights>
+        <sharedLight linkNode="plateNumberLight01" filename="$data/shared/assets/lights/lizard/plateNumberLight01.xml" />
+
+        <realLights>
+            <high>
+                <light node="licensePlateLightHigh" lightTypes="0"/>
+            </high>
+        </realLights>
+    </lights>
+
+    <!-- [SPS CHEM 2026-11-09] "Fitted": bowl + pipe shown, the bowl's fill shape is a live kinematic trigger. "Not fitted":
+         bowl + pipe hidden, fill shape has NO rigid body (nothing can pour into it). The handle sits at 0 0 -90 with the
+         bowl and at 0 0 0 without it (William). <chemStation> in <liquidPipeSystem> carries the same gate (configIndex 0 = Fitted). -->
+    <designConfigurations title="Chem mixing station">
+        <designConfiguration name="Fitted" price="1200">
+            <objectChange node="chemBowl"         visibilityActive="true"/>
+            <objectChange node="chemBowlPipe"     visibilityActive="true"/>
+            <objectChange node="chemBowlFillNode" rigidBodyTypeActive="Kinematic"/>
+            <objectChange node="chemBowlHandle"   rotationActive="0 0 -90"/>
+        </designConfiguration>
+        <designConfiguration name="Not fitted" price="0">
+            <objectChange node="chemBowl"         visibilityActive="false"/>
+            <objectChange node="chemBowlPipe"     visibilityActive="false"/>
+            <objectChange node="chemBowlFillNode" rigidBodyTypeActive="None"/>
+            <objectChange node="chemBowlHandle"   rotationActive="0 0 0"/>
+        </designConfiguration>
+    </designConfigurations>
+
+    <design2Configurations title="Pipe rack">
+        <design2Configuration name="Fitted" price="450">
+            <objectChange node="pipeHanger"           visibilityActive="true"/>
+            <objectChange node="suctionHoseStowed"    visibilityActive="true"/>
+            <objectChange node="washHoseStowed"       visibilityActive="true"/>
+            <objectChange node="waterHoseSmallStowed" visibilityActive="true"/>
+        </design2Configuration>
+        <design2Configuration name="Not fitted" price="0">
+            <objectChange node="pipeHanger"           visibilityActive="false"/>
+            <objectChange node="suctionHoseStowed"    visibilityActive="false"/>
+            <objectChange node="washHoseStowed"       visibilityActive="false"/>
+            <objectChange node="waterHoseSmallStowed" visibilityActive="false"/>
+        </design2Configuration>
+    </design2Configurations>
+
+    <animations>
+        <!-- [SPS 2026-11-09] a pipe on the inlet takes the cap off; the HANDLE is the inlet VALVE (R at the control node in
+             pipe mode, B in original mode) - William: "the waterInletHandle is to be used by the valve open close" -->
+        <animation name="suctionHoseConnect">
+            <part node="waterInletCap"    startTime="0.0" endTime="0.05" visibility="false" />
+            <sound template="clackVar1" startTime="0.08" volumeScale="1.0" linkNode="SPS_suctionHose01"/>
+        </animation>
+        <animation name="waterInletValve">
+            <part node="waterInletHandle" startTime="0.0" endTime="0.5"  startRot="0 0 0" endRot="-90 0 0" />
+            <sound template="clackVar1" startTime="0.45" volumeScale="0.8" linkNode="SPS_suctionHose01"/>
+        </animation>
+
+        <!-- [SPS 2026-11-09] wash hose on: cap off the spray outlet, handle 0 0 0 -> 0 -90 0 (William). Suction / small
+             hose on: suctionHoseConnect above (waterInletCap off, waterInletHandle -90 0 0). recirculationHandle = stowed for now. -->
+        <animation name="washHoseConnect">
+            <part node="sprayHoseCap"    startTime="0.0" endTime="0.05" visibility="false" />
+            <part node="sprayHoseHandle" startTime="0.1" endTime="0.6"  startRot="0 0 0" endRot="0 -90 0" />
+            <sound template="clackVar1" startTime="0.08" volumeScale="1.0" linkNode="SPS_washOutlet01"/>
+        </animation>
+
+        <animation name="generatorPull">
+            <part node="gen01" startTime="0.0" endTime="0.5" startTrans="0 0 0" endTrans="0 0.5 0" />
+            <part node="gen01" startTime="0.5" endTime="1.0" startTrans="0 0.5 0" endTrans="0 0 0" />
+        </animation>
+        <animation name="generatorRevs">
+            <part node="generatorRevs" startTime="0.0" endTime="0.6" startRot="0 0 0" endRot="0 0 -45" />
+        </animation>
+
+        <animation name="moveSupport">
+            <part node="supportArm" startTime="0.25" endTime="0.5" startTrans="0 0.07 0" endTrans="0 -0.19 0" />
+            <part node="supportWinder" startTime="0.25" endTime="0.5" startRot="0 0 0" endRot="0 0 -720" />
+            <part node="supportHolder" startTime="0" endTime="0.25" startRot="0 0 -90" endRot="0 0 0" />
+
+            <sound template="slideOpen" startTime="0.01" direction="1"  volumeScale="1.5" pitchScale="1.4" linkNode="attacherJoint"/>
+            <sound template="slideOpen" startTime="0.49" direction="-1" volumeScale="1.5" pitchScale="1.4" linkNode="attacherJoint"/>
+            <sound template="clackVar1" startTime="0.14"                volumeScale="1.1" pitchScale="1.1" linkNode="attacherJoint"/>
+        </animation>
+    </animations>
+
+    <fillUnit>
+        <fillUnitConfigurations>
+            <fillUnitConfiguration name="$l10n_configuration_valueDefault" price="0" >
+                <fillUnits>
+                    <fillUnit unitTextOverride="$l10n_unit_literShort" fillTypes="water liquidFertilizer herbicide" capacity="2080" showOnHud="true">
+                        <exactFillRootNode node="exactFillRootNode" />
+                    </fillUnit>
+                </fillUnits>
+            </fillUnitConfiguration>
+        </fillUnitConfigurations>
+    </fillUnit>
+
+    <dischargeable>
+        <dischargeNode node="dischargeNode" emptySpeed="300" fillUnitIndex="1" canDischargeToGround="false" allowAIDischarge="true">
+            <info width="1.0" length="0.5" zOffset="0" />
+            <trigger node="dischargeTrigger" />
+        </dischargeNode>
+    </dischargeable>
+
+    <fillTriggerVehicle triggerNode="waterTrigger" fillUnitIndex="1" litersPerSecond="300"/>
+
+    <waterTrailer fillUnitIndex="1" fillLitersPerSecond="300" fillNode="fillNode">
+        <sounds>
+            <refill template="defaultRefuelSound" linkNode="0>" />
+        </sounds>
+    </waterTrailer>
+
+    <liquidPipeSystem>
+        <flow litersPerSecond="15"/>
+        <!-- [SPS 2026-11-09] a FillUnit takes EITHER fillTypes OR fillTypeCategories (log 23:18: both = "Missing ... Vehicle loading
+             failed"), and no category holds water without diesel / DEF - so water / LF / HERB above, and SPS adds every liquid of
+             these categories at registration (Soil & Fertilizer's liquids included). -->
+        <extraFillTypes categories="SPRAYER" fillUnitIndex="1"/>   <!-- [SPS 2026-11-09] a 2" petrol pump ~ 900 L/min (William: 300 L/s is not realistic next to a 10 L/s sprayer) -->
+        <!-- [SPS CHEM 2026-11-09] chem bowl = pour target for fill unit 1 (concentrate / mix poured into the bowl lands in
+             the tank). Only while the "Chem mixing station" design configuration is on slot 0 (Fitted). -->
+        <chemStation bowlFillNode="chemBowlFillNode" configType="design" configIndex="0"/>
+        <!-- [SPS 2026-11-09] fitting 1 = water inlet: the suction pipe (far end in a water course = intake, B = pump) and the
+             small hose (far end on a sprayer / tanker water fitting); fitting 2 = spray outlet: the wash hose (far end free,
+             B pours the tank out where it lies). Only the pipes' START ends plug in, nothing else fits. The connector
+             animations are this vehicle's own (held open while a pipe is on the fitting). -->
+        <liquidPipeCouplings>
+            <liquidPipeCoupling id="1" mountNodeName="SPS_suctionHose01" maxPipeLength="7.5" fillUnitIndex="1" lanes="WATER SPRAYER"
+                                connectorAnimationName="suctionHoseConnect" valveAnimations="waterInletValve"
+                                tankTopNodeName="fullNode" tankBottomNodeName="emptyNode"
+                                acceptPipes="WT_SUCTION WT_SMALL" acceptEnd="start" waterSource="WT_SUCTION" stowedVisual="suctionHoseStowed"/>
+            <liquidPipeCoupling id="2" mountNodeName="SPS_washOutlet01" maxPipeLength="6.5" fillUnitIndex="1" lanes="WATER"
+                                connectorAnimationName="washHoseConnect"
+                                acceptPipes="WT_WASH" acceptEnd="start" washOutlet="WT_WASH" washLitersPerSecond="5" stowedVisual="washHoseStowed"/>
+        </liquidPipeCouplings>
+        <liquidPumpControls>
+            <liquidPumpControl nodeName="sprayerPumpControls" radius="1.5"/>
+        </liquidPumpControls>
+
+        <physicalModeHide>
+            <!-- [SPS 2026-11-09] rack visuals of the three bowser pipes: original mode only, and only with the rack (pipe01 / pipe02 are gone) -->
+            <node name="suctionHoseStowed"    configType="design2" cylinderedConfigIndex="0"/>
+            <node name="washHoseStowed"       configType="design2" cylinderedConfigIndex="0"/>
+            <node name="waterHoseSmallStowed" configType="design2" cylinderedConfigIndex="0"/>
+        </physicalModeHide>
+        <!-- [SPS 2026-11-09] the rack: SPS_pipeHolder01 sits at the pipeHanger; its three placements are William's coiled poses
+             (Blender manual rigs, 25 / 19 / 25 points = one per body). Place numbers 01 / 02 / 03 = three pipes at once. -->
+        <pipeHolders>
+            <pipeHolder id="1" nodeName="SPS_pipeHolder01" radius="1.5" configType="design2" cylinderedConfigIndex="0">   <!-- no rack bought = no holder -->
+                <placement node="bowserSuction01" pipes="WT_SUCTION"/>
+                <placement node="bowserWash02"    pipes="WT_WASH"/>
+                <placement node="bowserSmall03"   pipes="WT_SMALL"/>
+            </pipeHolder>
+        </pipeHolders>
+
+        <generator pullAnimation="generatorPull" pullSpeed="1.5" pullPause="0.4" pulls="3" revsAnimation="generatorRevs" exhaustNodeName="exhaustNode">
+            <!-- [SPS 2026-11-09] louder + indoor / outdoor levels (William). pull = the cord, start = the engine turning over
+                 (from the start of each pull to the top of the stroke), engineLoop once it catches. -->
+            <sounds>
+                <pull       template="slideOpen"   linkNode="gen02" pitchScale="0.8" volumeScale="1.6" innerRadius="5" outerRadius="40">
+                    <volume indoor="0.6" outdoor="1.0"/>
+                </pull>
+                <!-- "engineSmall" is a file-less template (soundTemplates.xml:30) - it played nothing; a real start file instead -->
+                <start      file="$data/sounds/tools/chainsaw/husqvarna/husqvarna_start.ogg" linkNode="gen02" volumeScale="2.0" innerRadius="6" outerRadius="60" pitchScale="0.9">
+                    <volume indoor="0.6" outdoor="1.0"/>
+                </start>
+                <engineLoop file="$data/vehicles/agi/utx44/sounds/utx44_loop.gls" linkNode="gen02" innerRadius="6" outerRadius="80" volumeScale="2.0">
+                    <volume indoor="0.6" outdoor="1.0"/>
+                </engineLoop>
+            </sounds>
+        </generator>
+    </liquidPipeSystem>
+
+    <foliageBending>
+        <bendingNode minX="-1.02" maxX="1.02" minZ="-1.6" maxZ="0.55" yOffset="0.2" />
+        <bendingNode minX="-0.6" maxX="0.6" minZ="0.55" maxZ="1.4" yOffset="0.2" />
+        <bendingNode minX="-0.3" maxX="0.3" minZ="1.4" maxZ="2.1" yOffset="0.2" />
+    </foliageBending>
+
+    <ai>
+        <agentAttachment jointNode="attacherJoint" rotCenterWheelIndices="1 2" width="2.08" height="1.77" length="3.2" lengthOffset="0.73"/>
+    </ai>
+
+    <tipOccluder>
+        <occlusionArea start="occlusionAreaStart" width="occlusionAreaWidth" height="occlusionAreaHeight" />
+    </tipOccluder>
+
+    <rimColorConfigurations>
+        <rimColorConfiguration materialTemplateName="RIM_CONFIGURATION_CHROME" price="1000"/>
+        <rimColorConfiguration materialTemplateName="RIM_DEFAULT"/>
+        <rimColorConfiguration materialTemplateName="RIM_CONFIGURATION_WHITE" isDefault="true"/>
+        <rimColorConfiguration materialTemplateName="RIM_CONFIGURATION_BLACK"/>
+    </rimColorConfigurations>
+
+    <wearable wearDuration="480" workMultiplier="5" fieldMultiplier="2"/>
+    <washable dirtDuration="90" washDuration="1" workMultiplier="2" fieldMultiplier="2"/>
+
+    <i3dMappings>
+        <i3dMapping id="agi550_main_component1" node="0>" />
+        <i3dMapping id="waterTrailer550_vis" node="0>0" />
+        <i3dMapping id="attacherJoint" node="0>0|0|0" />
+        <i3dMapping id="supportHolder" node="0>0|0|1|0" />
+        <i3dMapping id="supportArm" node="0>0|0|1|0|0|0" />
+        <i3dMapping id="supportWinder" node="0>0|0|1|0|1|0" />
+        <i3dMapping id="plateNumberLight01" node="0>0|1|0" />
+        <i3dMapping id="licensePlateLightHigh" node="0>0|1|1" />
+        <i3dMapping id="wheelLeft" node="0>0|2|0" />
+        <i3dMapping id="wheelRight" node="0>0|2|1" />
+        <i3dMapping id="dischargeNode" node="0>0|3|0" />
+        <i3dMapping id="dischargeTrigger" node="0>0|3|1" />
+        <i3dMapping id="waterTrigger" node="0>0|4" />
+        <i3dMapping id="exactFillRootNode" node="0>0|5" />
+        <i3dMapping id="fillNode" node="0>0|6" />
+        <i3dMapping id="occlusionAreaStart" node="0>0|8|0" />
+        <i3dMapping id="occlusionAreaWidth" node="0>0|8|1" />
+        <i3dMapping id="occlusionAreaHeight" node="0>0|8|2" />
+        <i3dMapping id="licensePlateBack" node="0>0|9" />
+        <i3dMapping id="generatorRevs"      node="0>0|7|4" />
+        <i3dMapping id="gen01"              node="0>0|7|5|0" />
+        <i3dMapping id="recirculationHandle" node="0>0|7|6" />
+        <i3dMapping id="sprayHoseCap"       node="0>0|7|7" />
+        <i3dMapping id="sprayHoseHandle"    node="0>0|7|8" />
+        <i3dMapping id="waterInletCap"      node="0>0|7|9" />
+        <i3dMapping id="waterInletHandle"   node="0>0|7|10" />
+        <i3dMapping id="chemBowl"           node="0>0|10|0|0" />
+        <i3dMapping id="chemBowlHandle"     node="0>0|7|11" />
+        <i3dMapping id="chemBowlPipe"       node="0>0|10|0|1" />
+        <i3dMapping id="chemBowlFillNode"   node="0>0|10|0|2" />
+        <i3dMapping id="pipeHanger"         node="0>0|10|1|0" />
+        <i3dMapping id="gen02"              node="0>0|11" />
+        <i3dMapping id="SPS_suctionHose01"  node="0>0|12|0" />
+        <i3dMapping id="SPS_washOutlet01"   node="0>0|12|1" />
+        <i3dMapping id="SPS_pipeHolder01"   node="0>0|12|2" />
+        <i3dMapping id="suctionHoseStowed"      node="0>0|10|1|0|0" />   <!-- rack visuals of the three bowser pipes (original mode) -->
+        <i3dMapping id="washHoseStowed"         node="0>0|10|1|0|1" />
+        <i3dMapping id="waterHoseSmallStowed"   node="0>0|10|1|0|2" />
+        <i3dMapping id="sprayerPumpControls" node="0>0|13" />
+        <i3dMapping id="bowserControlNode"  node="0>0|13|0" />
+        <i3dMapping id="exhaustNode"        node="0>0|13|1" />
+        <i3dMapping id="emptyNode"          node="0>0|14" />
+        <i3dMapping id="fullNode"           node="0>0|15" />
+    </i3dMappings>
+</vehicle>

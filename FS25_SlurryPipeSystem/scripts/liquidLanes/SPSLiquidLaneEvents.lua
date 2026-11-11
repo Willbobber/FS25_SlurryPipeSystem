@@ -246,6 +246,63 @@ end
 -- ---------------------------------------------------------------------------
 -- [SPS 1.0.1.8] TRANSFER lane (tanker to tanker): Y at a tanker's control node = Load (into it) / Unload.
 -- ---------------------------------------------------------------------------
+-- ---------------------------------------------------------------------------
+-- [SPS 2026-11-09] ORIGINAL-MODE bowser pipes (550 Water/Chem Bowser): kind 1 = the suction pipe laid to a point (R in
+-- the bowser's arc), kind 2 = the wash hose taken into a player's hands (X at the pump; userId = whose hands). on=false
+-- takes it back. Server applies + broadcasts; a client asks.
+-- ---------------------------------------------------------------------------
+SPSLiquidLaneOrigPipeEvent = {}
+SPSLiquidLaneOrigPipeEvent_mt = Class(SPSLiquidLaneOrigPipeEvent, Event)
+InitEventClass(SPSLiquidLaneOrigPipeEvent, "SPSLiquidLaneOrigPipeEvent")
+
+function SPSLiquidLaneOrigPipeEvent.emptyNew()
+    return Event.new(SPSLiquidLaneOrigPipeEvent_mt)
+end
+
+function SPSLiquidLaneOrigPipeEvent.new(object, couplingId, kind, on, x, y, z, userId)
+    local self = SPSLiquidLaneOrigPipeEvent.emptyNew()
+    self.object, self.couplingId, self.kind, self.on = object, couplingId, kind, on == true
+    self.x, self.y, self.z, self.userId = x or 0, y or 0, z or 0, userId or -1
+    return self
+end
+
+function SPSLiquidLaneOrigPipeEvent:readStream(streamId, connection)
+    self.object     = NetworkUtil.readNodeObject(streamId)
+    self.couplingId = streamReadUIntN(streamId, 6)
+    self.kind       = streamReadUIntN(streamId, 3)   -- [2026-11-10] 3 bits: kind 4 = lay the carried suction end
+    self.on         = streamReadBool(streamId)
+    self.x, self.y, self.z = streamReadFloat32(streamId), streamReadFloat32(streamId), streamReadFloat32(streamId)
+    self.userId     = streamReadInt32(streamId)
+    self:run(connection)
+end
+
+function SPSLiquidLaneOrigPipeEvent:writeStream(streamId, connection)
+    NetworkUtil.writeNodeObject(streamId, self.object)
+    streamWriteUIntN(streamId, self.couplingId or 1, 6)
+    streamWriteUIntN(streamId, self.kind or 1, 3)
+    streamWriteBool(streamId, self.on)
+    streamWriteFloat32(streamId, self.x); streamWriteFloat32(streamId, self.y); streamWriteFloat32(streamId, self.z)
+    streamWriteInt32(streamId, self.userId or -1)
+end
+
+function SPSLiquidLaneOrigPipeEvent:run(connection)
+    log("OrigPipeEvent:run kind=%s on=%s", tostring(self.kind), tostring(self.on))
+    if g_slurryPipeManager == nil or g_slurryPipeManager.applyLiquidLaneOrigPipe == nil then return end
+    g_slurryPipeManager:applyLiquidLaneOrigPipe(self.object, self.couplingId, self.kind, self.on, self.x, self.y, self.z, self.userId)
+    if not connection:getIsServer() then
+        g_server:broadcastEvent(SPSLiquidLaneOrigPipeEvent.new(self.object, self.couplingId, self.kind, self.on, self.x, self.y, self.z, self.userId),
+            nil, connection, self.object, nil, nil, true)
+    end
+end
+
+function SPSLiquidLaneOrigPipeEvent.sendEvent(object, couplingId, kind, on, x, y, z, userId)
+    if g_server ~= nil then
+        g_server:broadcastEvent(SPSLiquidLaneOrigPipeEvent.new(object, couplingId, kind, on, x, y, z, userId), nil, nil, object, nil, nil, true)
+    else
+        g_client:getServerConnection():sendEvent(SPSLiquidLaneOrigPipeEvent.new(object, couplingId, kind, on, x, y, z, userId))
+    end
+end
+
 SPSLiquidLaneTransferDirectionEvent = {}
 SPSLiquidLaneTransferDirectionEvent_mt = Class(SPSLiquidLaneTransferDirectionEvent, Event)
 InitEventClass(SPSLiquidLaneTransferDirectionEvent, "SPSLiquidLaneTransferDirectionEvent")
@@ -286,5 +343,104 @@ function SPSLiquidLaneTransferDirectionEvent.sendEvent(object, direction)
         g_server:broadcastEvent(SPSLiquidLaneTransferDirectionEvent.new(object, direction), nil, nil, object, nil, nil, true)
     else
         g_client:getServerConnection():sendEvent(SPSLiquidLaneTransferDirectionEvent.new(object, direction))
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS MKS8 2026-11-10] selected tank of a multi-tank fitting (a client's request is applied on the server first)
+-- ---------------------------------------------------------------------------
+SPSLiquidLaneTankSelectEvent = {}
+SPSLiquidLaneTankSelectEvent_mt = Class(SPSLiquidLaneTankSelectEvent, Event)
+InitEventClass(SPSLiquidLaneTankSelectEvent, "SPSLiquidLaneTankSelectEvent")
+
+function SPSLiquidLaneTankSelectEvent.emptyNew()
+    return Event.new(SPSLiquidLaneTankSelectEvent_mt)
+end
+
+function SPSLiquidLaneTankSelectEvent.new(object, couplingId, tankIdx)
+    local self = SPSLiquidLaneTankSelectEvent.emptyNew()
+    self.object     = object
+    self.couplingId = couplingId or 1
+    self.tankIdx    = tankIdx or 1
+    return self
+end
+
+function SPSLiquidLaneTankSelectEvent:readStream(streamId, connection)
+    self.object     = NetworkUtil.readNodeObject(streamId)
+    self.couplingId = streamReadUIntN(streamId, 8)
+    self.tankIdx    = streamReadUIntN(streamId, 8)
+    self:run(connection)
+end
+
+function SPSLiquidLaneTankSelectEvent:writeStream(streamId, connection)
+    NetworkUtil.writeNodeObject(streamId, self.object)
+    streamWriteUIntN(streamId, self.couplingId or 1, 8)
+    streamWriteUIntN(streamId, self.tankIdx or 1, 8)
+end
+
+function SPSLiquidLaneTankSelectEvent:run(connection)
+    local ok = false
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.applyLiquidLaneTankSelect ~= nil then
+        ok = g_slurryPipeManager:applyLiquidLaneTankSelect(self.object, self.couplingId, self.tankIdx)
+    end
+    if not connection:getIsServer() and ok then
+        g_server:broadcastEvent(SPSLiquidLaneTankSelectEvent.new(self.object, self.couplingId, self.tankIdx), nil, nil, self.object, nil, nil, true)
+    end
+end
+
+function SPSLiquidLaneTankSelectEvent.sendEvent(object, couplingId, tankIdx)
+    if g_server ~= nil then
+        g_server:broadcastEvent(SPSLiquidLaneTankSelectEvent.new(object, couplingId, tankIdx), nil, nil, object, nil, nil, true)
+    else
+        g_client:getServerConnection():sendEvent(SPSLiquidLaneTankSelectEvent.new(object, couplingId, tankIdx))
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS MKS8 2026-11-10] the door (loadAnimation) of a lane vehicle: open / closed
+-- ---------------------------------------------------------------------------
+SPSLiquidLaneDoorEvent = {}
+SPSLiquidLaneDoorEvent_mt = Class(SPSLiquidLaneDoorEvent, Event)
+InitEventClass(SPSLiquidLaneDoorEvent, "SPSLiquidLaneDoorEvent")
+
+function SPSLiquidLaneDoorEvent.emptyNew()
+    return Event.new(SPSLiquidLaneDoorEvent_mt)
+end
+
+function SPSLiquidLaneDoorEvent.new(object, open)
+    local self = SPSLiquidLaneDoorEvent.emptyNew()
+    self.object = object
+    self.open   = open == true
+    return self
+end
+
+function SPSLiquidLaneDoorEvent:readStream(streamId, connection)
+    self.object = NetworkUtil.readNodeObject(streamId)
+    self.open   = streamReadBool(streamId)
+    self:run(connection)
+end
+
+function SPSLiquidLaneDoorEvent:writeStream(streamId, connection)
+    NetworkUtil.writeNodeObject(streamId, self.object)
+    streamWriteBool(streamId, self.open == true)
+end
+
+function SPSLiquidLaneDoorEvent:run(connection)
+    local ok = false
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.applyLiquidLaneDoor ~= nil then
+        if connection:getIsServer() or self.open or g_slurryPipeManager.llDoorCanClose == nil or g_slurryPipeManager:llDoorCanClose(self.object) then
+            ok = g_slurryPipeManager:applyLiquidLaneDoor(self.object, self.open)
+        end
+    end
+    if not connection:getIsServer() and ok then
+        g_server:broadcastEvent(SPSLiquidLaneDoorEvent.new(self.object, self.open), nil, nil, self.object, nil, nil, true)
+    end
+end
+
+function SPSLiquidLaneDoorEvent.sendEvent(object, open)
+    if g_server ~= nil then
+        g_server:broadcastEvent(SPSLiquidLaneDoorEvent.new(object, open), nil, nil, object, nil, nil, true)
+    else
+        g_client:getServerConnection():sendEvent(SPSLiquidLaneDoorEvent.new(object, open))
     end
 end

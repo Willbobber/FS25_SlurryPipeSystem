@@ -55,15 +55,7 @@
 			<levelArea startNode="levelAreaStart02" widthNode="levelAreaWidth02" heightNode="levelAreaHeight02" groundType="dirt"/>
         </levelAreas>
 
-        <!-- <paintAreas> -->
-            <!-- <paintArea startNode="paintAreaStart01" widthNode="paintAreaWidth01" heightNode="paintAreaHeight01" groundType="grass" /> -->
-        <!-- </paintAreas> -->
     </leveling>
-
-    <!-- <foliageAreas> -->
-        <!-- <foliageArea startNode="foliageAreaStart01" widthNode="foliageAreaWidth01" heightNode="foliageAreaHeight01" decoFoliage="grassShort" /> -->
-        <!-- <foliageArea startNode="foliageAreaStart02" widthNode="foliageAreaWidth02" heightNode="foliageAreaHeight02" decoFoliage="grassShort" /> -->
-    <!-- </foliageAreas> -->
 
     <indoorAreas>
         <indoorArea startNode="indoorAreaStart01" widthNode="indoorAreaWidth01" heightNode="indoorAreaHeight01"/>

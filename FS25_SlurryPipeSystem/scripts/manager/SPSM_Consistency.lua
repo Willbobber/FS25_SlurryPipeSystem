@@ -190,7 +190,7 @@ function SlurryPipeManager:_reconcileStorePools(se)
     local last  = se._lastTotal or total
     if total > last + 0.001 then
         se.solids = (se.solids or 0) + (total - last) * SlurryPipeManager.DM_FRESH
-        -- [SPS 1.0.1.9] fresh slurry carries no crust: dilute the settle by volume
+        -- [SPS 1.0.2.0] fresh slurry carries no crust: dilute the settle by volume
         self:applyStoreCrustBlend(se, last, total - last, 0)
     elseif total < last - 0.001 then
         local dm = last > 0 and ((se.solids or 0) / last) or 0
@@ -400,7 +400,7 @@ function SlurryPipeManager:applyFillCrustBlend(vehicle, oldLevel, addedVol, srcC
     end
 end
 
--- [SPS 1.0.1.9] Volume-weighted blend of incoming crust into a STORE as it fills - the
+-- [SPS 1.0.2.0] Volume-weighted blend of incoming crust into a STORE as it fills - the
 -- store twin of applyFillCrustBlend. Until now a store's settle (0..1 crust) was a pure
 -- timer: nothing that entered the pit ever diluted it, so a near-empty tank at 14% crust
 -- kept 14% after 95,000 L of freshly pressed separator liquid landed on it (William,
@@ -549,7 +549,6 @@ function SlurryPipeManager:applyAgitation(sourceEntry, gameHours, crustMix)
     local mult      = SlurryPipeManager.clampCrustMult(crustMix)
     local reduction = (gameHours / mixHours) * mult
     sourceEntry.settle = math.max(0.0, (sourceEntry.settle or 0) - reduction)
-    --SlurryDebug.log("[SPS Agitation] gauge now " .. string.format("%.2f", self:getApparentThickness(sourceEntry) * 100) .. "%")
     -- Update vegetation visibility for the matching placeable. Resolved through
     -- getStoreSources so a secondary lagoon on a multi-store placeable refreshes its
     -- own crust foliage too; the old identity test against pEntry.sourceEntry only

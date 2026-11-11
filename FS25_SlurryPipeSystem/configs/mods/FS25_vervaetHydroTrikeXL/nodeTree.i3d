@@ -30,7 +30,7 @@
       <TransformGroup name="pipeCouplers" nodeId="13">
         <TransformGroup name="hydroTrikeXL_vis1" nodeId="14">
           <TransformGroup name="SPS_pipeCoupler01" translation="0.774891 0.833982 3.00204" rotation="175.692 -48.3677 -180" nodeId="15">
-            <TransformGroup name="SPS_pipeCoupler01Arcs" translation="-1.05783e-07 0 0" rotation="136.577 -0 -180" nodeId="16">
+            <TransformGroup name="SPS_pipeCoupler01Arcs" rotation="175.692 0 -180" nodeId="16">
               <TransformGroup name="SPS_pipeCoupler01Arc01" translation="1.5 0 2.5" nodeId="17"/>
               <TransformGroup name="SPS_pipeCoupler01Arc02" translation="-1.5 0 2.5" nodeId="18"/>
             </TransformGroup>
@@ -38,9 +38,9 @@
             <TransformGroup name="outNode" rotation="0 180 0" nodeId="20"/>
           </TransformGroup>
           <TransformGroup name="SPS_pipeCoupler02" translation="-0.780193 0.834289 3.01304" rotation="178.01 48.0589 180" nodeId="21">
-            <TransformGroup name="SPS_pipeCoupler02Arcs" translation="-7.26186e-08 0 0" rotation="164.091 0 -180" nodeId="22">
-              <TransformGroup name="SPS_pipeCoupler02Arc01" translation="1.5 1.67697e-06 2.5" rotation="8.54233e-13 0 -1.16786e-05" nodeId="23"/>
-              <TransformGroup name="SPS_pipeCoupler02Arc02" translation="-1.5 2.5034e-06 2.5" nodeId="24"/>
+            <TransformGroup name="SPS_pipeCoupler02Arcs" rotation="178.01 -6.36111e-15 180" nodeId="22">
+              <TransformGroup name="SPS_pipeCoupler02Arc01" translation="1.5 0 2.5" nodeId="23"/>
+              <TransformGroup name="SPS_pipeCoupler02Arc02" translation="-1.5 0 2.5" nodeId="24"/>
             </TransformGroup>
             <TransformGroup name="inNode" nodeId="25"/>
             <TransformGroup name="outNode" rotation="0 180 1.25833e-05" nodeId="26"/>
@@ -64,9 +64,9 @@
       <TransformGroup name="liquidPipeCouplers" nodeId="36">
         <TransformGroup name="hydroTrikeXL_vis1" nodeId="37">
           <TransformGroup name="SPS_liquidPipeCoupler01" nodeId="38">
-            <TransformGroup name="SPS_liquidPipeCoupler01Arcs" nodeId="39">
-              <TransformGroup name="SPS_liquidPipeCoupler01Arc01" translation="3.5 0 -1.5" nodeId="40"/>
-              <TransformGroup name="SPS_liquidPipeCoupler01Arc02" translation="3.5 0 1.5" nodeId="41"/>
+            <TransformGroup name="SPS_liquidPipeCoupler01Arcs" rotation="0 90 0" nodeId="39">
+              <TransformGroup name="SPS_liquidPipeCoupler01Arc01" translation="1.5 0 2.5" nodeId="40"/>
+              <TransformGroup name="SPS_liquidPipeCoupler01Arc02" translation="-1.5 0 2.5" nodeId="41"/>
             </TransformGroup>
             <TransformGroup name="inNode" rotation="0 180 0" nodeId="42"/>
             <TransformGroup name="outNode" nodeId="43"/>

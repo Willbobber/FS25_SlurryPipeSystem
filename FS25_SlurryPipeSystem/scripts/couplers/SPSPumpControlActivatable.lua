@@ -160,10 +160,18 @@ function SPSPumpControlActivatable:_onValve()
     end
     -- Sync to all connected couplings marked valveFromRearControl so
     -- hasActiveCouplingConnection returns true and flow can start.
-    local entry = g_slurryPipeManager:getVehicleEntry(self.vehicle)
+    -- [SPS 1.0.2.0] "connected" includes a physical pipe whose far end lies in the water (intake) or free on the
+    -- ground with "Pipe leakage" on (leak) - the TSA's only valve is this panel, so without this a loose pipe on a
+    -- rear-controlled tanker could never leak (William 2026-11-02: "the tsa wont spill to ground").
+    local mgr = g_slurryPipeManager
+    local entry = mgr:getVehicleEntry(self.vehicle)
     if entry ~= nil then
         for _, coupling in ipairs(entry.couplingEntries) do
-            if coupling.valveFromRearControl and coupling.isConnected then
+            local connectedLike = coupling.isConnected
+                or (coupling.physPipe ~= nil
+                    and ((mgr.physCouplingIsLiquidFed ~= nil and mgr:physCouplingIsLiquidFed(coupling))   -- [SPS 1.0.2.0] water or slurry
+                         or (mgr.physCouplingIsSpilling ~= nil and mgr:physCouplingIsSpilling(coupling))))
+            if coupling.valveFromRearControl and connectedLike then
                 if newOpen then
                     g_slurryPipeManager:onValveOpen(self.vehicle, coupling)
                 else

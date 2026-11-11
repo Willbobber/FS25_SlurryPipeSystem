@@ -266,6 +266,11 @@ function SlurryPipeManager:tickFrontMountArmCascade(session, state, pumpRunning,
         if extSrc == nil then fmTrace("fill_no_ext_source") return end
         local fillType = self:_resolveSourceFillType(extSrc) or preFillType
         if extSrc.type == 3 then fillType = FillType.WATER end
+        -- [SPS 2026-11-11] a physical pipe draws water only through a cage (see SPSM_PhysPipes physFreeEndWaterPlane)
+        if extSrc.type == 3 and extSrc.drawOk == false then
+            if extSrc.cageMissing then self:noteCageMissing() end
+            fmTrace("fill_no_cage") return
+        end
         if fillType == nil then fmTrace("fill_no_filltype") return end
         -- [SPS 1.0.1.8] Buying-station external source (coupler, or the arm in a paid
         -- pool): every litre is a purchase, so it must go through
@@ -433,6 +438,16 @@ function SlurryPipeManager:resolveFrontMountReceiver(frontVehicle)
     local entry = self:getVehicleEntry(frontVehicle)
     if entry == nil or entry.frontMount == nil then
         return nil, "not_front_mount", nil
+    end
+
+    -- [SPS 1.0.2.0] <frontMount receiver="attacher">: the receiver is the vehicle this unit is hitched to.
+    if entry.frontMount.receiverAttacher == true then
+        local av = frontVehicle.getAttacherVehicle ~= nil and frontVehicle:getAttacherVehicle() or nil
+        if av == nil or av == frontVehicle then return nil, "no_connected_circuit", nil end
+        if self:getVehicleEntry(av) == nil then return nil, "receiver_not_registered", nil end
+        local fui = findReceiverFillUnit(av)
+        if fui == nil then return nil, "receiver_no_tank", nil end
+        return av, "ok", fui
     end
 
     local fmSpec = frontVehicle.spec_connectionHoses
@@ -616,7 +631,8 @@ function SlurryPipeManager:isFrontMountVehicle(vehicle)
     if self.registeredVehicles == nil or vehicle == nil then return false end
     for _, entry in ipairs(self.registeredVehicles) do
         if entry.vehicle == vehicle then
-            return entry.frontMount ~= nil
+            -- [SPS 1.0.2.0] keepSpreaderValve: a unit that is also a spreader (dribble bar) keeps its valve key.
+            return entry.frontMount ~= nil and entry.frontMount.keepSpreaderValve ~= true
         end
     end
     return false

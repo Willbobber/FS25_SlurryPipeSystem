@@ -242,7 +242,7 @@
       <TransformGroup name="liquidPipeCouplers" nodeId="788">
         <TransformGroup name="pgII28Genesis_vis" nodeId="789">
           <TransformGroup name="SPS_liquidPipeCoupler01" translation="-1.16822 1.5774 -5.01135" rotation="-14.4574 70.9648 0" nodeId="790">
-            <TransformGroup name="SPS_liquidPipeCoupler01Arcs" translation="0 0 -0.061" rotation="180 0 -180" nodeId="791">
+            <TransformGroup name="SPS_liquidPipeCoupler01Arcs" rotation="165.543 6.36111e-15 180" nodeId="791">
               <TransformGroup name="SPS_liquidPipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="792"/>
               <TransformGroup name="SPS_liquidPipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="793"/>
             </TransformGroup>

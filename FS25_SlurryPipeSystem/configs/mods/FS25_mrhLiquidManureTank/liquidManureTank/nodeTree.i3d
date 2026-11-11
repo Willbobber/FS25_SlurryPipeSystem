@@ -123,9 +123,9 @@
       <TransformGroup name="pipeCouplers" nodeId="33">
         <TransformGroup name="liquidManureTankLODs" nodeId="34">
           <TransformGroup name="SPS_pipeCoupler01" translation="-8.62184 0.945006 4.69008" rotation="163.755 59.0485 -180" nodeId="35">
-            <TransformGroup name="SPS_pipeCoupler01Arcs" rotation="180 0.000117821 180" nodeId="36">
+            <TransformGroup name="SPS_pipeCoupler01Arcs" rotation="163.357 12.3829 176.332" nodeId="36">
               <TransformGroup name="SPS_pipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="37"/>
-              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="0.4 -2.89583e-08 2.5" nodeId="38"/>
+              <TransformGroup name="SPS_pipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="38"/>
             </TransformGroup>
             <Shape name="slurryPipeConnectors04Coupler" translation="-0.000715931 -0.753745 0.479437" rotation="164.548 -1.87988e-05 180" shapeId="1" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="39" castsShadows="false" receiveShadows="false" materialIds="12,6,10">
               <Shape name="slurryPipeConnectors04CouplerPipe02" translation="0.00148439 -0.0121213 0.0286288" rotation="-89.9983 89.2062 -89.9978" shapeId="2" kinematic="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="40" castsShadows="true" receiveShadows="true" materialIds="12"/>
@@ -147,8 +147,8 @@
             <TransformGroup name="headHeight01" translation="-0.00721908 5.56018 2.77384" nodeId="223"/>
           </TransformGroup>
           <TransformGroup name="SPS_pipeCoupler02" translation="-8.195 0.945006 5.40144" rotation="163.755 59.0485 -180" nodeId="50">
-            <TransformGroup name="SPS_pipeCoupler02Arcs" rotation="180 1.82134e-05 -180" nodeId="51">
-              <TransformGroup name="SPS_pipeCoupler02Arc01" translation="-0.4 -2.98087e-09 2.5" nodeId="52"/>
+            <TransformGroup name="SPS_pipeCoupler02Arcs" rotation="163.357 -12.3828 -176.332" nodeId="51">
+              <TransformGroup name="SPS_pipeCoupler02Arc01" translation="-1.5 0 2.5" nodeId="52"/>
               <TransformGroup name="SPS_pipeCoupler02Arc02" translation="1.5 0 2.5" nodeId="53"/>
             </TransformGroup>
             <Shape name="slurryPipeConnectors04Coupler" translation="-0.000715931 -0.753745 0.479437" rotation="164.548 -1.87988e-05 180" shapeId="1" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" clipDistance="150" nodeId="54" castsShadows="false" receiveShadows="false" materialIds="12,6,10">

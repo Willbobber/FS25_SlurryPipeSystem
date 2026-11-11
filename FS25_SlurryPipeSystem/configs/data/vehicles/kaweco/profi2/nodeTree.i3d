@@ -222,7 +222,7 @@
       <TransformGroup name="liquidPipeCouplers" nodeId="60">
         <TransformGroup name="profi2_vis" nodeId="61">
           <TransformGroup name="SPS_liquidPipeCoupler01" translation="0.709025 1.7557 -3.37972" rotation="13.9042 -13.7972 -90.4242" nodeId="62">
-            <TransformGroup name="SPS_liquidPipeCoupler01Arcs" translation="0 0 -0.061" rotation="180 0 -180" nodeId="63">
+            <TransformGroup name="SPS_liquidPipeCoupler01Arcs" rotation="166.51 6.36111e-15 -92.9544" nodeId="63">
               <TransformGroup name="SPS_liquidPipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="64"/>
               <TransformGroup name="SPS_liquidPipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="65"/>
             </TransformGroup>

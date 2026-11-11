@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<vehicle type="waterTrailer" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../shared/xml/schema/vehicle.xsd">
+    <annotation>FS25_SlurryPipeSystem - MKS 8 Dual Tank SPS (William's rework of the base MKS 8, 2026-11-10): two tanks, one SPS fitting behind the rear door, two side tubes for the short pipes. Base vehicle data (C) GIANTS Software GmbH.</annotation>
+
+    <storeData>
+        <name>$l10n_sps_mks8DualTankName</name>
+        <functions>
+            <function>$l10n_sps_mks8DualTankFunction</function>
+        </functions>
+        <image>$data/vehicles/lizard/mks8/store_mks8.png</image>
+        <price>34000</price>
+        <lifetime>600</lifetime>
+        <rotation>0</rotation>
+        <brand>LIZARD</brand>
+        <category>barrels</category>
+        <shopTranslationOffset>0 -0.077 0</shopTranslationOffset>
+        <shopRotationOffset>0.045 0 0</shopRotationOffset>
+        <vertexBufferMemoryUsage>805376</vertexBufferMemoryUsage>
+        <indexBufferMemoryUsage>218880</indexBufferMemoryUsage>
+        <textureMemoryUsage>393216</textureMemoryUsage>
+        <instanceVertexBufferMemoryUsage>0</instanceVertexBufferMemoryUsage>
+        <instanceIndexBufferMemoryUsage>0</instanceIndexBufferMemoryUsage>
+        <audioMemoryUsage>0</audioMemoryUsage>
+    </storeData>
+
+    <base>
+        <typeDesc>$l10n_typeDesc_trailer</typeDesc>
+        <filename>vehicles/mks8_dualTank/mks8DualTank.i3d</filename>
+        <size width="2.3" length="7" height="3.45" lengthOffset="1.1"/>
+        <components maxMass="13000">
+            <component centerOfMass="0 0.6 -0.15"  solverIterationCount="10" mass="2700"/>
+            <component centerOfMass="0 -0.15 0.0" solverIterationCount="10" mass="1500"/>
+            <component                            solverIterationCount="10" mass="250"/>
+            <joint component1="1" component2="2" node="componentJointFront" rotLimit="0 120 0" transLimit="0 0 0"/>
+            <joint component1="2" component2="3" node="componentJointDrawbar" rotLimit="0 0 0" transLimit="0 0 0"/>
+            <collisionPair component1="1" component2="3" enabled="false"/>
+        </components>
+        <schemaOverlay attacherJointPosition="0 0" name="IMPLEMENT"/>
+        <mapHotspot type="TRAILER"/>
+    </base>
+
+    <wheels>
+        <wheelConfigurations>
+            <wheelConfiguration name="$l10n_configuration_valueDefault" price="0" saveId="DEFAULT">
+                <wheels>
+                    <wheel filename="$data/shared/wheels/tires/continental/contiCrossTracHS3/385_65R22_5.xml" configId="truckTrailer02" isLeft="true" hasTireTracks="true" hasParticles="true">
+                        <physics tipOcclusionAreaGroupId="1" rotSpeed="0"  restLoad="1.5" repr="wheelFrontLeft"  forcePointRatio="0.2" initialCompression="27" suspTravel="0.07" spring="72" damper="35" frictionScale="2"/>
+                    </wheel>
+                    <wheel filename="$data/shared/wheels/tires/continental/contiCrossTracHS3/385_65R22_5.xml" configId="truckTrailer02" isLeft="false" hasTireTracks="true" hasParticles="true">
+                        <physics tipOcclusionAreaGroupId="1" rotSpeed="0"  restLoad="1.5" repr="wheelFrontRight" forcePointRatio="0.2" initialCompression="27" suspTravel="0.07" spring="72" damper="35" frictionScale="2"/>
+                    </wheel>
+                    <wheel filename="$data/shared/wheels/tires/continental/contiCrossTracHS3/385_65R22_5.xml" configId="truckTrailer02" isLeft="true" hasTireTracks="true" hasParticles="true">
+                        <physics tipOcclusionAreaGroupId="1" rotSpeed="0"  restLoad="0.9" repr="wheelBackLeft"   forcePointRatio="0.2" initialCompression="15" suspTravel="0.07" spring="75" damper="35" frictionScale="2"/>
+                        <wheelChock/>
+                        <wheelChock isInverted="true"/>
+                    </wheel>
+                    <wheel filename="$data/shared/wheels/tires/continental/contiCrossTracHS3/385_65R22_5.xml" configId="truckTrailer02" isLeft="false" hasTireTracks="true" hasParticles="true">
+                        <physics tipOcclusionAreaGroupId="1" rotSpeed="0"  restLoad="0.9" repr="wheelBackRight"  forcePointRatio="0.2" initialCompression="15" suspTravel="0.07" spring="75" damper="35" frictionScale="2"/>
+                    </wheel>
+                </wheels>
+            </wheelConfiguration>
+        </wheelConfigurations>
+    </wheels>
+
+    <attachable>
+        <inputAttacherJoints>
+            <inputAttacherJoint node="attacherJoint" jointType="trailer" rootNode="mks8_drawbar_component3" attacherHeight="0.874" />
+        </inputAttacherJoints>
+        <brakeForce force="0.4" maxForce="1.2" maxForceMass="13000"/>
+        <support animationName="lockDrawbarLimit"/>
+    </attachable>
+
+    <licensePlates>
+        <licensePlate node="licensePlateBack" position="BACK" preferedType="ELONGATED" placementArea="0.06 0.26 0.09 0.26"/>
+    </licensePlates>
+
+    <lights>
+        <sharedLight linkNode="rear5ChamberLight_02_Left"  filename="$data/shared/assets/lights/lizard/rearLight16_left.xml" />
+        <sharedLight linkNode="rear5ChamberLight_02_Right" filename="$data/shared/assets/lights/lizard/rearLight16_right.xml" />
+        <sharedLight linkNode="sideMarker_01Left"          filename="$data/shared/assets/lights/lizard/sideMarker01_left.xml" />
+        <sharedLight linkNode="sideMarker_01Right"         filename="$data/shared/assets/lights/lizard/sideMarker01_right.xml" />
+        <sharedLight linkNode="plateNumberLight01_left"    filename="$data/shared/assets/lights/lizard/plateNumberLight01.xml" lightTypes="0"/>
+        <sharedLight linkNode="plateNumberLight01_right"   filename="$data/shared/assets/lights/lizard/plateNumberLight01.xml" lightTypes="0"/>
+        <sharedLight linkNode="sideMarker16Orange_01"      filename="$data/shared/assets/lights/lizard/sideMarker16Orange.xml" lightTypes="0"/>
+        <sharedLight linkNode="sideMarker16Orange_02"      filename="$data/shared/assets/lights/lizard/sideMarker16Orange.xml" lightTypes="0"/>
+        <sharedLight linkNode="sideMarker16Orange_03"      filename="$data/shared/assets/lights/lizard/sideMarker16Orange.xml" lightTypes="0"/>
+        <sharedLight linkNode="sideMarker16Orange_04"      filename="$data/shared/assets/lights/lizard/sideMarker16Orange.xml" lightTypes="0"/>
+        <sharedLight linkNode="sideMarker16Orange_05"      filename="$data/shared/assets/lights/lizard/sideMarker16Orange.xml" lightTypes="0"/>
+        <sharedLight linkNode="sideMarker16Orange_06"      filename="$data/shared/assets/lights/lizard/sideMarker16Orange.xml" lightTypes="0"/>
+        <sharedLight linkNode="sideMarker16Orange_07"      filename="$data/shared/assets/lights/lizard/sideMarker16Orange.xml" lightTypes="0"/>
+        <sharedLight linkNode="sideMarker16Orange_08"      filename="$data/shared/assets/lights/lizard/sideMarker16Orange.xml" lightTypes="0"/>
+
+        <realLights>
+            <high>
+                <light node="backLightsHigh1"       lightTypes="0"/>
+                <light node="licensePlateLightHigh" lightTypes="0"/>
+                <brakeLight node="backLightsHigh1"/>
+                <turnLightLeft  node="turnLightLeftBack" />
+                <turnLightRight node="turnLightRightBack" />
+                <reverseLight node="reverseLightHigh1" />
+            </high>
+        </realLights>
+    </lights>
+
+    <connectionHoses>
+        <hose inputAttacherJointIndices="1" type="electric"  node="electric"  length="0.8" diameter="0.016" straighteningFactor="0.5" isTwoPointHose="true" adapterNode="electric_connector">
+            <objectChange node="electric_detached" visibilityActive="false" visibilityInactive="true"/>
+        </hose>
+        <hose inputAttacherJointIndices="1" type="airDoubleRed"  node="hydraulicIn01"  length="0.8" diameter="0.016" straighteningFactor="0.5" isTwoPointHose="true" adapterNode="airRedConnector">
+            <objectChange node="hydraulicIn01_detached" visibilityActive="false" visibilityInactive="true"/>
+        </hose>
+        <hose inputAttacherJointIndices="1" type="airDoubleYellow" node="hydraulicOut01" length="0.7" diameter="0.016" straighteningFactor="0.5" isTwoPointHose="true" adapterNode="airYellowConnector">
+            <objectChange node="hydraulicOut01_detached" visibilityActive="false" visibilityInactive="true"/>
+        </hose>
+        <sounds>
+            <connect    type="airDoubleRed" template="hydraulicHosesAttach" volumeScale="0.7" linkNode="attacherJoint"/>
+            <connect    type="electric"     template="generalConnection"    volumeScale="0.7" linkNode="attacherJoint"/>
+            <disconnect type="airDoubleRed" template="hydraulicHosesDetach" volumeScale="0.7" linkNode="attacherJoint"/>
+            <disconnect type="electric"     template="generalConnection"    volumeScale="0.7" linkNode="attacherJoint"/>
+        </sounds>
+    </connectionHoses>
+
+    <animations>
+        <animation name="lockDrawbarLimit">
+            <part componentJointIndex="2" startTime="0.0" endTime="0.1" startRotLimit="60 0 0" endRotLimit="0 0 0"/>
+        </animation>
+        <!-- [SPS MKS8 2026-11-10] the rear door flips up (William: 0 0 0 -> 150 0 0) to reach the SPS fitting; played by
+             SPS from the control node (N), must be open before a pipe connects, cannot close with a pipe on -->
+        <animation name="rearDoor">
+            <part node="rearDoor" startTime="0" endTime="1.2" startRot="0 0 0" endRot="150 0 0"/>
+            <sound template="hingeImp" startTime="1.15" direction="1"  volumeScale="0.6" linkNode="rearDoor"/>
+            <sound template="hingeImp" startTime="0.05" direction="-1" volumeScale="0.6" linkNode="rearDoor"/>
+        </animation>
+    </animations>
+
+    <cylindered>
+        <movingParts>
+            <movingPart node="spring" referencePoint="springRef" referenceFrame="springRef" scaleZ="true" isActiveDirty="true" maxUpdateDistance="60"/>
+        </movingParts>
+        <sounds>
+            <hydraulic template="hydraulicOpen02" linkNode="mks8_main_component1"/>
+        </sounds>
+    </cylindered>
+
+    <fillUnit>
+        <fillUnitConfigurations>
+            <fillUnitConfiguration>
+                <fillUnits>
+                    <!-- [SPS MKS8 2026-11-10] two tanks, half the volume each, every liquid on its own (SPS adds the SPRAYER
+                         category to both at registration - extraFillTypes below) -->
+                    <fillUnit unitTextOverride="$l10n_unit_literShort" fillTypes="MILK BUFFALOMILK WATER LIQUIDFERTILIZER HERBICIDE" capacity="4000" allowAILoading="true" showOnHud="true">
+                        <exactFillRootNode node="exactFillRootNode" />
+                    </fillUnit>
+                    <fillUnit unitTextOverride="$l10n_unit_literShort" fillTypes="MILK BUFFALOMILK WATER LIQUIDFERTILIZER HERBICIDE" capacity="4000" allowAILoading="true" showOnHud="true">
+                        <exactFillRootNode node="exactFillRootNode02" />
+                    </fillUnit>
+                </fillUnits>
+            </fillUnitConfiguration>
+        </fillUnitConfigurations>
+    </fillUnit>
+
+    <fillTriggerVehicle triggerNode="fillTrigger" fillUnitIndex="1" litersPerSecond="350"/>
+
+    <dischargeable>
+        <dischargeNode node="dischargeNode" emptySpeed="450" fillUnitIndex="1" canDischargeToGround="false" allowAIDischarge="true">
+            <info width="1.0" length="0.5" zOffset="0.4" />
+            <trigger node="dischargeTrigger" />
+        </dischargeNode>
+        <dischargeNode node="dischargeNode02" emptySpeed="450" fillUnitIndex="2" canDischargeToGround="false" allowAIDischarge="true">
+            <info width="1.0" length="0.5" zOffset="0.4" />
+            <trigger node="dischargeTrigger02" />
+        </dischargeNode>
+    </dischargeable>
+
+    <waterTrailer fillUnitIndex="1" fillLitersPerSecond="450" fillNode="fillNode">
+        <sounds>
+            <refill template="defaultRefuelSound" linkNode="0>" />
+        </sounds>
+    </waterTrailer>
+
+    <!-- [SPS MKS8 2026-11-10] embedded SPS liquid-lane config (read by SPSM_LiquidLanes): ONE fitting behind the rear door
+         routing to the SELECTED tank (Shift+Y at the control node picks the tank, Y the direction, R the ball valve = library valveAnimation 4 on the waterHoseConnector01 handle, as the TSA - 2026-11-11), the door
+         (loadAnimation, N), an engine with no visual (sounds only - B starts it), two side TUBES holding one short pipe
+         each (tube slots: only the start end shows, grab it and walk back; the fitted cap shows while a pipe is in). -->
+    <liquidPipeSystem>
+        <flow litersPerSecond="200"/>
+        <extraFillTypes categories="SPRAYER" fillUnitIndex="1"/>
+        <extraFillTypes categories="SPRAYER" fillUnitIndex="2"/>
+        <loadAnimation name="rearDoor" doorCloseAuto="false" textOpen="$l10n_sps_mks8DoorOpen" textClose="$l10n_sps_mks8DoorClose"/>
+        <liquidPipeCouplings>
+            <liquidPipeCoupling id="1" mountNodeName="SPS_liquidPipeCoupler01" maxPipeLength="7.5" fillUnitIndex="1" valveAnimation="4">
+                <tank id="1" fillUnitIndex="1" name="$l10n_sps_mks8TankFront" tankTopNodeName="fullNode01" tankBottomNodeName="emptyNode01"/>
+                <tank id="2" fillUnitIndex="2" name="$l10n_sps_mks8TankRear"  tankTopNodeName="fullNode02" tankBottomNodeName="emptyNode02"/>
+            </liquidPipeCoupling>
+        </liquidPipeCouplings>
+        <liquidPumpControls>
+            <liquidPumpControl id="1" nodeName="SPS_liquidControlNode" radius="1.5"/>
+        </liquidPumpControls>
+        <generator pulls="2" pullSpeed="1.5" pullPause="0.4">
+            <sounds>
+                <start      file="$data/sounds/tools/chainsaw/husqvarna/husqvarna_start.ogg" linkNode="SPS_liquidControlNode" volumeScale="1.6" innerRadius="5" outerRadius="50" pitchScale="0.9">
+                    <volume indoor="0.6" outdoor="1.0"/>
+                </start>
+                <engineLoop file="$data/vehicles/agi/utx44/sounds/utx44_loop.gls" linkNode="SPS_liquidControlNode" innerRadius="6" outerRadius="70" volumeScale="1.6">
+                    <volume indoor="0.6" outdoor="1.0"/>
+                </engineLoop>
+            </sounds>
+        </generator>
+        <pipeHolders>
+            <!-- left tube (holder 01 at +X, the vehicle's left) and right tube: each takes the water OR the milk hose -->
+            <pipeHolder id="1" nodeName="SPS_pipeHolder01" radius="1.2">
+                <placement node="waterPipe" pipes="WATER MILK" tube="true" stowedShow="tubeCapLeftFitted" stowedHide="tubeCapLeftLoose"/>
+            </pipeHolder>
+            <pipeHolder id="2" nodeName="SPS_pipeHolder02" radius="1.2">
+                <placement node="milkPipe"  pipes="WATER MILK" tube="true" stowedShow="tubeCapRightFitted" stowedHide="tubeCapRightLoose"/>
+            </pipeHolder>
+            <!-- [SPS 2026-11-11] a water cage holder: the cage hangs on SPS_cageHolder01 (its +Z = the cage axis, mount end at the node).
+                 cages = the hose keys it takes: CAGE_SMALL (water / milk pipes), CAGE_LARGE (slurry pipes), or both. -->
+            <cageHolder id="3" nodeName="SPS_cageHolder01" radius="1.5" cages="CAGE_SMALL" requiresAnimation="rearDoor" requiredAnimationTime="0.95"/>
+        </pipeHolders>
+    </liquidPipeSystem>
+
+    <foliageBending>
+        <bendingNode minX="-1.15" maxX="1.15" minZ="-2.3" maxZ="2.3" yOffset="0.6"/>
+        <bendingNode minX="-0.3" maxX="0.3" minZ="-0.5" maxZ="1.6" yOffset="-0.05" node="mks8_drawbar_component3"/>
+    </foliageBending>
+
+    <baseColorConfigurations>
+        <baseColorConfiguration materialTemplateName="chrome"/>
+        <baseColorConfiguration materialTemplateName="silverScratched"/>
+        <baseColorConfiguration materialTemplateName="SHARED_WHITE2"/>
+        <baseColorConfiguration materialTemplateName="SHARED_BLACK2"/>
+
+        <material materialSlotName="body_mat"/>
+    </baseColorConfigurations>
+
+    <rimColorConfigurations>
+        <rimColorConfiguration materialTemplateName="RIM_CONFIGURATION_CHROME" price="1000"/>
+        <rimColorConfiguration materialTemplateName="RIM_DEFAULT"/>
+        <rimColorConfiguration materialTemplateName="RIM_CONFIGURATION_WHITE"/>
+        <rimColorConfiguration materialTemplateName="RIM_CONFIGURATION_BLACK"/>
+    </rimColorConfigurations>
+
+    <ai>
+        <agentAttachment jointNode="attacherJoint" rotCenterWheelIndices="1 2" width="2.23" height="3.45" length="2" lengthOffset="0.3" hasCollision="false"/>
+        <agentAttachment jointNode="componentJointFront" rotCenterWheelIndices="3 4" width="2.23" height="3.45" length="3.2" lengthOffset="0.565"/>
+    </ai>
+
+    <wearable wearDuration="480" workMultiplier="5" fieldMultiplier="2"/>
+    <washable dirtDuration="90" washDuration="1" workMultiplier="2" fieldMultiplier="2"/>
+
+    <i3dMappings>
+        <i3dMapping id="mks8_main_component1" node="0>" />
+        <i3dMapping id="mks8_vis" node="0>0" />
+        <i3dMapping id="wheelBackLeft" node="0>0|0|0" />
+        <i3dMapping id="wheelBackRight" node="0>0|0|1" />
+        <i3dMapping id="rear5ChamberLight_02_Left" node="0>0|1|0|0" />
+        <i3dMapping id="rear5ChamberLight_02_Right" node="0>0|1|0|1" />
+        <i3dMapping id="sideMarker_01Left" node="0>0|1|0|2" />
+        <i3dMapping id="sideMarker_01Right" node="0>0|1|0|3" />
+        <i3dMapping id="plateNumberLight01_left" node="0>0|3|3|0" />
+        <i3dMapping id="plateNumberLight01_right" node="0>0|3|3|1" />
+        <i3dMapping id="sideMarker16Orange_01" node="0>0|1|0|4" />
+        <i3dMapping id="sideMarker16Orange_02" node="0>0|1|0|5" />
+        <i3dMapping id="sideMarker16Orange_03" node="0>0|1|0|6" />
+        <i3dMapping id="sideMarker16Orange_04" node="0>0|1|0|7" />
+        <i3dMapping id="sideMarker16Orange_05" node="0>0|1|0|8" />
+        <i3dMapping id="sideMarker16Orange_06" node="0>0|1|0|9" />
+        <i3dMapping id="sideMarker16Orange_07" node="0>0|1|0|10" />
+        <i3dMapping id="sideMarker16Orange_08" node="0>0|1|0|11" />
+        <i3dMapping id="turnLightLeftBack" node="0>0|1|1|0" />
+        <i3dMapping id="turnLightRightBack" node="0>0|1|1|1" />
+        <i3dMapping id="backLightsHigh1" node="0>0|1|2|0" />
+        <i3dMapping id="licensePlateLightHigh" node="0>0|1|2|1" />
+        <i3dMapping id="reverseLightHigh1" node="0>0|1|3|0" />
+        <i3dMapping id="licensePlateBack" node="0>0|3|3|2" />
+        <i3dMapping id="exactFillRootNode" node="0>0|2|0" />
+        <i3dMapping id="fillTrigger" node="0>0|2|2" />
+        <i3dMapping id="dischargeNode" node="0>0|2|3" />
+        <i3dMapping id="dischargeTrigger" node="0>0|2|5" />
+        <i3dMapping id="fillNode" node="0>0|2|7" />
+        <i3dMapping id="mks8_dolly_component2" node="1>" />
+        <i3dMapping id="wheelFrontLeft" node="1>0" />
+        <i3dMapping id="wheelFrontRight" node="1>1" />
+        <i3dMapping id="componentJointFront" node="1>2" />
+        <i3dMapping id="dolly_vis" node="1>3" />
+        <i3dMapping id="spring" node="1>4" />
+        <i3dMapping id="mks8_drawbar_component3" node="2>" />
+        <i3dMapping id="componentJointDrawbar" node="2>0" />
+        <i3dMapping id="electric" node="2>1|0" />
+        <i3dMapping id="electric_detached" node="2>1|0|0" />
+        <i3dMapping id="electric_connector" node="2>1|0|0|0" />
+        <i3dMapping id="hydraulicIn01" node="2>1|1" />
+        <i3dMapping id="hydraulicOut01_detached" node="2>1|1|0" />
+        <i3dMapping id="airRedConnector" node="2>1|1|0|0" />
+        <i3dMapping id="hydraulicOut01" node="2>1|2" />
+        <i3dMapping id="hydraulicIn01_detached" node="2>1|2|0" />
+        <i3dMapping id="airYellowConnector" node="2>1|2|0|0" />
+        <i3dMapping id="drawbar_vis" node="2>2" />
+        <i3dMapping id="attacherJoint" node="2>2|0" />
+        <i3dMapping id="springRef" node="2>2|1" />
+        <i3dMapping id="exactFillRootNode02" node="0>0|2|1" />
+        <i3dMapping id="dischargeNode02" node="0>0|2|4" />
+        <i3dMapping id="dischargeTrigger02" node="0>0|2|6" />
+        <i3dMapping id="rearDoor" node="0>0|3|3" />
+        <i3dMapping id="tubeCapLeftFitted" node="0>0|3|4" />
+        <i3dMapping id="tubeCapRightFitted" node="0>0|3|5" />
+        <i3dMapping id="tubeCapLeftLoose" node="0>0|3|6" />
+        <i3dMapping id="tubeCapRightLoose" node="0>0|3|7" />
+        <i3dMapping id="SPS_mks8DualTank" node="0>0|5" />
+        <i3dMapping id="SPS_liquidPipeCoupler01" node="0>0|5|0" />
+        <i3dMapping id="SPS_liquidControlNode" node="0>0|5|1" />
+        <i3dMapping id="fullNode01" node="0>0|5|2" />
+        <i3dMapping id="emptyNode01" node="0>0|5|3" />
+        <i3dMapping id="fullNode02" node="0>0|5|4" />
+        <i3dMapping id="emptyNode02" node="0>0|5|5" />
+        <i3dMapping id="SPS_pipeHolder01" node="0>2|0|0|0" />
+        <i3dMapping id="SPS_pipeHolder02" node="0>2|0|0|1" />
+        <i3dMapping id="SPS_cageHolder01" node="0>2|0|1|0" />   <!-- [SPS 2026-11-11] William's cage holder node -->
+    </i3dMappings>
+</vehicle>

@@ -189,6 +189,10 @@
              MOD ROOT (no subfolder), so the tail is folder + filename only.
              Suffix match is exact — inserting a subfolder that does not exist
              on disk makes the entry dead. -->
+        <!-- [SPS 1.0.2.0] Base-game liquid manure buying station (type buyingStationManure) as a BUY + SELL
+             point: fill from it (paid) and sell into it (sellPriceScale) through one BOTH coupler on the
+             "silo" node. Test bench from William 2026-11-02. -->
+        <placeable path="data/placeables/shared/buyingStations/buyingStationLiquidManure/buyingStationLiquidManure.xml"/>
         <placeable path="FS25_BuyableManureAndOther/liquidManureStation.xml"
                    configFolder="mods/FS25_BuyableManureAndOther/liquidManureStation"/>
 
@@ -247,7 +251,13 @@
 		<!-- TheCodingDad Soil & Fertilizer IBC liquid tanks. Each parentFiles the vanilla
 		     fertilizerTankHelm/herbicideTankHelm, so all share the one IBCs/fertilizerTank
 		     coupler geometry + fillPoints. Path is tail-matched, so install-location
-		     independent; entries are inert when S&F is not installed. -->
+		     independent; entries are inert when S&F is not installed.
+		     [SPS 1.0.2.0] These lines are now only documentation: any pallet whose
+		     parentFile chain reaches a tank listed above is matched automatically
+		     (S&F 2.6 has 20 tanks, the 8 newer ones - azoxystrobin, boscalid,
+		     copper_hydroxide, mancozeb, metalaxyl, propiconazole, sulfur, tebuconazole -
+		     are covered that way), and a tank whose own i3d lacks the coupler branch
+		     gets it linked in at registration (fillPoints.xml #couplerKit). -->
 		<vehicle path="FS25_SoilFertilizer/objects/liquidTank/uan32/liquidTank_uan32.xml"
 				 configFolder="IBCs/fertilizerTank"/>
 		<vehicle path="FS25_SoilFertilizer/objects/liquidTank/uan28/liquidTank_uan28.xml"

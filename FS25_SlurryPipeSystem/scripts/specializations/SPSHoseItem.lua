@@ -44,11 +44,11 @@ SPSHoseItem.STRETCH_MARGIN = 1.15   -- unplug the vehicle end when the ends are 
 -- [SPS 1.0.1.8] Bodies BEYOND the end body that are held rigid (kinematic, at their straight rest offset) while the
 -- end is plugged in. The pipe is one skinned mesh with a bone per body; with only the end body pinned, chain tension
 -- (two pipes joined) pulled the neighbour's bone and skewed the skinned collar off the fitting (William's screenshot,
--- 2026-10-18). Safe inside the vehicle's hull since 1.0.1.9: the whole pipe is pair-collision OFF against the vehicle
+-- 2026-10-18). Safe inside the vehicle's hull since 1.0.2.0: the whole pipe is pair-collision OFF against the vehicle
 -- it is plugged into (spsSetVehiclePairCollision), so a kinematic neighbour there cannot shove the tanker.
 SPSHoseItem.PLUG_RIGID_NEIGHBOURS = 1
 SPSHoseItem._i3dRest = {}   -- i3d path -> { [nodeName] = {x, y, z} } (rest translations of the top-level bodies)
--- [SPS 1.0.1.9] 0: no body loses its VEHICLE bit any more (was 2 = ~1 m of pipe, which still left the TSA's 3rd body
+-- [SPS 1.0.2.0] 0: no body loses its VEHICLE bit any more (was 2 = ~1 m of pipe, which still left the TSA's 3rd body
 -- inside the tanker - player report + William 2026-10-25). Replaced by setPairCollision against the plugged vehicle
 -- only (the game's own idiom for a bale on a loader / a mounted object: MountableObject:mountKinematic). The pipe keeps
 -- every other collision: ground, buildings, player, OTHER vehicles, other pipes. The plugged end body itself still
@@ -132,6 +132,10 @@ function SPSHoseItem.initSpecialization()
     schema:register(XMLValueType.BOOL,       "vehicle.spsHose.variant(?)#tintable",     "The colour configuration applies to this variant's rubber")
     schema:register(XMLValueType.COLOR,      "vehicle.spsHose.variant(?)#rubberColor",  "Fixed rubber colour of this variant (water / milk)")
     schema:register(XMLValueType.FLOAT,      "vehicle.spsHose.variant(?)#dirtScale",    "Dirt rate factor of this variant (water / milk 0.5: clean liquids)", 1)
+    -- [SPS 2026-11-11] WATER CAGE (vehicles/hoses/spsCage.xml): a hoseKey CAGE_* item is a one-ended "pipe" that joins a pipe's
+    -- end; the node is the line the water must reach for the cage to draw (SPSM_PhysPipes physFreeEndWaterPlane).
+    schema:register(XMLValueType.NODE_INDEX, "vehicle.spsHose#waterLevelNode",          "Water cage: the node the water surface must be above to draw")
+    schema:register(XMLValueType.NODE_INDEX, "vehicle.spsHose.variant(?)#waterLevelNode", "Water cage: the node the water surface must be above to draw")
     schema:setXMLSpecializationType()
     -- [SPS 1.0.1.8] ONE SHOP PAGE (William 2026-10-24): three shop selectors Type / Length / Ends. The engine picks the
     -- bodies by the "component" configuration only, so these three are our own configuration types and
@@ -182,7 +186,7 @@ function SPSHoseItem.registerFunctions(vehicleType)
     SpecializationUtil.registerFunction(vehicleType, "spsSetPlayerCollision", SPSHoseItem.spsSetPlayerCollision)
     SpecializationUtil.registerFunction(vehicleType, "spsGetEnd",             SPSHoseItem.spsGetEnd)
     SpecializationUtil.registerFunction(vehicleType, "spsAttachEnd",          SPSHoseItem.spsAttachEnd)
-    SpecializationUtil.registerFunction(vehicleType, "spsUpdateBoundingSphere", SPSHoseItem.spsUpdateBoundingSphere)   -- [SPS 1.0.1.9] render culling
+    SpecializationUtil.registerFunction(vehicleType, "spsUpdateBoundingSphere", SPSHoseItem.spsUpdateBoundingSphere)   -- [SPS 1.0.2.0] render culling
     SpecializationUtil.registerFunction(vehicleType, "spsDetachEnd",          SPSHoseItem.spsDetachEnd)
     SpecializationUtil.registerFunction(vehicleType, "spsPlaceEnd",           SPSHoseItem.spsPlaceEnd)
     SpecializationUtil.registerFunction(vehicleType, "spsUpdateEnds",         SPSHoseItem.spsUpdateEnds)
@@ -197,9 +201,28 @@ function SPSHoseItem.registerFunctions(vehicleType)
     SpecializationUtil.registerFunction(vehicleType, "spsStow",               SPSHoseItem.spsStow)
     SpecializationUtil.registerFunction(vehicleType, "spsUnstow",             SPSHoseItem.spsUnstow)
     SpecializationUtil.registerFunction(vehicleType, "spsPlaceStow",          SPSHoseItem.spsPlaceStow)
+    SpecializationUtil.registerFunction(vehicleType, "spsCanGrabNode",        SPSHoseItem.spsCanGrabNode)    -- [SPS MKS8] tube stow
+    SpecializationUtil.registerFunction(vehicleType, "spsApplySlide",         SPSHoseItem.spsApplySlide)
     SpecializationUtil.registerFunction(vehicleType, "spsRestZs",             SPSHoseItem.spsRestZs)
     SpecializationUtil.registerFunction(vehicleType, "spsIsStowed",           SPSHoseItem.spsIsStowed)
     SpecializationUtil.registerFunction(vehicleType, "spsGetUsageLevel",      SPSHoseItem.spsGetUsageLevel)
+    SpecializationUtil.registerFunction(vehicleType, "spsIsCage",             SPSHoseItem.spsIsCage)            -- [SPS 2026-11-11] water cage
+    SpecializationUtil.registerFunction(vehicleType, "spsGetWaterLevelNode",  SPSHoseItem.spsGetWaterLevelNode)
+end
+
+-- [SPS 2026-11-11] WATER CAGE: hoseKey CAGE_SMALL (water / milk pipes, gender "water") / CAGE_LARGE (slurry pipes' male end,
+-- gender "female"). Start end = the mount, end 2 = the tip (gender "none", never mates). The cage is only a visual with a
+-- waterLevel node; the rule that a pipe needs one to DRAW water lives in SPSM_PhysPipes physFreeEndWaterPlane.
+function SPSHoseItem:spsIsCage()
+    local spec = self[SPSHoseItem.SPEC_NAME]
+    return spec ~= nil and spec.isCage == true
+end
+
+function SPSHoseItem:spsGetWaterLevelNode()
+    local spec = self[SPSHoseItem.SPEC_NAME]
+    local n = spec ~= nil and spec.waterLevelNode or nil
+    if n ~= nil and n ~= 0 and entityExists(n) then return n end
+    return nil
 end
 
 -- [SPS 1.0.1.8] DIRT + WEAR over time (William 2026-10-23: "the pipes need to build dirt over time, wear over time").
@@ -243,6 +266,10 @@ function SPSHoseItem:spsGetUsageLevel()
 end
 
 function SPSHoseItem:getDirtMultiplier(superFunc)
+    -- [SPS 1.0.2.0] Settings menu "Pipe dirt" (server-synced): Off = the pipes never get dirty (and were cleaned when
+    -- the switch went off), speed = multiplier on the whole rate (player report: "the pipes get dirty very quickly").
+    local mgr = g_slurryPipeManager
+    if mgr ~= nil and mgr.hoseDirtEnabled == false then return 0 end
     local m = superFunc(self)
     local use = self:spsGetUsageLevel()
     if use == 2 then
@@ -251,7 +278,8 @@ function SPSHoseItem:getDirtMultiplier(superFunc)
         m = math.max(m, SPSHoseItem.DIRT_IN_SERVICE)
     end
     local spec = self[SPSHoseItem.SPEC_NAME]
-    return m * ((spec ~= nil and spec.dirtScale) or 1)   -- water / milk: half rate (variant #dirtScale)
+    local speed = (mgr ~= nil and mgr.hoseDirtSpeed) or 1
+    return m * ((spec ~= nil and spec.dirtScale) or 1) * speed   -- water / milk: half rate (variant #dirtScale)
 end
 
 function SPSHoseItem:getWearMultiplier(superFunc, nodeData)
@@ -273,7 +301,7 @@ function SPSHoseItem.registerEventListeners(vehicleType)
     SpecializationUtil.registerEventListener(vehicleType, "onPreLoad",  SPSHoseItem)
     SpecializationUtil.registerEventListener(vehicleType, "onLoad",     SPSHoseItem)
     SpecializationUtil.registerEventListener(vehicleType, "onPostLoad", SPSHoseItem)
-    SpecializationUtil.registerEventListener(vehicleType, "onLoadFinished", SPSHoseItem)   -- [SPS 1.0.1.9] wake-up reports (bodies are in physics by then)
+    SpecializationUtil.registerEventListener(vehicleType, "onLoadFinished", SPSHoseItem)   -- [SPS 1.0.2.0] wake-up reports (bodies are in physics by then)
     SpecializationUtil.registerEventListener(vehicleType, "onUpdate",   SPSHoseItem)
     SpecializationUtil.registerEventListener(vehicleType, "onDelete",   SPSHoseItem)
 end
@@ -286,7 +314,10 @@ end
 -- into a kerb or slab can always be pulled out (before: it wedged, the hand joint strained and the hands let go).
 -- On the drop each body gets its own i3d mask back and the pipe lies ON the concrete. Plugged ends keep their plug
 -- masks (spsSetPlugCollision) throughout: the saved base is swapped and a live neighbour mask rebuilt from it.
-SPSHoseItem.HELD_IGNORES_STATIC = true
+-- [SPS 1.0.2.0] William 2026-11-02 (held pipe cut through the UK shed's concrete apron): a held pipe now COLLIDES WITH
+-- EVERYTHING; a pipe that does wedge is freed with "Free stuck pipe" (Left Alt + F, SPSHoseItemHands), which drops
+-- the static bits AND the vehicle bit until the pipe is let go (spsFreeHeldPipe sets freedIgnoresStatic).
+SPSHoseItem.HELD_IGNORES_STATIC = false
 -- [SPS 1.0.1.8] Pipe-only collision bit (William 2026-10-18: the stow rack's cradle, in the VEHICLE group, "is causing
 -- the tanker to fly all over" - a kinematic shape overlapping the tanker's own compound). Every pipe body gets bit 7
 -- (0x80, registered by nothing in the game; every vehicle mask already contains it) ADDED to its group. A cradle
@@ -306,7 +337,11 @@ function SPSHoseItem:spsApplyCollision(ignoreStatic)
                 setCollisionFilterGroup(comp.node, bit32.bor(getCollisionFilterGroup(comp.node), SPSHoseItem.PIPE_GROUP_BIT))
             end
             local mask = spec.i3dMasks[ci]
-            if ignoreStatic then mask = bit32.band(mask, bit32.bnot(staticBits)) end
+            -- `ignoreStatic` = the pipe is HELD. Static bits only go when the old always-rule is on or the player
+            -- pressed "Free stuck pipe" (freedIgnoresStatic); the vehicle bit goes for a rack pickup / a freed pipe.
+            if ignoreStatic and (SPSHoseItem.HELD_IGNORES_STATIC or spec.freedIgnoresStatic == true) then
+                mask = bit32.band(mask, bit32.bnot(staticBits))
+            end
             if ignoreStatic and spec.carryIgnoresVehicle then
                 -- [SPS 1.0.1.8] taken off a rack and carried: the bodies went dynamic where the pose left them, partly
                 -- inside the tanker's own hull (mudguard box) - with the VEHICLE bit on PhysX shoved them out through
@@ -335,7 +370,14 @@ end
 function SPSHoseItem:onPreLoad(savegame)
     local cfg = self.configurations
     if cfg == nil or cfg.spsPipeType == nil then return end
-    local comp = SPSHoseItem.componentForShopChoice(cfg.spsPipeType, cfg.spsPipeLength, cfg.spsPipeEnds)
+    local comp
+    if self.xmlFile ~= nil and not self.xmlFile:hasProperty("vehicle.spsHose.spsPipeLengthConfigurations") then
+        -- [SPS 2026-11-09] ONE-selector file (spsBowserPipe.xml): each Pipe row names its component configuration
+        local k = string.format("vehicle.spsHose.spsPipeTypeConfigurations.spsPipeTypeConfiguration(%d).dependentConfiguration(0)#index", cfg.spsPipeType - 1)
+        comp = self.xmlFile:getInt(k, cfg.spsPipeType)
+    else
+        comp = SPSHoseItem.componentForShopChoice(cfg.spsPipeType, cfg.spsPipeLength, cfg.spsPipeEnds)
+    end
     if comp ~= nil and comp ~= cfg.component then
         cfg.component = comp
         if self.boughtConfigurations ~= nil then
@@ -365,6 +407,8 @@ function SPSHoseItem:onLoad(savegame)
     spec.endNode   = xml:getValue(key .. "#endNode",   nil, self.components, self.i3dMappings)
     spec.tintable  = xml:getValue(key .. "#tintable", xml:getValue("vehicle.spsHose#tintable", true))
     spec.dirtScale = xml:getValue(key .. "#dirtScale", 1)
+    spec.isCage = string.sub(spec.hoseKey, 1, 5) == "CAGE_"                                                   -- [SPS 2026-11-11]
+    spec.waterLevelNode = xml:getValue(key .. "#waterLevelNode", nil, self.components, self.i3dMappings)
     spec.hoseMaterialIndex = xml:getValue(key .. "#hoseMaterialIndex", xml:getValue("vehicle.spsHose#hoseMaterialIndex"))
     spec.isPreview = (self.propertyState == VehiclePropertyState.SHOP_CONFIG)
     spec.isHeld    = false
@@ -513,7 +557,7 @@ function SPSHoseItem:spsBuildRigidRuns()
         i3dPath = Utils.getFilename(self.xmlFile:getValue("vehicle.base.filename"), self.baseDirectory)
     end
     local rest = SPSHoseItem.loadRestTranslations(i3dPath) or {}
-    local n = SPSHoseItem.PLUG_RIGID_NEIGHBOURS   -- [SPS 1.0.1.9] no longer capped by NO_VEHICLE_NEIGHBOURS (pair collision covers it)
+    local n = SPSHoseItem.PLUG_RIGID_NEIGHBOURS   -- [SPS 1.0.2.0] no longer capped by NO_VEHICLE_NEIGHBOURS (pair collision covers it)
     for _, e in ipairs(spec.ends) do
         e.rigid = {}
         local endComp = self.components[e.comp]
@@ -532,6 +576,16 @@ end
 
 function SPSHoseItem:onPostLoad(savegame)
     local spec = self[SPSHoseItem.SPEC_NAME]
+    -- [SPS 1.0.2.0] rootNode (the FILE's first body, FM_col01) is not a component of an F/F or M/M pipe, so the engine never
+    -- registers it as this vehicle's node object. The vanilla hands pick-up event rebuilds its target as object.rootNode on
+    -- the receiving side and, on a dedicated server, re-broadcasts it with getNodeObject(rootNode) -> nil -> one
+    -- "Invalid picked up object! Is not a split shape or object!" per other client (server report 2026-11-04 20:58),
+    -- and those clients get a truncated event. Registering the root as ours makes that lookup succeed; our pickUpTarget
+    -- hook then swaps the target to the body that was hit (grab hint). Released again in onDelete.
+    if g_currentMission ~= nil and valid(self.rootNode) and g_currentMission:getNodeObject(self.rootNode) == nil then
+        g_currentMission:addNodeObject(self.rootNode, self)
+        spec.rootNodeRegistered = true
+    end
     self:spsApplyColor()
     if valid(spec.startNode) and valid(spec.endNode) then
         spec.restLength = calcDistanceFrom(spec.startNode, spec.endNode)
@@ -565,7 +619,7 @@ function SPSHoseItem:onPostLoad(savegame)
 end
 
 -- ---------------------------------------------------------------------------
--- [SPS 1.0.1.9] MP: keep the server telling the clients where the pipe is. The game keeps a vehicle active - and only
+-- [SPS 1.0.2.0] MP: keep the server telling the clients where the pipe is. The game keeps a vehicle active - and only
 -- an active vehicle sends its component positions (Vehicle:updateTick -> raiseDirtyFlags) - while its ROOT body is
 -- awake (Vehicle:update :1604), and re-activates a sleeping vehicle through a wake-up report on that root body alone
 -- (Vehicle:addToPhysics :1736). A pipe is 13-19 jointed bodies, and on an F/F or M/M pipe the root (the i3d's first
@@ -611,7 +665,7 @@ function SPSHoseItem:onLoadFinished(savegame)
     self:spsUpdateBoundingSphere(true)
 end
 
--- [SPS 1.0.1.9] RENDER CULLING (William 2026-10-26, screenshots 20:04: a water hose plugged into the Hardi Aeon
+-- [SPS 1.0.2.0] RENDER CULLING (William 2026-10-26, screenshots 20:04: a water hose plugged into the Hardi Aeon
 -- vanished on a small camera turn). The skinned pipe mesh is a child of the FIRST body and the engine culls it by
 -- its BIND-POSE bounding sphere: the straight rest pipe, ~2 m along that body's +Z. Once the pipe is bent, dragged
 -- or laid away from that axis the real pipe is somewhere else, and when the rest-pose sphere leaves the view the
@@ -625,6 +679,7 @@ SPSHoseItem.BV_EPS    = 0.25   -- re-issue the sphere once centre or radius move
 function SPSHoseItem:spsUpdateBoundingSphere(force)
     local spec = self[SPSHoseItem.SPEC_NAME]
     if spec == nil or not valid(spec.meshNode) or setShapeBoundingSphere == nil then return end
+    if spec.isCage then return end   -- [SPS 2026-11-11] a cage is one rigid body: its own bounds are right
     local minX, minY, minZ, maxX, maxY, maxZ = math.huge, math.huge, math.huge, -math.huge, -math.huge, -math.huge
     local n = 0
     for _, comp in ipairs(self.components or {}) do
@@ -656,6 +711,10 @@ end
 function SPSHoseItem:onDelete()
     local spec = self[SPSHoseItem.SPEC_NAME]
     if spec == nil then return end
+    if spec.rootNodeRegistered and g_currentMission ~= nil and self.rootNode ~= nil then   -- [SPS 1.0.2.0] see onPostLoad
+        g_currentMission:removeNodeObject(self.rootNode)
+        spec.rootNodeRegistered = nil
+    end
     SPSHoseItem.syncWakeReports(self, true)
     local mgr = g_slurryPipeManager
     if spec.ends ~= nil then
@@ -715,7 +774,7 @@ end
 -- endGrab and the new collision capsules are compoundChild shapes under the bodies): walk up to the body.
 function SPSHoseItem:spsGetComponentIndex(node)
     local guard = 0
-    -- [SPS 1.0.1.9] entityExists: the hands of a remote player on a dedicated server can keep a deleted node
+    -- [SPS 1.0.2.0] entityExists: the hands of a remote player on a dedicated server can keep a deleted node
     -- (HandToolHands only clears a dead heldItemNode for the owning player, ref :204) - getParent on it is a script error
     while node ~= nil and node ~= 0 and entityExists(node) and guard < 8 do
         for i, component in ipairs(self.components) do
@@ -761,7 +820,7 @@ function SPSHoseItem:spsAttachEnd(idx, coupling, object, isPlaceable)
         end
         self:spsPlaceEnd(e)
     end
-    -- [SPS 1.0.1.9] body types first, then the pairing - the game's order (MountableObject:mountKinematic :153-161)
+    -- [SPS 1.0.2.0] body types first, then the pairing - the game's order (MountableObject:mountKinematic :153-161)
     self:spsSetVehiclePairCollision(object, isPlaceable, false)
     self:spsUpdateBoundingSphere(true)
     self:raiseActive()
@@ -771,7 +830,7 @@ end
 -- A plugged-in end is KINEMATIC, i.e. immovable. If its capsule - or a dynamic body squeezed between
 -- it and the tanker - overlaps the vehicle's collision, PhysX resolves the overlap by shoving the
 -- VEHICLE: the tanker spun in circles the moment the pipe was connected (William, test 2026-10-15).
--- So while an end is plugged in its body collides with nothing. [SPS 1.0.1.9] The neighbour rule
+-- So while an end is plugged in its body collides with nothing. [SPS 1.0.2.0] The neighbour rule
 -- (NO_VEHICLE_NEIGHBOURS bodies losing the VEHICLE bit) is retired - a fixed count could never fit every
 -- coupler aim (Kotte TSA: sideways across the rear, 3rd body inside the hull); the whole pipe is now
 -- paired off against the plugged vehicle instead (spsSetVehiclePairCollision). Masks restored on unplug.
@@ -802,7 +861,7 @@ function SPSHoseItem:spsSetEndCollision(e, plugged)
     end
 end
 
--- [SPS 1.0.1.9] While plugged into a VEHICLE (tanker, sprayer, docking station) every body of this pipe ignores that
+-- [SPS 1.0.2.0] While plugged into a VEHICLE (tanker, sprayer, docking station) every body of this pipe ignores that
 -- vehicle's components and nothing else - setPairCollision, the game's idiom for a bale on a loader / a mounted object
 -- (MountableObject:mountKinematic / unmountKinematic, BaleLoader:setBalePairCollision). William 2026-10-25: "ignore a
 -- col from the connected veh but still have cols for everything else". Counted per vehicle so a pipe with both ends on
@@ -875,7 +934,7 @@ function SPSHoseItem:spsDetachEnd(idx)
         self:spsSetEndCollision(e, false)
     end
     e.kinematic = false
-    -- [SPS 1.0.1.9] collide with that vehicle again (unless the other end is still plugged into it - counted)
+    -- [SPS 1.0.2.0] collide with that vehicle again (unless the other end is still plugged into it - counted)
     self:spsSetVehiclePairCollision(pairedObject, pairedIsPlaceable, true)
     self:spsUpdateBoundingSphere(true)
     self:raiseActive()
@@ -972,9 +1031,28 @@ end
 
 function SPSHoseItem:spsStow(holder, slot)
     local spec = self[SPSHoseItem.SPEC_NAME]
-    if spec == nil or holder == nil or slot == nil or slot.points == nil or #slot.points < 2 then return false end
+    if spec == nil or holder == nil or slot == nil or slot.points == nil or #slot.points < (spec.isCage and 1 or 2) then return false end
     if spec.stow ~= nil then return spec.stow.slot == slot end
     if self:spsIsEndBusy(1) or self:spsIsEndBusy(2) then return false end
+    -- [SPS 2026-11-11] WATER CAGE on a <cageHolder>: one rigid body posed on the slot's single point (the holder node)
+    if spec.isCage then
+        local comp = self.components[1]
+        if comp == nil or not valid(comp.node) or not valid(slot.points[1]) then return false end
+        spec.stow = { holder = holder, slot = slot, vehicle = holder.vehicle, holderId = holder.id, slotName = slot.name,
+                      zSign = 1, zs = { 0 }, zMid = 0, tube = false, released = 0, cage = true }
+        slot.pipe = self
+        if self.isServer then
+            self:spsApplyCollision(false)
+            setRigidBodyType(comp.node, RigidBodyType.KINEMATIC)
+            setLinearVelocity(comp.node, 0, 0, 0)
+            setAngularVelocity(comp.node, 0, 0, 0)
+            self:spsPlaceStow()
+        end
+        self:raiseActive()
+        say("%s cage stowed on holder %d of %s", tostring(spec.hoseKey), holder.id or 0,
+            tostring(holder.vehicle ~= nil and holder.vehicle.configFileName))
+        return true
+    end
     local P, S, L = chainOf(slot.points)
     if P == nil then return false end
     local zs = self:spsRestZs()
@@ -986,9 +1064,13 @@ function SPSHoseItem:spsStow(holder, slot)
     local px, py, pz = localDirectionToWorld(comp.node, 0, 0, 1)
     local cx, cy, cz = P[#P][1] - P[1][1], P[#P][2] - P[1][2], P[#P][3] - P[1][3]
     local zSign = ((px * cx + py * cy + pz * cz) < 0) and -1 or 1
+    -- [SPS MKS8 2026-11-10] a TUBE slot: the start end is the one at the mouth (p01), always; the surplus bodies stack on
+    -- the last point (spsPlaceStow clamps s to the chain length). released = how many bodies are out of the tube.
+    if slot.tube then zSign = 1 end
     spec.stow = { holder = holder, slot = slot, vehicle = holder.vehicle, holderId = holder.id, slotName = slot.name,
-                  zSign = zSign, zs = zs, zMid = (zs[1] + zs[n]) * 0.5 }
+                  zSign = zSign, zs = zs, zMid = (zs[1] + zs[n]) * 0.5, tube = slot.tube == true, released = 0 }
     slot.pipe = self
+    if SlurryPipeManager.physApplySlotVisuals ~= nil then SlurryPipeManager.physApplySlotVisuals(slot, true) end   -- fitted caps
     if self.isServer then
         self:spsApplyCollision(false)                -- stowed: every body ignores vehicles (see spsApplyCollision)
         for _, c in ipairs(self.components) do
@@ -1012,6 +1094,7 @@ function SPSHoseItem:spsUnstow()
     if spec == nil or spec.stow == nil then return false end
     local st = spec.stow
     if st.slot ~= nil and st.slot.pipe == self then st.slot.pipe = nil end
+    if SlurryPipeManager.physApplySlotVisuals ~= nil then SlurryPipeManager.physApplySlotVisuals(st.slot, false) end   -- [SPS MKS8] loose caps
     spec.stow = nil
     if self.isServer then
         for _, c in ipairs(self.components) do
@@ -1028,39 +1111,122 @@ function SPSHoseItem:spsUnstow()
     return true
 end
 
--- Server, every frame while stowed: every body on the slot's point chain by arc length, centred on the chain, the
--- tangent of its segment as direction and the nearest point's Y as up (the pose's roll).
+-- Server, every frame while stowed: every body on the slot's point chain by arc length, ANCHORED at p01 (the first
+-- body sits exactly on p01, or the last body does when the pipe arrived reversed), so the parked pipe starts where
+-- the modder posed it in the editor. A body that lands on a captured point takes that point's full frame (the posed
+-- bone's Z and Y); a body between points (point count ~= body count) takes its segment's chord and the nearest
+-- point's Y.
+-- [SPS 1.0.2.0] Was: centred on the chain (s = L/2 + z - zMid). That put body 1 on p01 only when the captured chain
+-- was exactly 4.000 / 6.000 m long; any other capture slid the whole pipe by (L - restLength) / 2 and the direction
+-- of body k came from the chord INTO pk (one segment late) - William 2026-11-02, screenshots on the Major tanker.
+SPSHoseItem.STOW_ON_POINT_EPS = 0.02   -- m: a body this close to a captured point snaps onto it
+-- [SPS MKS8 2026-11-10] tube slide-out: body k+1 leaves the stack once the START end (in the player's hand) is k body
+-- spacings away from the mouth (p01) - the pipe comes out only as far as the player has pulled it; dropped halfway, the
+-- released bodies hang from the mouth and the rest wait. The last body out = a free pipe (spsUnstow).
+-- [SPS MKS8 2026-11-10 b] measured from the STACK (the first body still kinematic), not from the mouth: the start end is
+-- chained to body 2 by a 0.33 m joint, so from the mouth it could never travel a body spacing while body 2 stood on the
+-- stack (log 22:35: "1 of 13 bodies out" and nothing after, two tries). Body k+1 leaves when the start end is k spacings
+-- (+ a little joint stretch) from the stack = the chain of released bodies pulled straight.
+-- [SPS MKS8 2026-11-10 c] the joints do NOT stretch: log 22:47 with 2 bodies out the start end sat 0.64 m from the stack
+-- (2 x 0.32) against a wanted 0.72 - so the next body leaves when the released chain is 90 % straight, no margin on top
+SPSHoseItem.TUBE_RELEASE_FRACTION = 0.9
 function SPSHoseItem:spsPlaceStow()
     local spec = self[SPSHoseItem.SPEC_NAME]
     local st = spec ~= nil and spec.stow or nil
     if st == nil or st.slot == nil then return end
+    if st.cage then   -- [SPS 2026-11-11] water cage: its one body takes the holder node's frame (+Z = the cage axis, +Y up)
+        local comp, pk = self.components[1], st.slot.points[1]
+        if comp ~= nil and valid(comp.node) and valid(pk) then
+            local px, py, pz = getWorldTranslation(pk)
+            local off = st.slot.cageOffset
+            if off ~= nil then px, py, pz = localToWorld(pk, off[1], off[2], off[3]) end
+            local dx, dy, dz = localDirectionToWorld(pk, 0, 0, 1)
+            local ux, uy, uz = localDirectionToWorld(pk, 0, 1, 0)
+            setDirection(comp.node, dx, dy, dz, ux, uy, uz)
+            setWorldTranslation(comp.node, px, py, pz)
+        end
+        return
+    end
     local P, S, L = chainOf(st.slot.points)
     if P == nil then return end
-    local pts = st.slot.points
-    local zSign = st.zSign or 1
-    local j = 1
-    for i, comp in ipairs(self.components) do
-        if valid(comp.node) then
-            local s = L * 0.5 + zSign * ((st.zs[i] or 0) - st.zMid)
-            if s < 0 then s = 0 elseif s > L then s = L end
-            -- segment j with S[j] <= s <= S[j+1] (bodies come in increasing s when zSign = 1, decreasing otherwise)
-            j = 1
-            while j < #P - 1 and S[j + 1] < s do j = j + 1 end
-            local seg = S[j + 1] - S[j]
-            local t = seg > 1e-6 and (s - S[j]) / seg or 0
-            local a, b = P[j], P[j + 1]
-            local x, y, z = a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t
-            local dx, dy, dz = (b[1] - a[1]) * zSign, (b[2] - a[2]) * zSign, (b[3] - a[3]) * zSign
-            local near = pts[(t < 0.5) and j or (j + 1)]
-            local ux, uy, uz = localDirectionToWorld(near, 0, 1, 0)
-            local dl = math.sqrt(dx * dx + dy * dy + dz * dz)
-            if dl > 1e-6 then
-                setDirection(comp.node, dx / dl, dy / dl, dz / dl, ux, uy, uz)
+    local released = st.released or 0
+    if st.tube and released > 0 then
+        local n = #self.components
+        local c1 = self.components[1]
+        local cs = self.components[released + 1]   -- first body still on the stack
+        if c1 ~= nil and valid(c1.node) and cs ~= nil and valid(cs.node) then
+            local x1, y1, z1 = getWorldTranslation(c1.node)
+            local sx, sy, sz = getWorldTranslation(cs.node)
+            local pulled = MathUtil.vector3Length(x1 - sx, y1 - sy, z1 - sz)
+            local spacing0 = math.abs((st.zs[2] or 0.333) - (st.zs[1] or 0))
+            if spacing0 < 0.05 then spacing0 = 0.333 end
+            if (g_time or 0) - (st._slideDiagT or -1e9) > 1000 then   -- DIAG 1/s while sliding
+                st._slideDiagT = g_time or 0
+                say("slide: start end %.2f m from the stack, next body at %.2f (released %d of %d, held %s)", pulled,
+                    released * spacing0 * SPSHoseItem.TUBE_RELEASE_FRACTION, released, n, tostring(spec.isHeld == true))
             end
-            setWorldTranslation(comp.node, x, y, z)
+            while released < n do
+                local spacing = math.abs((st.zs[released + 1] or 0) - (st.zs[released] or 0))
+                if spacing < 0.05 then spacing = 0.333 end
+                local need = released * spacing * SPSHoseItem.TUBE_RELEASE_FRACTION
+                if pulled < need then break end
+                released = released + 1
+                st.released = released
+                local c = self.components[released]
+                if c ~= nil and valid(c.node) then
+                    setRigidBodyType(c.node, RigidBodyType.DYNAMIC)
+                    setLinearVelocity(c.node, 0, 0, 0); setAngularVelocity(c.node, 0, 0, 0)
+                end
+            end
+            if released >= n then
+                say("%s pipe fully out of the tube (slot '%s')", tostring(spec.hoseKey), tostring(st.slot.name))
+                self:spsUnstow()
+                return
+            end
         end
     end
-    self:spsUpdateBoundingSphere(true)   -- [SPS 1.0.1.9] render culling: bodies just moved onto the rack
+    local pts = st.slot.points
+    local zSign = st.zSign or 1
+    local n = #st.zs
+    local z1, zn = st.zs[1] or 0, st.zs[n] or 0
+    local eps = SPSHoseItem.STOW_ON_POINT_EPS
+    local j = 1
+    for i, comp in ipairs(self.components) do
+        if valid(comp.node) and i > released then   -- [SPS MKS8] bodies out of the tube are free
+            local zi = st.zs[i] or 0
+            local s = (zSign >= 0) and (zi - z1) or (zn - zi)
+            if s < 0 then s = 0 elseif s > L then s = L end
+            -- on a captured point: take its frame as posed in the editor
+            local onPoint = nil
+            for k = 1, #P do
+                if math.abs(S[k] - s) <= eps then onPoint = k; break end
+            end
+            if onPoint ~= nil then
+                local pk = pts[onPoint]
+                local dx, dy, dz = localDirectionToWorld(pk, 0, 0, zSign)
+                local ux, uy, uz = localDirectionToWorld(pk, 0, 1, 0)
+                setDirection(comp.node, dx, dy, dz, ux, uy, uz)
+                setWorldTranslation(comp.node, P[onPoint][1], P[onPoint][2], P[onPoint][3])
+            else
+                -- between points: segment j with S[j] <= s < S[j+1]
+                j = 1
+                while j < #P - 1 and S[j + 1] <= s do j = j + 1 end
+                local seg = S[j + 1] - S[j]
+                local t = seg > 1e-6 and (s - S[j]) / seg or 0
+                local a, b = P[j], P[j + 1]
+                local x, y, z = a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t
+                local dx, dy, dz = (b[1] - a[1]) * zSign, (b[2] - a[2]) * zSign, (b[3] - a[3]) * zSign
+                local near = pts[(t < 0.5) and j or (j + 1)]
+                local ux, uy, uz = localDirectionToWorld(near, 0, 1, 0)
+                local dl = math.sqrt(dx * dx + dy * dy + dz * dz)
+                if dl > 1e-6 then
+                    setDirection(comp.node, dx / dl, dy / dl, dz / dl, ux, uy, uz)
+                end
+                setWorldTranslation(comp.node, x, y, z)
+            end
+        end
+    end
+    self:spsUpdateBoundingSphere(true)   -- [SPS 1.0.2.0] render culling: bodies just moved onto the rack
 end
 
 -- PIPE-TO-PIPE: join end idx to otherPipe's end otherIdx. The MOVER (the pipe in the player's hands)
@@ -1183,6 +1349,38 @@ function SPSHoseItem:spsSetPlayerCollision(hands, enabled)
     end
 end
 
+-- [SPS MKS8 2026-11-10] a pipe in a TUBE slot: only the bodies already out of the tube can be taken (the mouth body first)
+function SPSHoseItem:spsCanGrabNode(node)
+    local spec = self[SPSHoseItem.SPEC_NAME]
+    local st = spec ~= nil and spec.stow or nil
+    -- [SPS 2026-11-11] a cage behind a closed door (<cageHolder requiresAnimation>) cannot be taken either
+    if st ~= nil and st.cage and st.holder ~= nil and SlurryPipeManager.physHolderAccessible ~= nil
+       and not SlurryPipeManager.physHolderAccessible(st.holder) then return false end
+    if st == nil or not st.tube then return true end
+    local ci = self:spsGetComponentIndex(node)
+    return ci ~= nil and ci <= math.max(1, st.released or 0)
+end
+
+-- [SPS MKS8 2026-11-10] slide state from the server (SPSPhysPipeSlideEvent) or the local grab: released bodies, loose caps
+function SPSHoseItem:spsApplySlide(released)
+    local spec = self[SPSHoseItem.SPEC_NAME]
+    local st = spec ~= nil and spec.stow or nil
+    if st == nil or not st.tube then return end
+    released = math.max(st.released or 0, released or 0)
+    st.released = released
+    if self.isServer then
+        for i = 1, released do
+            local c = self.components[i]
+            if c ~= nil and valid(c.node) and getRigidBodyType(c.node) ~= RigidBodyType.DYNAMIC then
+                setRigidBodyType(c.node, RigidBodyType.DYNAMIC)
+                setLinearVelocity(c.node, 0, 0, 0); setAngularVelocity(c.node, 0, 0, 0)
+            end
+        end
+    end
+    if SlurryPipeManager.physApplySlotVisuals ~= nil then SlurryPipeManager.physApplySlotVisuals(st.slot, false) end
+    say("%s pipe sliding out of the tube: %d of %d bodies out", tostring(spec.hoseKey), released, #self.components)
+end
+
 -- Called from the HandToolHands.pickUpTarget hook once the hands hold this pipe's root.
 -- hitNode = the component the player's ray hit.
 function SPSHoseItem:spsOnGrabbed(hands, hitNode)
@@ -1190,7 +1388,15 @@ function SPSHoseItem:spsOnGrabbed(hands, hitNode)
     local hs = hands.spec_hands
     local ci = self:spsGetComponentIndex(hitNode)
     if hs == nil or ci == nil then return end
-    if spec.stow ~= nil then                 -- off the rack the moment a body is grabbed (server applies, event syncs)
+    if spec.stow ~= nil and spec.stow.tube then
+        -- [SPS MKS8 2026-11-10] a TUBE: the mouth body comes free, the rest stays stacked inside and slides out as the
+        -- player walks back (spsPlaceStow); the pipe counts as stowed until the last body is out
+        spec.carryIgnoresVehicle = true
+        if (spec.stow.released or 0) == 0 then
+            self:spsApplySlide(1)
+            if self.isServer and SPSPhysPipeSlideEvent ~= nil then SPSPhysPipeSlideEvent.sendEvent(self, 1) end
+        end
+    elseif spec.stow ~= nil then             -- off the rack the moment a body is grabbed (server applies, event syncs)
         spec.carryIgnoresVehicle = true      -- and carried clear of the tanker without fighting its hull (see spsApplyCollision)
         if g_slurryPipeManager ~= nil and g_slurryPipeManager.physPipeUnstow ~= nil then
             g_slurryPipeManager:physPipeUnstow(self)
@@ -1208,7 +1414,7 @@ function SPSHoseItem:spsOnGrabbed(hands, hitNode)
         end
     end
     self:spsSetPlayerCollision(hands, false)
-    if SPSHoseItem.HELD_IGNORES_STATIC then self:spsApplyCollision(true) end   -- can always be pulled out of concrete
+    self:spsApplyCollision(true)   -- held masks (static bits stay unless freed; vehicle bit off for a rack pickup)
     spec.isHeld   = true
     spec.heldNode = hitNode
     spec.hands    = hands
@@ -1218,12 +1424,12 @@ end
 
 function SPSHoseItem:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
     local spec = self[SPSHoseItem.SPEC_NAME]
-    -- [SPS 1.0.1.9] stay active (= keep sending positions to the clients) while ANY body still moves, not only the root
+    -- [SPS 1.0.2.0] stay active (= keep sending positions to the clients) while ANY body still moves, not only the root
     if self.isServer then
         SPSHoseItem.syncWakeReports(self)
         if SPSHoseItem.anyBodyAwake(self) then self:raiseActive() end
     end
-    -- [SPS 1.0.1.9] render bounding sphere follows the bodies (see spsUpdateBoundingSphere) - every peer, every frame
+    -- [SPS 1.0.2.0] render bounding sphere follows the bodies (see spsUpdateBoundingSphere) - every peer, every frame
     self:spsUpdateBoundingSphere(false)
     -- plugged-in ends ride their couplings (server); a pipe in service (joined only, middle of a chain) stays
     -- active too, so the washable / wearable ticks run and it builds dirt + wear like the plugged ones
@@ -1246,8 +1452,9 @@ function SPSHoseItem:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelect
     -- dropped / thrown / joint broke
     spec.isHeld = false
     spec.carryIgnoresVehicle = nil
+    spec.freedIgnoresStatic = nil
     self:spsSetPlayerCollision(hands, true)
-    if SPSHoseItem.HELD_IGNORES_STATIC then self:spsApplyCollision(false) end  -- full collisions back: lies ON the concrete
+    self:spsApplyCollision(false)   -- full collisions back: lies ON the concrete
     spec.heldNode = nil
     spec.hands    = nil
     say("dropped %s pipe", tostring(spec.hoseKey))
@@ -1262,10 +1469,12 @@ end
 -- ---------------------------------------------------------------------------
 function SPSHoseItem.spsFreeHeldPipe(pipe)
     local spec = pipe ~= nil and pipe[SPSHoseItem.SPEC_NAME] or nil
-    if spec == nil or not pipe.isServer or not spec.isHeld or spec.carryIgnoresVehicle then return false end
+    if spec == nil or not pipe.isServer or not spec.isHeld then return false end
+    if spec.carryIgnoresVehicle and spec.freedIgnoresStatic then return false end   -- already freed
     spec.carryIgnoresVehicle = true
+    spec.freedIgnoresStatic  = true   -- [SPS 1.0.2.0] ...and ignores concrete / kerbs / buildings too (held pipes collide with them otherwise)
     pipe:spsApplyCollision(true)
-    say("%s pipe freed: ignores vehicles until it is let go", tostring(spec.hoseKey))
+    say("%s pipe freed: ignores vehicles and static objects until it is let go", tostring(spec.hoseKey))
     return true
 end
 
@@ -1273,11 +1482,11 @@ end
 -- Hook: the vanilla hands grabbed something. pickUpTarget(self=hands, target, noEventSend) returns
 -- false and holds nothing NEW when the target is not pickable, so only act when it returned true and
 -- the hands now hold this pipe's root; then hand over the node that was actually hit.
--- [SPS 1.0.1.9] overwritten (was appended): an appended hook also ran after a FAILED pick-up, when heldItemNode is
+-- [SPS 1.0.2.0] overwritten (was appended): an appended hook also ran after a FAILED pick-up, when heldItemNode is
 -- still the previous item - on a dedicated server that can be a deleted node (Nitrado log 2026-10-24 21:36,
 -- "Unknown entity id ... getParent" from spsGetComponentIndex via HandsPickUpObjectEvent). Return value passed on.
 -- ---------------------------------------------------------------------------
--- [SPS 1.0.1.9] Grab hint store (SPSPhysPipeGrabEvent): which pipe body the remote player's hand hit. Plain function.
+-- [SPS 1.0.2.0] Grab hint store (SPSPhysPipeGrabEvent): which pipe body the remote player's hand hit. Plain function.
 function SPSHoseItem.spsSetGrabHint(hands, pipe, componentIndex)
     local hs = hands ~= nil and hands.spec_hands or nil
     if hs == nil then return end
@@ -1287,7 +1496,7 @@ end
 if HandToolHands ~= nil and HandToolHands.pickUpTarget ~= nil and not SPSHoseItem._hooked then
     SPSHoseItem._hooked = true
     HandToolHands.pickUpTarget = Utils.overwrittenFunction(HandToolHands.pickUpTarget, function(hands, superFunc, target, noEventSend)
-        -- [SPS 1.0.1.9] The vanilla pick-up event carries only the OBJECT; the server rebuilds the target as
+        -- [SPS 1.0.2.0] The vanilla pick-up event carries only the OBJECT; the server rebuilds the target as
         -- object.rootNode = the i3d's first body (female end of an F/M pipe; an inactive non-physics node on F/F and
         -- M/M). A joined client therefore sends the body it hit ahead of the vanilla event, and the receiving side
         -- (server, then the other clients) swaps the vanilla target to that body here, before the vanilla checks run.
@@ -1321,7 +1530,21 @@ if HandToolHands ~= nil and HandToolHands.pickUpTarget ~= nil and not SPSHoseIte
                 end
             end
         end
+        -- [SPS MKS8 2026-11-10] a pipe in a TUBE: the bodies still inside cannot be taken, only the ones already out
+        if target ~= nil and target.node ~= nil and g_currentMission ~= nil then
+            local o = g_currentMission:getNodeObject(target.node)
+            if o ~= nil and o.spsCanGrabNode ~= nil and not o:spsCanGrabNode(target.node) then
+                spsInfo(string.format("[SPS PHYS] pick-up REFUSED: pipe %s body %s is still inside its tube", tostring(o.configFileName), tostring(getName(target.node))))
+                return false
+            end
+        end
         local picked = superFunc(hands, target, noEventSend)
+        if SPSDebugConfig ~= nil and SPSDebugConfig.isOn("SPSHoseItemHands.Aim") and target ~= nil and target.node ~= nil then
+            local tn = entityExists(target.node) and getName(target.node) or "gone"
+            local to = g_currentMission ~= nil and g_currentMission:getNodeObject(target.node) or nil
+            print(string.format("[SPS AIM] pickUpTarget: node=%s object=%s -> %s (server=%s)", tostring(tn),
+                tostring(to ~= nil and to.configFileName and string.match(to.configFileName, "[^/\\]+$") or to), picked and "PICKED" or "refused", tostring(hands.isServer)))
+        end
         if target ~= nil and target.node ~= nil and g_currentMission ~= nil then
             local o = g_currentMission:getNodeObject(target.node)
             if o ~= nil and o.spsGetComponentIndex ~= nil then
@@ -1386,7 +1609,8 @@ end
 -- ---------------------------------------------------------------------------
 local function isSpsPipeItem(storeItem)
     return storeItem ~= nil and storeItem.xmlFilename ~= nil
-        and string.find(storeItem.xmlFilename, "vehicles/hoses/spsPipe.xml", 1, true) ~= nil
+        and (string.find(storeItem.xmlFilename, "vehicles/hoses/spsPipe.xml", 1, true) ~= nil
+          or string.find(storeItem.xmlFilename, "vehicles/hoses/spsBowserPipe.xml", 1, true) ~= nil)   -- [SPS 2026-11-09] same shop treatment
 end
 local function shopIsSlurry(screen)
     return screen.configurations == nil or (screen.configurations.spsPipeType or 1) == 1

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<vehicle type="spsHose" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../shared/xml/schema/vehicle.xsd">
+    <!-- [SPS 2026-11-11] WATER CAGES (William): a strainer cage for the free end of a pipe lying in a lake / river / pond. A one-ended
+         "pipe" (SPSHoseItem hoseKey CAGE_*): carry it to a free pipe end and join it like another pipe. A pipe only DRAWS water with
+         a cage fitted and the cage's waterLevel node under the surface (SPSM_PhysPipes physFreeEndWaterPlane); discharge and the
+         gravity return need none. Small = 80 mm water / milk pipes (gender water, either end); large = the male end of a slurry
+         pipe (gender female). ONE shop item, the Cage row picks the cage. i3d: vehicles/hoses/cages.i3d (root 1 = LC_col large,
+         root 2 = SC_col small; a copy sits in i3d/pipes). -->
+
+    <storeData>
+        <name>$l10n_shopItem_spsCage</name>
+        <functions>
+            <function>$l10n_function_spsCage</function>
+        </functions>
+        <image>vehicles/hoses/icon_cage.png</image>
+        <price>60</price>
+        <lifetime>600</lifetime>
+        <rotation>0</rotation>
+        <brand>SPS</brand>
+        <allowLeasing>false</allowLeasing>
+        <category>slurryTools barrels</category>   <!-- SPS tools AND the bowser's section -->
+        <shopTranslationOffset>0 0.17 0</shopTranslationOffset>
+        <shopRotationOffset>0 0 0</shopRotationOffset>
+        <shopIgnoreLastComponentPositions>true</shopIgnoreLastComponentPositions>
+    </storeData>
+
+    <base>
+        <typeDesc>$l10n_typeDesc_spsHose</typeDesc>
+        <filename>vehicles/hoses/cages.i3d</filename>
+        <size width="0.4" length="0.5" height="0.4" lengthOffset="0.1"/>
+        <input allowed="false"/>
+        <canBeReset>false</canBeReset>
+        <supportsPickUp>true</supportsPickUp>
+        <componentConfigurations>
+            <componentConfiguration name="$l10n_spsCage_small" vehicleName="$l10n_spsCage_small" vehicleIcon="vehicles/hoses/icon_waterPipe.png" price="0" isDefault="true" numComponents="1">
+                <component index="2" mass="1.5" solverIterationCount="20"/>
+            </componentConfiguration>
+            <componentConfiguration name="$l10n_spsCage_large" vehicleName="$l10n_spsCage_large" vehicleIcon="vehicles/hoses/icon_slurryPipe.png" price="0" numComponents="1">
+                <component index="1" mass="3" solverIterationCount="20"/>
+            </componentConfiguration>
+        </componentConfigurations>
+        <showInVehicleMenu>true</showInVehicleMenu>
+        <mapHotspot type="TOOL"/>
+    </base>
+
+    <!-- dirt + wear like a pipe (SPSHoseItem drives them by use: joined to a pipe = in service) -->
+    <washable dirtDuration="90" washDuration="1" workMultiplier="4" fieldMultiplier="2"/>
+    <wearable wearDuration="600" showOnHud="false"/>
+
+    <spsHose tintable="false" startComponent="1" endComponent="1">
+        <spsPipeTypeConfigurations title="$l10n_configuration_spsPipeType">
+            <spsPipeTypeConfiguration name="$l10n_spsCage_small" price="0" isDefault="true"><dependentConfiguration name="component" index="1"/></spsPipeTypeConfiguration>
+            <spsPipeTypeConfiguration name="$l10n_spsCage_large" price="60"><dependentConfiguration name="component" index="2"/></spsPipeTypeConfiguration>
+        </spsPipeTypeConfigurations>
+        <variant config="1" hoseKey="CAGE_SMALL" meshNode="SC_mesh" startNode="SC_hoseStart" endNode="SC_hoseEnd" waterLevelNode="SC_waterLevel" startGender="water" endGender="none" endComponent="1" tintable="false" dirtScale="0.5"/>
+        <variant config="2" hoseKey="CAGE_LARGE" meshNode="LC_mesh" startNode="LC_hoseStart" endNode="LC_hoseEnd" waterLevelNode="LC_waterLevel" startGender="female" endGender="none" endComponent="1" tintable="false" dirtScale="1"/>
+    </spsHose>
+
+    <i3dMappings>
+        <i3dMapping id="LC_col"        node="0>"/>
+        <i3dMapping id="LC_hoseEnd"    node="0>0"/>
+        <i3dMapping id="LC_hoseStart"  node="0>1"/>
+        <i3dMapping id="LC_waterLevel" node="0>2"/>
+        <i3dMapping id="LC_mesh"       node="0>3"/>
+        <i3dMapping id="SC_col"        node="1>"/>
+        <i3dMapping id="SC_hoseEnd"    node="1>0"/>
+        <i3dMapping id="SC_hoseStart"  node="1>1"/>
+        <i3dMapping id="SC_waterLevel" node="1>2"/>
+        <i3dMapping id="SC_mesh"       node="1>3"/>
+    </i3dMappings>
+</vehicle>

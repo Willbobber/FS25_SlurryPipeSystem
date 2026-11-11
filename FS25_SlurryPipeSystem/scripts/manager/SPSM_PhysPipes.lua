@@ -37,7 +37,7 @@
 -- placeable, by g_currentMission:getObjectByUniqueId) has registered its couplings; the chain evaluation then
 -- re-makes the flow connection (valves closed). The original systems do NOT save these connections (slurry:
 -- no pipeId without a drawn hose; lanes: physPipe couplings skipped in _saveLiquidLaneConnections).
--- [SPS 1.0.1.9] FERT / HERB (William 2026-10-26): the WATER hose also plugs into the SPRAYER system's couplers
+-- [SPS 1.0.2.0] FERT / HERB (William 2026-10-26): the WATER hose also plugs into the SPRAYER system's couplers
 -- (sprayers <sprayerPipeSystem>, fert / herb silos, IBCs, phyto buying stations - registeredSprayerVehicles /
 -- registeredSprayerPlaceables, coupling.isSprayerCoupling). A chain with both ends on sprayer couplers connects
 -- through applySprayerConnect (B at the sprayer = flow, Y = load / unload, no hose drawn); applySprayerDisconnect
@@ -45,10 +45,11 @@
 -- fittings only (a chain holding a milk hose connects milk fittings only). Original mode is untouched.
 -- Not yet: a TANKER's liquid connector into a fert silo (the lane SPRAYER bridge); MP late-join dump of plugged ends.
 
-SlurryPipeManager.PHYS_CONNECT_RADIUS = 0.6   -- metres: pipe end to coupling node / mating pipe end (1.6 -> 2.0 on 2026-10-15; 0.6 on
+SlurryPipeManager.PHYS_CONNECT_RADIUS = 1.0   -- metres: pipe end to coupling node / mating pipe end (1.6 -> 2.0 on 2026-10-15; 0.6 on
+                                              -- 2026-10-18; 1.0 on 2026-11-10, William: "a massive pain" - log 22:52-22:55 refused at 0.48-0.60;
                                               -- 2026-10-18, William: "the connection range to connect is far too far")
 
--- [SPS 1.0.1.9] quiet log: routine pipe lines (plug / join / restore / stow) only with `spsDebug Info on`;
+-- [SPS 1.0.2.0] quiet log: routine pipe lines (plug / join / restore / stow) only with `spsDebug Info on`;
 -- physWarn stays in every log (config errors: a coupling / holder id that does not exist).
 local function physLog(fmt, ...)
     if spsInfoOn ~= nil and spsInfoOn() then print("[SPS PHYS] " .. string.format(fmt, ...)) end
@@ -60,7 +61,7 @@ end
 local function nodeOk(n) return n ~= nil and n ~= 0 and entityExists(n) end
 
 -- Is this coupling free for a physical pipe end of this gender?
--- [SPS 1.0.1.9] Does this 80 mm lane fitting take the MILK hose? Barn side: the fitting's own lane; vehicle side: the
+-- [SPS 1.0.2.0] Does this 80 mm lane fitting take the MILK hose? Barn side: the fitting's own lane; vehicle side: the
 -- connector's lane set (the fill unit accepts milk).
 function SlurryPipeManager.physLaneCouplingTakesMilk(c)
     if c == nil then return false end
@@ -74,17 +75,29 @@ function SlurryPipeManager:_physCouplingFree(c, gender, hoseKey)
     if c.physPipe ~= nil then return false, "pipe already plugged in" end
     local isMilkHose = hoseKey == "MILK"
     if c.isLiquidLane then
+        -- [SPS 2026-11-09] a fitting with an ACCEPT LIST (550 bowser: acceptPipes / acceptEnd) takes only those hose
+        -- keys, and only the end whose gender it names ("bowser" = the pipe's start end); nothing else plugs in there,
+        -- and a "bowser" end plugs in nowhere else (every other fitting wants water / male / female)
+        if c.acceptPipes ~= nil then
+            if not c.acceptPipes[string.upper(tostring(hoseKey))] then
+                return false, string.format("this fitting takes %s only", tostring(c.acceptPipesText))
+            end
+            if c.acceptGender ~= nil and gender ~= c.acceptGender then
+                return false, string.format("this fitting takes the pipe's %s end", c.acceptGender == "bowser" and "start" or "far")
+            end
+            return true, nil
+        end
         if gender ~= "water" then
             return false, string.format("80 mm lane coupler wants a water hose end, this end is %s", tostring(gender))
         end
-        -- [SPS 1.0.1.9] William 2026-10-26: the MILK hose is for milk only; the WATER hose goes on any 80 mm fitting
+        -- [SPS 1.0.2.0] William 2026-10-26: the MILK hose is for milk only; the WATER hose goes on any 80 mm fitting
         if isMilkHose and not SlurryPipeManager.physLaneCouplingTakesMilk(c) then
             return false, "the milk hose only plugs into a milk fitting"
         end
         return true, nil
     end
     if c.isSprayerCoupling then
-        -- [SPS 1.0.1.9] fert / herb coupler (sprayer, silo, IBC, buying station): the WATER hose only
+        -- [SPS 1.0.2.0] fert / herb coupler (sprayer, silo, IBC, buying station): the WATER hose only
         if gender ~= "water" then
             return false, string.format("sprayer coupler wants a water hose end, this end is %s", tostring(gender))
         end
@@ -93,6 +106,7 @@ function SlurryPipeManager:_physCouplingFree(c, gender, hoseKey)
         return true, nil
     end
     if c.deployable and not c.isDeployed then return false, "not deployed" end
+    if c.deployable and not self:getCouplingLidOpen(c) then return false, "lid still opening" end   -- [SPS 1.0.2.0] same wait as the chain prompt
     if c.isChainTerminus or c.isChainStart then return false, "chain coupling" end
     local want = c.connectorType or "male"
     if gender ~= nil and want ~= gender then
@@ -105,6 +119,8 @@ end
 -- fittings an 80 mm end may use: MILK = milk fittings only, WATER = water, milk and sprayer couplers.
 -- Returns coupling, owner (vehicle or placeable), isPlaceable, distance, nearMissReason.
 function SlurryPipeManager:findCouplingForPhysPipeEnd(x, y, z, gender, radius, hoseKey)
+    -- [SPS 2026-11-11] a water cage only joins a pipe's end - it never plugs into a coupling
+    if hoseKey ~= nil and string.sub(hoseKey, 1, 5) == "CAGE_" then return nil, nil, false, nil, nil end
     radius = radius or SlurryPipeManager.PHYS_CONNECT_RADIUS
     local best, bestD, bestOwner, bestIsPlaceable = nil, radius, nil, false
     local nearMiss = nil
@@ -133,16 +149,18 @@ function SlurryPipeManager:findCouplingForPhysPipeEnd(x, y, z, gender, radius, h
     for _, pEntry in ipairs(self.registeredPlaceables or {}) do
         for _, c in ipairs(pEntry.storeCouplings or {}) do consider(c, pEntry.placeable, true) end
     end
-    if gender == "water" then
+    if gender == "water" or gender == "bowser" then   -- [SPS 2026-11-09] "bowser" = start end of a 550 bowser pipe
         for _, vEntry in ipairs(self.registeredLiquidLaneVehicles or {}) do
             for _, c in ipairs(vEntry.couplings or {}) do consider(c, vEntry.object, false) end
         end
+    end
+    if gender == "water" then
         for _, pEntry in ipairs(self.registeredLiquidLanePlaceables or {}) do
             for _, c in ipairs(pEntry.couplings or {}) do consider(c, pEntry.object, true) end
         end
     end
     if gender == "water" and hoseKey ~= "MILK" then
-        -- [SPS 1.0.1.9] FERT / HERB: the sprayer system's couplers (sprayers; fert / herb silos, IBCs and phyto buying
+        -- [SPS 1.0.2.0] FERT / HERB: the sprayer system's couplers (sprayers; fert / herb silos, IBCs and phyto buying
         -- stations live in registeredSprayerPlaceables, IBC pallets included - c.placeable says which are placeables)
         for _, sEntry in ipairs(self.registeredSprayerVehicles or {}) do
             local aiDriven = SlurryPipeSystemOverride ~= nil and SlurryPipeSystemOverride.isAIControlled ~= nil
@@ -172,7 +190,7 @@ function SlurryPipeManager:_physCouplingOwner(c)
     return self:_findCouplingOwner(c)
 end
 
--- [SPS 1.0.1.9] Sprayer-system coupling by owner + id (sprayer vehicles and sprayer placeables / IBC pallets).
+-- [SPS 1.0.2.0] Sprayer-system coupling by owner + id (sprayer vehicles and sprayer placeables / IBC pallets).
 function SlurryPipeManager:_physFindSprayerCouplingById(object, couplingId)
     if object == nil then return nil end
     for _, sEntry in ipairs(self.registeredSprayerVehicles or {}) do
@@ -204,7 +222,7 @@ end
 -- Break the flow connection of a coupling of either system (local apply, as the callers are echoes).
 function SlurryPipeManager:_physApplyDisconnect(coupling)
     if coupling.isSprayerCoupling then
-        -- [SPS 1.0.1.9] sprayer system: frees the end through its _physFreeCoupling hook (as the slurry path does)
+        -- [SPS 1.0.2.0] sprayer system: frees the end through its _physFreeCoupling hook (as the slurry path does)
         self:applySprayerDisconnect(coupling.placeable == nil and coupling.object or nil, coupling.id, coupling)
         return
     end
@@ -240,7 +258,7 @@ function SlurryPipeManager:physPipeCanDisconnect(pipe, endIdx)
     local c = e ~= nil and e.coupling or nil
     if c == nil then return true end
     if c.isLiquidLane then
-        if c.ballValveOpen then return false, "warning_spsCloseValveFirst" end
+        if c.hasValve ~= false and c.ballValveOpen then return false, "warning_spsCloseValveFirst" end   -- [SPS MKS8] no valve = nothing to close
         return true
     end
     if c.valveType == SPS_VALVE_TYPE_HYDRAULIC then
@@ -250,8 +268,16 @@ function SlurryPipeManager:physPipeCanDisconnect(pipe, endIdx)
         if st ~= nil and st.valveOpen == true then return false, "warning_spsCloseValveFirst" end
         return true
     end
-    -- slurry coupler with its own valve, or a sprayer coupler (B = flow; valveOpen mirrors the sprayer state)
-    if c.valveOpen then return false, "warning_spsCloseValveFirst" end
+    -- a sprayer coupler (B = flow; valveOpen mirrors the sprayer state) still asks for the flow to be stopped first
+    if c.isSprayerCoupling then
+        if c.valveOpen then return false, "warning_spsCloseValveFirst" end
+        return true
+    end
+    -- [SPS 1.0.2.0] SLURRY coupler (William 2026-11-05: "it doesnt matter if the valve is open or closed when it was
+    -- connected, if the player wants to pull the pipe they can and any open valve can leak poo"): a slurry pipe end
+    -- always comes off. Before, an open valve refused the pull - and a tanker valve opened AFTER connecting was mirrored
+    -- onto a valve-less store coupler, so that end refused too while the same pull went through when the valve had
+    -- been opened BEFORE connecting. A valve left open then leaks / vents by the hole rules (applyDisconnect keepsValve).
     return true
 end
 
@@ -283,7 +309,7 @@ function SlurryPipeManager:applyPhysPipeConnect(pipe, endIdx, object, isPlaceabl
     if pipe == nil or pipe.spsGetEnd == nil then return false end
     local coupling = self:_physFindCouplingById(object, couplingId, isPlaceable, isLane, isSprayer)
     if coupling == nil then
-        -- [SPS 1.0.1.9] late-joining client: the object exists but has not registered its couplings yet -> retry later
+        -- [SPS 1.0.2.0] late-joining client: the object exists but has not registered its couplings yet -> retry later
         if g_server == nil and object ~= nil and not object.isDeleted then
             if isRetry then return false, true end
             if self:_physDefer("connect", { pipe, endIdx, object, isPlaceable, couplingId, isLane, isSprayer },
@@ -297,7 +323,7 @@ function SlurryPipeManager:applyPhysPipeConnect(pipe, endIdx, object, isPlaceabl
     end
     local e = pipe:spsGetEnd(endIdx)
     if e == nil then
-        -- [SPS 1.0.1.9] late-joining client: the pipe's own ends are not loaded yet -> retry later
+        -- [SPS 1.0.2.0] late-joining client: the pipe's own ends are not loaded yet -> retry later
         if g_server == nil and not pipe.isDeleted then
             if isRetry then return false, true end
             if self:_physDefer("connect", { pipe, endIdx, object, isPlaceable, couplingId, isLane, isSprayer }, "pipe ends not loaded yet") then
@@ -342,7 +368,9 @@ function SlurryPipeManager:findPipeEndForPhysPipeEnd(x, y, z, gender, excludePip
     radius = radius or SlurryPipeManager.PHYS_CONNECT_RADIUS
     local best, bestIdx, bestD = nil, nil, radius
     for other, _ in pairs(self.physPipes or {}) do
-        if other ~= excludePipe and other.spsGetEnd ~= nil and nodeOk(other.rootNode) then
+        -- [SPS 2026-11-11] a water cage hung on a vehicle's cage holder is parked: no pipe can join it (William)
+        local parkedCage = other.spsIsCage ~= nil and other:spsIsCage() and other.spsIsStowed ~= nil and other:spsIsStowed()
+        if other ~= excludePipe and other.spsGetEnd ~= nil and nodeOk(other.rootNode) and not parkedCage then
             for idx = 1, 2 do
                 local e = other:spsGetEnd(idx)
                 if e ~= nil and e.coupling == nil and e.joinedTo == nil and nodeOk(e.node) and gendersMate(gender, e.gender) then
@@ -370,7 +398,7 @@ function SlurryPipeManager:applyPhysPipeJoin(pipe, endIdx, otherPipe, otherIdx, 
     if pipe == nil or otherPipe == nil or pipe == otherPipe or pipe.spsGetEnd == nil or otherPipe.spsGetEnd == nil then return false end
     local e, oe = pipe:spsGetEnd(endIdx), otherPipe:spsGetEnd(otherIdx)
     if e == nil or oe == nil then
-        -- [SPS 1.0.1.9] late-joining client: one of the pipes has not loaded its ends yet -> retry later
+        -- [SPS 1.0.2.0] late-joining client: one of the pipes has not loaded its ends yet -> retry later
         if g_server == nil and not pipe.isDeleted and not otherPipe.isDeleted then
             if isRetry then return false, true end
             if self:_physDefer("join", { pipe, endIdx, otherPipe, otherIdx }, "pipe ends not loaded yet") then return false end
@@ -427,8 +455,9 @@ end
 -- ---------------------------------------------------------------------------
 SlurryPipeManager.PHYS_WATER_END_MAX_ABOVE = 0.25   -- m the free end may sit above the surface and still draw
 
-function SlurryPipeManager:physFreeEndWaterPlane(coupling)
-    if coupling == nil or coupling.physPipe == nil or coupling.isConnected or coupling.isLiquidLane then return nil end
+function SlurryPipeManager:physFreeEndWaterPlane(coupling, allowLane)
+    -- [SPS 2026-11-09] allowLane: the 550 bowser's suction fitting asks too (SPSM_LiquidLanes _llEvaluateSpecial)
+    if coupling == nil or coupling.physPipe == nil or coupling.isConnected or (coupling.isLiquidLane and not allowLane) then return nil end
     if self.physicalPipesEnabled ~= true or g_waterPlaneManager == nil then return nil end
     local pipe, plugged = coupling.physPipe, coupling.physPipeEnd
     if pipe == nil or pipe.spsGetEnd == nil or plugged == nil then return nil end
@@ -436,20 +465,236 @@ function SlurryPipeManager:physFreeEndWaterPlane(coupling)
     if farCoupling ~= nil or farPipe == nil then return nil end           -- the far end sits on a coupling
     local e = farPipe:spsGetEnd(farIdx)
     if e == nil or farPipe.components == nil then return nil end
+    -- [SPS 2026-11-11] WATER CAGE (William): a pipe DRAWS water only with a cage on its free end; the cage's waterLevel node
+    -- must be under the surface. Discharge / gravity return need no cage. A cage is a one-ended pipe joined to the chain's
+    -- last pipe, so the walk ends on it (its tip end).
+    local cageNode = (farPipe.spsIsCage ~= nil and farPipe:spsIsCage()) and farPipe:spsGetWaterLevelNode() or nil
+    if cageNode ~= nil then
+        local x, y, z = getWorldTranslation(cageNode)
+        local plane = g_waterPlaneManager:findWaterPlaneAtPosition(x, z)
+        if plane == nil then return nil end
+        if plane.waterY ~= nil and y > plane.waterY + SlurryPipeManager.PHYS_WATER_END_MAX_ABOVE then return nil end
+        local drawOk = plane.waterY == nil or y <= plane.waterY + SlurryPipeManager.PHYS_CAGE_SUBMERGED_EPS
+        return plane, drawOk, false
+    end
     local comp = farPipe.components[e.comp]
     if comp == nil or comp.node == nil or comp.node == 0 or not entityExists(comp.node) then return nil end
     local x, y, z = getWorldTranslation(comp.node)
     local plane = g_waterPlaneManager:findWaterPlaneAtPosition(x, z)
     if plane == nil then return nil end
     if plane.waterY ~= nil and y > plane.waterY + SlurryPipeManager.PHYS_WATER_END_MAX_ABOVE then return nil end
-    return plane
+    -- the 550 bowser's own suction pipe (far end gender "suction") carries its strainer: no cage needed or possible there
+    if e.gender == "suction" then return plane, true, false end
+    return plane, false, true         -- plane, drawOk (no: nothing fitted), cageMissing
+end
+
+SlurryPipeManager.PHYS_CAGE_SUBMERGED_EPS = 0.02   -- m the cage's waterLevel node may sit above the surface and still count as under it
+
+-- [SPS 2026-11-11] "add cage" message: a draw was asked of a pipe end lying in water without a cage. Local to the machine that
+-- evaluates the flow (single player / host); throttled so a held pump does not flood the HUD.
+function SlurryPipeManager:noteCageMissing()
+    local now = g_time or 0
+    if self._cageMsgAt ~= nil and now - self._cageMsgAt < 4000 then return end
+    self._cageMsgAt = now
+    if g_currentMission ~= nil and g_currentMission.showBlinkingWarning ~= nil and g_i18n ~= nil then
+        g_currentMission:showBlinkingWarning(g_i18n:getText("warning_spsAddCage"), 2500)
+    end
 end
 
 function SlurryPipeManager:physCouplingIsWaterFed(coupling)
     return self:physFreeEndWaterPlane(coupling) ~= nil
 end
 
--- [SPS 1.0.1.9] Does the chain this pipe belongs to hold a pipe of this hose key (MILK: the milk-only rule)?
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.2.0] FREE END IN THE SLURRY (William 2026-11-05: "lets build a pipe sucking from a slurry plane, it works
+-- with water so should with slurry"). The slurry twin of the water intake above: a slurry coupling holding a plugged
+-- physical pipe whose chain's far end lies INSIDE a registered store's fill plane (planeBounds) is treated as on that
+-- store - the open-pit fill-arm test (SPSM_Flow updateArmConnection: plane bounds + SlurryNodeUtil.getSurfaceWorldY).
+-- Returns the store's STORAGE_PLANE source entry, its placeable entry and `submerged` (end at least
+-- PHYS_SLURRY_END_MIN_BELOW under the surface). Draw needs submerged (an empty pit is air - B3); a deposit only needs
+-- the end over the plane. Stores without an authored <fillPlane> (no planeBounds) stay coupler-only, as for the arm.
+-- Replaces the B3 Q3 assumption ("no pit test exists"). Evaluated live, so lifting the end out ends it at once.
+-- ---------------------------------------------------------------------------
+SlurryPipeManager.PHYS_SLURRY_END_MIN_BELOW = 0.08   -- m under the surface before the end draws (the fill-arm THRESHOLD)
+
+-- World position + node of the chain's free far end behind `coupling`, or nil (far end on a coupler / no pipe).
+function SlurryPipeManager:_physFreeEndNode(coupling)
+    if coupling == nil or coupling.physPipe == nil or coupling.isConnected then return nil end
+    local pipe, plugged = coupling.physPipe, coupling.physPipeEnd
+    if pipe == nil or pipe.spsGetEnd == nil or plugged == nil then return nil end
+    local farCoupling, farPipe, farIdx = self:_physWalkChain(pipe, (plugged == 1) and 2 or 1)
+    if farCoupling ~= nil or farPipe == nil then return nil end
+    local e = farPipe:spsGetEnd(farIdx)
+    if e == nil or farPipe.components == nil then return nil end
+    local comp = farPipe.components[e.comp]
+    if comp == nil or comp.node == nil or comp.node == 0 or not entityExists(comp.node) then return nil end
+    local x, y, z = getWorldTranslation(comp.node)
+    return comp.node, x, y, z
+end
+
+-- [SPS 1.0.2.0] 2026-11-05 (William: "if the tanker has no pipe on the valve but the coupler is above the store then it
+-- should discharge to the store"). The point where a coupling's liquid leaves: the chain's free far end when a pipe is
+-- plugged in, else - TANKER couplers only - the bare coupler mouth itself (the socket the leak uses: inNode / outNode /
+-- mountNode). A store's own coupler, a chain end and a strap-pipe coupler have no bare mouth here.
+function SlurryPipeManager:_physMouthNode(coupling)
+    if coupling == nil then return nil end
+    if coupling.physPipe ~= nil then return self:_physFreeEndNode(coupling) end
+    if coupling.isConnected or coupling.placeable ~= nil or coupling.pipeId ~= nil
+       or coupling.isChainTerminus or coupling.isChainStart then return nil end
+    local n = (nodeOk(coupling.inNode) and coupling.inNode) or (nodeOk(coupling.outNode) and coupling.outNode) or coupling.mountNode
+    if not nodeOk(n) then return nil end
+    local x, y, z = getWorldTranslation(n)
+    return n, x, y, z
+end
+
+function SlurryPipeManager:physFreeEndSlurrySource(coupling)
+    if coupling == nil or coupling.isLiquidLane or coupling.isSprayerCoupling then return nil end
+    if self.physicalPipesEnabled ~= true or SlurryNodeUtil == nil then return nil end
+    local node, x, y, z = self:_physMouthNode(coupling)   -- pipe end, or a tanker's bare coupler mouth
+    if node == nil then return nil end
+    for _, pEntry in ipairs(self.registeredPlaceables) do
+        for _, se in ipairs(self:getStoreSources(pEntry)) do
+            if se.type == SlurryNodeUtil.SOURCE_TYPE_STORAGE_PLANE and se.planeBounds ~= nil
+               and SlurryNodeUtil.isNodeInPlaneBounds(node, se.planeBounds) then
+                local surfY = SlurryNodeUtil.getSurfaceWorldY(se, x, z)
+                local submerged = surfY ~= -math.huge and y <= surfY - SlurryPipeManager.PHYS_SLURRY_END_MIN_BELOW
+                return se, pEntry, submerged
+            end
+        end
+    end
+    return nil
+end
+
+-- Submerged in a store's slurry: a draw source (the valve / pump prompts treat it like a water-fed end).
+function SlurryPipeManager:physCouplingIsSlurryFed(coupling)
+    local se, _, submerged = self:physFreeEndSlurrySource(coupling)
+    return se ~= nil and submerged == true
+end
+
+-- [SPS 1.0.2.0] Free end anywhere inside a store's fill-plane bounds, OVER or under the surface (fix 2026-11-05: an end
+-- hanging over a pit never started a flow). Such an end is on that store: what leaves the tank lands in the pit (pump
+-- discharge or gravity), a draw still needs it submerged (physCouplingIsSlurryFed, the B3 air rule keeps using that).
+function SlurryPipeManager:physCouplingIsOverStore(coupling)
+    return self:physFreeEndSlurrySource(coupling) ~= nil
+end
+
+-- Free end in the water or on a store's fill plane: what the valve, pump-panel and connection prompts mean by
+-- "connected like". Not "can draw": that is physCouplingIsWaterFed / physCouplingIsSlurryFed.
+function SlurryPipeManager:physCouplingIsLiquidFed(coupling)
+    return self:physCouplingIsWaterFed(coupling) or self:physCouplingIsOverStore(coupling)
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.2.0] FREE END ON THE GROUND = LEAK (William 2026-11-02, settings menu "Pipe leakage", default off; the
+-- FS22 manure system had it). A slurry coupling that holds a plugged physical pipe whose chain's far end lies free
+-- on the ground (not on a coupling, not joined, not in the hands, not in the water - the water intake rule above
+-- wins) counts as "connected" for the valve prompt and the flow: with the valve open the tanker empties onto the
+-- ground at its discharge rate (pump or gravity, as the flow resolver decides) and the litres feed a puddle at the
+-- free end (SPSSpill). Evaluated live every tick, so lifting the end or plugging it in stops the leak at once.
+-- Returns the spill position on the terrain under the free end, or nil.
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.2.0] William 2026-11-02: "the puddle should appear wherever the point of leakage is - no pipe connected =
+-- under the valve, pipe connected = under the end of the pipe". So: no pipe plugged -> the coupler's mount node; pipe
+-- plugged -> the chain's free far end, whatever its height (the slurry falls to the terrain below it, held pipe
+-- included); a far end sitting on another coupling (chain not yet complete) or lying in the water (intake) = no leak.
+-- [SPS 1.0.2.0] Also the 80 mm LANE fittings (water / milk couplers on tankers and barns, William 2026-11-02: "the
+-- liquid connectors to do the same") - same rule, the fitting's own ball valve is the valve (SPSM_Leaks ticks those).
+-- Sprayer couplers (fert / herb) never leak. Returns x, surfaceY, z, leakNode, leakNodeY (node = valve or pipe end).
+-- [SPS 1.0.2.0] 2026-11-05 `intoStore` = the STREAM's question (SPSM_Leaks): the same geometry for a pipe end / bare
+-- tanker coupler ABOVE a store's surface, landing on that surface (independent of "Pipe leakage"). Extra 10th return
+-- value then: the store's source entry. Without the flag nothing changes for the callers: over a store = no leak = nil.
+function SlurryPipeManager:physFreeEndSpillPos(coupling, intoStore, force)
+    if self.physicalPipesEnabled ~= true then return nil end
+    -- [SPS 2026-11-09] force: a pour on purpose (the bowser's wash hose) shows whatever "Pipe leakage" says
+    if intoStore ~= true and force ~= true and self.spillEnabled ~= true then return nil end
+    if coupling == nil or coupling.isConnected or coupling.isSprayerCoupling then return nil end
+    local terrain = g_currentMission ~= nil and g_currentMission.terrainRootNode or nil
+    if terrain == nil then return nil end
+    local x, y, z, leakNode
+    local axX, axY, axZ   -- outward flow axis of the leak point (pipe end only; a socket is resolved by leakStreamFrame)
+    if coupling.physPipe == nil then
+        -- no pipe: the leak is at the pipe SOCKET - the inNode / outNode the pipe end plugs onto (SPSHoseItem
+        -- spsPlaceEndAt uses c.inNode or c.mountNode), not the coupler's mount / arc node (William 2026-11-03: "underneath
+        -- the point in which the pipe connects ie wherever the out in nodes are")
+        leakNode = (nodeOk(coupling.inNode) and coupling.inNode) or (nodeOk(coupling.outNode) and coupling.outNode) or coupling.mountNode
+        if not nodeOk(leakNode) then return nil end
+        x, y, z = getWorldTranslation(leakNode)
+    else
+        local pipe, plugged = coupling.physPipe, coupling.physPipeEnd
+        if pipe == nil or pipe.spsGetEnd == nil or plugged == nil then return nil end
+        local farCoupling, farPipe, farIdx = self:_physWalkChain(pipe, (plugged == 1) and 2 or 1)
+        if farCoupling ~= nil or farPipe == nil then return nil end       -- the far end sits on a coupling
+        local e = farPipe:spsGetEnd(farIdx)
+        if e == nil or farPipe.components == nil then return nil end
+        local comp = farPipe.components[e.comp]
+        if comp == nil or comp.node == nil or comp.node == 0 or not entityExists(comp.node) then return nil end
+        if nodeOk(e.node) then
+            -- [SPS 1.0.2.0] 2026-11-07 (William: "the effect needs to be linked to the in or out node at each end"):
+            -- the stream leaves at the pipe's own END NODE (hoseStart / hoseEnd - the point that lands on the coupler's
+            -- in / out node when plugged), not at the end BODY's pivot further back inside the pipe. Outward axis = the
+            -- end node's Z in the direction it would plug (e.sign: the END's +Z points out of the pipe, the START's -Z).
+            leakNode = e.node
+            x, y, z = getWorldTranslation(e.node)
+            axX, axY, axZ = localDirectionToWorld(e.node, 0, 0, e.sign or 1)
+        else
+            leakNode = comp.node
+            x, y, z = getWorldTranslation(comp.node)
+            -- fallback: the end's outward axis from the neighbouring body to the end body
+            local nb = farPipe.components[(e.comp == 1) and 2 or (e.comp - 1)]
+            if nb ~= nil and nb.node ~= nil and nb.node ~= 0 and entityExists(nb.node) then
+                local bx, by, bz = getWorldTranslation(nb.node)
+                axX, axY, axZ = MathUtil.vector3Normalize(x - bx, y - by, z - bz)
+            end
+        end
+        if g_waterPlaneManager ~= nil then
+            local plane = g_waterPlaneManager:findWaterPlaneAtPosition(x, z)
+            if plane ~= nil and (plane.waterY == nil or y <= plane.waterY + SlurryPipeManager.PHYS_WATER_END_MAX_ABOVE) then
+                return nil                                               -- in the water: intake, not a leak
+            end
+        end
+    end
+    -- [SPS 1.0.2.0] over or in a store's fill plane - a pipe end, or (2026-11-05) a tanker's bare coupler mouth: the
+    -- slurry goes into the pit, not onto the ground -> no leak. With `intoStore` the mouth above the surface is the answer.
+    local storeSe, storeSurfY = nil, nil
+    if self.physFreeEndSlurrySource ~= nil then
+        local se, _, submerged = self:physFreeEndSlurrySource(coupling)
+        if se ~= nil then
+            if intoStore ~= true or submerged then return nil end
+            storeSe = se
+            local sy = SlurryNodeUtil.getSurfaceWorldY(se, x, z)
+            if sy ~= nil and sy ~= -math.huge then storeSurfY = math.min(sy, y - 0.02) end
+        end
+    end
+    if intoStore == true and storeSe == nil then return nil end
+    -- the SURFACE under the leak point: concrete aprons / floors of placed buildings count, not just the terrain
+    local function surfaceAt(px, py, pz)
+        if storeSurfY ~= nil then return storeSurfY end   -- pouring into a pit: the stream lands on its surface
+        if SPSSpill ~= nil and SPSSpill.surfaceY ~= nil then return SPSSpill.surfaceY(px, py, pz) end
+        return getTerrainHeightAtWorldPos(terrain, px, py, pz)
+    end
+    local ty = surfaceAt(x, y, z)
+    -- [SPS 1.0.2.0] the liquid leaves ALONG the socket / pipe end and arcs down (SPSM_Leaks leakStreamFrame / Solve):
+    -- the puddle sits where the stream LANDS, a little in front of a level socket, straight under a downward one
+    local frame = nil
+    if self.leakStreamFrame ~= nil and SlurryPipeManager.leakStreamSolve ~= nil then
+        local vOwner, pOwner = self:_physCouplingOwner(coupling)
+        frame = self:leakStreamFrame(coupling, vOwner or pOwner, leakNode, axX, axY, axZ)
+        local _, _, fwd = SlurryPipeManager.leakStreamSolve(frame.dy, frame.sy - ty)
+        local hx, hz = frame.dx, frame.dz
+        local hl = math.sqrt(hx * hx + hz * hz)
+        if fwd ~= 0 and hl > 0.001 then
+            x, z = frame.sx + hx / hl * fwd, frame.sz + hz / hl * fwd
+            ty = surfaceAt(x, frame.sy, z)
+        end
+    end
+    return x, ty, z, leakNode, y, axX, axY, axZ, frame, storeSe
+end
+
+function SlurryPipeManager:physCouplingIsSpilling(coupling)
+    return self:physFreeEndSpillPos(coupling) ~= nil
+end
+
+-- [SPS 1.0.2.0] Does the chain this pipe belongs to hold a pipe of this hose key (MILK: the milk-only rule)?
 function SlurryPipeManager:_physChainHasHose(pipe, hoseKey)
     if pipe == nil or pipe.spsGetEnd == nil then return false end
     if pipe.spsGetHoseKey ~= nil and pipe:spsGetHoseKey() == hoseKey then return true end
@@ -480,7 +725,7 @@ function SlurryPipeManager:_physEvaluateChain(pipe)
     local cA, cB = self:_physChainTerminals(pipe)
     if cA == nil or cB == nil or cA == cB then return false end
     if cA.isConnected or cB.isConnected then return false end
-    -- [SPS 1.0.1.9] both ends on ONE machine (William's log 2026-10-26 20:40: a pipe plugged into the Borger's IN and
+    -- [SPS 1.0.2.0] both ends on ONE machine (William's log 2026-10-26 20:40: a pipe plugged into the Borger's IN and
     -- OUT couplers connected the separator to itself) - a loop is never a connection
     do
         local vA, pA = self:_physCouplingOwner(cA)
@@ -494,9 +739,51 @@ function SlurryPipeManager:_physEvaluateChain(pipe)
     end
     local milkChain = self:_physChainHasHose(pipe, "MILK")
     if cA.isSprayerCoupling or cB.isSprayerCoupling then
-        -- [SPS 1.0.1.9] FERT / HERB: both ends on sprayer-system couplers (sprayer <-> silo / IBC / buying station,
+        -- [SPS 1.0.2.0] FERT / HERB: both ends on sprayer-system couplers (sprayer <-> silo / IBC / buying station,
         -- or sprayer <-> sprayer) -> the sprayer system's own connection; B at the sprayer = flow, Y = load / unload.
         if not (cA.isSprayerCoupling and cB.isSprayerCoupling) then
+            -- [SPS CHEM 2026-11-06] sprayer <-> a TANKER's 80 mm liquid connector (William: water from a tanker by hose).
+            -- The tanker side goes through the lane code's sprayer bridge (as a barn's sprayer lane does), so the
+            -- sprayer's own B / Y run the flow; the tanker's fitting valve (R) must be open for anything to move.
+            local cS = cA.isSprayerCoupling and cA or cB
+            local cL = cA.isSprayerCoupling and cB or cA
+            -- [SPS MKS8 2026-11-10] ...and a tanker's connector into a sprayer PLACEABLE (washout station, fert silo, buying
+            -- station) = the original mode's SPRAYER-lane bridge, pipe edition (log 22:56: MKS8 <-> washout station "spans two
+            -- systems"). The tanker's own B / Y run it (no sprayer cab on a placeable); the lane must serve SPRAYER.
+            local sOwner = cS.placeable or cS.object
+            local laneOk = cL.lanes == nil or (cS.placeable ~= nil and cL.lanes.SPRAYER) or (cS.placeable == nil and cL.lanes.WATER)
+            if cL.isLiquidLane and cL.isVehicleSide and cL.object ~= nil and sOwner ~= nil
+            and laneOk and self._llEnsureSprayerBridge ~= nil then
+                if milkChain then
+                    physLog("chain holds a milk hose - fert / herb needs water hoses only"); return false
+                end
+                local bc = self:_llEnsureSprayerBridge(cL.object, cL)
+                if bc == nil then
+                    physLog("chain sprayer coupler + liquid connector of %s: that machine is a sprayer itself - no connection",
+                        tostring(cL.object.configFileName)); return false
+                end
+                bc.spsLaneCoupling = cL
+                -- the tanker's fitting handle IS its valve (R, ballValveOpen): the sprayer connect / B / disconnect must
+                -- not play it (it swung open on plugging in while the valve stayed shut - log 2026-11-06 15:11)
+                bc.connectorAnim, bc.valveAnim, bc.connectorAnimationId, bc.valveAnimationId = nil, nil, nil, nil
+                if cS.placeable ~= nil then
+                    -- the lane bridge's order (applyLiquidLaneConnect): tanker bridge = A, the placeable's coupler = B
+                    self:applySprayerConnect(bc, cS, cL.object, cS.placeable)
+                else
+                    self:applySprayerConnect(cS, bc, cS.object, cL.object)
+                end
+                self:_physResyncConnectorAnim(cL)
+                cL.isConnected = true; cL.connectedTarget = sOwner; cL.connectedPartnerCoupling = cS
+                cL.bridgeCoupling = bc; cL.valveOpen = false
+                self.activeLiquidLaneBridges = self.activeLiquidLaneBridges or {}
+                -- sprayerSide = a sprayer VEHICLE runs the flow with its own B / Y; physChain = rebuilt by the plug events, never by a
+                -- lane connect event (join dump)
+                self.activeLiquidLaneBridges[cL.object] = { cV = cL, cP = cS, owner = sOwner, sprayerSide = cS.placeable == nil, physChain = true }
+                physLog("chain complete: sprayer coupler id=%s of %s <-> liquid connector id=%s of %s (%s)",
+                    tostring(cS.id), tostring(sOwner.configFileName), tostring(cL.id), tostring(cL.object.configFileName),
+                    cS.placeable ~= nil and "sprayer placeable by hose: B / Y at the tanker" or "water by hose: R at the tanker fitting, B / Y at the sprayer")
+                return true
+            end
             physLog("chain spans two systems (%s + %s) - no connection", physSystemName(cA), physSystemName(cB)); return false
         end
         if milkChain then
@@ -526,7 +813,7 @@ function SlurryPipeManager:_physEvaluateChain(pipe)
                 physLog("chain joins two liquid connectors but one of them takes neither water nor milk [%s] / [%s]",
                     tostring(cA.laneNames), tostring(cB.laneNames)); return false
             end
-            -- [SPS 1.0.1.9] a chain holding a milk hose only carries milk: both connectors must take milk
+            -- [SPS 1.0.2.0] a chain holding a milk hose only carries milk: both connectors must take milk
             if milkChain and not (SlurryPipeManager.physLaneCouplingTakesMilk(cA) and SlurryPipeManager.physLaneCouplingTakesMilk(cB)) then
                 physLog("chain holds a milk hose but a connector does not take milk [%s] / [%s]",
                     tostring(cA.laneNames), tostring(cB.laneNames)); return false
@@ -727,7 +1014,7 @@ function SlurryPipeManager:physCancelRestore(pipe)
 end
 
 -- ---------------------------------------------------------------------------
--- [SPS 1.0.1.9] MP late join: the join dump (sendFullStateToConnection) goes out the moment the client connection is
+-- [SPS 1.0.2.0] MP late join: the join dump (sendFullStateToConnection) goes out the moment the client connection is
 -- ready for events, while that client is still loading its vehicles. A replayed plug / join / stow whose partner
 -- object exists but has not registered its couplings / holders yet - or whose pipe has not loaded its ends yet - was
 -- dropped ("connect: coupling id=N not found", server tester 2026-10-25 20:13: two pipes on the PTO pump looked
@@ -799,7 +1086,7 @@ function SlurryPipeManager:_physTryResolveRestores()
                 if owner ~= nil then
                     local c = self:_physFindCouplingById(owner, r.couplingId, r.isPlaceable, r.isLane, r.isSprayer)
                     if c ~= nil then
-                        -- [SPS 1.0.1.9] saves written before tonight carry the physical bonds as ORIGINAL connections
+                        -- [SPS 1.0.2.0] saves written before tonight carry the physical bonds as ORIGINAL connections
                         -- (SPSChainBondPersistence); restored first, they made the coupler "busy". In physical mode a
                         -- bond with no pipe on either side cannot be real: break it, then plug the saved end.
                         local partner = c.connectedPartnerCoupling
@@ -867,14 +1154,38 @@ function SlurryPipeManager:_physTryRestoreValves()
     for i = #list, 1, -1 do
         local v = list[i]
         local done = false
-        local c = self:_physFindCouplingById(v.owner, v.couplingId, v.isPlaceable, v.isLane, v.isSprayer)
+        -- [SPS 1.0.2.0] an open valve WITHOUT a pipe (saved by uniqueId, SlurryPipeManager saveCouplingConnections): the
+        -- owner object may still be loading - resolve it here, give up after SPS_PHYS_RESTORE_TICKS
+        if v.owner == nil and v.ownerId ~= nil then
+            v.owner = g_currentMission:getObjectByUniqueId(v.ownerId)
+            if v.owner == nil then
+                v.ticks = v.ticks + 1
+                if v.ticks > SPS_PHYS_RESTORE_TICKS then
+                    physLog("restore: open valve on coupling id=%s - owner %s never appeared, dropped", tostring(v.couplingId), tostring(v.ownerId))
+                    table.remove(list, i)
+                end
+                continue
+            end
+        end
+        local c = v.owner ~= nil and self:_physFindCouplingById(v.owner, v.couplingId, v.isPlaceable, v.isLane, v.isSprayer) or nil
         if c == nil then
-            done = true
+            if v.noPipe and v.ticks <= SPS_PHYS_RESTORE_TICKS then
+                v.ticks = v.ticks + 1       -- the owner exists but has not registered with SPS yet
+            else
+                done = true
+            end
         elseif v.isLane then
             self:applyLaneFittingValve(c, true)
             done = true
+        elseif v.noPipe then
+            -- no pipe at save time: reopen as it was (the activatable's long press would have done the same)
+            if not c.valveOpen then
+                self:applyValveState(not v.isPlaceable and v.owner or nil, c.id, true, c)
+            end
+            physLog("restore: valve reopened on coupling id=%s of %s (no pipe, as saved)", tostring(c.id), tostring(v.owner.configFileName))
+            done = true
         elseif v.isSprayer then
-            -- [SPS 1.0.1.9] sprayer flow (B) was on at save time: re-open once the chain has connected again. The
+            -- [SPS 1.0.2.0] sprayer flow (B) was on at save time: re-open once the chain has connected again. The
             -- sprayer vehicle is the coupling's owner or its partner's; onSprayerToggleValve is the B key (state +
             -- couplings + events + engine sound) and only opens while a pipe is connected.
             if c.isConnected then
@@ -897,6 +1208,12 @@ function SlurryPipeManager:_physTryRestoreValves()
             self:applyValveState(not v.isPlaceable and v.owner or nil, c.id, true, c)
             if self._propagateValveState ~= nil then self:_propagateValveState(c, true) end
             physLog("restore: valve reopened on coupling id=%s of %s", tostring(c.id), tostring(v.owner.configFileName))
+            done = true
+        elseif self.physCouplingIsSpilling ~= nil and self:physCouplingIsSpilling(c) then
+            -- [SPS 1.0.2.0] the pipe end was lying free on the ground with the valve open ("Pipe leakage"): it was
+            -- leaking at save time, so it leaks again after the load
+            self:applyValveState(not v.isPlaceable and v.owner or nil, c.id, true, c)
+            physLog("restore: valve reopened on coupling id=%s of %s (pipe end free on the ground - leaking)", tostring(c.id), tostring(v.owner.configFileName))
             done = true
         else
             v.ticks = v.ticks + 1
@@ -934,6 +1251,8 @@ SlurryPipeManager.PHYS_FAMILY_PIPES = { slurry = { FM = true, FF = true, MM = tr
 function SlurryPipeManager.physFamilyOf(hoseKey)
     hoseKey = string.upper(tostring(hoseKey or ""))
     if SlurryPipeManager.PHYS_FAMILY_PIPES.water[hoseKey] then return "water" end
+    if string.sub(hoseKey, 1, 3) == "WT_" then return "bowser" end   -- [SPS 2026-11-09] the 550 bowser's own pipes
+    if string.sub(hoseKey, 1, 5) == "CAGE_" then return "cage" end   -- [SPS 2026-11-11] water cages (<cageHolder>)
     return "slurry"
 end
 
@@ -953,6 +1272,8 @@ function SlurryPipeManager._physMakeSlot(name, node, pipesStr)
         pipes = {}
         for k in string.gmatch(string.upper(pipesStr), "%S+") do pipes[k] = true end
         family = (pipes.WATER or pipes.MILK) and "water" or "slurry"
+        for k in pairs(pipes) do if string.sub(k, 1, 3) == "WT_" then family = "bowser" end end   -- [SPS 2026-11-09]
+        for k in pairs(pipes) do if string.sub(k, 1, 5) == "CAGE_" then family = "cage" end end    -- [SPS 2026-11-11]
     else
         local lower = string.lower(name or "")
         family = (string.find(lower, "^water") or string.find(lower, "^milk")) and "water" or "slurry"
@@ -967,6 +1288,8 @@ function SlurryPipeManager._physMakeSlot(name, node, pipesStr)
     table.sort(pts, function(x, y) return x.order < y.order end)
     local points = {}
     for i, e in ipairs(pts) do points[i] = e.node end
+    -- [SPS 2026-11-11] a CAGE slot is one pose: the slot node itself (no p01..pNN needed) - see <cageHolder>
+    if family == "cage" and #points == 0 then points[1] = node end
     -- [SPS 1.0.1.8] chain length of the slot (the points are fixed children of the holder, so it never changes):
     -- the length rule in _physHolderSlotFor keeps a 6 m pipe off a slot captured with a 4 m pipe
     local length = 0
@@ -982,6 +1305,14 @@ end
 -- (4.10 m pipe -> 3.82 m chain on the profi2). A slot FITS a pipe when chain >= PHYS_SLOT_FIT x the pipe's rest length.
 SlurryPipeManager.PHYS_SLOT_FIT = 0.8
 
+-- [SPS MKS8 2026-11-10] a slot's stowedShow / stowedHide nodes (the tube caps): shown / hidden with a pipe in the slot.
+-- Plain function, runs on every peer (vehicle nodes exist everywhere).
+function SlurryPipeManager.physApplySlotVisuals(slot, stowed)
+    if slot == nil then return end
+    for _, n in ipairs(slot.showNodes or {}) do if nodeOk(n) then setVisibility(n, stowed == true) end end
+    for _, n in ipairs(slot.hideNodes or {}) do if nodeOk(n) then setVisibility(n, stowed ~= true) end end
+end
+
 local function physRestLengthOf(pipe)
     local spec = (pipe ~= nil and SPSHoseItem ~= nil) and pipe[SPSHoseItem.SPEC_NAME] or nil
     return spec ~= nil and spec.restLength or nil
@@ -992,6 +1323,12 @@ function SlurryPipeManager._physFindChildByName(parent, name) return childByName
 function SlurryPipeManager:_physFindHolder(vehicle, holderId)
     local entry = (vehicle ~= nil and self.getVehicleEntry ~= nil) and self:getVehicleEntry(vehicle) or nil
     for _, ph in ipairs(entry ~= nil and entry.pipeHolderEntries or {}) do
+        if ph.id == holderId then return ph end
+    end
+    -- [SPS 2026-11-09] a LANE-only vehicle's rack (550 bowser): log 23:30 "stow: holder id=1 not found" - the holder lived
+    -- on the liquid-lane entry, this only looked at the slurry entry
+    local le = (vehicle ~= nil and self.getLiquidLaneVehicleEntry ~= nil) and self:getLiquidLaneVehicleEntry(vehicle) or nil
+    for _, ph in ipairs(le ~= nil and le.pipeHolderEntries or {}) do
         if ph.id == holderId then return ph end
     end
     return nil
@@ -1041,7 +1378,7 @@ function SlurryPipeManager._physHolderSlotFor(ph, hoseKey, restLength)
     local best, free, total = nil, 0, 0
     for _, sl in ipairs(ph.slots or {}) do
         if sl.family == family and sl.pipes[string.upper(tostring(hoseKey))]
-           and (restLength == nil or sl.length == nil or sl.length >= restLength * SlurryPipeManager.PHYS_SLOT_FIT) then
+           and (restLength == nil or sl.tube or sl.family == "cage" or sl.length == nil or sl.length >= restLength * SlurryPipeManager.PHYS_SLOT_FIT) then   -- [SPS MKS8] a tube takes any length; a cage has no length rule
             total = total + 1
             if sl.pipe == nil and SlurryPipeManager._physSlotPositionTaken(ph, sl) == nil then
                 free = free + 1
@@ -1054,7 +1391,94 @@ function SlurryPipeManager._physHolderSlotFor(ph, hoseKey, restLength)
 end
 
 -- Every holder in reach of a held FREE pipe that can take it: { holder, slot, dist, free, total }, nearest first.
-function SlurryPipeManager:findPipeHoldersForPipe(pipe)
+-- [SPS MKS8 2026-11-10] the stowed pipe of the TUBE slot whose mouth (p01) is within maxD of a world point, with its
+-- mouth body - the cap-as-grab: aiming at the tube end takes the pipe out (SPSHoseItemHands empty-hands aim)
+function SlurryPipeManager:findTubePipeNear(x, y, z, maxD)
+    local best, bestD, bestBody = nil, maxD or 0.8, nil
+    for _, ph in ipairs(self.pipeHolderEntries or {}) do
+        for _, sl in ipairs(ph.slots or {}) do
+            -- [SPS 2026-11-11] a hung WATER CAGE counts too: it sits inside the tanker's hull, so the aim hits the hull and the
+            -- cage is taken from here (same rule as the tube mouth)
+            local pipe = (sl.tube or sl.family == "cage") and SlurryPipeManager.physHolderAccessible(ph) and sl.pipe or nil
+            local p1 = sl.points ~= nil and sl.points[1] or nil
+            if pipe ~= nil and not pipe.isDeleted and nodeOk(p1) then
+                local px, py, pz = getWorldTranslation(p1)
+                local d = MathUtil.vector3Length(x - px, y - py, z - pz)
+                local c1 = pipe.components ~= nil and pipe.components[1] or nil
+                if d < bestD and c1 ~= nil and nodeOk(c1.node) then best, bestD, bestBody = pipe, d, c1.node end
+            end
+        end
+    end
+    return best, bestBody, bestD
+end
+
+-- [SPS 2026-11-11] A holder behind a door / flap: <cageHolder requiresAnimation="rearDoor" requiredAnimationTime="0.95"/> - the cage can
+-- only be hung or taken while that vehicle animation is at or past the time (default 0.95 = open). Any vehicle, any animation name.
+-- A holder without the attribute (every pipe holder) is always accessible.
+function SlurryPipeManager.physHolderAccessible(ph)
+    local ra = ph ~= nil and ph.requiresAnim or nil
+    if ra == nil then return true end
+    local v = ph.vehicle
+    if v == nil or v.getAnimationExists == nil or not v:getAnimationExists(ra.name) then return true end   -- bad name: do not lock the holder
+    return (v:getAnimationTime(ra.name) or 0) >= ra.minTime
+end
+
+-- [SPS 2026-11-11] The hung item the player is LOOKING AT, whatever the ray hit first (a hung water cage / a tube pipe's mouth body
+-- sits inside the tanker's hull or behind a door, so the hands' own ray stops on the hull; and standing at a node several items
+-- are within reach - William 2026-11-11 17:44: at the MKS8 rear the tube pipe took the prompt although he looked at the cage).
+-- The camera ray (origin o, unit direction d) must pass within tol of the item's middle, within maxD; the item NEAREST THE
+-- VIEW LINE wins. kinds: cage (family cage slots) and tube (sl.tube slots). Returns pipe, body node, along-ray distance, off-ray
+-- distance, kind.
+function SlurryPipeManager:findAimedParkedItem(ox, oy, oz, dx, dy, dz, maxD, tol)
+    local best, bestBody, bestT, bestOff, bestKind = nil, nil, 0, math.huge, nil
+    for _, ph in ipairs(self.pipeHolderEntries or {}) do
+        for _, sl in ipairs(ph.slots or {}) do
+            local pipe = (sl.family == "cage" or sl.tube) and sl.pipe or nil
+            local c1 = pipe ~= nil and not pipe.isDeleted and pipe.components ~= nil and pipe.components[1] or nil
+            if c1 ~= nil and nodeOk(c1.node) and SlurryPipeManager.physHolderAccessible(ph) then
+                local px, py, pz = getWorldTranslation(c1.node)
+                if sl.family == "cage" then   -- the cage's middle: a little along its axis from the mount point
+                    local ax, ay, az = localDirectionToWorld(c1.node, 0, 0, 1)
+                    local mid = (pipe.spsGetHoseKey ~= nil and pipe:spsGetHoseKey() == "CAGE_LARGE") and 0.2 or 0.1
+                    px, py, pz = px + ax * mid, py + ay * mid, pz + az * mid
+                end
+                local vx, vy, vz = px - ox, py - oy, pz - oz
+                local t = vx * dx + vy * dy + vz * dz
+                if t > 0 and t < (maxD or 3.5) then
+                    local off = MathUtil.vector3Length(vx - dx * t, vy - dy * t, vz - dz * t)
+                    if off <= (tol or 0.3) and off < bestOff then best, bestBody, bestT, bestOff, bestKind = pipe, c1.node, t, off, (sl.family == "cage") and "cage" or "tube" end
+                end
+            end
+        end
+    end
+    return best, bestBody, bestT, bestOff, bestKind
+end
+
+-- [SPS AIM] diagnostic text: every hung cage / tube pipe with its distance along and off the camera ray
+function SlurryPipeManager:diagParkedItems(ox, oy, oz, dx, dy, dz)
+    local parts = {}
+    for _, ph in ipairs(self.pipeHolderEntries or {}) do
+        for _, sl in ipairs(ph.slots or {}) do
+            local pipe = (sl.family == "cage" or sl.tube) and sl.pipe or nil
+            local c1 = pipe ~= nil and pipe.components ~= nil and pipe.components[1] or nil
+            if c1 ~= nil and nodeOk(c1.node) then
+                local px, py, pz = getWorldTranslation(c1.node)
+                local vx, vy, vz = px - ox, py - oy, pz - oz
+                local t = vx * dx + vy * dy + vz * dz
+                local off = MathUtil.vector3Length(vx - dx * t, vy - dy * t, vz - dz * t)
+                if t < 6 then
+                    parts[#parts + 1] = string.format("%s[h%s %s along=%.2f off=%.2f acc=%s]", tostring(pipe.spsGetHoseKey and pipe:spsGetHoseKey()),
+                        tostring(ph.id), (sl.family == "cage") and "cage" or "tube", t, off, tostring(SlurryPipeManager.physHolderAccessible(ph)))
+                end
+            end
+        end
+    end
+    return table.concat(parts, " ")
+end
+
+-- heldNode (optional): the body in the player's hand - a TUBE mouth also counts when THAT is in reach (William: "hold at
+-- the end or the middle"); the start end must still be the nearer end
+function SlurryPipeManager:findPipeHoldersForPipe(pipe, heldNode)
     local out = {}
     if pipe == nil or pipe.spsIsStowed == nil or pipe:spsIsStowed() then return out end
     if pipe:spsIsEndBusy(1) or pipe:spsIsEndBusy(2) then return out end
@@ -1062,11 +1486,32 @@ function SlurryPipeManager:findPipeHoldersForPipe(pipe)
     local comp = pipe.components[math.max(1, math.floor((n + 1) / 2))]
     if comp == nil or not nodeOk(comp.node) then return out end
     local x, y, z = getWorldTranslation(comp.node)
+    -- [SPS MKS8 2026-11-10] a TUBE holder is measured from the pipe's START end (the mouth takes the start end only):
+    -- the start body within radius of the holder node, and nearer to it than the far end
+    local sx, sy, sz, ex, ey, ez
+    local cs, ce = pipe.components[1], pipe.components[n]
+    if cs ~= nil and nodeOk(cs.node) then sx, sy, sz = getWorldTranslation(cs.node) end
+    if ce ~= nil and nodeOk(ce.node) then ex, ey, ez = getWorldTranslation(ce.node) end
     local key = pipe.spsGetHoseKey ~= nil and pipe:spsGetHoseKey() or "FM"
     for _, ph in ipairs(self.pipeHolderEntries or {}) do
-        if nodeOk(ph.node) then
+        if nodeOk(ph.node) and SlurryPipeManager.physHolderAccessible(ph) then
             local hx, hy, hz = getWorldTranslation(ph.node)
             local d = MathUtil.vector3Length(x - hx, y - hy, z - hz)
+            local isTube = false
+            for _, sl in ipairs(ph.slots or {}) do if sl.tube then isTube = true break end end
+            if isTube then
+                if sx == nil then d = math.huge
+                else
+                    d = MathUtil.vector3Length(sx - hx, sy - hy, sz - hz)
+                    if nodeOk(heldNode) then   -- [SPS MKS8] holding the middle at the mouth counts too
+                        local kx, ky, kz = getWorldTranslation(heldNode)
+                        d = math.min(d, MathUtil.vector3Length(kx - hx, ky - hy, kz - hz))
+                    end
+                    local dEnd = ex ~= nil and MathUtil.vector3Length(ex - hx, ey - hy, ez - hz) or math.huge
+                    local dStart = MathUtil.vector3Length(sx - hx, sy - hy, sz - hz)
+                    if dEnd < dStart then d = math.huge end   -- far end nearer than the start end: no
+                end
+            end
             if d <= (ph.radius or 1.0) then
                 local slot, free, total = SlurryPipeManager._physHolderSlotFor(ph, key, physRestLengthOf(pipe))
                 if slot ~= nil then out[#out + 1] = { holder = ph, slot = slot, dist = d, free = free, total = total } end
@@ -1093,7 +1538,7 @@ function SlurryPipeManager:applyPhysPipeStow(pipe, vehicle, holderId, slotName, 
     if pipe == nil or pipe.spsStow == nil then return false end
     local ph = self:_physFindHolder(vehicle, holderId)
     if ph == nil then
-        -- [SPS 1.0.1.9] late-joining client: the rack's vehicle has not registered its holders yet -> retry later
+        -- [SPS 1.0.2.0] late-joining client: the rack's vehicle has not registered its holders yet -> retry later
         if g_server == nil and vehicle ~= nil and not vehicle.isDeleted and not pipe.isDeleted then
             if isRetry then return false, true end
             if self:_physDefer("stow", { pipe, vehicle, holderId, slotName },
@@ -1107,7 +1552,7 @@ function SlurryPipeManager:applyPhysPipeStow(pipe, vehicle, holderId, slotName, 
     local key = pipe.spsGetHoseKey ~= nil and pipe:spsGetHoseKey() or "FM"
     local slot = (slotName ~= nil and slotName ~= "") and SlurryPipeManager._physFindSlot(ph, slotName) or nil
     local rest = physRestLengthOf(pipe)
-    if slot ~= nil and rest ~= nil and slot.length ~= nil and slot.length < rest * SlurryPipeManager.PHYS_SLOT_FIT then
+    if slot ~= nil and slot.family ~= "cage" and rest ~= nil and slot.length ~= nil and slot.length < rest * SlurryPipeManager.PHYS_SLOT_FIT then
         -- a named slot (client request / savegame) that is too short for this pipe: pick a fitting one instead
         physLog("stow: slot '%s' (chain %.2f m) is too short for the %.2f m %s pipe - looking for a longer slot", tostring(slot.name), slot.length, rest, tostring(key))
         slot = nil
@@ -1192,7 +1637,7 @@ function SlurryPipeManager:applyDsStow(station, vehicle, holderId, isRetry)
     if station == nil or station.spsDsStow == nil then return false end
     local dh = self:_dsFindHolder(vehicle, holderId)
     if dh == nil then
-        -- [SPS 1.0.1.9] late-joining client: the frame's vehicle has not registered its holder yet -> retry later
+        -- [SPS 1.0.2.0] late-joining client: the frame's vehicle has not registered its holder yet -> retry later
         if g_server == nil and vehicle ~= nil and not vehicle.isDeleted and not station.isDeleted then
             if isRetry then return false, true end
             if self:_physDefer("dsStow", { station, vehicle, holderId },
@@ -1335,11 +1780,12 @@ function SlurryPipeManager:configGatePasses(object, xmlFile, key)
     return true
 end
 
-function SlurryPipeManager:readPhysModeHide(xmlFile, kp, components, label, object)
+function SlurryPipeManager:readPhysModeHide(xmlFile, kp, components, label, object, rootKey)
     local list = {}
     local i = 0
     while true do
-        local key = string.format("%sslurryPipeSystem.physicalModeHide.node(%d)", kp or "", i)
+        -- [SPS 2026-11-09] rootKey: another system's root ("vehicle.liquidPipeSystem." on the 550 bowser), default slurry
+        local key = string.format("%sphysicalModeHide.node(%d)", rootKey or ((kp or "") .. "slurryPipeSystem."), i)
         if not xmlFile:hasProperty(key) then break end
         -- per-node config gate: hide only the parts of options this object was bought with
         local name = self:configGatePasses(object, xmlFile, key) and xmlFile:getString(key .. "#name") or nil
@@ -1385,6 +1831,7 @@ end
 function SlurryPipeManager:applyAllPhysModeHides()
     for _, e in ipairs(self.registeredVehicles or {}) do self:applyPhysModeHide(e.physModeHide) end
     for _, e in ipairs(self.registeredPlaceables or {}) do self:applyPhysModeHide(e.physModeHide) end
+    for _, e in ipairs(self.registeredLiquidLaneVehicles or {}) do self:applyPhysModeHide(e.physModeHide) end   -- [SPS 2026-11-09]
 end
 
 
@@ -1441,7 +1888,7 @@ function SlurryPipeManager:hideGatedHolderBranches(entry)
 end
 
 -- ---------------------------------------------------------------------------
--- [SPS 1.0.1.9] DEV console: spawn a physical pipe 3 m in front of the player (William 2026-10-26: "how do I spawn a
+-- [SPS 1.0.2.0] DEV console: spawn a physical pipe 3 m in front of the player (William 2026-10-26: "how do I spawn a
 -- pipe in front of me" - the shop delivers to the dealer). Same vehicle-loading call as the IBC spawn
 -- (SPSM_IBC spawnAndConnectIBC). Server / single player only (VehicleLoadingData loads on the server).
 --   spsSpawnPipe [slurry|water|milk] [4|6] [FM|FF|MM]      defaults: slurry 4 FM

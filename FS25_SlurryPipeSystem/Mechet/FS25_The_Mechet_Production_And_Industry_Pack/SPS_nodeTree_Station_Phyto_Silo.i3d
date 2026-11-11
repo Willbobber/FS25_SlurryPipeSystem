@@ -49,8 +49,8 @@
         <TransformGroup name="silo" nodeId="103">
           <TransformGroup name="SPS_sprayerPipeCoupler01" translation="4.23383 0.680177 3.71285" nodeId="104">
             <TransformGroup name="SPS_sprayerPipeCoupler01Arcs" nodeId="105">
-              <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="-1.5 0 3.5" nodeId="106"/>
-              <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="1.5 0 3.5" nodeId="107"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="106"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="107"/>
             </TransformGroup>
             <Shape name="sprayerConnector" shapeId="1" clipDistance="150" nodeId="108" castsShadows="true" receiveShadows="true" materialIds="96">
               <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="109" castsShadows="true" receiveShadows="true" materialIds="97"/>

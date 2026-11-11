@@ -15,7 +15,7 @@
         <rotation>0</rotation>
         <brand>SPS</brand>
         <allowLeasing>false</allowLeasing>
-        <category>slurryTools</category>
+        <category>slurryTools barrels</category>
         <shopTranslationOffset>0 0.1 0</shopTranslationOffset>
         <shopRotationOffset>0 0 0</shopRotationOffset>
         <!-- build every shop preview fresh: otherwise the shop reuses the last preview's body positions

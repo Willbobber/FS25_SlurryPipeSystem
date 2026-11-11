@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="washoutStation.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.14"/>
+  </Asset>
+
+  <Files>
+    <File fileId="1" filename="$data/placeables/rudolfHormann/cowBarnMedium/cowBarnMedium_diffuse.dds"/>
+    <File fileId="2" filename="$data/placeables/rudolfHormann/cowBarnMedium/cowBarnMedium_normal.dds"/>
+    <File fileId="3" filename="$data/placeables/rudolfHormann/cowBarnMedium/cowBarnMedium_specular.dds"/>
+    <File fileId="4" filename="$data/shaders/buildingShader.xml"/>
+    <File fileId="16" filename="$data/shaders/vehicleShader.xml"/>
+    <File fileId="14" filename="$data/shared/default_normal.dds"/>
+    <File fileId="18" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="24" filename="$data/shared/detailLibrary/metallic/scratched_diffuse.png"/>
+    <File fileId="23" filename="$data/shared/detailLibrary/metallic/scratched_specular.png"/>
+    <File fileId="19" filename="$data/shared/detailLibrary/metallic/silverScratched_diffuse.png"/>
+    <File fileId="17" filename="$data/shared/detailLibrary/metallic/silverScratched_specular.png"/>
+    <File fileId="28" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_diffuse.png"/>
+    <File fileId="27" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_normal.png"/>
+    <File fileId="26" filename="$data/shared/detailLibrary/nonMetallic/rubber/rubber_specular.png"/>
+    <File fileId="13" filename="$data/shared/white_diffuse.dds"/>
+    <File fileId="10" filename="textures/infrastructureMargins_diffuse.dds"/>
+    <File fileId="11" filename="textures/infrastructureMargins_normal.dds"/>
+    <File fileId="12" filename="textures/infrastructureMargins_specular.dds"/>
+    <File fileId="15" filename="textures/washoutConnector_vmask.dds"/>
+    <File fileId="25" filename="textures/washoutHandle_vmask.dds"/>
+    <File fileId="5" filename="textures/washoutSlab_vmask.dds"/>
+  </Files>
+
+
+  <Materials>
+    <Material name="brassScratched_mat" materialId="190" customShaderId="16" customShaderVariation="vmaskUV2">
+      <Texture fileId="13"/>
+      <Normalmap fileId="14"/>
+      <Glossmap fileId="15"/>
+      <Custommap name="detailSpecular" fileId="23"/>
+      <Custommap name="detailNormal" fileId="18"/>
+      <Custommap name="detailDiffuse" fileId="24"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0.15 0.5 0 0"/>
+      <CustomParameter name="colorScale" value="0.9647 0.7913 0.3095"/>
+    </Material>
+    <Material name="concrete_mat" materialId="191" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="mMaskMap" fileId="5"/>
+    </Material>
+    <Material name="lambert1" materialId="258" diffuseColor="0.8 0.8 0.8 1" specularColor="0.501961 1 0">
+    </Material>
+    <Material name="metalGrid_mat" materialId="192" customShaderId="4">
+      <Texture fileId="10"/>
+      <Normalmap fileId="11"/>
+      <Glossmap fileId="12"/>
+      <Custommap name="mMaskMap" fileId="5"/>
+    </Material>
+    <Material name="rubber_mat" materialId="193" customShaderId="16" customShaderVariation="vmaskUV2">
+      <Texture fileId="13"/>
+      <Normalmap fileId="14"/>
+      <Glossmap fileId="25"/>
+      <Custommap name="detailSpecular" fileId="26"/>
+      <Custommap name="detailNormal" fileId="27"/>
+      <Custommap name="detailDiffuse" fileId="28"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0 0.25 0 0"/>
+      <CustomParameter name="colorScale" value="0.02 0.02 0.8"/>
+    </Material>
+    <Material name="rubber_mat" materialId="194" customShaderId="16" customShaderVariation="vmaskUV2">
+      <Texture fileId="13"/>
+      <Normalmap fileId="14"/>
+      <Glossmap fileId="25"/>
+      <Custommap name="detailSpecular" fileId="26"/>
+      <Custommap name="detailNormal" fileId="27"/>
+      <Custommap name="detailDiffuse" fileId="28"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0 0.3 0 0"/>
+      <CustomParameter name="colorScale" value="0.02 0.02 0.8"/>
+    </Material>
+    <Material name="silverScratched_mat" materialId="195" customShaderId="16" customShaderVariation="vmaskUV2">
+      <Texture fileId="13"/>
+      <Normalmap fileId="14"/>
+      <Glossmap fileId="15"/>
+      <Custommap name="detailSpecular" fileId="17"/>
+      <Custommap name="detailNormal" fileId="18"/>
+      <Custommap name="detailDiffuse" fileId="19"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0.15 0.5 0 0"/>
+    </Material>
+    <Material name="silverScratched_mat" materialId="196" customShaderId="16" customShaderVariation="vmaskUV2">
+      <Texture fileId="13"/>
+      <Normalmap fileId="14"/>
+      <Glossmap fileId="25"/>
+      <Custommap name="detailSpecular" fileId="17"/>
+      <Custommap name="detailNormal" fileId="18"/>
+      <Custommap name="detailDiffuse" fileId="19"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0 0.3 0 0"/>
+    </Material>
+    <Material name="silverScratched_mat" materialId="327" customShaderId="16" customShaderVariation="vmaskUV2">
+      <Texture fileId="13"/>
+      <Normalmap fileId="14"/>
+      <Glossmap fileId="25"/>
+      <Custommap name="detailSpecular" fileId="17"/>
+      <Custommap name="detailNormal" fileId="18"/>
+      <Custommap name="detailDiffuse" fileId="19"/>
+      <CustomParameter name="scratches_dirt_snow_wetness" value="0.15 0.3 0 0"/>
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="washoutStation.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="washoutStation" nodeId="203">
+      <TransformGroup name="clearAreas" translation="-2.3905 0 1.54313" rotation="180 1.86693e-05 180" nodeId="232">
+        <TransformGroup name="clearAreaStart01" nodeId="233">
+          <TransformGroup name="clearAreaHeight01" translation="-4.781 0 0" nodeId="234"/>
+          <TransformGroup name="clearAreaWidth01" translation="0 0 3.3475" nodeId="235"/>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="levelAreas" translation="-2.3905 0 1.54313" rotation="180 1.86693e-05 180" nodeId="236">
+        <TransformGroup name="levelAreaStart01" nodeId="237">
+          <TransformGroup name="levelAreaHeight01" translation="-4.781 0 0" nodeId="238"/>
+          <TransformGroup name="levelAreaWidth01" translation="0 0 3.3475" nodeId="239"/>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="testAreas" translation="-2.3905 0 1.54313" rotation="180 1.86693e-05 180" nodeId="240">
+        <TransformGroup name="testAreaStart01" nodeId="241">
+          <TransformGroup name="testAreaEnd01" translation="-4.781 0 3.3475" nodeId="242"/>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="tipOcclusionUpdateAreas" translation="-2.3905 0 1.54313" rotation="180 1.86693e-05 180" nodeId="243">
+        <TransformGroup name="tipOcclusionUpdateAreaStart01" nodeId="244">
+          <TransformGroup name="tipOcclusionUpdateAreaEnd01" translation="-4.781 0 3.3475" nodeId="245"/>
+        </TransformGroup>
+      </TransformGroup>
+      <TransformGroup name="station" rotation="180 1.86693e-05 180" nodeId="246">
+        <TransformGroup name="storage" nodeId="247"/>
+      </TransformGroup>
+      <TransformGroup name="SPS_liquidPipeCoupler01" translation="-0.167757 0.818502 -0.380364" rotation="180 1.86693e-05 180" nodeId="248">
+        <TransformGroup name="SPS_liquidPipeCoupler01Arcs" nodeId="249">
+          <TransformGroup name="SPS_liquidPipeCoupler01Arc01" translation="1.5 0 -2.5" nodeId="250"/>
+          <TransformGroup name="SPS_liquidPipeCoupler01Arc02" translation="-1.5 0 -2.5" nodeId="251"/>
+        </TransformGroup>
+        <TransformGroup name="inNode" nodeId="252"/>
+        <TransformGroup name="outNode" nodeId="253"/>
+      </TransformGroup>
+      <Shape name="concreteSlab" rotation="180 1.86693e-05 180" shapeId="1" clipDistance="300" nodeId="254" castsShadows="true" receiveShadows="true" materialIds="191,192">
+        <Shape name="washoutConnector" translation="0 0 1.19209e-07" rotation="-90 -3.23297e-05 -5.00896e-06" shapeId="2" clipDistance="300" nodeId="255" castsShadows="true" receiveShadows="true" materialIds="195,190">
+          <Shape name="waterHandle" translation="0.167757 -0.443278 0.505237" rotation="0 0 9.93876e-12" shapeId="3" clipDistance="300" nodeId="257" castsShadows="true" receiveShadows="true" materialIds="327,193"/>
+          <Shape name="dirtyWaterHandle" translation="-0.115188 -0.443278 0.505237" rotation="0 0 -6.03297e-12" shapeId="4" clipDistance="300" nodeId="256" castsShadows="true" receiveShadows="true" materialIds="196,194"/>
+        </Shape>
+        <Shape name="col" rotation="0 3.73387e-05 0" shapeId="5" static="true" collisionFilterGroup="0x1034" collisionFilterMask="0xfffffbff" nodeId="262" castsShadows="true" receiveShadows="true" nonRenderable="true" materialIds="258"/>
+      </Shape>
+    </TransformGroup>
+  </Scene>
+
+  <UserAttributes>
+    <UserAttribute nodeId="255">
+      <Attribute name="originalNodeId" type="integer" value="446"/>
+    </UserAttribute>
+    <UserAttribute nodeId="257">
+      <Attribute name="originalNodeId" type="integer" value="448"/>
+    </UserAttribute>
+    <UserAttribute nodeId="256">
+      <Attribute name="originalNodeId" type="integer" value="448"/>
+    </UserAttribute>
+  </UserAttributes>
+
+</i3D>

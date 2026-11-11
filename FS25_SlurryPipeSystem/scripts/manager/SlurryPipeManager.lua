@@ -27,9 +27,15 @@ SPS_VALVE_TYPE_NONE      = "NONE"
 -- (vanilla placeable type "buyingStation", e.g. buyable liquid manure wells).
 -- String-typed like "FILL_UNIT_ONLY" so SlurryNodeUtil needs no change.
 SPS_SOURCE_TYPE_BUYING_STATION = "BUYING_STATION"
+SPS_SOURCE_TYPE_GROUND_SPILL   = "GROUND_SPILL"     -- [SPS 1.0.2.0] free physical pipe end on the ground (leak)
 
 SPS_MAX_CONNECT_DIST    = 5.9   -- max distance (m) at which two couplers can connect
-SPS_AUTODISCONNECT_DIST = 6.0   -- distance (m) at which a connected pipe auto-disconnects
+-- [SPS 2026-11-10] ONE rule for connect and drop (William: "connect and stay connected, once and for all"): a pipe connects
+-- up to its reach and is dropped only at reach + SPS_REACH_DROP_MARGIN, both measured between the SAME two nodes (the mount
+-- nodes, llCouplingGap). Before, the connect gate measured arc apex to arc apex up to exactly the reach and the drop check
+-- measured mount to mount above exactly the reach - log 14:06: "couplers 4.0 m apart, reach 4.0 m", twelve drops in 7 s.
+SPS_REACH_DROP_MARGIN   = 0.5
+SPS_AUTODISCONNECT_DIST = SPS_MAX_CONNECT_DIST + SPS_REACH_DROP_MARGIN   -- slurry couplers: 6.4 m (was 6.0, 0.1 m over the connect range)
 
 SlurryPipeManager = {}
 local SlurryPipeManager_mt = Class(SlurryPipeManager)
@@ -267,6 +273,10 @@ function SlurryPipeManager.new()
         thicknessFlow = true,   -- thick slurry slows fill / discharge / spread
         blockages     = true,   -- spread blockage system (Pass 2)
         lengthFalloff = true,   -- flow drop over strap-pipe length
+        chemMixing    = false,   -- [SPS CHEM] realistic sprayer filling (bowl + water); off = vanilla
+        chemRatio     = 9,       -- [SPS CHEM 2026-11-05] water parts per part of concentrate (4 / 9 / 19 / 49)
+        chemRinses    = 3,       -- [SPS CHEM 2026-11-06] rinses a sprayer washout needs (1 / 2 / 3)
+        washoutValveManual = false,   -- [SPS CHEM 2026-11-07] washout station valve: false = automatic, true = by hand at the station
     }
     -- [SPS 1.0.0.9.30] PTO shear bolt master switch (settings menu). Independent
     -- of the realism master; consumed at the SPSShearBolt.update call sites in
@@ -277,6 +287,15 @@ function SlurryPipeManager.new()
     -- shop. true = PHYSICAL pipes only: every original pipe prompt is off and the shop shows the pipes.
     -- The two never run together. Server-authoritative, synced via SPSSettingsSyncEvent, saved per game.
     self.physicalPipesEnabled       = false
+    -- [SPS 1.0.2.0] PIPE DIRT (settings menu, server-authoritative, synced via SPSSettingsSyncEvent, saved per game):
+    -- Off = the physical pipes never build dirt (and are cleaned once when switched off); speed = multiplier on the
+    -- pipes' dirt rate (SPSHoseItem.getDirtMultiplier). Player report: "the pipes get dirty very quickly".
+    self.hoseDirtEnabled            = true
+    self.hoseDirtSpeed              = 1.0
+    -- [SPS 1.0.2.0] PIPE LEAKAGE (settings menu, server-authoritative, synced, saved): a physical pipe whose free
+    -- end lies on the ground counts as connected, so the tanker valve can be opened and the tank runs out onto the
+    -- ground, feeding a puddle (SPSSpill). Default OFF.
+    self.spillEnabled               = false
     -- true once the host answered the start-up choice (or any mode change was made) in this game;
     -- the start-up dialog (SPSPipeModeDialog) only shows while this is false.
     self.pipeModeChosen             = false
@@ -596,6 +615,13 @@ function SlurryPipeManager:applyGameplaySettings(t, broadcast)
     if t.thicknessFlow ~= nil then self.featureToggles.thicknessFlow = t.thicknessFlow ~= false end
     if t.blockages ~= nil then self.featureToggles.blockages = t.blockages ~= false end
     if t.lengthFalloff ~= nil then self.featureToggles.lengthFalloff = t.lengthFalloff ~= false end
+    if t.chemRatio ~= nil then self.featureToggles.chemRatio = tonumber(t.chemRatio) or 9 end   -- [SPS CHEM 2026-11-05]
+    if t.chemRinses ~= nil then self.featureToggles.chemRinses = math.clamp(tonumber(t.chemRinses) or 3, 1, 3) end   -- [SPS CHEM 2026-11-06]
+    if t.washoutValveManual ~= nil then self.featureToggles.washoutValveManual = t.washoutValveManual == true end   -- [SPS CHEM 2026-11-07]
+    if t.chemMixing ~= nil or t.chemRatio ~= nil then
+        if t.chemMixing ~= nil then self.featureToggles.chemMixing = t.chemMixing == true end   -- [SPS CHEM] default OFF
+        if self.applyChemMixingSetting ~= nil then self:applyChemMixingSetting() end
+    end
     if t.shearBoltEnabled ~= nil then self.shearBoltEnabled = t.shearBoltEnabled ~= false end
     if t.ibcPersistWhenEmpty ~= nil then
         self.ibcPersistWhenEmpty = t.ibcPersistWhenEmpty == true
@@ -618,12 +644,43 @@ function SlurryPipeManager:applyGameplaySettings(t, broadcast)
         end
         self:applyPhysicalPipesSetting()
     end
+    -- [SPS 1.0.2.0] Pipe dirt on/off + speed
+    if t.hoseDirtEnabled ~= nil then
+        local wasOn = self.hoseDirtEnabled ~= false
+        self.hoseDirtEnabled = t.hoseDirtEnabled ~= false
+        if wasOn and not self.hoseDirtEnabled and g_server ~= nil then self:cleanAllHoses() end
+    end
+    if t.hoseDirtSpeed ~= nil then
+        self.hoseDirtSpeed = math.clamp(tonumber(t.hoseDirtSpeed) or 1.0, 0.1, 5.0)
+    end
+    -- [SPS 1.0.2.0] Pipe leakage on/off (switching it off closes nothing: an open valve on a free end simply stops
+    -- counting as connected, so the flow resolver finds no sink and the leak ends)
+    if t.spillEnabled ~= nil then self.spillEnabled = t.spillEnabled == true end
     if broadcast == true and g_server ~= nil and SPSSettingsSyncEvent ~= nil then
         local ft = self.featureToggles
+        -- [SPS 1.0.2.0] chemMixing was missing from this broadcast, so every settings change reset it to OFF on
+        -- the clients; it is passed now, with the two dirt values and the leakage switch.
         g_server:broadcastEvent(SPSSettingsSyncEvent.new(
             self.realismEnabled, ft.thicknessFlow, ft.blockages, ft.lengthFalloff,
-            self.shearBoltEnabled, self.ibcPersistWhenEmpty, self.physicalPipesEnabled), false, nil, nil)
+            self.shearBoltEnabled, self.ibcPersistWhenEmpty, self.physicalPipesEnabled, ft.chemMixing,
+            self.hoseDirtEnabled, self.hoseDirtSpeed, self.spillEnabled, ft.chemRatio, ft.chemRinses, ft.washoutValveManual), false, nil, nil)
     end
+end
+
+-- [SPS 1.0.2.0] Server: wipe the dirt off every physical pipe (run once when "Pipe dirt" is switched off, so the
+-- pipes do not stay dirty for ever with no way to build or wash it). Washable:setDirtAmount syncs to the clients.
+function SlurryPipeManager:cleanAllHoses()
+    local vs = g_currentMission ~= nil and g_currentMission.vehicleSystem or nil
+    local list = vs ~= nil and vs.vehicles or nil
+    if list == nil then return end
+    local n = 0
+    for _, v in ipairs(list) do
+        if v ~= nil and v.spsGetUsageLevel ~= nil and v.setDirtAmount ~= nil then
+            v:setDirtAmount(0)
+            n = n + 1
+        end
+    end
+    SlurryPipeManager.log("cleanAllHoses: %d pipe(s) cleaned (pipe dirt switched off)", n)
 end
 
 -- ---------------------------------------------------------------------------
@@ -634,6 +691,7 @@ end
 -- ---------------------------------------------------------------------------
 SlurryPipeManager.PHYSICAL_PIPE_STORE_ITEMS = {
     "vehicles/hoses/spsPipe.xml",   -- [SPS 1.0.1.8] every pipe in one item (Type / Length / Ends selectors)
+    "vehicles/hoses/spsBowserPipe.xml",   -- [SPS 2026-11-09] the 550 Water/Chem Bowser's three pipes (one selector)
     -- [SPS 1.0.1.8] the carriable SPS Docking Station is physical-mode only (William 2026-10-21: in original mode
     -- a station is placed at a pipe end with R, never bought) - hidden with the pipes, removed with them on the switch
     "vehicles/dockingStation/dockingStation.xml",
@@ -645,6 +703,147 @@ end
 
 function SlurryPipeManager:isOriginalPipesAllowed()
     return self.physicalPipesEnabled ~= true
+end
+
+
+-- [SPS 2026-11-09] <pipeHolders> parser, shared by the slurry (registerVehicle) and liquid-lane (550 bowser) roots.
+-- listKey = the full key of the <pipeHolders> element. Body unchanged from the registerVehicle block it came from.
+function SlurryPipeManager:readPipeHolders(xmlFile, listKey, vehicle, entry, findLinkedNode)
+    entry.pipeHolderEntries = entry.pipeHolderEntries or {}
+    local phIndex = 0
+    while true do
+        local phKey = string.format(listKey .. ".pipeHolder(%d)", phIndex)
+        if not xmlFile:hasProperty(phKey) then break end
+        local phName = xmlFile:getString(phKey .. "#nodeName")
+        -- [SPS 1.0.1.8] config gate (README 01 §13): a holder on a carrier the buyer did not take does not exist
+        local phGated = not self:configGatePasses(vehicle, xmlFile, phKey)
+        local phNode = (not phGated) and findLinkedNode(phName) or nil
+        if phGated then
+            spsInfo(string.format("[SPS] pipeHolder id=%d '%s' not in this configuration of %s - skipped",
+                xmlFile:getInt(phKey .. "#id", phIndex + 1), tostring(phName), tostring(vehicle.configFileName)))
+            entry.gatedHolderNodes = entry.gatedHolderNodes or {}
+            table.insert(entry.gatedHolderNodes, findLinkedNode(phName))
+        elseif phNode ~= nil then
+            local ph = {
+                id      = xmlFile:getInt(phKey .. "#id", phIndex + 1),
+                node    = phNode,
+                vehicle = vehicle,
+                radius  = xmlFile:getFloat(phKey .. "#radius", 1.0),
+                slots   = {},
+            }
+            local pIndex = 0
+            while true do
+                local pKey = string.format(phKey .. ".placement(%d)", pIndex)
+                if not xmlFile:hasProperty(pKey) then break end
+                local pName = xmlFile:getString(pKey .. "#node")
+                local pNode = SlurryPipeManager._physFindChildByName(phNode, pName)
+                if pNode ~= nil then
+                    local slot = SlurryPipeManager._physMakeSlot(pName, pNode, xmlFile:getString(pKey .. "#pipes"))
+                    -- [SPS MKS8 2026-11-10] TUBE slot (tube="true"): the pipe lives inside a tube, only its START end shows
+                    -- at the mouth (p01); the length rule is off (surplus bodies stack on the last point), a grab takes the
+                    -- mouth body only and the pipe slides out body by body as the player walks back (SPSHoseItem). stowedShow /
+                    -- stowedHide = node names shown / hidden while a pipe is in the slot (the tube's fitted / loose caps).
+                    slot.tube = xmlFile:getBool(pKey .. "#tube", false)
+                    for attr, field in pairs({ stowedShow = "showNodes", stowedHide = "hideNodes" }) do
+                        local names = xmlFile:getString(pKey .. "#" .. attr)
+                        if names ~= nil and names ~= "" then
+                            slot[field] = {}
+                            for n in names:gmatch("%S+") do
+                                local node = findLinkedNode(n)
+                                if node ~= nil then
+                                    table.insert(slot[field], node)
+                                else
+                                    print(string.format("[SPS] WARNING: pipeHolder id=%d placement '%s' %s node '%s' not found on %s",
+                                        ph.id, tostring(pName), attr, tostring(n), tostring(vehicle.configFileName)))
+                                end
+                            end
+                        end
+                    end
+                    if SlurryPipeManager.physApplySlotVisuals ~= nil then SlurryPipeManager.physApplySlotVisuals(slot, false) end
+                    table.insert(ph.slots, slot)
+                else
+                    print(string.format("[SPS] WARNING: pipeHolder id=%d placement '%s' is not a child of '%s' on %s - skipped",
+                        ph.id, tostring(pName), tostring(phName), tostring(vehicle.configFileName)))
+                end
+                pIndex = pIndex + 1
+            end
+            if #ph.slots == 0 then
+                for i = 0, getNumOfChildren(phNode) - 1 do
+                    local c = getChildAt(phNode, i)
+                    local lower = string.lower(getName(c) or "")
+                    if string.find(lower, "^slurry") or string.find(lower, "^water") or string.find(lower, "^milk") then
+                        table.insert(ph.slots, SlurryPipeManager._physMakeSlot(getName(c), c, nil))
+                    end
+                end
+            end
+            for i = #ph.slots, 1, -1 do
+                if #ph.slots[i].points < 2 and ph.slots[i].family ~= "cage" then
+                    print(string.format("[SPS] WARNING: pipeHolder id=%d slot '%s' on %s has %d point(s) - needs p01..pNN from the GE placement script, skipped",
+                        ph.id, tostring(ph.slots[i].name), tostring(vehicle.configFileName), #ph.slots[i].points))
+                    table.remove(ph.slots, i)
+                end
+            end
+            local names = {}
+            for _, sl in ipairs(ph.slots) do names[#names + 1] = string.format("%s(%s,%d pts,%.2f m)", sl.name, sl.family, #sl.points, sl.length or 0) end
+            spsInfo(string.format("[SPS] pipeHolder id=%d '%s' on %s: %d slot(s) %s", ph.id, tostring(phName),
+                tostring(vehicle.configFileName), #ph.slots, table.concat(names, " ")))
+            table.insert(entry.pipeHolderEntries, ph)
+            table.insert(self.pipeHolderEntries, ph)
+        else
+            print(string.format("[SPS] WARNING: pipeHolder id=%d nodeName '%s' not found for %s - holder skipped",
+                phIndex + 1, tostring(phName), tostring(vehicle.configFileName)))
+        end
+        phIndex = phIndex + 1
+    end
+
+    -- [SPS 2026-11-11] <cageHolder id nodeName radius cages/> (William: a holder that takes a water cage). Sits in the same
+    -- <pipeHolders> list: nodeName = the node the cage hangs on (its +Z is the cage's axis, the mount end at the node), cages =
+    -- the hose keys it takes (CAGE_SMALL / CAGE_LARGE / both). It is a pipe holder with ONE slot whose single point is the node
+    -- itself, so the hands' stow prompt, the MP stow event, the savegame restore and "grab = take off" all work as for pipes.
+    local chIndex = 0
+    while true do
+        local chKey = string.format(listKey .. ".cageHolder(%d)", chIndex)
+        if not xmlFile:hasProperty(chKey) then break end
+        local chName = xmlFile:getString(chKey .. "#nodeName")
+        local cages = xmlFile:getString(chKey .. "#cages") or "CAGE_SMALL CAGE_LARGE"
+        local chId = xmlFile:getInt(chKey .. "#id", 100 + chIndex + 1)
+        if not self:configGatePasses(vehicle, xmlFile, chKey) then
+            entry.gatedHolderNodes = entry.gatedHolderNodes or {}
+            table.insert(entry.gatedHolderNodes, findLinkedNode(chName))
+        else
+            local chNode = findLinkedNode(chName)
+            if chNode ~= nil then
+                local slot = SlurryPipeManager._physMakeSlot(chName, chNode, cages)
+                if slot.family ~= "cage" then
+                    print(string.format("[SPS] WARNING: cageHolder id=%d '%s' on %s: cages=\"%s\" names no CAGE_* key - skipped",
+                        chId, tostring(chName), tostring(vehicle.configFileName), tostring(cages)))
+                else
+                    -- offset="x y z" (metres, in the node's own axes): moves the hung cage clear of the tanker's collision so the
+                    -- hands' ray reaches it (a cage that sits INSIDE the hull cannot be grabbed)
+                    local ox, oy, oz = 0, 0, 0
+                    local offStr = xmlFile:getString(chKey .. "#offset")
+                    if offStr ~= nil then
+                        local a, b, c = string.match(offStr, "^%s*(%-?[%d%.]+)%s+(%-?[%d%.]+)%s+(%-?[%d%.]+)")
+                        if a ~= nil then ox, oy, oz = tonumber(a), tonumber(b), tonumber(c) end
+                    end
+                    slot.cageOffset = { ox, oy, oz }
+                    local ph = { id = chId, node = chNode, vehicle = vehicle, radius = xmlFile:getFloat(chKey .. "#radius", 1.2), slots = { slot } }
+                    -- requiresAnimation = a vehicle animation (door / flap) that must be open (time >= requiredAnimationTime, default 0.95)
+                    local reqAnim = xmlFile:getString(chKey .. "#requiresAnimation")
+                    if reqAnim ~= nil and reqAnim ~= "" then
+                        ph.requiresAnim = { name = reqAnim, minTime = xmlFile:getFloat(chKey .. "#requiredAnimationTime", 0.95) }
+                    end
+                    spsInfo(string.format("[SPS] cageHolder id=%d '%s' on %s takes %s", chId, tostring(chName), tostring(vehicle.configFileName), cages))
+                    table.insert(entry.pipeHolderEntries, ph)
+                    table.insert(self.pipeHolderEntries, ph)
+                end
+            else
+                print(string.format("[SPS] WARNING: cageHolder id=%d nodeName '%s' not found for %s - holder skipped",
+                    chId, tostring(chName), tostring(vehicle.configFileName)))
+            end
+        end
+        chIndex = chIndex + 1
+    end
 end
 
 function SlurryPipeManager:applyPhysicalPipesSetting()
@@ -660,9 +859,13 @@ function SlurryPipeManager:applyPhysicalPipesSetting()
             n = n + 1
         end
     end
-    print(string.format("[SPS] pipe mode: %s (%d physical pipe shop item(s) %s)",
+    local line = string.format("[SPS] pipe mode: %s (%d physical pipe shop item(s) %s)",
         show and "PHYSICAL pipes - original lay/connect prompts OFF" or "ORIGINAL system - physical pipes hidden in the shop",
-        n, show and "shown" or "hidden"))
+        n, show and "shown" or "hidden")
+    if self._pipeModeLine ~= line then   -- [SPS 2026-11-09] applySettings re-applies every tick of the menu: say it once
+        self._pipeModeLine = line
+        print(line)
+    end
 end
 
 -- Counts for the warning dialogs: laid chains, connected coupling ends (vehicle + store side),
@@ -755,6 +958,30 @@ function SlurryPipeManager:removeAllOriginalPipes()
     print(string.format("[SPS] pipe mode: switched to PHYSICAL - removed %d chain(s), %d coupler connection end(s), %d sprayer pipe(s), %d water/milk pipe(s) of the original system",
         nChain, nCoupl, nSpr, nLane))
     return nChain, nCoupl, nSpr, nLane
+end
+
+-- [SPS 1.0.2.0] spsPipeDirt <0..1> - sets the dirt of EVERY physical pipe at once (server / host only; Washable syncs it to
+-- the clients). Test aid for the "Pipe dirt" settings: dirt builds in REAL time (90 real min at full rate, Normal game
+-- dirt setting halves it, plugged-but-idle quarters it), so waiting for it in a test is hopeless. No arg = report.
+function SlurryPipeManager:consolePipeDirt(arg)
+    local vs = g_currentMission ~= nil and g_currentMission.vehicleSystem or nil
+    local list = vs ~= nil and vs.vehicles or nil
+    if list == nil then return "spsPipeDirt: no vehicle list" end
+    local amount = tonumber(arg)
+    local n, sum = 0, 0
+    for _, v in ipairs(list) do
+        if v ~= nil and v.spsGetUsageLevel ~= nil and v.getDirtAmount ~= nil then
+            if amount ~= nil and g_server ~= nil and v.setDirtAmount ~= nil then
+                v:setDirtAmount(math.clamp(amount, 0, 1))
+            end
+            n = n + 1
+            sum = sum + (v:getDirtAmount() or 0)
+        end
+    end
+    if amount ~= nil and g_server == nil then return "spsPipeDirt: server / host only" end
+    return string.format("spsPipeDirt: %d pipe(s), average dirt %.2f%s | setting: dirt %s, speed %.2fx (use: spsPipeDirt 0..1)",
+        n, n > 0 and sum / n or 0, amount ~= nil and string.format(" (set to %.2f)", math.clamp(amount, 0, 1)) or "",
+        self.hoseDirtEnabled ~= false and "on" or "OFF", self.hoseDirtSpeed or 1)
 end
 
 function SlurryPipeManager:consolePhysicalPipes(arg)
@@ -1124,6 +1351,9 @@ function SlurryPipeManager:registerVehicle(vehicle)
             purgeTime       = xmlFile:getFloat(kp .. "slurryPipeSystem.pressure#purgeTime",       SlurryPipeManager.DEFAULT_PURGE_TIME),
             gravityFlowScalar = xmlFile:getFloat(kp .. "slurryPipeSystem.pressure#gravityFlowScalar", SlurryPipeManager.DEFAULT_GRAVITY_FLOW_SCALAR),
             openTop         = xmlFile:getBool(kp  .. "slurryPipeSystem.pressure#openTop", false),
+            -- [SPS 1.0.2.0] an open lid / top fill (spec_cover state > 0) vents the tank to atmosphere within HOLE_VENT_TIME;
+            -- coverVents="false" opts a vehicle out (a cover that is not a tank lid).
+            coverVents      = xmlFile:getBool(kp  .. "slurryPipeSystem.pressure#coverVents", true),
         },
         selfPowered           = xmlFile:getBool(kp .. "slurryPipeSystem.pump#selfPowered", false),
         conduit               = xmlFile:getBool(kp .. "slurryPipeSystem.pump#conduit", false),
@@ -1133,6 +1363,22 @@ function SlurryPipeManager:registerVehicle(vehicle)
         -- every direction toggle and snapped to the right pose on register /
         -- savegame restore (see updateDirectionAnimation, SPSM_Flow).
         directionAnimationName = xmlFile:getString(kp .. "slurryPipeSystem.pump#directionAnimation"),
+        -- [SPS 1.0.2.0] directionAnimationCentreOff="true": three-position lever - time 0 = FILL, 0.5 = CENTRE
+        -- (pump off), 1 = DISCHARGE. The lever sits centred while the pump is off and swings to the set
+        -- direction when the pump starts (Kotte TSA).
+        directionAnimationCentreOff = xmlFile:getBool(kp .. "slurryPipeSystem.pump#directionAnimationCentreOff", false),
+        -- [SPS 1.0.2.0] Rear/cab valve animations (Kotte TSA), vehicle <animations> names, time 0 =
+        -- closed, 1 = open. valveAnimation = the control lever; valveOpenAnimations = valves that open
+        -- in BOTH directions; valveFillAnimations / valveEmptyAnimations = extra valves per direction.
+        -- Shared valves go through the demand counter (SPSM_Flow spsAnimDemand).
+        valveAnimationName       = xmlFile:getString(kp .. "slurryPipeSystem.pump#valveAnimation"),
+        -- spring-return lever: one-shot animations (0 -> swing -> back to 0) played FORWARD on open / on close,
+        -- never reversed (Kotte TSA hydrControl lever)
+        valveOpenPulseAnimationName  = xmlFile:getString(kp .. "slurryPipeSystem.pump#valveOpenPulseAnimation"),
+        valveClosePulseAnimationName = xmlFile:getString(kp .. "slurryPipeSystem.pump#valveClosePulseAnimation"),
+        valveOpenAnimationNames  = SlurryPipeManager.splitAnimationNames(xmlFile:getString(kp .. "slurryPipeSystem.pump#valveOpenAnimations")),
+        valveFillAnimationNames  = SlurryPipeManager.splitAnimationNames(xmlFile:getString(kp .. "slurryPipeSystem.pump#valveFillAnimations")),
+        valveEmptyAnimationNames = SlurryPipeManager.splitAnimationNames(xmlFile:getString(kp .. "slurryPipeSystem.pump#valveEmptyAnimations")),
         pumpType              = nil,   -- resolved just below from pump#pumpType
         agitatorOnly          = xmlFile:getBool(kp .. "slurryPipeSystem#agitatorOnly", false),
         -- [SPS 1.0.1.4] Optional explicit vehicle-role declaration on the slurry
@@ -1218,6 +1464,25 @@ function SlurryPipeManager:registerVehicle(vehicle)
     -- Enabled with both lists empty is a config error: no hose could ever
     -- qualify, so warn and treat as disabled.
     -- ---------------------------------------------------------------------
+    -- [SPS 1.0.2.0] <attachedCouplers enabled="true"/>: an IMPLEMENT (dribble bar) whose pipe couplers are extra couplers
+    -- of the tanker it is hitched to. The implement keeps its own coupling entries (nodes, ids, handle, clamp animations,
+    -- pipe plugs), but its flow runs on the TANKER's pump, direction, pressure and tank, and the tanker's controls drive it.
+    entry.attachedCouplers = xmlFile:getBool(kp .. "slurryPipeSystem.attachedCouplers#enabled", false)
+
+    -- [SPS 1.0.2.0] Separate VACUUM limits (William 2026-11-05, Major tanker: +1.5 bar pressure, -0.94 bar vacuum). Every
+    -- one is optional and falls back to its pressure twin, so a config that sets none behaves exactly as before:
+    --   maxVacuum (magnitude, bar)  minThresholdVacuum  minBuildTimeVacuum / maxBuildTimeVacuum
+    --   fallTimeWorkingVacuum / fallTimeEmptyVacuum
+    if entry.pressure ~= nil then
+        local pc, pk = entry.pressure, kp .. "slurryPipeSystem.pressure#"
+        pc.maxVacuum             = xmlFile:getFloat(pk .. "maxVacuum",             pc.maxPressure)
+        pc.minThresholdVacuum    = xmlFile:getFloat(pk .. "minThresholdVacuum",    pc.minThreshold)
+        pc.minBuildTimeVacuum    = xmlFile:getFloat(pk .. "minBuildTimeVacuum",    pc.minBuildTime)
+        pc.maxBuildTimeVacuum    = xmlFile:getFloat(pk .. "maxBuildTimeVacuum",    pc.maxBuildTime)
+        pc.fallTimeWorkingVacuum = xmlFile:getFloat(pk .. "fallTimeWorkingVacuum", pc.fallTimeWorking)
+        pc.fallTimeEmptyVacuum   = xmlFile:getFloat(pk .. "fallTimeEmptyVacuum",   pc.fallTimeEmpty)
+    end
+
     if xmlFile:getBool(kp .. "slurryPipeSystem.frontMount#enabled", false) == true then
         local function parseSet(raw)
             local set, n = {}, 0
@@ -1229,7 +1494,12 @@ function SlurryPipeManager:registerVehicle(vehicle)
         end
         local specTypeSet, nSpec = parseSet(xmlFile:getString(kp .. "slurryPipeSystem.frontMount#hoseSpecTypes", ""))
         local typeSet,     nType = parseSet(xmlFile:getString(kp .. "slurryPipeSystem.frontMount#hoseTypes", ""))
-        if nSpec + nType == 0 then
+        -- [SPS 1.0.2.0] receiver="attacher": the tank is simply the vehicle this one is hitched to (a dribble bar / injector
+        -- behind a tanker, no tractor hose bridge between them), so no hose lists are needed. keepSpreaderValve="true": the
+        -- unit is ALSO a spreader, so it keeps its spreader-valve key (a pure pass-through front mount loses it).
+        local recvAttacher = xmlFile:getString(kp .. "slurryPipeSystem.frontMount#receiver", "") == "attacher"
+        local keepSpreaderValve = xmlFile:getBool(kp .. "slurryPipeSystem.frontMount#keepSpreaderValve", false)
+        if nSpec + nType == 0 and not recvAttacher then
             print(string.format(
                 "[SPS] WARNING: frontMount enabled with no hoseSpecTypes and no hoseTypes in '%s' — front mount disabled",
                 tostring(config.xmlFilePath)))
@@ -1237,6 +1507,8 @@ function SlurryPipeManager:registerVehicle(vehicle)
             entry.frontMount = {
                 hoseSpecTypes         = specTypeSet,
                 hoseTypes             = typeSet,
+                receiverAttacher      = recvAttacher,
+                keepSpreaderValve     = keepSpreaderValve,
                 receiver              = nil,   -- cached by updateFrontMounts
                 receiverReason        = nil,
                 receiverFillUnitIndex = nil,
@@ -1264,9 +1536,8 @@ function SlurryPipeManager:registerVehicle(vehicle)
     entry.emptyLitersPerSecond = spsEmpty or spsBoth or vanEmpty or SlurryPipeManager.DEFAULT_LITERS_PER_SECOND
     -- Keep the single-value field as the empty rate so any legacy reader stays sane.
     entry.litersPerSecond      = entry.emptyLitersPerSecond
---    SlurryDebug.log(string.format("[SPS Flow] %s fill=%.0f empty=%.0f (pumpType=%s)",
---        tostring(vehicle ~= nil and vehicle.configFileName or config.xmlFilePath),
---        entry.fillLitersPerSecond, entry.emptyLitersPerSecond, tostring(entry.pumpType)))
+    -- [SPS 1.0.2.0] optional: this vehicle's gravity leak onto the ground in L/s (default LEAK_TANKER_LPS, SPSM_Flow)
+    entry.leakLitersPerSecond  = xmlFile:getFloat(kp .. "slurryPipeSystem.flow#leakLitersPerSecond", nil)
 
     -- Load nodeTree
     local nodeTreePath = xmlFile:getString(kp .. "slurryPipeSystem.nodeTree#filename")
@@ -1287,16 +1558,12 @@ function SlurryPipeManager:registerVehicle(vehicle)
             -- Store effect nodes BEFORE linking (they will be moved out of nodeTreeRoot)
             entry.effectNode = findByName(nodeTreeRoot, "effect")
             entry.smokeNode  = findByName(nodeTreeRoot, "pipeEffectSmoke")
---            print("[SPS] nodeTreeRoot name=" .. tostring(getName(nodeTreeRoot)) .. " children=" .. tostring(getNumOfChildren(nodeTreeRoot)) .. " effectNode=" .. tostring(entry.effectNode))
             local c0 = getChildAt(nodeTreeRoot, 0)
             if c0 ~= nil and c0 ~= 0 then
-               -- print("[SPS] child0 name=" .. tostring(getName(c0)) .. " children=" .. tostring(getNumOfChildren(c0)))
                 for gi = 0, getNumOfChildren(c0) - 1 do
                     local g = getChildAt(c0, gi)
-                    --print("[SPS]   group[" .. gi .. "]=" .. tostring(getName(g)) .. " children=" .. tostring(getNumOfChildren(g)))
                     for ci = 0, getNumOfChildren(g) - 1 do
                         local cont = getChildAt(g, ci)
-                       -- print("[SPS]     container[" .. ci .. "]=" .. tostring(getName(cont)) .. " children=" .. tostring(getNumOfChildren(cont)))
                     end
                 end
             end
@@ -1339,7 +1606,6 @@ function SlurryPipeManager:registerVehicle(vehicle)
                                 table.insert(entry.linkedNodes, spsNode)
                             end
                         else
-                            --print("[SPS] container target '" .. targetName .. "' not found in vehicle")
                         end
                     end
                 end
@@ -2179,6 +2445,9 @@ function SlurryPipeManager:registerVehicle(vehicle)
                 -- Optional band parent (authored in the nodeTree) for the per-outlet
                 -- work-area section. Absent on the macerator (it has no section).
                 workAreaNodeName  = xmlFile:getString(bKey .. "#workAreaNode"),
+                -- [SPS 1.0.2.0] Optional 1-based <groundReferenceNodes> index for this band's work area. Absent = the band
+                -- takes the ground reference / fold limits of the NEAREST original sprayer area (see the band build).
+                groundRefIndex    = xmlFile:getInt(bKey .. "#groundReferenceNodeIndex"),
             })
         else
             -- [SPS 1.0.1.4] Was silent; an unresolved blockage node is always an
@@ -2190,7 +2459,6 @@ function SlurryPipeManager:registerVehicle(vehicle)
         blockageIndex = blockageIndex + 1
     end
     if #entry.blockageEntries > 0 then
-        --print("[SPS] loaded " .. #entry.blockageEntries .. " blockage node(s) for " .. tostring(vehicle.configFileName))
     end
 
     -- Spreader section bands.
@@ -2257,7 +2525,6 @@ function SlurryPipeManager:registerVehicle(vehicle)
                                 addToPhysics(found)
                                 table.insert(entry.linkedNodes, found)
                                 parent = found
-                                --print("[SPS] section '" .. tostring(b.workAreaNodeName) .. "' self-linked from nodeTree onto work-area frame")
                             end
                         end
                         if parent ~= nil then
@@ -2289,6 +2556,40 @@ function SlurryPipeManager:registerVehicle(vehicle)
                                 band._spsLastActive        = nil
                                 band._spsBlockageEntry     = b
                                 band._spsSectionName       = b.workAreaNodeName
+                                -- [SPS 1.0.2.0] The shallow copy above gave EVERY band the template's ground reference and
+                                -- fold limits (the first area = the left bar). On a bar whose cover / mode animation moves
+                                -- the ground reference nodes (Mastek dribble bar <-> splash plate) that meant: dribble mode ->
+                                -- the splash band was always live; splash mode -> the template's reference is lifted, so no
+                                -- band touched the ground and nothing spread. Each band now inherits from the vanilla area it
+                                -- replaces = the original whose start node is nearest, or the explicit
+                                -- <blockageNode groundReferenceNodeIndex="n"/>.
+                                do
+                                    local src = nil
+                                    if b.groundRefIndex ~= nil and vehicle.getGroundReferenceNodeFromIndex ~= nil then
+                                        local grn = vehicle:getGroundReferenceNodeFromIndex(b.groundRefIndex)
+                                        if grn ~= nil then
+                                            band.groundReferenceNode = grn
+                                            band.requiresGroundContact = true
+                                        end
+                                    else
+                                        local bx, by, bz = getWorldTranslation(startNode)
+                                        local bestD = math.huge
+                                        for _, wa in ipairs(waSpec.workAreas) do
+                                            if wa._spsOriginalSprayArea == true and wa.start ~= nil then
+                                                local ox, oy, oz = getWorldTranslation(wa.start)
+                                                local d = (ox - bx) ^ 2 + (oy - by) ^ 2 + (oz - bz) ^ 2
+                                                if d < bestD then bestD = d; src = wa end
+                                            end
+                                        end
+                                    end
+                                    if src ~= nil then
+                                        band.groundReferenceNode   = src.groundReferenceNode
+                                        band.requiresGroundContact = src.requiresGroundContact
+                                        band.onlyActiveWhenLowered = src.onlyActiveWhenLowered
+                                        band.foldMinLimit          = src.foldMinLimit
+                                        band.foldMaxLimit          = src.foldMaxLimit
+                                    end
+                                end
                                 table.insert(waSpec.workAreas, band)
                                 band.index = #waSpec.workAreas
                                 if vehicle.updateWorkAreaWidth ~= nil then
@@ -2303,8 +2604,6 @@ function SlurryPipeManager:registerVehicle(vehicle)
                                 b.workArea = band
                                 built = built + 1
                                 local wx, wy, wz = getWorldTranslation(startNode)
-                                --print(string.format("[SPS] section band '%s' built (index %d) startWorld=%.2f %.2f %.2f",
-                                --    tostring(b.workAreaNodeName), band.index, wx, wy, wz))
                             else
                                 -- [SPS 1.0.1.6] Was silent. The band parent resolved but its
                                 -- children are misnamed — field case: the Abbey authored
@@ -2322,10 +2621,8 @@ function SlurryPipeManager:registerVehicle(vehicle)
 
                 if built > 0 then
                     vehicle._spsHasSectionBands = true
-                    --print("[SPS] built " .. built .. " spreader section band(s) for " .. tostring(vehicle.configFileName))
                 end
             else
-                --print("[SPS] no sprayer work area template on " .. tostring(vehicle.configFileName) .. " — section bands not built")
             end
         end
     end
@@ -2337,69 +2634,7 @@ function SlurryPipeManager:registerVehicle(vehicle)
     -- <placement node="water01" pipes="WATER MILK"/> children override the discovery. radius = how close the pipe's
     -- middle must be to the holder node to offer "stow". Model + rules: SPSM_PhysPipes (family-exclusive per holder).
     entry.pipeHolderEntries = entry.pipeHolderEntries or {}
-    local phIndex = 0
-    while true do
-        local phKey = string.format(kp .. "slurryPipeSystem.pipeHolders.pipeHolder(%d)", phIndex)
-        if not xmlFile:hasProperty(phKey) then break end
-        local phName = xmlFile:getString(phKey .. "#nodeName")
-        -- [SPS 1.0.1.8] config gate (README 01 §13): a holder on a carrier the buyer did not take does not exist
-        local phGated = not self:configGatePasses(vehicle, xmlFile, phKey)
-        local phNode = (not phGated) and findLinkedNode(phName) or nil
-        if phGated then
-            spsInfo(string.format("[SPS] pipeHolder id=%d '%s' not in this configuration of %s - skipped",
-                xmlFile:getInt(phKey .. "#id", phIndex + 1), tostring(phName), tostring(vehicle.configFileName)))
-            entry.gatedHolderNodes = entry.gatedHolderNodes or {}
-            table.insert(entry.gatedHolderNodes, findLinkedNode(phName))
-        elseif phNode ~= nil then
-            local ph = {
-                id      = xmlFile:getInt(phKey .. "#id", phIndex + 1),
-                node    = phNode,
-                vehicle = vehicle,
-                radius  = xmlFile:getFloat(phKey .. "#radius", 1.0),
-                slots   = {},
-            }
-            local pIndex = 0
-            while true do
-                local pKey = string.format(phKey .. ".placement(%d)", pIndex)
-                if not xmlFile:hasProperty(pKey) then break end
-                local pName = xmlFile:getString(pKey .. "#node")
-                local pNode = SlurryPipeManager._physFindChildByName(phNode, pName)
-                if pNode ~= nil then
-                    table.insert(ph.slots, SlurryPipeManager._physMakeSlot(pName, pNode, xmlFile:getString(pKey .. "#pipes")))
-                else
-                    print(string.format("[SPS] WARNING: pipeHolder id=%d placement '%s' is not a child of '%s' on %s - skipped",
-                        ph.id, tostring(pName), tostring(phName), tostring(vehicle.configFileName)))
-                end
-                pIndex = pIndex + 1
-            end
-            if #ph.slots == 0 then
-                for i = 0, getNumOfChildren(phNode) - 1 do
-                    local c = getChildAt(phNode, i)
-                    local lower = string.lower(getName(c) or "")
-                    if string.find(lower, "^slurry") or string.find(lower, "^water") or string.find(lower, "^milk") then
-                        table.insert(ph.slots, SlurryPipeManager._physMakeSlot(getName(c), c, nil))
-                    end
-                end
-            end
-            for i = #ph.slots, 1, -1 do
-                if #ph.slots[i].points < 2 then
-                    print(string.format("[SPS] WARNING: pipeHolder id=%d slot '%s' on %s has %d point(s) - needs p01..pNN from the GE placement script, skipped",
-                        ph.id, tostring(ph.slots[i].name), tostring(vehicle.configFileName), #ph.slots[i].points))
-                    table.remove(ph.slots, i)
-                end
-            end
-            local names = {}
-            for _, sl in ipairs(ph.slots) do names[#names + 1] = string.format("%s(%s,%d pts,%.2f m)", sl.name, sl.family, #sl.points, sl.length or 0) end
-            spsInfo(string.format("[SPS] pipeHolder id=%d '%s' on %s: %d slot(s) %s", ph.id, tostring(phName),
-                tostring(vehicle.configFileName), #ph.slots, table.concat(names, " ")))
-            table.insert(entry.pipeHolderEntries, ph)
-            table.insert(self.pipeHolderEntries, ph)
-        else
-            print(string.format("[SPS] WARNING: pipeHolder id=%d nodeName '%s' not found for %s - holder skipped",
-                phIndex + 1, tostring(phName), tostring(vehicle.configFileName)))
-        end
-        phIndex = phIndex + 1
-    end
+    self:readPipeHolders(xmlFile, kp .. "slurryPipeSystem.pipeHolders", vehicle, entry, findLinkedNode)   -- [SPS 2026-11-09] shared with the liquid lane (550 bowser)
 
     -- [SPS 1.0.1.8] Docking station holders (William 2026-10-19): a frame on the vehicle where the carried SPS Docking
     -- Station is placed by hand (SPSDockingStation:spsDsStow). <dockingStationHolders><dockingStationHolder id="1"
@@ -2477,6 +2712,9 @@ function SlurryPipeManager:registerVehicle(vehicle)
                 valveType     = xmlFile:getString(rbpKey .. "#valveType", SPS_VALVE_TYPE_NONE),
                 fillUnitIndex = xmlFile:getInt(rbpKey .. "#fillUnitIndex", 1),
                 valveOpen     = false,
+                -- [SPS 1.0.2.0] vehicle animations held open while a fill arm is connected to this port
+                -- (tickBootPortAnimations; shared valves via the demand counter)
+                armAnimationNames = SlurryPipeManager.splitAnimationNames(xmlFile:getString(rbpKey .. "#armAnimations")),
             }
             -- [SPS 1.0.1.8] skinned rubber boot (docking station): bootFollowNodeName = the node (holding the rim
             -- bone) that locks onto the fill-arm tip; bootBaseBoneName = optional base bone (SPSBootDeform)
@@ -2508,6 +2746,36 @@ function SlurryPipeManager:registerVehicle(vehicle)
         end
         pcIndex = pcIndex + 1
     end
+
+    -- [SPS 1.0.2.0] Animation controls: walk-up node that plays one vehicle animation forward / back
+    -- (Kotte TSA spout swing, X at the node). See SPSAnimationControlActivatable.
+    entry.animationControlEntries = {}
+    local acIndex = 0
+    while true do
+        local acKey = string.format(kp .. "slurryPipeSystem.animationControls.animationControl(%d)", acIndex)
+        if not xmlFile:hasProperty(acKey) then break end
+        local acNode = findLinkedNode(xmlFile:getString(acKey .. "#nodeName"))
+        local acAnim = xmlFile:getString(acKey .. "#animation")
+        if acNode ~= nil and acAnim ~= nil then
+            table.insert(entry.animationControlEntries, {
+                id           = xmlFile:getInt(acKey .. "#id", acIndex + 1),
+                node         = acNode,
+                radius       = xmlFile:getFloat(acKey .. "#radius", 1.5),
+                animName     = acAnim,
+                textForward  = xmlFile:getString(acKey .. "#textForward"),
+                textBackward = xmlFile:getString(acKey .. "#textBackward"),
+            })
+        else
+            print(string.format("[SPS] WARNING: animationControl id=%s on %s skipped - node '%s' / animation '%s'",
+                tostring(xmlFile:getInt(acKey .. "#id", acIndex + 1)), tostring(vehicle.configFileName),
+                tostring(xmlFile:getString(acKey .. "#nodeName")), tostring(acAnim)))
+        end
+        acIndex = acIndex + 1
+    end
+    -- [SPS 1.0.2.0] <drawbarSuspension> (SPSM_Drawbar.lua)
+    if self.parseDrawbarSuspension ~= nil then self:parseDrawbarSuspension(entry, xmlFile, kp, findLinkedNode) end
+    -- [SPS 1.0.2.0] <pressureGauges> (SPSM_Gauges.lua) - after the couplings / fill arms it binds to
+    if self.parseGauges ~= nil then self:parseGauges(entry, xmlFile, kp, findLinkedNode) end
 
     -- Outside controls (one node, per-item flags). PTO prompt is gated by tractor
     -- capability; direction prompt relocates the cab fill/empty control to the node.
@@ -2552,7 +2820,6 @@ function SlurryPipeManager:registerVehicle(vehicle)
         local ocNode      = findLinkedNode(xmlFile:getString(ocKey .. "#mountNodeName"))
         if ocNode ~= nil then
             table.insert(entry.outsideControlEntries, { id = ocId, node = ocNode, radius = ocRadius, pto = ocPto, direction = ocDirection, vehicle = vehicle })
-            --print("[SPS] outsideControl id=" .. tostring(ocId) .. " registered (pto=" .. tostring(ocPto) .. " direction=" .. tostring(ocDirection) .. ")")
         else
             -- [SPS 1.0.1.4] Was a commented-out print; an unresolved outside
             -- control is always an authoring bug.
@@ -2678,8 +2945,6 @@ function SlurryPipeManager:registerVehicle(vehicle)
     entry._spreadAnimOn = false
     entry._spreadAnimTail = nil
     if entry.spreaderAnimationName ~= nil then
-        --print("[SPS] spreaderAnimation '" .. entry.spreaderAnimationName
-            --.. "' registered (SPS-driven, stopDelay=" .. tostring(entry.spreaderAnimationStopDelay) .. "ms)")
     end
 	
     -- [SPS MIXED INTEROP] Keep the vanilla FillTrigger ENABLED.
@@ -2705,11 +2970,11 @@ function SlurryPipeManager:registerVehicle(vehicle)
         if coupling.mountNode ~= nil then
             local pipeAct  = SPSPipeActivatable.new(vehicle, coupling)
             table.insert(entry.pipeActivatables, pipeAct)
-            g_currentMission.activatableObjectsSystem:addActivatable(pipeAct)
+            SlurryPipeManager.gateAdd(pipeAct)
             local chainAct = SPSChainActivatable.new(nil, 0, coupling)
             coupling.chainActivatable = chainAct
             table.insert(entry.chainActivatables, chainAct)
-            g_currentMission.activatableObjectsSystem:addActivatable(chainAct)
+            SlurryPipeManager.gateAdd(chainAct)
         end
     end
 
@@ -2718,7 +2983,17 @@ function SlurryPipeManager:registerVehicle(vehicle)
     for _, pc in ipairs(entry.pumpControlEntries) do
         local pca = SPSPumpControlActivatable.new(vehicle, pc.node, pc.radius)
         table.insert(entry.pumpControlActivatables, pca)
-        g_currentMission.activatableObjectsSystem:addActivatable(pca)
+        SlurryPipeManager.gateAdd(pca)
+    end
+
+    -- [SPS 1.0.2.0] Animation controls (one activatable per node)
+    entry.animationControlActivatables = {}
+    if SPSAnimationControlActivatable ~= nil then
+        for _, ac in ipairs(entry.animationControlEntries or {}) do
+            local aca = SPSAnimationControlActivatable.new(vehicle, ac.node, ac.radius, ac.animName, ac.textForward, ac.textBackward)
+            table.insert(entry.animationControlActivatables, aca)
+            SlurryPipeManager.gateAdd(aca)
+        end
     end
 
     -- Create the merged outside-control activatable(s) (PTO + direction on one node)
@@ -2726,7 +3001,7 @@ function SlurryPipeManager:registerVehicle(vehicle)
     for _, oc in ipairs(entry.outsideControlEntries) do
         local act = SPSOutsideControlActivatable.new(vehicle, oc.node, oc.radius, oc.pto, oc.direction)
         table.insert(entry.outsideControlActivatables, act)
-        g_currentMission.activatableObjectsSystem:addActivatable(act)
+        SlurryPipeManager.gateAdd(act)
     end
 
     -- Walk-up, hold-to-clear activatables, one per blockage node (outlets + macerator).
@@ -2739,7 +3014,7 @@ function SlurryPipeManager:registerVehicle(vehicle)
             if b.node ~= nil then
                 local ba = SPSBlockageActivatable.new(vehicle, b)
                 table.insert(entry.blockageActivatables, ba)
-                g_currentMission.activatableObjectsSystem:addActivatable(ba)
+                SlurryPipeManager.gateAdd(ba)
             end
         end
     end
@@ -2764,7 +3039,7 @@ function SlurryPipeManager:registerVehicle(vehicle)
         for _, h in ipairs(hostNodes) do
             local sba = SPSShearBoltActivatable.new(vehicle, h.node, h.radius)
             table.insert(entry.shearBoltActivatables, sba)
-            g_currentMission.activatableObjectsSystem:addActivatable(sba)
+            SlurryPipeManager.gateAdd(sba)
         end
         if SPSShearBolt ~= nil and SPSShearBolt.DEBUG and SPSShearBolt.dbg ~= nil then
             SPSShearBolt.dbg(string.format("repair activatable: created %d on %s (%d outsideControl, %d pumpControl host nodes)",
@@ -2819,9 +3094,18 @@ function SlurryPipeManager:registerVehicle(vehicle)
     entry.vacPumpFull      = nil
     entry.vacFullThreshold = 0.99
     entry._vacSoundState   = "off"
+    entry.vacFullAnimationName = nil   -- [SPS 1.0.2.0] <sounds fullAnimation="...">: float ball up at the full threshold (SPSM_Flow updatePumpSounds)
     if vehicle.isClient and xmlFile:getString(kp .. "slurryPipeSystem.pump#pumpType") == "vacuum" then
         local sndKey = kp .. "slurryPipeSystem.sounds"
         entry.vacFullThreshold = xmlFile:getFloat(sndKey .. "#fullThreshold", 0.99)
+        local fullAnim = xmlFile:getString(sndKey .. "#fullAnimation")
+        if fullAnim ~= nil and fullAnim ~= "" then
+            if vehicle.getAnimationExists ~= nil and vehicle:getAnimationExists(fullAnim) then
+                entry.vacFullAnimationName = fullAnim
+            else
+                print(string.format("[SPS] WARNING: sounds#fullAnimation '%s' is not an animation of %s", tostring(fullAnim), tostring(vehicle.configFileName)))
+            end
+        end
         if xmlFile:hasProperty(sndKey .. ".vacPumpFilling") then
             entry.vacPumpFilling = g_soundManager:loadSampleFromXML(
                 xmlFile, sndKey, "vacPumpFilling",
@@ -2835,8 +3119,6 @@ function SlurryPipeManager:registerVehicle(vehicle)
                 AudioGroup.VEHICLE, vehicle.i3dMappings, vehicle, false)
         end
         if entry.vacPumpFilling ~= nil or entry.vacPumpFull ~= nil then
-            --print("[SPS] vac pump sounds loaded for " .. tostring(vehicle.configFileName)
-                --.. " (fullThreshold=" .. tostring(entry.vacFullThreshold) .. ")")
         end
     end
 
@@ -2969,7 +3251,7 @@ function SlurryPipeManager:registerVehicle(vehicle)
     -- this so the controlling tanker can still discover and drive such a bar even though
     -- it is now SPS-registered.
     entry.isSpreaderImplement = (#entry.armEntries == 0)
-        and (#entry.couplingEntries == 0)
+        and (#entry.couplingEntries == 0 or entry.attachedCouplers == true)
         and (entry.blockageEntries ~= nil and #entry.blockageEntries > 0)
 
     -- A spreader implement (dribble bar) is registered ONLY to carry blockage nodes.
@@ -2987,6 +3269,8 @@ function SlurryPipeManager:registerVehicle(vehicle)
     self:updateDirectionAnimation(vehicle, true)
     -- [SPS 1.0.1.6] Rear valve: snap closed (spreader valve always starts closed).
     self:updateSpreaderValveAnimation(vehicle, true)
+    -- [SPS 1.0.2.0] Named valve / boot / coupler-handle / control animations: known rest pose.
+    self:snapOwnedAnimations(vehicle)
 
     -- [SPS 1.0.1.5] Custom-type safety net: a vehicle that registers as a slurry
     -- machine but whose TYPE never received the tanker override set (neither a
@@ -3167,6 +3451,12 @@ function SlurryPipeManager:unregisterVehicle(vehicle)
                 end
                 entry.pumpControlActivatables = nil
             end
+            if entry.animationControlActivatables ~= nil then
+                for _, activatable in ipairs(entry.animationControlActivatables) do
+                    activatable:delete()
+                end
+                entry.animationControlActivatables = nil
+            end
             if entry.outsideControlActivatables ~= nil then
                 for _, activatable in ipairs(entry.outsideControlActivatables) do
                     activatable:delete()
@@ -3211,6 +3501,7 @@ function SlurryPipeManager:unregisterVehicle(vehicle)
                 delete(entry.nodeTreeRoot)
                 entry.nodeTreeRoot = nil
             end
+            if self.cleanupGauges ~= nil then self:cleanupGauges(entry) end   -- [SPS 1.0.2.0] cloned shared gauges
             if vehicle.spec_fillTriggerVehicle ~= nil
             and vehicle.spec_fillTriggerVehicle.fillTrigger ~= nil then
                 vehicle.spec_fillTriggerVehicle.fillTrigger.isEnabled = true
@@ -3302,7 +3593,6 @@ function SlurryPipeManager:registerPlaceable(placeable)
                                 table.insert(linkedNodes, spsNode)
                             end
                         else
-                            --print("[SPS] registerPlaceable: container target '" .. targetName .. "' not found in placeable")
                         end
                     end
                 end
@@ -3664,12 +3954,32 @@ function SlurryPipeManager:registerPlaceable(placeable)
             end
             extraIdx = extraIdx + 1
         end
+        -- [SPS 1.0.2.0] BUY + SELL POINT: <buyingStation sellPriceScale="0.5" sellFillTypes="LIQUIDMANURE DIGESTATE">
+        -- makes the station also BUY the farm's slurry through a coupler with flowDirection="BOTH" / "DISCHARGE":
+        -- the farm is paid pricePerLiter x sellPriceScale x economy multiplier per litre (SPSM_Flow addToSource).
+        -- sellFillTypes defaults to every type of the switch cycle; absent sellPriceScale = FILL-only as before.
+        local bsSellScales = nil
+        local bsSellScale = xmlFile:getFloat(kp .. "slurryPipeSystem.buyingStation#sellPriceScale", nil)
+        if bsSellScale ~= nil and bsSellScale > 0 then
+            bsSellScales = {}
+            local sellTypesStr = xmlFile:getString(kp .. "slurryPipeSystem.buyingStation#sellFillTypes", nil)
+            if sellTypesStr ~= nil then
+                for ftName in sellTypesStr:gmatch("%S+") do
+                    local ftIdx = g_fillTypeManager:getFillTypeIndexByName(ftName)
+                    if ftIdx ~= nil then bsSellScales[ftIdx] = bsSellScale
+                    else SlurryDebug.log("registerPlaceable: buyingStation#sellFillTypes unknown fillType '" .. tostring(ftName) .. "' ignored") end
+                end
+            else
+                for _, ftIdx in ipairs(bsFillTypes) do bsSellScales[ftIdx] = bsSellScale end
+            end
+        end
         sourceEntry = {
             type       = SPS_SOURCE_TYPE_BUYING_STATION,
             placeable  = placeable,
             station    = placeable.spec_buyingStation.buyingStation,
             fillType   = bsSelected,
             fillTypes  = bsFillTypes,
+            sellScales = bsSellScales,   -- [SPS 1.0.2.0] fillType -> sell price scale (nil = fill-only station)
             -- [SPS 1.0.0.9.28] fillType -> priceScale for SPS-extra sold types
             -- (empty when only vanilla-declared types are sold).
             extraPriceScales = bsExtraScales,
@@ -4006,10 +4316,10 @@ function SlurryPipeManager:registerPlaceable(placeable)
             table.insert(storeCouplings, sc)
             local activatable = SPSPipeActivatable.new(nil, sc)
             sc.activatable = activatable
-            g_currentMission.activatableObjectsSystem:addActivatable(activatable)
+            SlurryPipeManager.gateAdd(activatable)
             local chainAct = SPSChainActivatable.new(nil, 0, sc)
             sc.chainActivatable = chainAct
-            g_currentMission.activatableObjectsSystem:addActivatable(chainAct)
+            SlurryPipeManager.gateAdd(chainAct)
         end
         couplingIndex = couplingIndex + 1
     end
@@ -4054,7 +4364,7 @@ function SlurryPipeManager:registerPlaceable(placeable)
         and g_currentMission ~= nil and g_currentMission.activatableObjectsSystem ~= nil then
             local fixedAgitatorAct = SPSFixedAgitatorActivatable.new(pEntry)
             pEntry.fixedAgitatorActivatable = fixedAgitatorAct
-            g_currentMission.activatableObjectsSystem:addActivatable(fixedAgitatorAct)
+            SlurryPipeManager.gateAdd(fixedAgitatorAct)
         end
     end
 
@@ -4070,7 +4380,7 @@ function SlurryPipeManager:registerPlaceable(placeable)
         local switchRadius = xmlFile:getFloat(kp .. "slurryPipeSystem.buyingStation#switchRadius", 3.0)
         local buyAct = SPSBuyStationActivatable.new(pEntry, switchNode, switchRadius)
         pEntry.buyStationActivatable = buyAct
-        g_currentMission.activatableObjectsSystem:addActivatable(buyAct)
+        SlurryPipeManager.gateAdd(buyAct)
     end
 
     if xmlFileOwned then xmlFile:delete() end
@@ -4532,6 +4842,17 @@ function SlurryPipeManager:saveCouplingConnections(savePath)
             xmlFile:setInt   (base .. "#direction", state.direction)
             -- [SPS 1.0.1.8] the vehicle's own valve (fill-arm cab valve, conduit pump, pump mixer button)
             xmlFile:setBool  (base .. "#valveOpen", state.valveOpen == true)
+            -- [SPS 1.0.2.0] walk-up animation controls (TSA spout): "name=time name=time"
+            if vEntry.animationControlEntries ~= nil and #vEntry.animationControlEntries > 0
+            and veh.getAnimationExists ~= nil and veh.getAnimationTime ~= nil then
+                local parts = {}
+                for _, ac in ipairs(vEntry.animationControlEntries) do
+                    if veh:getAnimationExists(ac.animName) then
+                        table.insert(parts, string.format("%s=%.3f", ac.animName, veh:getAnimationTime(ac.animName) or 0))
+                    end
+                end
+                if #parts > 0 then xmlFile:setString(base .. "#animControls", table.concat(parts, " ")) end
+            end
             pumpIdx = pumpIdx + 1
         end
     end
@@ -4542,11 +4863,19 @@ function SlurryPipeManager:saveCouplingConnections(savePath)
     xmlFile:setBool("slurryPipeSystem#featureThicknessFlow", self.featureToggles.thicknessFlow ~= false)
     xmlFile:setBool("slurryPipeSystem#featureBlockages",     self.featureToggles.blockages     ~= false)
     xmlFile:setBool("slurryPipeSystem#featureLengthFalloff", self.featureToggles.lengthFalloff ~= false)
+    xmlFile:setBool("slurryPipeSystem#featureChemMixing",    self.featureToggles.chemMixing == true)
+    xmlFile:setInt("slurryPipeSystem#featureChemRatio",      tonumber(self.featureToggles.chemRatio) or 9)   -- [SPS CHEM 2026-11-05]
+    xmlFile:setInt("slurryPipeSystem#featureChemRinses",     tonumber(self.featureToggles.chemRinses) or 3)  -- [SPS CHEM 2026-11-06]
+    xmlFile:setBool("slurryPipeSystem#featureWashoutValveManual", self.featureToggles.washoutValveManual == true)   -- [SPS CHEM 2026-11-07]
     -- [SPS 1.0.1.8] Shear bolt master switch was synced but never saved, so it came back ON after every load.
     xmlFile:setBool("slurryPipeSystem#shearBoltEnabled", self.shearBoltEnabled ~= false)
     -- [SPS 1.0.1.8] Pipe mode (false = original system, true = physical pipes only).
     xmlFile:setBool("slurryPipeSystem#physicalPipesEnabled", self.physicalPipesEnabled == true)
     xmlFile:setBool("slurryPipeSystem#pipeModeChosen", self.pipeModeChosen == true)
+    -- [SPS 1.0.2.0] Pipe dirt on/off + speed
+    xmlFile:setBool("slurryPipeSystem#hoseDirtEnabled", self.hoseDirtEnabled ~= false)
+    xmlFile:setFloat("slurryPipeSystem#hoseDirtSpeed", self.hoseDirtSpeed or 1.0)
+    xmlFile:setBool("slurryPipeSystem#spillEnabled", self.spillEnabled == true)   -- [SPS 1.0.2.0] pipe leakage
     -- [SPS 1.0.0.10.4] Stamp the two-pool model version this save was written by, so
     -- a later load can tell a pre-fix `solids` value (inflated, because pumping never
     -- removed dry matter) from a legitimate one. Absent on every existing save, which
@@ -4564,6 +4893,49 @@ function SlurryPipeManager:saveCouplingConnections(savePath)
     xmlFile:setFloat("slurryPipeSystem#hudScale",   hs.scale or 1.0)
     if hs.posX ~= nil then xmlFile:setFloat("slurryPipeSystem#hudPosX", hs.posX) end
     if hs.posY ~= nil then xmlFile:setFloat("slurryPipeSystem#hudPosY", hs.posY) end
+    -- [SPS 1.0.2.0] leak puddles survive a reload
+    if SPSSpill ~= nil and SPSSpill.saveToXML ~= nil then SPSSpill.saveToXML(xmlFile) end
+    -- [SPS 1.0.2.0] OPEN VALVES WITH NO PIPE (William 2026-11-02: "close this gap"): a manual coupler / store coupler /
+    -- 80 mm fitting valve left open with nothing plugged in. Valves on plugged pipe ends travel with the pipe
+    -- (SPSHoseItem save data -> _physValveRestores); connected pairs with the original connections; rear-panel valves with
+    -- the pump states. Keyed by the owner's savegame uniqueId + coupling id; re-applied by _physTryRestoreValves.
+    do
+        local vIdx = 0
+        local function put(owner, c, isPlaceable, isLane)
+            if owner == nil or owner.getUniqueId == nil then return end
+            local uid = owner:getUniqueId()
+            if uid == nil then return end
+            local base = string.format("slurryPipeSystem.openValves.valve(%d)", vIdx)
+            xmlFile:setString(base .. "#owner", uid)
+            xmlFile:setInt(base .. "#couplingId", c.id)
+            xmlFile:setBool(base .. "#isPlaceable", isPlaceable == true)
+            xmlFile:setBool(base .. "#isLane", isLane == true)
+            vIdx = vIdx + 1
+        end
+        for _, vEntry in ipairs(self.registeredVehicles) do
+            for _, c in ipairs(vEntry.couplingEntries or {}) do
+                if c.valveOpen and not c.isConnected and c.physPipe == nil and c.valveType == SPS_VALVE_TYPE_MANUAL
+                   and not c.valveFromRearControl and not c.isChainTerminus and not c.isChainStart then
+                    put(vEntry.vehicle, c, false, false)
+                end
+            end
+        end
+        for _, pEntry in ipairs(self.registeredPlaceables) do
+            for _, sc in ipairs(pEntry.storeCouplings or {}) do
+                if sc.valveOpen and not sc.isConnected and sc.physPipe == nil then put(pEntry.placeable, sc, true, false) end
+            end
+        end
+        for _, pEntry in ipairs(self.registeredLiquidLanePlaceables or {}) do
+            for _, c in ipairs(pEntry.couplings or {}) do
+                if c.ballValveOpen and not c.isConnected and c.physPipe == nil then put(pEntry.placeable, c, true, true) end
+            end
+        end
+        for _, vEntry in ipairs(self.registeredLiquidLaneVehicles or {}) do
+            for _, c in ipairs(vEntry.couplings or {}) do
+                if c.ballValveOpen and not c.isConnected and c.physPipe == nil and c.bridgeCoupling == nil then put(vEntry.object, c, false, true) end
+            end
+        end
+    end
 
     -- Save per-placeable slurry thickness and day counter
     -- [SPS 1.0.0.9.31] One entry PER STORE, not per placeable. Entries are keyed by
@@ -4644,19 +5016,41 @@ function SlurryPipeManager:saveCouplingConnections(savePath)
     -- Save sprayer vehicle animation states
     local sprayerAnimIdx = 0
     for _, sEntry in ipairs(self.registeredSprayerVehicles) do
-        if sEntry.object ~= nil and sEntry.state.loadAnimName ~= nil then
-            local vehicle = sEntry.object
-            if vehicle.getAnimationExists ~= nil and vehicle:getAnimationExists(sEntry.state.loadAnimName) then
-                local animTime = vehicle:getAnimationTime(sEntry.state.loadAnimName)
-                local vx, vy, vz = getWorldTranslation(vehicle.rootNode)
-                local base = string.format("slurryPipeSystem.sprayerAnimations.sprayerAnimation(%d)", sprayerAnimIdx)
-                xmlFile:setFloat(base .. "#x", vx)
-                xmlFile:setFloat(base .. "#y", vy)
-                xmlFile:setFloat(base .. "#z", vz)
-                xmlFile:setString(base .. "#animName", sEntry.state.loadAnimName)
-                xmlFile:setFloat(base .. "#animTime", animTime)
-                sprayerAnimIdx = sprayerAnimIdx + 1
+        local vehicle = sEntry.object
+        if vehicle ~= nil and vehicle.getAnimationExists ~= nil and vehicle.rootNode ~= nil and entityExists(vehicle.rootNode) then
+            -- [SPS 1.0.2.0] the door (loadAnimation) AND every walk-up animation (chem bowl)
+            local names = {}
+            if sEntry.state.loadAnimName ~= nil then table.insert(names, sEntry.state.loadAnimName) end
+            for _, aca in ipairs(sEntry.animationControlActivatables or {}) do
+                if aca.animName ~= nil then table.insert(names, aca.animName) end
             end
+            local vx, vy, vz = getWorldTranslation(vehicle.rootNode)
+            for _, animName in ipairs(names) do
+                if vehicle:getAnimationExists(animName) then
+                    local base = string.format("slurryPipeSystem.sprayerAnimations.sprayerAnimation(%d)", sprayerAnimIdx)
+                    xmlFile:setFloat(base .. "#x", vx)
+                    xmlFile:setFloat(base .. "#y", vy)
+                    xmlFile:setFloat(base .. "#z", vz)
+                    xmlFile:setString(base .. "#animName", animName)
+                    xmlFile:setFloat(base .. "#animTime", vehicle:getAnimationTime(animName))
+                    sprayerAnimIdx = sprayerAnimIdx + 1
+                end
+            end
+        end
+    end
+
+    -- [SPS MKS8 2026-11-10] ...and the door of every liquid-lane vehicle with a loadAnimation (restored the same way)
+    for _, lEntry in ipairs(self.registeredLiquidLaneVehicles or {}) do
+        local vehicle  = lEntry.object
+        local animName = lEntry.state ~= nil and lEntry.state.loadAnimName or nil
+        if animName ~= nil and vehicle ~= nil and vehicle.getAnimationExists ~= nil and vehicle:getAnimationExists(animName)
+        and vehicle.rootNode ~= nil and entityExists(vehicle.rootNode) then
+            local vx, vy, vz = getWorldTranslation(vehicle.rootNode)
+            local base = string.format("slurryPipeSystem.sprayerAnimations.sprayerAnimation(%d)", sprayerAnimIdx)
+            xmlFile:setFloat(base .. "#x", vx); xmlFile:setFloat(base .. "#y", vy); xmlFile:setFloat(base .. "#z", vz)
+            xmlFile:setString(base .. "#animName", animName)
+            xmlFile:setFloat(base .. "#animTime", vehicle:getAnimationTime(animName))
+            sprayerAnimIdx = sprayerAnimIdx + 1
         end
     end
 
@@ -4664,6 +5058,7 @@ function SlurryPipeManager:saveCouplingConnections(savePath)
     -- [SPS 1.0.1.8] Hoses survive a reload on every lane (William): sprayer + liquid lanes.
     if self._saveSprayerConnections ~= nil then self:_saveSprayerConnections(xmlFile) end
     if self._saveLiquidLaneConnections ~= nil then self:_saveLiquidLaneConnections(xmlFile) end
+    if self._saveSprayerChem ~= nil then self:_saveSprayerChem(xmlFile) end
     if self._saveSprayerCompartments ~= nil then
         self:_saveSprayerCompartments(xmlFile)
     end
@@ -4692,6 +5087,7 @@ function SlurryPipeManager:loadCouplingConnections(savePath)
     -- [SPS 1.0.1.8] Saved hoses on the sprayer and liquid lanes -> pending, position-matched at register.
     if self._loadSprayerConnections ~= nil then self:_loadSprayerConnections(xmlFile) end
     if self._loadLiquidLaneConnections ~= nil then self:_loadLiquidLaneConnections(xmlFile) end
+    if self._loadSprayerChem ~= nil then self:_loadSprayerChem(xmlFile) end
     if self._loadSprayerCompartments ~= nil then
         self:_loadSprayerCompartments(xmlFile)
     end
@@ -4721,6 +5117,29 @@ function SlurryPipeManager:loadCouplingConnections(savePath)
     -- Restore selected colour index
     local savedIndex = xmlFile:getInt("slurryPipeSystem#selectedColorIndex", 1)
     self:setCurrentPipeColor(savedIndex)
+    -- [SPS 1.0.2.0] leak puddles (server list; re-sent to the clients on the first update)
+    if SPSSpill ~= nil and SPSSpill.loadFromXML ~= nil then SPSSpill.loadFromXML(xmlFile) end
+    -- [SPS 1.0.2.0] open valves with no pipe: queued for _physTryRestoreValves (the owner object resolves by its
+    -- uniqueId once it exists; each entry gives up after SPS_PHYS_RESTORE_TICKS)
+    do
+        local vIdx, n = 0, 0
+        while true do
+            local base = string.format("slurryPipeSystem.openValves.valve(%d)", vIdx)
+            if not xmlFile:hasProperty(base) then break end
+            local uid = xmlFile:getString(base .. "#owner", nil)
+            if uid ~= nil then
+                self._physValveRestores = self._physValveRestores or {}
+                table.insert(self._physValveRestores, {
+                    ownerId = uid, couplingId = xmlFile:getInt(base .. "#couplingId", 1),
+                    isPlaceable = xmlFile:getBool(base .. "#isPlaceable", false), isLane = xmlFile:getBool(base .. "#isLane", false),
+                    isSprayer = false, noPipe = true, ticks = 0,
+                })
+                n = n + 1
+            end
+            vIdx = vIdx + 1
+        end
+        if n > 0 then print(string.format("[SPS] %d open valve(s) with no pipe queued for restore", n)) end
+    end
 
     -- Load chain data
     self.pendingChains = {}
@@ -4809,6 +5228,7 @@ function SlurryPipeManager:loadCouplingConnections(savePath)
             config    = xmlFile:getString(base .. "#config", nil),
             direction = xmlFile:getInt(base    .. "#direction", SPS_DIRECTION_FILL),
             valveOpen = xmlFile:getBool(base   .. "#valveOpen", false),
+            animControls = xmlFile:getString(base .. "#animControls", nil),   -- [SPS 1.0.2.0]
         })
         pumpIdx = pumpIdx + 1
     end
@@ -4823,11 +5243,19 @@ function SlurryPipeManager:loadCouplingConnections(savePath)
     self.featureToggles.thicknessFlow = xmlFile:getBool("slurryPipeSystem#featureThicknessFlow", true)
     self.featureToggles.blockages     = xmlFile:getBool("slurryPipeSystem#featureBlockages",     true)
     self.featureToggles.lengthFalloff = xmlFile:getBool("slurryPipeSystem#featureLengthFalloff", true)
+    self.featureToggles.chemMixing    = xmlFile:getBool("slurryPipeSystem#featureChemMixing",    false)
+    self.featureToggles.chemRatio     = xmlFile:getInt("slurryPipeSystem#featureChemRatio",      9)   -- [SPS CHEM 2026-11-05]
+    self.featureToggles.chemRinses    = math.clamp(xmlFile:getInt("slurryPipeSystem#featureChemRinses", 3), 1, 3)   -- [SPS CHEM 2026-11-06]
+    self.featureToggles.washoutValveManual = xmlFile:getBool("slurryPipeSystem#featureWashoutValveManual", false)   -- [SPS CHEM 2026-11-07]
     -- [SPS 1.0.1.8] Restore the shear bolt master switch (absent on older saves => stays ON).
     self.shearBoltEnabled = xmlFile:getBool("slurryPipeSystem#shearBoltEnabled", true)
     -- [SPS 1.0.1.8] Pipe mode (absent on older saves => original system).
     self.physicalPipesEnabled = xmlFile:getBool("slurryPipeSystem#physicalPipesEnabled", false)
     self.pipeModeChosen = xmlFile:getBool("slurryPipeSystem#pipeModeChosen", false)
+    -- [SPS 1.0.2.0] Pipe dirt (absent on older saves => on, normal speed)
+    self.hoseDirtEnabled = xmlFile:getBool("slurryPipeSystem#hoseDirtEnabled", true)
+    self.hoseDirtSpeed   = math.clamp(xmlFile:getFloat("slurryPipeSystem#hoseDirtSpeed", 1.0) or 1.0, 0.1, 5.0)
+    self.spillEnabled    = xmlFile:getBool("slurryPipeSystem#spillEnabled", false)   -- [SPS 1.0.2.0] pipe leakage (default off)
     -- [SPS 1.0.0.10.4] Two-pool model version of THIS savegame. Missing on every save
     -- written before the fix, so the default of 1 is what flags them for repair. Left
     -- nil when no save file is read at all (brand-new game), which the restore path
@@ -5242,6 +5670,15 @@ function SlurryPipeManager:tryResolvePendingConnections()
                 -- [SPS 1.0.1.6] Snap the changeover lever to the restored
                 -- direction (instant — no lever swing on savegame load).
                 self:updateDirectionAnimation(best.vehicle, true)
+                -- [SPS 1.0.2.0] valve set + walk-up animation controls: snap to the saved pose
+                self:updateValveAnimations(best.vehicle, true)
+                if pending.animControls ~= nil and best.vehicle.isClient and best.vehicle.setAnimationTime ~= nil then
+                    for name, t in pending.animControls:gmatch("(%S+)=(%S+)") do
+                        if best.vehicle.getAnimationExists ~= nil and best.vehicle:getAnimationExists(name) then
+                            best.vehicle:setAnimationTime(name, math.clamp(tonumber(t) or 0, 0, 1), true)
+                        end
+                    end
+                end
                 SlurryPipeManager.log("tryResolvePendingConnections: restored pump direction=%d on %s",
                     pending.direction, tostring(best.vehicle and best.vehicle.configFileName))
                 table.insert(resolvedPumps, pending)
@@ -5270,31 +5707,22 @@ end
 -- [SPS TRACE] node descriptor: id / name / world pos, nil-safe.
 function SlurryPipeManager:_traceNode(label, node)
     if node == nil or node == 0 then
---        print("[SPS TRACE]   " .. label .. " = nil/0")
         return
     end
     if not entityExists(node) then
-        --print("[SPS TRACE]   " .. label .. " = " .. tostring(node) .. " (NO ENTITY)")
         return
     end
     local x, y, z = getWorldTranslation(node)
-    --print(string.format("[SPS TRACE]   %s = id=%s name='%s' pos=(%.3f,%.3f,%.3f)",
-        --label, tostring(node), tostring(getName(node)), x or 0, y or 0, z or 0))
 end
 
 -- [SPS TRACE] coupling descriptor: id, owner, mount/in/out nodes, flags.
 function SlurryPipeManager:_traceCoupling(label, c)
-    --if c == nil then print("[SPS TRACE] " .. label .. " = nil") return end
     local owner = "?"
     local v, p = self:_findCouplingOwner(c)
     if v ~= nil then owner = "vehicle:" .. tostring(v.configFileName)
     elseif p ~= nil then owner = "placeable:" .. tostring(p.configFileName)
     elseif c.isChainTerminus then owner = "chainTerminus"
     end
-    --print(string.format("[SPS TRACE] %s id=%s owner=%s connector=%s isConnected=%s isChainTerminus=%s isChainStart=%s placeable=%s",
-    --    label, tostring(c.id), owner, tostring(c.connectorType),
-    --    tostring(c.isConnected), tostring(c.isChainTerminus), tostring(c.isChainStart),
-    --    tostring(c.placeable ~= nil)))
     self:_traceNode(label .. ".mountNode", c.mountNode)
     self:_traceNode(label .. ".inNode",    c.inNode)
     self:_traceNode(label .. ".outNode",   c.outNode)
@@ -5460,7 +5888,7 @@ function SlurryPipeManager:sendFullStateToConnection(connection)
                     for idx = 1, 2 do
                         local e = pipe:spsGetEnd(idx)
                         if e ~= nil and e.coupling ~= nil and e.object ~= nil and not e.object.isDeleted and e.couplingId ~= nil then
-                            connection:sendEvent(SPSPhysPipeConnectEvent.new(pipe, idx, e.object, e.isPlaceable == true, e.couplingId, e.coupling.isLiquidLane == true, e.coupling.isSprayerCoupling == true))   -- [SPS 1.0.1.9] + sprayer system
+                            connection:sendEvent(SPSPhysPipeConnectEvent.new(pipe, idx, e.object, e.isPlaceable == true, e.couplingId, e.coupling.isLiquidLane == true, e.coupling.isSprayerCoupling == true))   -- [SPS 1.0.2.0] + sprayer system
                             self._dumpCounts.phys = self._dumpCounts.phys + 1
                         end
                     end
@@ -5562,6 +5990,20 @@ function SlurryPipeManager:sendFullStateToConnection(connection)
             if state.pressure ~= nil and math.abs(state.pressure) > 0.001
                and SPSPressureStateEvent ~= nil then
                 connection:sendEvent(SPSPressureStateEvent.new(vEntry.vehicle, state.pressure))
+            end
+            -- [SPS 1.0.2.0 B2] Held HVP line pressures per path, so a late joiner's outer gauges read them at once
+            -- (the live broadcast only fires on change). Closes spec Q4.
+            if SPSLinePressureEvent ~= nil and self.usesLinePressure ~= nil and self:usesLinePressure(vEntry) then
+                for _, c in ipairs(vEntry.couplingEntries or {}) do
+                    if c.linePressure ~= nil and math.abs(c.linePressure) > 0.001 then
+                        connection:sendEvent(SPSLinePressureEvent.new(vEntry.vehicle, SlurryPipeManager.LINE_PART_COUPLING, c.id, c.linePressure))
+                    end
+                end
+                for _, a in ipairs(vEntry.armEntries or {}) do
+                    if a.linePressure ~= nil and math.abs(a.linePressure) > 0.001 then
+                        connection:sendEvent(SPSLinePressureEvent.new(vEntry.vehicle, SlurryPipeManager.LINE_PART_ARM, a.id, a.linePressure))
+                    end
+                end
             end
         end
     end
@@ -5728,6 +6170,22 @@ function SlurryPipeManager:sendFullStateToConnection(connection)
     -- the live server values instead of the defaults.
     if SPSSettingsSyncEvent ~= nil and SPSSettingsSyncEvent.sendCurrent ~= nil then
         SPSSettingsSyncEvent.sendCurrent(connection)
+    end
+    -- 13b) [SPS 1.0.2.0] Leak puddles currently on the ground (visual only, server list).
+    if SPSSpill ~= nil and SPSSpill.sendAllTo ~= nil then
+        SPSSpill.sendAllTo(connection)
+    end
+    -- 13c) [SPS CHEM 2026-11-05] Sprayer chem books (concentrate / water) for the chem HUD.
+    if SPSChemMix ~= nil and SPSChemMix.sendAllTo ~= nil then
+        SPSChemMix.sendAllTo(connection)
+    end
+    -- 13d) [SPS 2026-11-06] fill / pipe sounds that are playing right now
+    if SPSFillSound ~= nil and SPSFillSound.sendAllTo ~= nil then
+        SPSFillSound.sendAllTo(connection)
+    end
+    -- 13e) [SPS CHEM 2026-11-07] washout station valves (clean water in / dirty water out) for the handle + the panel
+    if SPSChemWashout ~= nil and SPSChemWashout.sendStationsTo ~= nil then
+        SPSChemWashout.sendStationsTo(connection)
     end
 
     -- 14) [SPS 1.0.1.8] Player-drawn water courses (the host's per-map file). A joined client
@@ -6110,7 +6568,11 @@ end
 
 function SlurryPipeManager:update(dt)
 	self._updateCount = (self._updateCount or 0) + 1
---    if self._updateCount == 1 then print("[SPS] update() is running") end
+	-- [SPS 1.0.2.0] leak puddles: server-side drying / cap, client-side async visual creation
+	if SPSSpill ~= nil and SPSSpill.update ~= nil then SPSSpill.update(dt) end
+	-- [SPS 1.0.2.0] leaks from stores / 80 mm fittings with the valve left open (server) + the leak streams (client)
+	if self.tickLeaks ~= nil then self:tickLeaks(dt) end
+	if self.updateLeakStreams ~= nil then self:updateLeakStreams(dt) end
 
 	-- [SPS MP] Send the initial state dump to any client whose connection has
 	-- become ready for events (Connection:sendEvent drops events before then).
@@ -6118,7 +6580,7 @@ function SlurryPipeManager:update(dt)
 	-- [SPS MP] Create any bez visuals that were queued while the pipe visual was
 	-- still async-loading (join-dump bonds applied mid map-load).
 	self:_drainPendingPipeVisuals()
-	-- [SPS 1.0.1.9 MP] client-side retries of join-dump plugs / joins / stows that arrived before their objects registered
+	-- [SPS 1.0.2.0 MP] client-side retries of join-dump plugs / joins / stows that arrived before their objects registered
 	if self._physTryResolveDeferred ~= nil then self:_physTryResolveDeferred() end
 	-- [SPS MP] Re-send IBC-spawn connects after the vehicle has network-synced
 	-- (see the queue site in the IBC-loaded callback). Server only, 2 attempts.
@@ -6162,6 +6624,10 @@ function SlurryPipeManager:update(dt)
 	-- [SPS AI GATE] player<->AI transition detection must run before anything
 	-- else this tick so suspend/resume happens ahead of pressure/flow/blockage.
 	self:updateAIGate(dt)
+	if SPSChemMix ~= nil then SPSChemMix.update(dt) end   -- [SPS CHEM 2026-11-05] books -> clients (throttled)
+	if SPSChemStation ~= nil and SPSChemStation.update ~= nil then SPSChemStation.update(dt) end   -- [SPS CHEM 2026-11-09] bowl handle follows the pour
+	if SPSFillSound ~= nil then SPSFillSound.update(dt) end   -- [SPS 2026-11-06] fill / pipe sounds on / off -> clients
+	self:updateActivatableGate(dt)   -- [SPS GATE 2026-10-28] proximity-gated activatable registration
 	self:updateSpreaderAnimations(dt)
 	self:updatePumpSounds(dt)
 
@@ -6196,6 +6662,33 @@ function SlurryPipeManager:update(dt)
                 for _, c in ipairs(sEntry.couplings) do
                     if c.connectorAnim ~= nil then SPSCouplerAnimator.update(c.connectorAnim, dt) end
                     if c.valveAnim     ~= nil then SPSCouplerAnimator.update(c.valveAnim,     dt) end
+                end
+            end
+            -- [SPS 1.0.2.0] auto-close: door waiting for the chem bowl to fold in (SPSM_Sprayers)
+            if sEntry._pendingDoorClose ~= nil then self:tickSprayerPendingDoorClose(sEntry) end
+            -- [SPS 1.0.2.0] <pump directionAnimation="...">: three-position lever (UX5201 chem station).
+            -- 0.5 = no pipe on any coupling (rest pose), 1 = pipe on + FILL, 0 = pipe on + EMPTY. Every peer
+            -- derives it from the synced connect / direction state, so the moves are local (noEventSend).
+            -- Same stop-time technique as SPSM_Flow updateDirectionAnimation (TSA changeover lever).
+            local dAnim = sEntry.directionAnimName
+            local v = sEntry.object
+            if dAnim ~= nil and v ~= nil and v.getAnimationExists ~= nil and v:getAnimationExists(dAnim) then
+                local connected = false
+                for _, c in ipairs(sEntry.couplings or {}) do
+                    if c.isConnected then connected = true break end
+                end
+                local target = 0.5
+                if connected then
+                    target = (sEntry.state ~= nil and sEntry.state.direction == SPS_SPRAYER_DIRECTION_FILL) and 1 or 0
+                end
+                if sEntry._dirAnimTarget == nil then
+                    v:setAnimationTime(dAnim, target, true)
+                    sEntry._dirAnimTarget = target
+                elseif sEntry._dirAnimTarget ~= target then
+                    sEntry._dirAnimTarget = target
+                    local cur = v:getAnimationTime(dAnim) or 0
+                    v:setAnimationStopTime(dAnim, target)
+                    v:playAnimation(dAnim, target > cur and 1 or -1, cur, true)
                 end
             end
         end
@@ -6749,7 +7242,13 @@ function SlurryPipeManager:update(dt)
         end
 
         self:tickBootDeform(dt)
+
+        if self.tickDrawbarSuspension ~= nil then self:tickDrawbarSuspension(dt) end   -- [SPS 1.0.2.0]
+        if self.tickSpreadPressure ~= nil then self:tickSpreadPressure(dt) end   -- [SPS 1.0.2.0] HVP spreading back pressure (every machine)
+        if self.tickGauges ~= nil then self:tickGauges(dt) end   -- [SPS 1.0.2.0] pressure gauge needles (visual)
         self:tickPumpMixerValves()
+        self:tickValveAnimations()
+        self:tickBootPortAnimations()
         self.armDetectTick = (self.armDetectTick or 0) + 1
         if self.armDetectTick >= 3 then
             self.armDetectTick = 0
@@ -6970,7 +7469,12 @@ function SlurryPipeManager:update(dt)
  
     -- Arm detection every 3 ticks
     self:tickBootDeform(dt)
+    if self.tickDrawbarSuspension ~= nil then self:tickDrawbarSuspension(dt) end   -- [SPS 1.0.2.0]
+    if self.tickSpreadPressure ~= nil then self:tickSpreadPressure(dt) end   -- [SPS 1.0.2.0] HVP spreading back pressure (every machine)
+    if self.tickGauges ~= nil then self:tickGauges(dt) end   -- [SPS 1.0.2.0] pressure gauge needles (visual)
     self:tickPumpMixerValves()
+    self:tickValveAnimations()
+    self:tickBootPortAnimations()
     self.armDetectTick = (self.armDetectTick or 0) + 1
     if self.armDetectTick >= 3 then
         self.armDetectTick = 0
@@ -7089,9 +7593,12 @@ function SlurryPipeManager:isStoreItemSPS(storeItem)
     if storeItem.species == StoreSpecies.VEHICLE then
         if self:findVehicleConfigForVehicle(shim) ~= nil then return true end
         if self:findSprayerVehicleConfigForVehicle(shim) ~= nil then return true end
+        -- [SPS 1.0.2.0] water / milk trailers (MKS 8, MKS 32: <liquidVehicleConfigs>) were never tagged (William 2026-11-03)
+        if self.findLiquidLaneVehicleConfigForVehicle ~= nil and self:findLiquidLaneVehicleConfigForVehicle(shim) ~= nil then return true end
     elseif storeItem.species == StoreSpecies.PLACEABLE then
         if self:findPlaceableConfigForPlaceable(shim) ~= nil then return true end
         if self:findSprayerPlaceableConfigForPlaceable(shim) ~= nil then return true end
+        if self.findLiquidLanePlaceableConfigForPlaceable ~= nil and self:findLiquidLanePlaceableConfigForPlaceable(shim) ~= nil then return true end
     end
     return false
 end
@@ -7118,4 +7625,63 @@ function SlurryPipeManager:tagSPSStoreItems()
         end
     end
     SlurryPipeManager.log("tagSPSStoreItems: tagged %d store item(s)", tagged)
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 1.0.2.0] "Anything set up to work with SPS shows in the SPS brand, even a player's mod" (William 2026-11-03).
+-- A store item has ONE brandIndex, so instead of re-branding (which would pull a Kotte tanker off the Kotte tile) the
+-- shop's brand query is extended: when the SPS brand tile is opened, every SPS-compatible vehicle (same test as the
+-- " SPS" name tag) is listed alongside the items that carry brand SPS themselves. Their own brand tiles are untouched.
+-- The base game lists VEHICLE / HANDTOOL species on brand tiles, never placeables - same here.
+-- ---------------------------------------------------------------------------
+SlurryPipeManager.BRAND_NAME = "SPS"
+SlurryPipeManager.PACK_NAME  = "SPSPIPES"   -- modDesc <storePack name="SPSPIPES"> (addPackItem looks the name up as written)
+
+function SlurryPipeManager.installShopBrandHook()
+    if SlurryPipeManager._shopBrandHooked or ShopController == nil or ShopController.getItemsByBrand == nil then return end
+    SlurryPipeManager._shopBrandHooked = true
+    ShopController.getItemsByBrand = Utils.overwrittenFunction(ShopController.getItemsByBrand, function(shop, superFunc, brandId)
+        local items = superFunc(shop, brandId)
+        local mgr = g_slurryPipeManager
+        if mgr == nil or g_brandManager == nil or g_storeManager == nil then return items end
+        local spsBrand = g_brandManager:getBrandByName(SlurryPipeManager.BRAND_NAME)
+        if spsBrand == nil or spsBrand.index ~= brandId then return items end
+        local have = {}
+        for _, d in ipairs(items) do if d.storeItem ~= nil then have[d.storeItem] = true end end
+        local added = 0
+        for _, storeItem in pairs(g_storeManager:getItems()) do
+            if not have[storeItem] and storeItem.showInStore and not storeItem.isBundleItem
+               and (storeItem.species == StoreSpecies.VEHICLE or storeItem.species == StoreSpecies.HANDTOOL)
+               and (storeItem.extraContentId == nil or g_extraContentSystem == nil or g_extraContentSystem:getIsItemIdUnlocked(storeItem.extraContentId))
+               and mgr:isStoreItemSPS(storeItem) then
+                table.insert(items, shop:makeDisplayItem(storeItem))
+                added = added + 1
+            end
+        end
+        SlurryPipeManager.log("shop brand SPS: %d own + %d SPS-compatible item(s)", #items - added, added)
+        return items
+    end)
+end
+
+-- The "SPS Slurry Kit" store pack (shop > Packs) lists every SPS-compatible vehicle too, base game and other mods
+-- included - packs resolve items by xmlFilename, which is what the store item carries. Once, after tagging.
+function SlurryPipeManager:syncSPSStorePack()
+    if g_storeManager == nil or g_storeManager.getPackItems == nil or g_storeManager.addPackItem == nil then return end
+    local packItems = g_storeManager:getPackItems(SlurryPipeManager.PACK_NAME)
+    if packItems == nil then
+        SlurryPipeManager.log("syncSPSStorePack: pack '%s' not found", SlurryPipeManager.PACK_NAME)
+        return
+    end
+    local have = {}
+    for _, fn in ipairs(packItems) do have[fn] = true end
+    local added = 0
+    for _, storeItem in pairs(g_storeManager:getItems()) do
+        if storeItem.xmlFilename ~= nil and not have[storeItem.xmlFilename] and storeItem.showInStore and not storeItem.isBundleItem
+           and storeItem.species == StoreSpecies.VEHICLE and self:isStoreItemSPS(storeItem) then
+            g_storeManager:addPackItem(SlurryPipeManager.PACK_NAME, storeItem.xmlFilename)
+            have[storeItem.xmlFilename] = true
+            added = added + 1
+        end
+    end
+    SlurryPipeManager.log("syncSPSStorePack: %d vehicle(s) added to the %s pack", added, SlurryPipeManager.PACK_NAME)
 end

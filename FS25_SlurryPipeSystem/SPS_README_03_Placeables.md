@@ -725,6 +725,53 @@ Rules, exactly as SPS reads them:
 
 ---
 
+## 9D. Sprayer washout station — `<washoutStation>` (1.0.2.0)
+
+`placeables/washoutStation/washoutStation.xml` is the bundled example: a `silo` placeable with a WATER store and ONE
+sprayer-system coupling on an 80 mm fitting. A sprayer's water hose connects to it like to a sprayer silo (both modes).
+The station is a **paid mains tap and a drain** for whatever is on the hose:
+
+- **Wash out** (Left Ctrl+W in the cab, or on foot at the sprayer's control node) runs the whole cycle from the station -
+  no rinse tank, no field, no water in the tank needed: clean water runs into the main tank from the station over
+  `rinseFillTime`, paid at the WATER price x `waterPriceScale` (finance line "water"); tank wash, boom flush through the
+  nozzles (onto the grate), final tank wash; the dirty water is pumped back down the same hose and vanishes (no nozzles,
+  no puddles); then the usual question - next rinse (fresh water again) or fold the boom. A sprayer with its own rinse
+  tank uses that for the water and the station for the return.
+- **Y load + B** at the sprayer buys water through the ordinary pipe into the main tank (or the rinse tank with Y set to
+  it), the same price per litre. **Y unload + B** gets rid of whatever the sprayer holds.
+- The station's **handles are the changeover valve**: one valve state, any number of `<handle>` nodes, each turning to its
+  own `cleanRotation` while clean water goes in and `dirtyRotation` while dirty water comes out - whether or not a pipe
+  is on. The bundled station has two: the clean tap (open 0 0 0 / shut 0 90 0) and the dirty return (shut 0 0 0 / open
+  0 -90 0). The SPS settings row **Washout station valve** decides: *Automatic* -
+  the valve follows the cycle and the sprayer's direction; *By hand* - the player flips it (R at the handle, within
+  `valveRadius` m) and the cycle waits for it ("Set the washout station valve to ..."). The chem panel shows the valve state.
+
+```xml
+<silo>
+    <storages>
+        <storage node="storage" fillTypes="WATER" capacity="20000" isExtension="false"/>
+    </storages>
+</silo>
+<sprayerPipeSystem>
+    <washoutStation waterPriceScale="1.0" valveRadius="2.5">
+        <handle node="waterHandle"      cleanRotation="0 0 0" dirtyRotation="0 90 0"/>
+        <handle node="dirtyWaterHandle" cleanRotation="0 0 0" dirtyRotation="0 -90 0"/>
+    </washoutStation>
+    <sprayerPipeCouplings>
+        <sprayerPipeCoupling id="1" mountNodeName="SPS_liquidPipeCoupler01" flowDirection="BOTH" maxPipeLength="7.5"/>
+    </sprayerPipeCouplings>
+</sprayerPipeSystem>
+```
+
+- `waterPriceScale` scales the clean water's price (1 = the base game's water price, 0 = free).
+- Each `<handle node="...">` is found by name in the placeable; the rotations are absolute, in degrees, local to the
+  handle; the by-hand prompt sits at the first handle. The old single form (`changeoverNodeName` + `cleanRotation` /
+  `dirtyRotation` on `<washoutStation>`) still works as a one-handle list. Leave the coupling
+  without `valveAnimation` when the handle is the changeover (the library animation would fight it).
+- The fitting node needs `inNode` / `outNode` children (and the `...Arcs` pair for the original-mode hose).
+- Under the hood the store is kept full of WATER while the valve is on clean and empty while on dirty; the sprayer
+  system's own flow does the pumping, `<washoutStation>` only adds the valve, the price and the cycle hooks.
+
 ## 10. Slurry separator — `<separator>` (screw-press placeables)
 
 A placeable of type `manureHeapSeparator` (a placeable type parenting the vanilla

@@ -122,8 +122,16 @@ function SPSSprayerValveStateEvent:run(connection)
                         c.valveOpen = self.valveOpen
                         if c.connectedPartnerCoupling ~= nil then
                             c.connectedPartnerCoupling.valveOpen = self.valveOpen
+                            -- [SPS 2026-11-10] a tanker hosed to this sprayer (lane bridge): its named inlet valve follows
+                            local pc = c.connectedPartnerCoupling
+                            if pc.isLiquidLaneBridge and pc.object ~= nil and g_slurryPipeManager._llBridgeNamedValves ~= nil then
+                                g_slurryPipeManager:_llBridgeNamedValves(pc.object, self.valveOpen)
+                            end
                         end
                     end
+                end
+                if vEntry.isLiquidLaneBridge and g_slurryPipeManager._llBridgeNamedValves ~= nil then
+                    g_slurryPipeManager:_llBridgeNamedValves(self.object, self.valveOpen)
                 end
             end
             if not connection:getIsServer() then

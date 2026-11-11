@@ -168,7 +168,7 @@ function SPSPipeVisual:delete()
     self._isLoaded = false
 end
 
--- [SPS 1.0.1.9] also ready when the new hoses can draw: the old mesh is gone since 1.0.1.8, and the callers
+-- [SPS 1.0.2.0] also ready when the new hoses can draw: the old mesh is gone since 1.0.1.8, and the callers
 -- (applyConnectCouplings + its pending-visual retry) gate the whole visual step on this - with _isLoaded alone
 -- every ORIGINAL-mode coupler connection was marked connected but never drawn (report 2026-10-25)
 function SPSPipeVisual:isReady()
@@ -279,14 +279,10 @@ function SPSPipeVisual:createPipe(nodeA, nodeB, startConnectorType, endConnector
     -- [SPS TRACE] log the nodes this pipe is being built on, BEFORE linking
     local function traceN(label, n)
         if n == nil or n == 0 or not entityExists(n) then
-            --print("[SPS TRACE]   createPipe " .. label .. " = nil/invalid"); return
         end
         local x, y, z = getWorldTranslation(n)
         local rx, ry, rz = getWorldRotation(n)
-        --print(string.format("[SPS TRACE]   createPipe %s id=%s name='%s' pos=(%.3f,%.3f,%.3f) rotY=%.1fdeg",
-            --label, tostring(n), tostring(getName(n)), x or 0, y or 0, z or 0, math.deg(ry or 0)))
     end
-    --print("[SPS TRACE] ===== createPipe =====")
     traceN("nodeA(pipe START -> pipeRoot)", nodeA)
     traceN("nodeB(pipe END   -> endConnectors)", nodeB)
 
@@ -308,8 +304,6 @@ function SPSPipeVisual:createPipe(nodeA, nodeB, startConnectorType, endConnector
             if n == nil or n == 0 or not entityExists(n) then return end
             local dx, dy, dz = localDirectionToWorld(n, 0, 0, -1)
             local rx, ry, rz = getWorldRotation(n)
-            --print(string.format("[SPS TRACE]   createPipe %s -Z dir=(%.2f,%.2f,%.2f) rotY=%.1fdeg",
-                --label, dx or 0, dy or 0, dz or 0, math.deg(ry or 0)))
         end
         traceDir("pipeRoot(START) after snap", pipeRoot)
         traceDir("endConnectors(END) after snap", endConnectors)

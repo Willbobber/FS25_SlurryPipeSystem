@@ -70,7 +70,7 @@
       <TransformGroup name="couplings" nodeId="2">
         <TransformGroup name="productionPoint" nodeId="3">
           <TransformGroup name="spsInlet_Gaerreste" translation="2.5 0.85 -1.1" nodeId="4">
-            <TransformGroup name="spsInlet_GaerresteArcs" rotation="167.434 1.82134e-05 -180" nodeId="5">
+            <TransformGroup name="spsInlet_GaerresteArcs" rotation="180 1.82134e-05 180" nodeId="5">
               <TransformGroup name="spsInlet_GaerresteArc01" translation="-1.5 0 2.5" nodeId="6"/>
               <TransformGroup name="spsInlet_GaerresteArc02" translation="1.5 0 2.5" nodeId="7"/>
             </TransformGroup>

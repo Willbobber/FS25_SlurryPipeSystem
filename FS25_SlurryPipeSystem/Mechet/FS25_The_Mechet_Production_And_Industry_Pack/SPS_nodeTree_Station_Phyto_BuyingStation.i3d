@@ -48,8 +48,8 @@
           <TransformGroup name="SPS_buyTypeSwitch" translation="2.5 1.2 5" nodeId="13"/>
           <TransformGroup name="SPS_sprayerPipeCoupler01" translation="4.23383 0.680177 3.71285" nodeId="14">
             <TransformGroup name="SPS_sprayerPipeCoupler01Arcs" nodeId="15">
-              <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="-1.5 0 3.5" nodeId="16"/>
-              <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="1.5 0 3.5" nodeId="17"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="16"/>
+              <TransformGroup name="SPS_sprayerPipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="17"/>
             </TransformGroup>
             <Shape name="sprayerConnector" shapeId="1" clipDistance="150" nodeId="18" castsShadows="true" receiveShadows="true" materialIds="5">
               <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="2" clipDistance="150" nodeId="19" castsShadows="true" receiveShadows="true" materialIds="6"/>

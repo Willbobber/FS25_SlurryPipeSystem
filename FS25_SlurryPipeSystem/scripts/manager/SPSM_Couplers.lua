@@ -89,6 +89,7 @@ function SlurryPipeManager:onCouplingUndeploy(coupling)
     SlurryPipeManager.log("onCouplingUndeploy: couplingId=%s", tostring(coupling and coupling.id))
     if coupling == nil or not coupling.deployable or not coupling.isDeployed then return end
     if coupling.isConnected then return end
+    if coupling.physPipe ~= nil then return end   -- [SPS 1.0.2.0] a physical hose end is plugged in (not yet connected)
     if coupling.chainActivatable ~= nil and coupling.chainActivatable.chain ~= nil then return end
     if g_server ~= nil then
         self:applyCouplingDeployState(coupling.placeable, coupling.id, false)
@@ -272,13 +273,91 @@ function SlurryPipeManager:hasActiveCouplingConnection(vehicle)
             for _, c in ipairs(entry.couplingEntries) do
                 if c.isConnected and c.valveOpen then return true end
                 -- [SPS 1.0.1.8] physical pipe with its far end lying in the water = water intake
-                if c.valveOpen and c.physPipe ~= nil and self.physCouplingIsWaterFed ~= nil
-                   and self:physCouplingIsWaterFed(c) then return true end
+                -- [SPS 1.0.2.0] ...or under a store's slurry surface (physCouplingIsLiquidFed = water or slurry)
+                if c.valveOpen and c.physPipe ~= nil and self.physCouplingIsLiquidFed ~= nil
+                   and self:physCouplingIsLiquidFed(c) then return true end
+                -- [SPS 1.0.2.0] physical pipe with its far end lying free on the ground, "Pipe leakage" on = leak.
+                -- A valve-less coupler that is not on the rear control (valveType NONE) has nothing to close: open.
+                -- A rear-controlled coupler (TSA) is open whenever the panel valve (vehicle state) is open.
+                local leakValveOpen = c.valveOpen or (c.valveType == SPS_VALVE_TYPE_NONE and not c.valveFromRearControl)
+                    or (c.valveFromRearControl and entry.state ~= nil and entry.state.valveOpen == true)
+                -- [SPS 1.0.2.0] physical pipe with its far end inside a store's fill plane, OVER or under the surface
+                -- (fix 2026-11-05): the open end pours into the pit on DISCHARGE or by gravity, so it needs a session
+                -- whatever the lever says. Same valve rule as the leak, so a rear-panel coupler (TSA) counts as soon as
+                -- its panel valve is open. A FILL through an end above the surface still finds no source (air).
+                -- [SPS 1.0.2.0] 2026-11-05: also the BARE coupler mouth of a tanker over a pit (no pipe at all).
+                if leakValveOpen and self.physFreeEndSlurrySource ~= nil
+                   and self:physFreeEndSlurrySource(c) ~= nil then return true end
+                if leakValveOpen and self.physCouplingIsSpilling ~= nil
+                   and self:physCouplingIsSpilling(c) then return true end   -- pipe or no pipe (leak under the valve)
             end
             return false
         end
     end
     return false
+end
+
+-- ---------------------------------------------------------------------------
+-- [SPS 2026-11-10] ONE arc standard, applied at run time to EVERY coupling of EVERY mod (William: "what about all the
+-- mods that have been made but use the old arcs"). The arc a modder laid is read for its DIRECTION only; the three nodes
+-- are then re-laid in memory: the group on the mount node (apex = the mount, what llCouplingGap measures), level in the
+-- owner's own space (a fitting that points up or down, or sits on a tilted tank, no longer tilts its arc - the arc is read
+-- on its vertical only), the two points SPS_ARC_DEPTH out and 2 x SPS_ARC_HALF_WIDTH apart. Nothing is written to any file.
+-- Multiplayer / dedicated server: runs on every peer at the coupling's first use, from the same file geometry and the same
+-- owner up vector, so every machine ends with the identical triangle - no event needed (the connect event carries ids; the
+-- overlap test is only ever run on the machine of the player who presses R).
+-- Skipped: a laid pipe end (isChainTerminus - arcs made by code), an undeployed deployable coupler (its arm may be folded),
+-- an arc with no direction (the IBC tank: both points on the apex). Logged once per corrected arc so the mod shows in the log.
+-- ---------------------------------------------------------------------------
+SPS_ARC_DEPTH      = 2.5
+SPS_ARC_HALF_WIDTH = 1.5
+
+function SlurryPipeManager:_normaliseCouplingArc(coupling, arcsNode, arc1, arc2)
+    if coupling == nil or coupling._arcNormalised then return end
+    if coupling.deployable and not coupling.isDeployed then return end   -- again when it is deployed
+    if arcsNode == nil or arc1 == nil or arc2 == nil then return end
+    local parent = getParent(arcsNode)
+    if parent == nil or parent == 0 or not entityExists(parent) then return end
+    coupling._arcNormalised = true
+    -- the owner's up: level in VEHICLE / BUILDING space, not world space (a tanker parked on a slope at load must not bake
+    -- a tilted arc)
+    local owner = coupling.object or coupling.vehicle or coupling.placeable
+    local rootNode = owner ~= nil and owner.rootNode or nil
+    local upx, upy, upz = 0, 1, 0
+    if rootNode ~= nil and rootNode ~= 0 and entityExists(rootNode) then
+        upx, upy, upz = localDirectionToWorld(rootNode, 0, 1, 0)
+    end
+    local ax, ay, az = getWorldTranslation(arcsNode)
+    local x1, y1, z1 = getWorldTranslation(arc1)
+    local x2, y2, z2 = getWorldTranslation(arc2)
+    local dx, dy, dz = (x1 + x2) * 0.5 - ax, (y1 + y2) * 0.5 - ay, (z1 + z2) * 0.5 - az
+    -- the direction, projected onto the owner's horizontal plane
+    local rise = dx * upx + dy * upy + dz * upz
+    dx, dy, dz = dx - upx * rise, dy - upy * rise, dz - upz * rise
+    local depth = math.sqrt(dx * dx + dy * dy + dz * dz)
+    if depth < 0.05 then return end   -- no direction to read: leave the arc as laid
+    dx, dy, dz = dx / depth, dy / depth, dz / depth
+    local width = MathUtil.vector3Length(x1 - x2, y1 - y2, z1 - z2)
+    local tilt = math.deg(math.atan2(math.abs(rise), depth))
+    -- which authored point lies on the LEFT of the direction (left = up x dir), so the names keep their side
+    local lx, ly, lz = upy * dz - upz * dy, upz * dx - upx * dz, upx * dy - upy * dx
+    local leftFirst = ((x1 - ax) * lx + (y1 - ay) * ly + (z1 - az) * lz) >= 0
+    -- re-lay: group on the mount, +Z along the direction, +Y the owner's up; points flat at the standard
+    local ldx, ldy, ldz = worldDirectionToLocal(parent, dx, dy, dz)
+    local lux, luy, luz = worldDirectionToLocal(parent, upx, upy, upz)
+    setTranslation(arcsNode, 0, 0, 0)
+    setDirection(arcsNode, ldx, ldy, ldz, lux, luy, luz)
+    local a, b = arc1, arc2
+    if not leftFirst then a, b = arc2, arc1 end
+    setTranslation(a, -SPS_ARC_HALF_WIDTH, 0, SPS_ARC_DEPTH)
+    setTranslation(b,  SPS_ARC_HALF_WIDTH, 0, SPS_ARC_DEPTH)
+    setRotation(arc1, 0, 0, 0)
+    setRotation(arc2, 0, 0, 0)
+    if math.abs(depth - SPS_ARC_DEPTH) > 0.05 or math.abs(width - 2 * SPS_ARC_HALF_WIDTH) > 0.05 or tilt > 3 then
+        print(string.format("[SPS ARC] %s coupling id=%s: arc re-laid to %.1f x %.1f level (file had depth %.2f, width %.2f, tilt %.0f deg)",
+            tostring(owner ~= nil and owner.configFileName or "?"), tostring(coupling.id), SPS_ARC_DEPTH, 2 * SPS_ARC_HALF_WIDTH,
+            depth, width, tilt))
+    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -321,6 +400,7 @@ function SlurryPipeManager:_getCouplingArcNodes(coupling)
     local arc2 = getChildAt(arcsNode, 1)
     if arc1 == nil or arc1 == 0 or arc2 == nil or arc2 == 0 then return nil, nil, nil end
     if not entityExists(arc1) or not entityExists(arc2) then return nil, nil, nil end
+    self:_normaliseCouplingArc(coupling, arcsNode, arc1, arc2)   -- [2026-11-10] once: the ONE arc standard
     return arcsNode, arc1, arc2
 end
 
@@ -695,7 +775,6 @@ function SlurryPipeManager:onCouplerConnect(vehicle, coupling)
         return
     end
 
---    print("[SPS TRACE] ===== onCouplerConnect (player activated) =====")
     self:_traceCoupling("onCouplerConnect.coupling(activated)", coupling)
     self:_traceCoupling("onCouplerConnect.otherCoupling(found)", otherCoupling)
 
@@ -768,7 +847,6 @@ function SlurryPipeManager:applyConnectCouplings(couplingA, couplingB, ownerA, o
         tostring(couplingA and couplingA.id), tostring(couplingB and couplingB.id), tostring(g_server ~= nil),
         tostring(g_spsPipeVisual ~= nil),
         tostring(g_spsPipeVisual ~= nil and g_spsPipeVisual:isReady())))
---    print("[SPS TRACE] ===== applyConnectCouplings =====")
     self:_traceCoupling("applyConnect.couplingA", couplingA)
     self:_traceCoupling("applyConnect.couplingB", couplingB)
     couplingA.isConnected              = true
@@ -794,8 +872,6 @@ function SlurryPipeManager:applyConnectCouplings(couplingA, couplingB, ownerA, o
         if vehicleCoupling.chainActivatable ~= nil then
             vehicleCoupling.chainActivatable.chain = chain
         end
-        --print("[SPS] applyConnectCouplings: chain re-anchored from coupling id="
-            --.. tostring(oldAnchor and oldAnchor.id) .. " to id=" .. tostring(vehicleCoupling.id))
     end
     reAnchorIfNeeded(couplingA, couplingB)
     reAnchorIfNeeded(couplingB, couplingA)
@@ -837,19 +913,11 @@ function SlurryPipeManager:applyConnectCouplings(couplingA, couplingB, ownerA, o
         local startConnType = (leadCoupling.connectorType ~= nil) and leadCoupling.connectorType or "male"
         local endConnType   = (followCoupling.connectorType ~= nil) and followCoupling.connectorType or "female"
         
-        --print(string.format("[SPS] applyConnectCouplings: swapped=%s lead.isChainTerminus=%s follow.isChainTerminus=%s lead.isChainStart=%s follow.isChainStart=%s",
-        --    tostring(swapped),
-        --    tostring(leadCoupling.isChainTerminus), tostring(followCoupling.isChainTerminus),
-        --    tostring(leadCoupling.isChainStart),    tostring(followCoupling.isChainStart)))
 
         -- [SPS TRACE] Which coupling ended up lead/follow, and the EXACT nodes the
         -- bez pipe will use. nodeA = pipe START (pipeRoot), nodeB = pipe END (endConnectors).
---        print(string.format("[SPS TRACE] applyConnect: LEAD id=%s (inNode used=%s) | FOLLOW id=%s (outNode used=%s)",
---            tostring(leadCoupling.id),   tostring(leadCoupling.inNode ~= nil and not (leadCoupling.isChainTerminus and leadCoupling.chain ~= nil)),
---            tostring(followCoupling.id), tostring(followCoupling.outNode ~= nil and not (followCoupling.isChainTerminus and followCoupling.chain ~= nil))))
         self:_traceNode("applyConnect.nodeA(pipe START)", nodeA)
         self:_traceNode("applyConnect.nodeB(pipe END)",   nodeB)
---        print("[SPS TRACE] applyConnect: startConnType=" .. tostring(startConnType) .. " endConnType=" .. tostring(endConnType))
 
         local inst = self:_createCouplerVisual(nodeA, nodeB, startConnType, endConnType, leadCoupling, followCoupling)
         SlurryPipeManager.logMP(string.format("[SPS MP] applyConnectCouplings createPipe nodeA=%s nodeB=%s inst=%s",
@@ -897,8 +965,10 @@ function SlurryPipeManager:applyConnectCouplings(couplingA, couplingB, ownerA, o
 
     -- Play connector animations forward on both ends (no-op if not bound).
     if SPSCouplerAnimator ~= nil then
-        if couplingA.connectorAnim ~= nil then SPSCouplerAnimator.play(couplingA.connectorAnim, 1) end
-        if couplingB.connectorAnim ~= nil then SPSCouplerAnimator.play(couplingB.connectorAnim, 1) end
+        -- [SPS 1.0.2.0] a coupling with a PHYSICAL pipe end plugged in has already had its clamp closed by that plug; playing it
+        -- again when the chain completes re-ran the clamp on the end that was locked first (William 2026-11-05).
+        if couplingA.connectorAnim ~= nil and couplingA.physPipe == nil then SPSCouplerAnimator.play(couplingA.connectorAnim, 1) end
+        if couplingB.connectorAnim ~= nil and couplingB.physPipe == nil then SPSCouplerAnimator.play(couplingB.connectorAnim, 1) end
     end
 
 end
@@ -1052,15 +1122,27 @@ function SlurryPipeManager:applyDisconnect(vehicle, couplingId, couplingObj)
     -- Capture valveOpen state before clearing so we know whether to play valveAnim reverse
     local wasValveOpen = (coupling.valveOpen == true) or (partner ~= nil and partner.valveOpen == true)
 
+    -- [SPS 1.0.2.0] fix 2026-11-05 (William: "removing a pipe from a coupler of a placeable closed the tanker valve and
+    -- that shouldnt happen"; then "any open valve can leak poo"): in pipe mode a coupler with its OWN manual valve - on a
+    -- tanker or on a store - keeps the handle where the player left it when a pipe comes off. The valve works at any time
+    -- there (2026-11-02), and an open one then leaks / vents / pours into a pit by the hole rules (a store: tickLeaks).
+    -- A valve-less coupler only mirrored its partner's valve, so it is cleared; rear-panel couplers and chain ends too.
+    local function keepsValve(c)
+        return c ~= nil and c.valveOpen == true and self.physicalPipesEnabled == true
+           and c.valveType == SPS_VALVE_TYPE_MANUAL and not c.valveFromRearControl
+           and not c.isChainTerminus and not c.isChainStart
+    end
+    local keepValveA, keepValveB = keepsValve(coupling), keepsValve(partner)
+
     -- Clear state on both ends
     coupling.isConnected             = false
-    coupling.valveOpen               = false
+    coupling.valveOpen               = keepValveA
     coupling.connectedTarget         = nil
     coupling.connectedPartnerCoupling = nil
 
     if partner ~= nil then
         partner.isConnected              = false
-        partner.valveOpen                = false
+        partner.valveOpen                = keepValveB
         partner.connectedTarget          = nil
         partner.connectedPartnerCoupling = nil
         local partnerVehicle, _ = self:_findCouplingOwner(partner)
@@ -1097,8 +1179,9 @@ function SlurryPipeManager:applyDisconnect(vehicle, couplingId, couplingObj)
         if coupling.connectorAnim ~= nil then SPSCouplerAnimator.play(coupling.connectorAnim, -1) end
         if partner ~= nil and partner.connectorAnim ~= nil then SPSCouplerAnimator.play(partner.connectorAnim, -1) end
         if wasValveOpen then
-            if coupling.valveAnim ~= nil then SPSCouplerAnimator.play(coupling.valveAnim, -1) end
-            if partner ~= nil and partner.valveAnim ~= nil then SPSCouplerAnimator.play(partner.valveAnim, -1) end
+            -- [SPS 1.0.2.0] a valve that stays open (keepsValve above) keeps its handle open too
+            if coupling.valveAnim ~= nil and not keepValveA then SPSCouplerAnimator.play(coupling.valveAnim, -1) end
+            if partner ~= nil and partner.valveAnim ~= nil and not keepValveB then SPSCouplerAnimator.play(partner.valveAnim, -1) end
         end
     end
 
@@ -1107,7 +1190,11 @@ end
 function SlurryPipeManager:onValveOpen(vehicle, coupling)
     SlurryPipeManager.log("onValveOpen: %s couplingId=%s", tostring(vehicle and vehicle.configFileName), tostring(coupling and coupling.id))
     -- [SPS 1.0.1.8] a physical pipe lying free in the water counts as connected (water intake)
-    if not (coupling.isConnected or (self.physCouplingIsWaterFed ~= nil and self:physCouplingIsWaterFed(coupling))) then return end
+    -- [SPS 1.0.2.0] ...and in PIPE MODE a manual valve opens at any time (William 2026-11-02: "we should be able to open
+    -- and close the valves all the time") - with "Pipe leakage" on it then pours onto the ground.
+    if not (coupling.isConnected or self.physicalPipesEnabled == true
+            or (self.physCouplingIsLiquidFed ~= nil and self:physCouplingIsLiquidFed(coupling))   -- [SPS 1.0.2.0] water or slurry
+            or (self.physCouplingIsSpilling ~= nil and self:physCouplingIsSpilling(coupling))) then return end
     if coupling.valveOpen then return end
 
 
@@ -1127,7 +1214,7 @@ end
 function SlurryPipeManager:onValveClose(vehicle, coupling)
     SlurryPipeManager.log("onValveClose: %s couplingId=%s", tostring(vehicle and vehicle.configFileName), tostring(coupling and coupling.id))
     -- [SPS 1.0.1.8] closing must work on a water-fed physical pipe as well (and on a stale open valve)
-    if not (coupling.isConnected or coupling.physPipe ~= nil) then return end
+    if not (coupling.isConnected or coupling.physPipe ~= nil or self.physicalPipesEnabled == true) then return end   -- [SPS 1.0.2.0] pipe mode: always closable
     if not coupling.valveOpen then return end
 
     if g_server == nil then
@@ -1344,8 +1431,15 @@ function SlurryPipeManager:applyValveState(vehicle, couplingId, isOpen, coupling
     if partner == nil and coupling.isChainStart and coupling.chain ~= nil then
         partner = coupling.chain.anchorCoupling
     end
-    if partner ~= nil then
+    -- [SPS 1.0.2.0] Only a partner WITHOUT a valve of its own mirrors this valve (store couplers / valve-less NONE,
+    -- HYDRAULIC = the cab valve's mirror, chain termini). A MANUAL partner has its own handle and a NONE partner with
+    -- valveFromRearControl (Kotte TSA) has its rear-panel control - those stay as they are, and the flow needs BOTH
+    -- ends open (William 2026-11-04: "it can't draw from the TSA if the TSA valve is closed").
+    -- Strap-pipe (original) mode keeps the one-valve-per-pipe behaviour (William: "it should in old mode but not this").
+    local mirrored = false
+    if partner ~= nil and (not self:isPhysicalPipesMode() or not self:couplingHasOwnValve(partner)) then
         partner.valveOpen = isOpen
+        mirrored = true
     end
 
     -- If closing, stop any active flow on both sides
@@ -1357,13 +1451,14 @@ function SlurryPipeManager:applyValveState(vehicle, couplingId, isOpen, coupling
         end
     end
 
-    -- Play valve animations (no-op if not bound).
+    -- Play valve animations (no-op if not bound). The partner's handle only swings when its valve was mirrored -
+    -- a partner with its own valve (physical pipe mode) keeps its handle where its own control left it.
     if SPSCouplerAnimator ~= nil then
         local dir = isOpen and 1 or -1
         if coupling.valveAnim ~= nil then
             SPSCouplerAnimator.play(coupling.valveAnim, dir)
         end
-        if partner ~= nil and partner.valveAnim ~= nil then
+        if mirrored and partner ~= nil and partner.valveAnim ~= nil then
             SPSCouplerAnimator.play(partner.valveAnim, dir)
         end
     end

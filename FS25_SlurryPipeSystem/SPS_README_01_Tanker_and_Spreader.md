@@ -124,6 +124,23 @@ Legacy fallbacks still work: `conduit="true"` maps to `pumpType="conduit"`, and
   on every direction toggle and snaps it to the right pose on load — savegame restores
   included, synced in multiplayer automatically. A missing animation name warns once in
   the log.
+- `directionAnimationCentreOff="true"` (1.0.2.0+, optional, with `directionAnimation`) — a
+  three-position lever: **time 0 = FILL, 0.5 = CENTRE, 1 = DISCHARGE**. The lever sits at
+  0.5 while the pump is off, swings to the set direction when the pump starts and returns
+  to centre when it stops. Author the animation with the centre pose at exactly 0.5.
+- Valve animations (1.0.2.0+, optional, Kotte TSA) — names of animations from your own
+  `<animations>`, **time 0 = closed, time 1 = open**, played when the vehicle's valve
+  (cab or rear control) opens and reversed when it closes, snapped on load:
+  - `valveAnimation="valveLever"` — a two-position valve lever (time 0 closed, 1 open);
+  - `valveOpenPulseAnimation="leverOpen"` / `valveClosePulseAnimation="leverClose"` — a
+    spring-return lever instead: each is a one-shot (0 → swing → back to 0) played forward on
+    open / on close and never reversed; both sit at time 0 on load;
+  - `valveOpenAnimations="valve03 valve06"` — space-separated list opened in BOTH directions;
+  - `valveFillAnimations="valve04"` — opened only while the pump is set to fill;
+  - `valveEmptyAnimations="valve01 valve02"` — opened only while set to empty.
+  A valve that is also opened by something else (a fill arm in the boot, `armAnimations`;
+  the water coupler, `valveAnimations`) stays open until the LAST thing holding it lets go,
+  so put each valve in its own `<animation>` and list the names.
 
 Only `pumpType="vacuum"` vehicles use the pressure model. A fertiliser/herbicide sprayer is
 also automatically excluded from the pressure model even if tagged vacuum.
@@ -578,6 +595,11 @@ and compresses with the arm; it releases 0.3 m above the lower node and eases ba
 `bootBaseBoneName` (optional) names the base bone; it is held at rest (a share of the rim's sideways
 movement can be enabled in SPSBootDeform.BASE_FOLLOW, off by default). The lower / upper nodes must stay at the rest pose - they are the docking window.
 
+`armAnimations="valve05 valve06"` (optional, 1.0.2.0) - space-separated names from the vehicle's own
+`<animations>` (time 0 closed, 1 open) held open while a fill arm is connected to this port and closed
+when it leaves. Shared with `<pump valve*Animations>` / `<liquidPipeCoupling valveAnimations>` through
+the same open-demand count, so a valve two things want stays open until both let go.
+
 **Fill-arm tip node convention:** a `tipNodeName` node's **Y (green) axis points UP the suction
 head**, away from the flange face. Position alone drives docking; the axis is what a skinned boot
 tilts to (Samson pgII28: the flange is not square to the floor and the boot follows it).
@@ -634,6 +656,26 @@ The log prints one line when the cab variant is active.
 ```
 
 `nodeName` required; `radius` defaults to 1.5.
+
+---
+
+## 11A. Walk-up animation controls — `<animationControls>` (1.0.2.0)
+
+A node the player walks up to and presses **X** (`SPS_TOGGLE_ANIMATION`) to play one of the vehicle's
+own `<animations>` forward, and again to play it back. Kotte TSA: the spout is swung out by hand.
+
+```xml
+<animationControls>
+    <animationControl id="1" nodeName="spoutHandleKey" radius="1.2" animation="spoutRotate"
+                      textForward="action_spsSpoutOut" textBackward="action_spsSpoutBack"/>
+</animationControls>
+```
+
+`nodeName` and `animation` required (a missing node or animation name is skipped with a log warning).
+`radius` defaults to 1.5. `textForward` / `textBackward` are l10n keys (or plain text) for the prompt
+while the animation is at rest / moved. The pose is saved with the SPS pump state and restored on load;
+multiplayer sync is the vanilla AnimatedVehicle event. Nothing gates it - pipes connect with the
+animation in either state.
 
 ---
 

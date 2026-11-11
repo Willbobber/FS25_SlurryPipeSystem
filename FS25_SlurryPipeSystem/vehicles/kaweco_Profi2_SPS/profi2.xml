@@ -1,0 +1,693 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<vehicle type="manureBarrel" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../shared/xml/schema/vehicle.xsd">
+    <annotation>Copyright (C) GIANTS Software GmbH, All Rights Reserved.</annotation>
+
+    <storeData>
+        <name>Profi II SPS</name>
+        <specs>
+            <neededPower>260</neededPower>
+            <combination xmlFilename="$data/vehicles/zunhammer/vibro/vibro.xml"/>
+            <combination xmlFilename="$data/vehicles/samsonAgro/sd700/sd700.xml"/>
+            <combination xmlFilename="$data/vehicles/bomech/multiProfi/multiProfi.xml"/>
+        </specs>
+        <functions>
+            <function>$l10n_function_slurrySpreaderWithoutTool</function>
+        </functions>
+        <image>$data/vehicles/kaweco/profi2/store_profi2.png</image>
+        <price>60500</price>
+        <lifetime>600</lifetime>
+        <rotation>0</rotation>
+        <brand>SPS</brand>   <!-- [SPS 1.0.2.0] our own SPS build: SPS brand (William 2026-11-03) -->
+        <category>slurryTanks</category>
+        <shopTranslationOffset>0 -0.005 0</shopTranslationOffset>
+        <shopRotationOffset>0.122 0 0</shopRotationOffset>
+        <vertexBufferMemoryUsage>2122496</vertexBufferMemoryUsage>
+        <indexBufferMemoryUsage>1057536</indexBufferMemoryUsage>
+        <textureMemoryUsage>393216</textureMemoryUsage>
+        <instanceVertexBufferMemoryUsage>0</instanceVertexBufferMemoryUsage>
+        <instanceIndexBufferMemoryUsage>0</instanceIndexBufferMemoryUsage>
+        <audioMemoryUsage>0</audioMemoryUsage>
+    </storeData>
+
+    <base>
+        <typeDesc>$l10n_typeDesc_manureBarrel</typeDesc>
+        <filename>vehicles/kaweco_Profi2_SPS/profi2.i3d</filename>
+        <size width="3.05" length="9.6" height="4.2" lengthOffset="-0.03"/>
+        <speedLimit value="16" />
+        <components>
+            <component centerOfMass="0 0.85 -0.55" solverIterationCount="20" mass="5950"/>
+        </components>
+        <schemaOverlay attacherJointPosition="0 0" name="IMPLEMENT"/>
+    </base>
+
+    <!-- Front fill pipe (2026-11-05). Option index 0 = NOT fitted and is the default, so the tanker shows
+         without the pipe in the shop; index 1 = fitted.
+         ONLY kawecoFillPipe is hidden, and with it its children ('coupler' > 'slurryPipe', the tractor hose
+         connector). Nothing else is touched: fillPipeCoupler stays on the tanker either way, and so does every
+         pressure gauge - the gauges belong to the coupler, not to this pipe.
+         What "Not fitted" removes is the FRONT FILL SYSTEM only: the tractor fill-arm receiver hose (<hose> under
+         <tractorMountFillArms>) is gated to index 1 below, so no fill arm can connect to kawecoFillPipe unless the
+         pipe is bought. The SPS coupler (couplerRootBone > SPS_pipeCoupler01, the fillPipeCoupler shape) is the
+         manual valve for the physical pipe / laid pipe and is NEVER gated or hidden - it is there in both options
+         (William 2026-11-07; the 11-05 gate on the coupling was wrong and left a new "Not fitted" tanker with no pipe
+         prompt at all). -->
+    <designConfigurations title="Front fill pipe">
+        <designConfiguration name="Not fitted">
+            <objectChange node="kawecoFillPipe" visibilityActive="false"/>
+        </designConfiguration>
+        <designConfiguration name="Fitted" price="1200">
+            <objectChange node="kawecoFillPipe" visibilityActive="true"/>
+        </designConfiguration>
+    </designConfigurations>
+
+    <wheels>
+        <wheelConfigurations tireCategories="TRAILER">
+            <wheelConfiguration name="$l10n_configuration_valueDefault" price="0" saveId="DEFAULT" numDynamicConfigurations="1">
+                <wheels>
+                    <wheel dimensions="800_60R32" isLeft="true" hasTireTracks="true" hasParticles="true">
+                        <physics restLoad="1.6" repr="wheelFrontLeft"                           forcePointRatio="0.35" initialCompression="12" suspTravel="0.15" spring="70" damper="40" yOffset="0.035"/>
+                        <wheelChock parkingNode="wheelChock01_01"/>
+                        <wheelChock parkingNode="wheelChock01_02" isInverted="true"/>
+                    </wheel>
+                    <wheel dimensions="800_60R32" isLeft="false" hasTireTracks="true" hasParticles="true">
+                        <physics restLoad="1.6" repr="wheelFrontRight"                          forcePointRatio="0.35" initialCompression="12" suspTravel="0.15" spring="70" damper="40" yOffset="0.035"/>
+                    </wheel>
+                    <wheel dimensions="800_60R32" isLeft="true">
+                        <physics restLoad="1.6" repr="axisBackLeft"  driveNode="wheelBackLeft"  forcePointRatio="0.35" initialCompression="12" suspTravel="0.15" spring="70" damper="40" yOffset="0.035"/>
+                        <steering node="steeringBarBack" nodeMinTransX="0.081" nodeMaxTransX="-0.081"/>
+                        <steeringAxle scale="-0.6" rotMax="15" rotMin="-15"/>
+                    </wheel>
+                    <wheel dimensions="800_60R32" isLeft="false">
+                        <physics restLoad="1.6" repr="axisBackRight" driveNode="wheelBackRight" forcePointRatio="0.35" initialCompression="12" suspTravel="0.15" spring="70" damper="40" yOffset="0.035"/>
+                        <steeringAxle scale="-0.6" rotMax="15" rotMin="-15"/>
+                    </wheel>
+                </wheels>
+            </wheelConfiguration>
+        </wheelConfigurations>
+
+        <hubs>
+            <hub linkNode="wheelFrontLeft"  filename="$data/shared/wheels/hubs/hub_n10_5.xml" isLeft="true"  scale="0.40 0.40 0.40" offset="-0.005"/>
+            <hub linkNode="wheelFrontRight" filename="$data/shared/wheels/hubs/hub_n10_5.xml" isLeft="false" scale="0.40 0.40 0.40" offset="-0.005"/>
+            <hub linkNode="wheelBackLeft"   filename="$data/shared/wheels/hubs/hub_n10_5.xml" isLeft="true"  scale="0.40 0.40 0.40" offset="-0.005"/>
+            <hub linkNode="wheelBackRight"  filename="$data/shared/wheels/hubs/hub_n10_5.xml" isLeft="false" scale="0.40 0.40 0.40" offset="-0.005"/>
+        </hubs>
+
+        <hubMaterial materialTemplateName="KAWECO_GREY"/>
+    </wheels>
+
+    <designColorConfigurations>
+        <material materialSlotName="body_mat" />
+        <designColorConfiguration materialTemplateName="KAWECO_GREEN1" name="$l10n_ui_colorGreen"/>
+        <designColorConfiguration materialTemplateName="KAWECO_ORANGE1" name="$l10n_ui_colorOrange"/>
+    </designColorConfigurations>
+
+
+    <attachable>
+        <inputAttacherJoints>
+            <inputAttacherJoint node="attacherJoint" jointType="trailerLow" attacherHeight="0.663" steeringBarLeftNode="steeringBarLeft"/>
+        </inputAttacherJoints>
+        <steeringAxleAngleScale startSpeed="2" endSpeed="90" backwards="true"/>
+        <brakeForce force="1.5" maxForce="3.4" maxForceMass="25500"/>
+        <support animationName="moveSupport" />
+        <sounds>
+            <active file="$data/sounds/tools/trailer/trailerRattle_02.wav" innerRadius="10" outerRadius="50" volumeScale="3.5" isLocalSound="true" pitchScale="1.1">
+                <volume indoor="0.7" outdoor="0.9" >
+                    <modifier type="WHEEL_SUSPENSION" value="-0.04" modifiedValue="0.2"/>
+                    <modifier type="WHEEL_SUSPENSION" value="-0.02" modifiedValue="0.13"/>
+                    <modifier type="WHEEL_SUSPENSION" value="-0.01" modifiedValue="0.02"/>
+                    <modifier type="WHEEL_SUSPENSION" value="-0.00" modifiedValue="0.00"/>
+                    <modifier type="WHEEL_SUSPENSION" value="0.01" modifiedValue="0.02"/>
+                    <modifier type="WHEEL_SUSPENSION" value="0.02" modifiedValue="0.13"/>
+                    <modifier type="WHEEL_SUSPENSION" value="0.04" modifiedValue="0.2"/>
+
+                    <modifier type="SPEED" value="0.0" modifiedValue="0.0"/>
+                    <modifier type="SPEED" value="2.0" modifiedValue="1.0"/>
+                    <modifier type="SPEED" value="40.0" modifiedValue="1.0"/>
+                </volume>
+                <lowpassCutoffFrequency indoor="250" outdoor="20000" />
+                <lowpassGain indoor="0.5" outdoor="1" />
+            </active>
+        </sounds>
+    </attachable>
+
+    <attacherJoints>
+        <attacherJoint node="attacherJointBack" jointType="implement" lowerRotationOffset="0.03" upperRotationOffset="0" moveTime="2.5" canTurnOnImplement="false">
+            <distanceToGround lower="0.32" upper="1.33" />
+            <rotationNode node="attacherJointBackRot" lowerRotation="-28 0 0" upperRotation="45 0 0" />
+            <rotationNode2 node="attacherJointBackRot2" />
+            <bottomArm rotationNode="attacherJointBackArmBottom" translationNode="bottomArm" referenceNode="referencePointBackBottom" zScale="-1" categoryRange="2"/>
+            <topArm baseNode="attacherJointBackArmTop" materialTemplateName="KAWECO_GREY" filename="$data/shared/assets/upperLinks/walterscheidSO_65_660.xml" zScale="-1" />
+            <schema position="1 0" rotation="0" invertX="false" />
+        </attacherJoint>
+        <sounds>
+            <attach template="attach01" linkNode="0>" />
+            <hydraulic template="hydraulicOpen02" linkNode="0>" />
+        </sounds>
+    </attacherJoints>
+
+    <powerTakeOffs>
+        <input inputAttacherJointIndices="1" inputNode="ptoInputNode" aboveAttacher="true" detachNode="ptoDetachNode"/>
+        <local startNode="localPowerTakeOff01Start" endNode="localPowerTakeOff01End" />
+
+        <sounds>
+            <turnedOn template="tractorPTO" volumeScale="0.6" linkNode="attacherJoint"/>
+        </sounds>
+    </powerTakeOffs>
+
+    <connectionHoses>
+        <hose inputAttacherJointIndices="1" type="hydraulicIn"  node="hydraulicIn01" adapterNode="hydraulicIn01_detached" length="1.7" diameter="0.025" straighteningFactor="1.5">
+           <objectChange node="hydraulicIn01_detached" visibilityActive="false" visibilityInactive="true"/>
+        </hose>
+        <hose inputAttacherJointIndices="1" type="electric"  node="electricIn01" adapterNode="electricIn01_detached" length="1.7" diameter="0.015" straighteningFactor="1.5">
+           <objectChange node="electricIn01_detached" visibilityActive="false" visibilityInactive="true"/>
+        </hose>
+        <hose inputAttacherJointIndices="1" type="airDoubleRed" node="airIn" adapterNode="airIn_detached" length="1.7" diameter="0.02" straighteningFactor="1">
+            <objectChange node="airIn_detached" visibilityActive="false" visibilityInactive="true" />
+        </hose>
+        <hose inputAttacherJointIndices="1" type="airDoubleYellow" node="airOut" adapterNode="airOut_detached" length="1.7" diameter="0.02" straighteningFactor="1">
+            <objectChange node="airOut_detached" visibilityActive="false" visibilityInactive="true" />
+        </hose>
+
+        <target attacherJointIndices="1" type="TOOL_CONNECTOR_TOP_RIGHT" adapterType="NONE" node="topLeftHose" straighteningFactor="1">
+            <objectChange node="topLeftHoseStart" visibilityActive="true" visibilityInactive="false" />
+        </target>
+        <localHose>
+            <hose type="TOOL_CONNECTOR_TOP_RIGHT"  node="topLeftHoseStart" length="0.3" diameter="0.16" isTwoPointHose="true" straighteningFactor="0.25"/>
+            <target type="TOOL_CONNECTOR_TOP_RIGHT" node="topLeftHoseEnd" straighteningFactor="1"/>
+        </localHose>
+
+        <target attacherJointIndices="1" type="hydraulicIn" node="targetHydraulicIn01" straighteningFactor="2"/>
+        <target attacherJointIndices="1" type="hydraulicOut" node="targetHydraulicOut01" straighteningFactor="2"/>
+        <target attacherJointIndices="1" type="hydraulicIn" node="targetHydraulicIn02" straighteningFactor="2"/>
+        <target attacherJointIndices="1" type="hydraulicOut" node="targetHydraulicOut02" straighteningFactor="2"/>
+        <target attacherJointIndices="1" type="hydraulicIn" node="targetHydraulicIn03" straighteningFactor="2"/>
+        <target attacherJointIndices="1" type="hydraulicOut" node="targetHydraulicOut03" straighteningFactor="2"/>
+        <target attacherJointIndices="1" type="electric" node="targetElectric" socket="electric"/>
+
+        <sounds>
+            <connect    type="airDoubleRed" template="hydraulicHosesAttach" volumeScale="0.7" linkNode="attacherJoint"/>
+            <connect    type="electric"     template="generalConnection"    volumeScale="0.7" linkNode="attacherJoint"/>
+            <disconnect type="airDoubleRed" template="hydraulicHosesDetach" volumeScale="0.7" linkNode="attacherJoint"/>
+            <disconnect type="electric"     template="generalConnection"    volumeScale="0.7" linkNode="attacherJoint"/>
+        </sounds>
+    </connectionHoses>
+
+    <licensePlates>
+        <licensePlate node="licensePlateNodeBack"  position="BACK" preferedType="ELONGATED" placementArea="0.07 0.25 0.3 0.25"/>
+    </licensePlates>
+
+    <powerConsumer ptoRpm="400" neededMinPtoPower="15" neededMaxPtoPower="20"/>
+
+    <lights>
+        <sharedLight linkNode="sideMarker01_left" filename="$data/shared/assets/lights/lizard/sideMarker01_left.xml" />
+        <sharedLight linkNode="sideMarker01_right" filename="$data/shared/assets/lights/lizard/sideMarker01_right.xml" />
+        <sharedLight linkNode="workingLight09_01" lightTypes="1" filename="$data/shared/assets/lights/lizard/workingLight09.xml">
+            <rotationNode name="rotationNode1" rotation="20 0 0" />
+        </sharedLight>
+
+        <sharedLight linkNode="workingLight09_02" lightTypes="1" filename="$data/shared/assets/lights/lizard/workingLight09.xml">
+            <rotationNode name="rotationNode1" rotation="20 0 0" />
+        </sharedLight>
+
+        <sharedLight linkNode="plateNumberLight02" lightTypes="0" filename="$data/shared/assets/lights/lizard/plateNumberLight02.xml" />
+        <sharedLight linkNode="plateNumberLight03" lightTypes="0" filename="$data/shared/assets/lights/lizard/plateNumberLight02.xml" />
+        <sharedLight linkNode="rearLight33_left1" lightTypes="0" filename="$data/shared/assets/lights/lizard/rearLight33_left.xml" />
+        <sharedLight linkNode="rearLight33_right1" lightTypes="0" filename="$data/shared/assets/lights/lizard/rearLight33_right.xml" />
+
+        <realLights>
+            <high>
+                <light node="backLightsHigh1" lightTypes="0" />
+                <light node="workLightBackLow" lightTypes="1" />
+                <turnLightLeft node="turnLightLeftBack" />
+                <turnLightRight node="turnLightRightBack" />
+                <brakeLight node="backLightsHigh1" />
+                <reverseLight node="reverseLight" />
+                <light node="licensePlateLightHigh" lightTypes="0"/>
+            </high>
+        </realLights>
+
+        <beaconLights>
+            <beaconLight node="beaconLight07" filename="$data/shared/assets/beaconLights/lizard/beaconLight07.xml" mountType="POLE"/>
+        </beaconLights>
+    </lights>
+
+    <animations>
+        <animation name="moveSupport">
+            <part node="supportCol"         startTime="0" endTime="0.1" startTrans="0 0.4 0" endTrans="0 0.11 0" />
+            <part node="supportArm"         startTime="0" endTime="0.2" startRot="0 0 0"     endRot="-90 0 0" />
+            <part node="supportArmTrans"    startTime="0" endTime="0.2" startTrans="0 0 0"   endTrans="0 0 -0.165" />
+
+            <sound template="slideOpen" startTime="0.01" endTime="0.19" volumeScale="2"   pitchScale="2"   linkNode="supportArm"/>
+            <sound template="hingeImp"  startTime="0.19" direction="-1" volumeScale="0.7" pitchScale="1.2" linkNode="supportArm"/>
+        </animation>
+        <animation name="fillLevel">
+            <part node="fillLevelIndicator" startTime="0" endTime="1.0" startRot="0 0 0"     endRot="0 0 -129" />
+        </animation>
+
+        <!-- ===== SPS (1.0.2.0) coupler on the skinned 'coupler' shape (bones under rootJoint > couplerRootBone).
+             Everything moves in the coupler's own plane, so every rotation is about the 3rd axis (Z) - except
+             the one noted on valve03Bone. time 0 = rest / open, time 1 = clamped / valve open. ===== -->
+
+        <!-- Clamp lever, plays forward when a pipe connects to SPS_pipeCoupler01 (<pipeCoupling
+             connectorAnimationName>). clamp01Bone swings the full -90; clamp02Bone and clamp03Bone are solved
+             as a four-bar at every key so clamp03RefNode stays ON clamp03RefTargetNode the whole way (the hook
+             pivots about that point instead of wandering off it). Keyed every 15 deg of lever: the hook end
+             stays within 0.33 mm of the target between keys.
+             Lever / link / hook lengths: 0.045363 / 0.124083 / 0.218277 m. -->
+        <animation name="couplerClamp">
+            <part node="clamp01Bone" startTime="0.0000" endTime="0.1667" startRot="0 0 0"       endRot="0 0 -15"/>
+            <part node="clamp01Bone" startTime="0.1667" endTime="0.3333" startRot="0 0 -15"     endRot="0 0 -30"/>
+            <part node="clamp01Bone" startTime="0.3333" endTime="0.5000" startRot="0 0 -30"     endRot="0 0 -45"/>
+            <part node="clamp01Bone" startTime="0.5000" endTime="0.6667" startRot="0 0 -45"     endRot="0 0 -60"/>
+            <part node="clamp01Bone" startTime="0.6667" endTime="0.8333" startRot="0 0 -60"     endRot="0 0 -75"/>
+            <part node="clamp01Bone" startTime="0.8333" endTime="1.0000" startRot="0 0 -75"     endRot="0 0 -90"/>
+
+            <part node="clamp02Bone" startTime="0.0000" endTime="0.1667" startRot="0 0 0"       endRot="0 0 9.418"/>
+            <part node="clamp02Bone" startTime="0.1667" endTime="0.3333" startRot="0 0 9.418"   endRot="0 0 19.077"/>
+            <part node="clamp02Bone" startTime="0.3333" endTime="0.5000" startRot="0 0 19.077"  endRot="0 0 29.323"/>
+            <part node="clamp02Bone" startTime="0.5000" endTime="0.6667" startRot="0 0 29.323"  endRot="0 0 40.48"/>
+            <part node="clamp02Bone" startTime="0.6667" endTime="0.8333" startRot="0 0 40.48"   endRot="0 0 52.802"/>
+            <part node="clamp02Bone" startTime="0.8333" endTime="1.0000" startRot="0 0 52.802"  endRot="0 0 66.423"/>
+
+            <part node="clamp03Bone" startTime="0.0000" endTime="0.1667" startRot="0 0 0"       endRot="0 0 5.917"/>
+            <part node="clamp03Bone" startTime="0.1667" endTime="0.3333" startRot="0 0 5.917"   endRot="0 0 11.057"/>
+            <part node="clamp03Bone" startTime="0.3333" endTime="0.5000" startRot="0 0 11.057"  endRot="0 0 15.018"/>
+            <part node="clamp03Bone" startTime="0.5000" endTime="0.6667" startRot="0 0 15.018"  endRot="0 0 17.431"/>
+            <part node="clamp03Bone" startTime="0.6667" endTime="0.8333" startRot="0 0 17.431"  endRot="0 0 18.032"/>
+            <part node="clamp03Bone" startTime="0.8333" endTime="1.0000" startRot="0 0 18.032"  endRot="0 0 16.751"/>
+        </animation>
+
+        <!-- Valve handle (<pipeCoupling valveAnimationName>). valve01Bone swings the full -45; valve02Bone is
+             solved at every key so valve03Bone slides ONLY along its own green (local Y) axis - the shaft line -
+             and never off it. That axis is (0.342594 0.939484) in couplerRootBone space, i.e. 20.03 deg off the
+             tanker's vertical (the whole coupler is tilted 20 deg), which is why this is NOT a straight lift in
+             world Y. Travel along the shaft at -45 = 85.21 mm. Keyed every 7.5 deg of handle: the shaft stays
+             within 0.239 mm of its line between keys, exact at every key.
+             Crank / link lengths: 0.111725 / 0.161831 m. Rest valve03 at (0.184861 0.37609).
+
+             valve03Bone is the counter-rotation that holds the shaft parallel to itself while the linkage swings
+             under it - without it the shaft tips off its line. It is on the 1st axis, NOT the 3rd, and positive:
+             valve03Bone sits under the 'valve03' node, whose baked rotation (20.0352 89.5716 0) turns its local
+             axes so the coupler plane normal lines up with -X of the bone, not Z. n about its X == -n about the
+             plane normal (0.43 deg of axis skew, ~0.08 deg of residual tilt at full open). If the 'valve03' node
+             is ever zeroed or the bone re-parented straight onto valve02Bone, move these to "0 0 -n" instead.
+             Travel along the shaft per key (mm), to check in GE:
+               0: 0.00 | -7.5: 14.78 | -15: 29.85 | -22.5: 44.86 | -30: 59.39 | -37.5: 73.00 | -45: 85.21 -->
+        <animation name="couplerValve">
+            <part node="valve01Bone" startTime="0.0000" endTime="0.1667" startRot="0 0 0"       endRot="0 0 -7.5"/>
+            <part node="valve01Bone" startTime="0.1667" endTime="0.3333" startRot="0 0 -7.5"    endRot="0 0 -15"/>
+            <part node="valve01Bone" startTime="0.3333" endTime="0.5000" startRot="0 0 -15"     endRot="0 0 -22.5"/>
+            <part node="valve01Bone" startTime="0.5000" endTime="0.6667" startRot="0 0 -22.5"   endRot="0 0 -30"/>
+            <part node="valve01Bone" startTime="0.6667" endTime="0.8333" startRot="0 0 -30"     endRot="0 0 -37.5"/>
+            <part node="valve01Bone" startTime="0.8333" endTime="1.0000" startRot="0 0 -37.5"   endRot="0 0 -45"/>
+
+            <part node="valve02Bone" startTime="0.0000" endTime="0.1667" startRot="0 0 0"       endRot="0 0 7.734"/>
+            <part node="valve02Bone" startTime="0.1667" endTime="0.3333" startRot="0 0 7.734"   endRot="0 0 16.165"/>
+            <part node="valve02Bone" startTime="0.3333" endTime="0.5000" startRot="0 0 16.165"  endRot="0 0 25.266"/>
+            <part node="valve02Bone" startTime="0.5000" endTime="0.6667" startRot="0 0 25.266"  endRot="0 0 35"/>
+            <part node="valve02Bone" startTime="0.6667" endTime="0.8333" startRot="0 0 35"      endRot="0 0 45.317"/>
+            <part node="valve02Bone" startTime="0.8333" endTime="1.0000" startRot="0 0 45.317"  endRot="0 0 56.163"/>
+
+            <part node="valve03Bone" startTime="0.0000" endTime="0.1667" startRot="0 0 0"       endRot="0.234 0 0"/>
+            <part node="valve03Bone" startTime="0.1667" endTime="0.3333" startRot="0.234 0 0"   endRot="1.165 0 0"/>
+            <part node="valve03Bone" startTime="0.3333" endTime="0.5000" startRot="1.165 0 0"   endRot="2.766 0 0"/>
+            <part node="valve03Bone" startTime="0.5000" endTime="0.6667" startRot="2.766 0 0"   endRot="5 0 0"/>
+            <part node="valve03Bone" startTime="0.6667" endTime="0.8333" startRot="5 0 0"       endRot="7.817 0 0"/>
+            <part node="valve03Bone" startTime="0.8333" endTime="1.0000" startRot="7.817 0 0"   endRot="11.163 0 0"/>
+        </animation>
+    </animations>
+
+    <cylindered>
+        <movingTools>
+            <movingTool node="arm01"  playSound="true" >
+                <controls axis="AXIS_CRANE_ARM2" invertAxis="true" mouseSpeedFactor="0.3" iconName="CRANE_EC_TRANSLATE_Z" />
+                <rotation rotSpeed="25" rotAcceleration="150" rotMax="100" rotMin="0" rotationAxis="3"/>
+                <dependentPart node="arm01Hydraulic" />
+                <dependentMovingTool node="arm02">
+                    <rotationBasedLimits>
+                        <limit rotation="10" rotMax="0"    rotMin="-90" />
+                        <limit rotation="100" rotMax="-90" rotMin="-90" />
+                    </rotationBasedLimits>
+                </dependentMovingTool>
+            </movingTool>
+            <movingTool node="arm02" playSound="true">
+                <controls axis="AXIS_CRANE_ARM" invertAxis="false" mouseSpeedFactor="0.3" iconName="CRANE_EC_TRANSLATE_Z" />
+                <rotation rotSpeed="25" rotAcceleration="150" rotMax="0" rotMin="-90" rotationAxis="3" syncMinRotLimits="true" syncMaxRotLimits="true"/>
+            </movingTool>
+            <movingTool node="attacherJointBackArmBottom">
+                <dependentPart node="bottomArmHydraulic" />
+            </movingTool>
+        </movingTools>
+
+        <movingParts>
+            <movingPart node="fillLevelIndicatorPart" referencePoint="fillLevelIndicatorPartRef" referenceFrame="fillLevelIndicatorPartRef" isActiveDirty="true" maxUpdateDistance="20"/>
+            <movingPart node="steeringBarLeft" localReferencePoint="steeringBarLeftPart" referencePoint="steeringBarLeftPartRef" referenceFrame="steeringBarLeftRefFrame">
+                <dependentPart node="steeringBarLeftPart" />
+                <dependentPart node="steeringBarLeftHydraulic" />
+            </movingPart>
+            <movingPart node="steeringBarLeftPart" referencePoint="steeringBarLeftPartRef" referenceFrame="steeringBarLeftPartRefFrame"/>
+            <movingPart node="steeringBarLeftHydraulic" referencePoint="steeringBarLeftHydraulicRef" referenceFrame="steeringBarLeftHydraulicRef">
+                <translatingPart node="steeringBarLeftHydraulicPunch" />
+            </movingPart>
+            <movingPart node="axisBackLeftHydraulic" referencePoint="axisBackLeftHydraulicRef" referenceFrame="axisBackLeftHydraulicRef" isActiveDirty="true" maxUpdateDistance="20">
+                <translatingPart node="axisBackLeftHydraulicPunch" />
+            </movingPart>
+            <movingPart node="axisBackRightHydraulic" referencePoint="axisBackRightHydraulicRef" referenceFrame="axisBackRightHydraulicRef" isActiveDirty="true" maxUpdateDistance="20">
+                <translatingPart node="axisBackRightHydraulicPunch" />
+            </movingPart>
+            <movingPart node="steeringBarBack" referencePoint="steeringBarBackRef" referenceFrame="steeringBarBackRef" isActiveDirty="true" maxUpdateDistance="20"/>
+            <movingPart node="arm01Hydraulic" referencePoint="arm01HydraulicRef" referenceFrame="arm01HydraulicRefFrame">
+                <translatingPart node="arm01HydraulicPunch" />
+            </movingPart>
+            <movingPart node="bottomArmHydraulic" referencePoint="bottomArmHydraulicRef" referenceFrame="bottomArmHydraulicRef">
+                <translatingPart node="bottomArmHydraulicPunch" />
+            </movingPart>
+        </movingParts>
+
+        <sounds>
+            <actionSound template="hydraulicOpen05"       volumeScale="2"   pitchScale="1.8" linkNode="arm01" actionNames="TOOL_MOVE_POS TOOL_MOVE_NEG" nodes="arm01" fadeIn="0.1" fadeOut="0.1"/>
+            <actionSound template="hydraulicClose02"      volumeScale="2"   pitchScale="2.0" linkNode="arm02" actionNames="TOOL_MOVE_POS TOOL_MOVE_NEG" nodes="arm02" fadeIn="0.1" fadeOut="0.1"/>
+            <actionSound template="metalImpLow"           volumeScale="1"   pitchScale="1.0" linkNode="arm01" actionNames="TOOL_MOVE_END_NEG_LIMIT"     nodes="arm01"/>
+            <actionSound template="trailerCloseImpact_01" volumeScale="1"   pitchScale="1.0" linkNode="arm01" actionNames="TOOL_MOVE_END_NEG_LIMIT"     nodes="arm01"/>
+            <actionSound template="cylinderPunch"         volumeScale="0.6" pitchScale="1.0" linkNode="arm01" actionNames="TOOL_MOVE_END_NEG_LIMIT"     nodes="arm01"/>
+            <actionSound template="cylinderPunch"         volumeScale="0.4" pitchScale="1.8" linkNode="arm01" actionNames="TOOL_MOVE_END_POS_LIMIT"     nodes="arm01"/>
+            <actionSound template="clackVar6"             volumeScale="2.6" pitchScale="0.8" linkNode="arm01" actionNames="TOOL_MOVE_END_POS_LIMIT"     nodes="arm01"/>
+            <actionSound template="clackVar6"             volumeScale="2.6" pitchScale="0.8" linkNode="arm02" actionNames="TOOL_MOVE_END_POS_LIMIT"     nodes="arm02"/>
+            <actionSound template="metalImpHigh01"        volumeScale="0.6" pitchScale="0.8" linkNode="arm02" actionNames="TOOL_MOVE_END_POS_LIMIT"     nodes="arm02"/>
+            <actionSound template="metalImpHigh01"        volumeScale="0.6" pitchScale="0.8" linkNode="arm02" actionNames="TOOL_MOVE_END_NEG_LIMIT"     nodes="arm02"/>
+            <actionSound template="cylinderPunch"         volumeScale="0.6" pitchScale="1.8" linkNode="arm02" actionNames="TOOL_MOVE_END_NEG_LIMIT"     nodes="arm02"/>
+        </sounds>
+    </cylindered>
+
+    <fillUnit>
+        <fillUnitConfigurations>
+            <fillUnitConfiguration>
+                <fillUnits>
+                    <fillUnit shopDisplayUnit="CUBICMETER" fillTypeCategories="slurryTank" capacity="20000" >
+                        <dashboard displayType="ANIMATION" valueType="fillLevel" animName="fillLevel"/>
+                        <exactFillRootNode node="exactFillRootNode" />
+                    </fillUnit>
+                    <fillTrigger consumePtoPower="true" litersPerSecond="1000"/>
+                </fillUnits>
+            </fillUnitConfiguration>
+        </fillUnitConfigurations>
+
+        <sounds>
+            <fill template="slurry01" />
+        </sounds>
+    </fillUnit>
+
+    <fillTriggerVehicle triggerNode="fillTrigger" fillUnitIndex="1" litersPerSecond="1000"/>
+
+    <dischargeable requiresTipOcclusionArea="false">
+        <dischargeNode node="dischargeNode" emptySpeed="1000" fillUnitIndex="1" canDischargeToGround="false">
+            <info width="1.0" length="0.5" zOffset="0.4" />
+            <trigger node="dischargeTrigger" />
+            <dischargeSound template="slurry01"/>
+        </dischargeNode>
+    </dischargeable>
+
+    <turnOnVehicle>
+        <activatableFillUnits>
+            <activatableFillUnit index="1" />
+        </activatableFillUnits>
+
+        <sounds>
+            <work template="slurry03">
+                <pitch indoor="0.75" outdoor="0.75" />
+            </work>
+        </sounds>
+    </turnOnVehicle>
+
+    <foliageBending>
+        <bendingNode wheelIndices="1 2 3 4" minZ="-3.6" maxZ="0.8" yOffset="0.55"/>
+        <bendingNode minX="-1.3" maxX="1" minZ="0.8" maxZ="3.1" yOffset="0.55"/>
+        <bendingNode minX="-0.3" maxX="0.3" minZ="3.1" maxZ="4.4" yOffset="0.55"/>
+    </foliageBending>
+
+    <ai>
+        <allowTurnBackward value="false"/>
+        <toolReverserDirectionNode node="toolReverserDirectionNode"/>
+        <turningRadiusLimitation radius="8"/>
+        <agentAttachment jointNode="attacherJoint" rotCenterWheelIndices="1 2 3 4" width="3.05" height="4.2" length="9.5" lengthOffset="1.1"/>
+    </ai>
+
+    <rimColorConfigurations useDefaultColors="false">
+        <rimColorConfiguration materialTemplateName="RIM_DEFAULT"/>
+        <rimColorConfiguration materialTemplateName="CLAAS_RED1"/>
+    </rimColorConfigurations>
+
+    <wearable wearDuration="480" workMultiplier="5" fieldMultiplier="2"/>
+    <washable dirtDuration="90" washDuration="1" workMultiplier="4" fieldMultiplier="2"/>
+
+    <slurryPipeSystem>
+
+        <!-- SPS nodes are baked into profi2.i3d: the SPS_profi2 group under profi2_vis, and the fill-arm nodes
+             (SPS_fillArmCentre01 + effect > pipeEffect / pipeEffectSmoke) directly under
+             movingParts/arm01/arm02/visuals/hoses2. No nodeTree needed. -->
+
+        <flow fillLitersPerSecond="1000" emptyLitersPerSecond="1000"/>
+
+        <pump pumpType="HVP"/>        <!-- profi2, Samson -->
+        <!-- [SPS 1.0.2.0] HVP limits (2026-11-08). A lobe pump PUSHES harder than a vac tank's compressor and SUCKS less
+             (self-priming to under 1 bar of vacuum in real life; the mod's scale runs ~3x for the dials, Supercis 3.5 / 2.5):
+             + side: the discharge line and the spreading back pressure build to maxPressure over minBuildTime, flow and
+             spread rate ramp with it (threshold minThreshold); - side: the fill arm / coupler line pulls to maxVacuum over
+             minBuildTimeVacuum (threshold minThresholdVacuum). purgeTime: how fast a line or the spread pressure drains. -->
+        <pressure maxPressure="3.0" minThreshold="0.3" minBuildTime="6" maxVacuum="2.0" minThresholdVacuum="0.2" minBuildTimeVacuum="3" purgeTime="4"/>
+
+        <surfaceRef emptyNode="emptyNode" fullNode="fullNode"/>
+
+        <fillArms>
+
+            <fillArm
+                id="1"
+                tipType="OPEN_PIT"
+                centreNodeName="SPS_fillArmCentre01"
+                fillUnitIndex="1"
+            >
+                <effects>
+                    <effectNode effectClass="PipeEffect" effectNode="effect" materialType="pipe"
+                                maxBending="0.8" extraDistance="0.1" positionUpdateNodes="pipeEffectSmoke"/>
+                    <effectNode effectNode="pipeEffectSmoke" materialType="unloadingSmoke"
+                                delay="0.1" alignToWorldY="true"/>
+                </effects>
+            </fillArm>
+
+        </fillArms>
+
+        <pipeCouplings>
+
+            <!-- connectorAnimationName = the clamp lever (closes on the pipe), valveAnimationName = the
+                 handle that lifts the stem. Both are the keyed vehicle animations above.
+                 NOT config-gated: the coupler is the tanker's manual valve for the physical pipe / laid pipe
+                 and is registered with either front fill pipe option (William 2026-11-07). -->
+            <pipeCoupling
+                id="1"
+                mountNodeName="SPS_pipeCoupler01"
+                valveType="MANUAL"
+                maxPipeLength="4.0"
+                fillUnitIndex="1"
+                valveFromRearControl="false"
+                connector="male"
+                connectorAnimationName="couplerClamp"
+                valveAnimationName="couplerValve"
+            />
+
+        </pipeCouplings>
+
+        <rubberBootPorts/>
+
+        <pipeHolders>
+            <pipeHolder id="1" nodeName="SPS_pipeHolder01" radius="1.0"/>
+            <pipeHolder id="2" nodeName="SPS_pipeHolder02" radius="1.0"/>
+            <pipeHolder id="3" nodeName="SPS_pipeHolder03" radius="1.0"/>
+			
+			<cageHolder id="4" nodeName="SPS_cageHolder01" radius="1.5" cages="CAGE_LARGE"/>
+			<cageHolder id="5" nodeName="SPS_cageHolder02" radius="1.5" cages="CAGE_SMALL"/>
+        </pipeHolders>
+
+        <dockingStationHolders>
+            <dockingStationHolder id="1" nodeName="dockingStationPosition" radius="1.5"/>
+        </dockingStationHolders>
+
+        <outsideControls>
+            <outsideControl mountNodeName="pumpControl01" pto="true" direction="false"/>
+        </outsideControls>
+
+        <tractorMountFillArms accepted="true">
+            <!-- The receiver hose hangs off slurryPipe, which lives under kawecoFillPipe > coupler. Gated to the
+                 same design index 1 as the coupling: with "Not fitted" no <hose> passes the gate, so no receiver
+                 hose is injected at all and a tractor-mounted fill arm has nothing to connect to - rather than a
+                 hose running to a hidden node. "first config-gate match wins", so this must stay the only hose. -->
+            <hose inputAttacherJointIndices="1" type="TOOL_CONNECTOR_TOP_RIGHT" node="slurryPipe" length="2" diameter="0.18" isTwoPointHose="true"
+                  configType="design" cylinderedConfigIndex="1">
+                <objectChange node="coupler" visibilityActive="true" visibilityInactive="false" initialState="inactive"/>
+            </hose>
+        </tractorMountFillArms>
+
+        <liquidPipeSystem>
+            <liquidPipeCouplings>
+                <liquidPipeCoupling id="1" mountNodeName="SPS_liquidPipeCoupler01" fillUnitIndex="1" lanes="WATER"
+                                    maxPipeLength="7.5" valveAnimation="4"/>
+            </liquidPipeCouplings>
+            <liquidPumpControls>
+                <liquidPumpControl id="1" nodeName="SPS_liquidControlNode" radius="1.5"/>
+            </liquidPumpControls>
+        </liquidPipeSystem>
+		
+		<!-- Gauges (2026-11-05). "dial" must match the face PRINTED on that gauge, which is set by the decal
+		     material: 1175 = pressure 0..+10, 1176 = vacuum 0..-10 (offsetUV 0.5 0), 1177 = compound -4..+4
+		     (offsetUV 0.5 0.5). Printed faces here: tank01-04 vacuum, tank05/07 pressure, tank06/08/09 compound.
+		     pumpSide="true" = the PUMP side of that part's valve (what William calls the inner side); without it
+		     the gauge reads the line past the valve (the outer side). The three coupler gauges are gated to the
+		     same design index 1 as the coupling, so they go with the front fill pipe. -->
+		<pressureGauges>
+            <!-- fill arm valve: 01 outer side, 02 inner side, 03 reads the same part as 02 but on a compound
+                 face. 01 and 02 are VACUUM faces so they only ever show the suction - _gaugePumpSide targets
+                 -maxPressure while filling and +maxPressure while discharging, and a 0..-10 dial clamps the
+                 positive half away. 03 shows that same reading both ways round. -->
+            <pressureGauge type="outer" fillArmId="1" node="pressureGauge_tank01" dial="vacuum"/>
+            <pressureGauge type="outer" fillArmId="1" pumpSide="true" node="pressureGauge_tank02" dial="vacuum"/>
+            <pressureGauge type="outer" fillArmId="1" pumpSide="true" node="pressureGauge_tank03" dial="compound"/>
+
+            <!-- coupler valve: 04 + 09 inner side, 08 outer side (the pipe connection side). All compound, so
+                 they show the coupler both ways round. Not config gated - these belong to the coupler, which is
+                 always on the tanker, and have nothing to do with the front fill pipe. -->
+            <pressureGauge type="outer" couplingId="1" pumpSide="true" node="pressureGauge_tank04" dial="compound"/>
+            <pressureGauge type="outer" couplingId="1" pumpSide="true" node="pressureGauge_tank09" dial="compound"/>
+            <pressureGauge type="outer" couplingId="1" node="pressureGauge_tank08" dial="compound"/>
+
+            <!-- discharge line: pressure while the spreader is actually pumping out. HVP: the pump's own pressure,
+                 built BECAUSE it pushes slurry out of the spreader (William 2026-11-08) - no stored tank pressure here. -->
+            <pressureGauge type="discharge" node="pressureGauge_tank05" dial="pressure"/>
+            <pressureGauge type="discharge" node="pressureGauge_tank07" dial="pressure"/>
+
+            <!-- the pump itself: - while filling, + while discharging, across the fill arm, the coupler AND the
+                 spreader (while spreading with slurry aboard it builds to the + limit; 2026-11-08, it read 0 there
+                 before). Not gated: it still reads the fill arm when the front fill pipe is not fitted. -->
+            <pressureGauge type="pump" node="pressureGauge_tank06" dial="compound"/>
+        </pressureGauges>
+		
+    </slurryPipeSystem>
+
+    <i3dMappings>
+        <i3dMapping id="profi2_vis" node="0>0" />
+        <i3dMapping id="attacherJoint" node="0>0|0|0" />
+        <i3dMapping id="supportArm" node="0>0|0|1|0" />
+        <i3dMapping id="supportArmTrans" node="0>0|0|1|0|0" />
+        <i3dMapping id="supportCol" node="0>0|0|1|1" />
+        <i3dMapping id="ptoInputNode" node="0>0|0|2|0" />
+        <i3dMapping id="ptoDetachNode" node="0>0|0|2|1" />
+        <i3dMapping id="localPowerTakeOff01End" node="0>0|0|2|2" />
+        <i3dMapping id="localPowerTakeOff01Start" node="0>0|0|2|3" />
+        <i3dMapping id="hydraulicIn01_detached" node="0>0|0|3|0" />
+        <i3dMapping id="electricIn01_detached" node="0>0|0|3|1" />
+        <i3dMapping id="airIn_detached" node="0>0|0|3|2" />
+        <i3dMapping id="airOut_detached" node="0>0|0|3|3" />
+        <i3dMapping id="hydraulicIn01" node="0>0|0|3|4" />
+        <i3dMapping id="electricIn01" node="0>0|0|3|5" />
+        <i3dMapping id="airIn" node="0>0|0|3|6" />
+        <i3dMapping id="airOut" node="0>0|0|3|7" />
+        <i3dMapping id="targetElectric" node="0>0|0|3|8" />
+        <i3dMapping id="targetHydraulicOut03" node="0>0|0|3|9" />
+        <i3dMapping id="targetHydraulicIn03" node="0>0|0|3|10" />
+        <i3dMapping id="targetHydraulicOut02" node="0>0|0|3|11" />
+        <i3dMapping id="targetHydraulicIn02" node="0>0|0|3|12" />
+        <i3dMapping id="targetHydraulicOut01" node="0>0|0|3|13" />
+        <i3dMapping id="targetHydraulicIn01" node="0>0|0|3|14" />
+        <i3dMapping id="topLeftHoseStart" node="0>0|0|3|15" />
+        <i3dMapping id="topLeftHose" node="0>0|0|3|16" />
+        <i3dMapping id="topLeftHoseEnd" node="0>0|0|3|16|0" />
+        <i3dMapping id="wheelFrontRight" node="0>0|1|0" />
+        <i3dMapping id="wheelFrontLeft" node="0>0|1|1" />
+        <i3dMapping id="axisBackLeft" node="0>0|1|2|0" />
+        <i3dMapping id="wheelBackLeft" node="0>0|1|2|0|0|0" />
+        <i3dMapping id="steeringBarBack" node="0>0|1|2|0|1" />
+        <i3dMapping id="axisBackLeftHydraulicRef" node="0>0|1|2|0|2" />
+        <i3dMapping id="axisBackRight" node="0>0|1|3|0" />
+        <i3dMapping id="wheelBackRight" node="0>0|1|3|0|0|0" />
+        <i3dMapping id="steeringBarBackRef" node="0>0|1|3|0|1" />
+        <i3dMapping id="axisBackRightHydraulicRef" node="0>0|1|3|0|2" />
+        <i3dMapping id="wheelChock01_01" node="0>0|1|4" />
+        <i3dMapping id="wheelChock01_02" node="0>0|1|5" />
+        <i3dMapping id="yellowRound_02_01" node="0>0|2|0|0" />
+        <i3dMapping id="yellowRound_02_02" node="0>0|2|0|1" />
+        <i3dMapping id="sideMarker01_left" node="0>0|2|0|2" />
+        <i3dMapping id="sideMarker01_right" node="0>0|2|0|3" />
+        <i3dMapping id="sideMarker09Orange01" node="0>0|2|0|4" />
+        <i3dMapping id="sideMarker09Orange02" node="0>0|2|0|5" />
+        <i3dMapping id="sideMarker09Orange03" node="0>0|2|0|6" />
+        <i3dMapping id="sideMarker09Orange04" node="0>0|2|0|7" />
+        <i3dMapping id="workingLight09_01" node="0>0|2|0|8" />
+        <i3dMapping id="workingLight09_02" node="0>0|2|0|9" />
+        <i3dMapping id="plateNumberLight02" node="0>0|2|0|10" />
+        <i3dMapping id="plateNumberLight03" node="0>0|2|0|11" />
+        <i3dMapping id="rearLight33_left1" node="0>0|2|0|12" />
+        <i3dMapping id="rearLight33_right1" node="0>0|2|0|13" />
+        <i3dMapping id="workLightBackLow" node="0>0|2|1|0" />
+        <i3dMapping id="backLightsHigh1" node="0>0|2|2|0" />
+        <i3dMapping id="turnLightLeftBack" node="0>0|2|3|0" />
+        <i3dMapping id="turnLightRightBack" node="0>0|2|3|1" />
+        <i3dMapping id="reverseLight" node="0>0|2|4|0" />
+        <i3dMapping id="beaconLight07" node="0>0|2|5" />
+        <i3dMapping id="licensePlateLightHigh" node="0>0|2|6" />
+        <i3dMapping id="arm01" node="0>0|3|0" />
+        <i3dMapping id="arm02" node="0>0|3|0|0" />
+        <i3dMapping id="arm01HydraulicRef" node="0>0|3|0|2" />
+        <i3dMapping id="arm01HydraulicRefFrame" node="0>0|3|1" />
+        <i3dMapping id="arm01Hydraulic" node="0>0|3|1|0" />
+        <i3dMapping id="arm01HydraulicPunch" node="0>0|3|1|0|0" />
+        <i3dMapping id="axisBackLeftHydraulic" node="0>0|3|2" />
+        <i3dMapping id="axisBackLeftHydraulicPunch" node="0>0|3|2|0" />
+        <i3dMapping id="axisBackRightHydraulic" node="0>0|3|3" />
+        <i3dMapping id="axisBackRightHydraulicPunch" node="0>0|3|3|0" />
+        <i3dMapping id="bottomArmHydraulic" node="0>0|3|4" />
+        <i3dMapping id="bottomArmHydraulicPunch" node="0>0|3|4|0" />
+        <i3dMapping id="steeringBarLeft" node="0>0|3|5" />
+        <i3dMapping id="steeringBarLeftPartRefFrame" node="0>0|3|5|0" />
+        <i3dMapping id="steeringBarLeftPart" node="0>0|3|5|0|0" />
+        <i3dMapping id="steeringBarLeftPartRef" node="0>0|3|5|0|0|0" />
+        <i3dMapping id="steeringBarLeftHydraulicRef" node="0>0|3|5|2" />
+        <i3dMapping id="steeringBarLeftRefFrame" node="0>0|3|6" />
+        <i3dMapping id="steeringBarLeftHydraulic" node="0>0|3|7" />
+        <i3dMapping id="steeringBarLeftHydraulicPunch" node="0>0|3|7|0" />
+        <i3dMapping id="fillLevelIndicator" node="0>0|3|8" />
+        <i3dMapping id="fillLevelIndicatorPartRef" node="0>0|3|8|0" />
+        <i3dMapping id="fillLevelIndicatorPart" node="0>0|3|9" />
+        <i3dMapping id="attacherJointBackRot" node="0>0|4|0" />
+        <i3dMapping id="attacherJointBackRot2" node="0>0|4|0|0" />
+        <i3dMapping id="attacherJointBack" node="0>0|4|0|0|0" />
+        <i3dMapping id="attacherJointBackArmBottom" node="0>0|4|1" />
+        <i3dMapping id="bottomArm" node="0>0|4|1|0" />
+        <i3dMapping id="referencePointBackBottom" node="0>0|4|1|0|0" />
+        <i3dMapping id="bottomArmHydraulicRef" node="0>0|4|1|0|1" />
+        <i3dMapping id="attacherJointBackArmTop" node="0>0|4|2" />
+        <i3dMapping id="exactFillRootNode" node="0>0|6|0" />
+        <i3dMapping id="fillTrigger" node="0>0|6|1" />
+        <i3dMapping id="dischargeTrigger" node="0>0|6|2" />
+        <i3dMapping id="dischargeNode" node="0>0|6|3" />
+        <i3dMapping id="toolReverserDirectionNode" node="0>0|7" />
+        <i3dMapping id="licensePlateNodeBack" node="0>0|8" />
+
+        <!-- Coupler bones (skinned 'coupler' shape). rootJoint is child 9 of profi2_vis and couplerRootBone is
+             its second child, so these paths hold as long as the chain is merged in under rootJoint after
+             rootJoint_skin - which is how it sits in profi2_test.i3d. -->
+        <i3dMapping id="couplerRootBone" node="0>0|9|1" />
+        <i3dMapping id="clamp01Bone" node="0>0|9|1|0" />
+        <i3dMapping id="clamp02Bone" node="0>0|9|1|0|0" />
+        <i3dMapping id="clamp03Bone" node="0>0|9|1|0|0|0" />
+        <i3dMapping id="clamp03RefNode" node="0>0|9|1|0|0|0|0" />
+        <i3dMapping id="clamp03RefTargetNode" node="0>0|9|1|1" />
+        <i3dMapping id="valve01Bone" node="0>0|9|1|2" />
+        <i3dMapping id="valve02Bone" node="0>0|9|1|2|0" />
+        <i3dMapping id="valve03" node="0>0|9|1|2|0|0" />
+        <i3dMapping id="valve03Bone" node="0>0|9|1|2|0|0|0" />
+
+        <!-- Front fill pipe config. fillPipeCoupler = the skinned coupler shape; give it that name when it is
+             merged into profi2.i3d (do NOT leave it called 'coupler' - profi2.i3d already has a 'coupler'
+             under SPS_profi2, the tractor hose connector, and the two would collide on a name lookup). -->
+        <i3dMapping id="kawecoFillPipe" node="0>0|10|5" />
+        <i3dMapping id="fillPipeCoupler" node="0>2|1" />
+    </i3dMappings>
+</vehicle>

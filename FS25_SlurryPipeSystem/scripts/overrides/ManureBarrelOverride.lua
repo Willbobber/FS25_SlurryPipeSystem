@@ -374,7 +374,6 @@ function SlurryPipeSystemOverride.getIsWorkAreaActiveAttached(self, superFunc, w
                 -- never print every tick).
                 if workArea._spsLastActive ~= allowed then
                     local tag = workArea._spsSectionName or (workArea._spsOriginalSprayArea and "original" or "area")
-                    --print("[SPS WORKAREA ATTACHED] '" .. tostring(tag) .. "' -> " .. tostring(allowed) .. " spreaderValveOpen=" .. tostring(state.spreaderValveOpen) .. " fillLevel=" .. tostring(fillLevel) .. " vehicle=" .. tostring(self.configFileName))
                     workArea._spsLastActive = allowed
                 end
 
@@ -420,7 +419,6 @@ function SlurryPipeSystemOverride.getIsWorkAreaActiveSelf(self, superFunc, workA
 
             if workArea._spsLastActive ~= allowed then
                 local tag = workArea._spsSectionName or (workArea._spsOriginalSprayArea and "original" or "area")
-                --print("[SPS WORKAREA SELF] '" .. tostring(tag) .. "' -> " .. tostring(allowed) .. " spreaderValveOpen=" .. tostring(state.spreaderValveOpen) .. " fillLevel=" .. tostring(fillLevel) .. " vehicle=" .. tostring(self.configFileName))
                 workArea._spsLastActive = allowed
             end
 
@@ -490,7 +488,6 @@ function SlurryPipeSystemOverride.getIsDischargeNodeActiveAttached(self, superFu
                     SlurryPipeSystemOverride.stopSPSDischargeEffect(self, dischargeNode)
                 end
                 if self._spsAttachedDischargeActive ~= active then
-                    --print("[SPS ATTACHED DISCHARGE] getIsDischargeNodeActiveAttached -> " .. tostring(active) .. " pressure=" .. tostring(state.pressure) .. " spreaderValveOpen=" .. tostring(state.spreaderValveOpen) .. " fillLevel=" .. tostring(fillLevel) .. " vehicle=" .. tostring(self.configFileName))
                     self._spsAttachedDischargeActive = active
                 end
                 if not active then
@@ -617,7 +614,6 @@ function SlurryPipeSystemOverride.getIsDischargeNodeActive(self, superFunc, disc
         SlurryPipeSystemOverride.stopSPSDischargeEffect(self, dischargeNode)
     end
     if self._spsDischargeActive ~= active then
-        --print("[SPS DISCHARGE] getIsDischargeNodeActive -> " .. tostring(active) .. " pressure=" .. tostring(state.pressure) .. " spreaderValveOpen=" .. tostring(state.spreaderValveOpen) .. " fillLevel=" .. tostring(fillLevel))
         self._spsDischargeActive = active
     end
     return active
@@ -1018,6 +1014,12 @@ function SlurryPipeSystemOverride.showInfo(self, superFunc, box)
     -- Render the vanilla box first (name, broken state, fill lines, ...), then
     -- add the SPS row beneath it.
     superFunc(self, box)
+
+    -- [SPS CHEM 2026-11-07 part 3] any tank holding a chem mix (trailer, IBC, bowser, sprayer): its strength
+    if SPSChemMix ~= nil and SPSChemMix.getInfoLine ~= nil then
+        local l, v = SPSChemMix.getInfoLine(self)
+        if l ~= nil then box:addLine(l, v) end
+    end
 
     -- [SPS AI GATE] AI worker / Courseplay / AutoDrive in control: no SPS row.
     if SlurryPipeSystemOverride.isAIControlled(self) then

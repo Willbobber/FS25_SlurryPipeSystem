@@ -40,6 +40,24 @@ SPSHoseItemHands.PIPE_TARGET_DISTANCE = 4.0
 
 local function nodeOk(n) return n ~= nil and n ~= 0 and entityExists(n) end
 
+-- [SPS AIM] diagnostics (channel SPSHoseItemHands.Aim): one line per CHANGE per tag, at most 2/s per tag
+function SPSHoseItemHands.aimDescribe(t)
+    if t == nil or t.node == nil then return "none" end
+    local nm = nodeOk(t.node) and (getName(t.node) or "?") or "gone"
+    local obj = (nodeOk(t.node) and g_currentMission ~= nil) and g_currentMission:getNodeObject(t.node) or nil
+    local of = obj ~= nil and obj.configFileName and (string.match(obj.configFileName, "[^/\\]+$") or obj.configFileName) or "-"
+    local kind = obj == nil and "noObj" or (obj.spsGetEnd ~= nil and "PIPE" or (SPSHoseItemHands.isHullTarget(t.node) and "HULL" or "other"))
+    return string.format("%s/%s/%s d=%.2f", nm, of, kind, t.distance or -1)
+end
+function SPSHoseItemHands.aimLog(spec, tag, msg)
+    spec._spsAimLast = spec._spsAimLast or {}
+    local e = spec._spsAimLast[tag]
+    local now = g_time or 0
+    if e ~= nil and (e.msg == msg or now - e.t < 500) then return end
+    spec._spsAimLast[tag] = { msg = msg, t = now }
+    print(string.format("[SPS AIM] %s: %s", tag, msg))
+end
+
 local function pipeOf(node)
     if not nodeOk(node) or g_currentMission == nil then return nil end
     local obj = g_currentMission:getNodeObject(node)
@@ -122,7 +140,26 @@ local function findConnectCandidate(mgr, pipe, heldNode)
     return bestKind, bestIdx, a1, a2, a3
 end
 
--- [SPS 1.0.1.9] A vanilla hands target that is a VEHICLE but nothing the hands could ever pick up (tanker, tractor,
+-- [SPS 2026-11-10] The held body is (within 2 bodies of) the FREE end of a pipe whose other end is plugged into a lane
+-- fitting with a washOutlet (the 550 bowser's wash hose) -> that fitting, else nil.
+function SPSHoseItemHands.lanceCouplingOf(pipe, heldNode)
+    if pipe == nil or pipe.spsGetEnd == nil or not nodeOk(heldNode) then return nil end
+    local ci = pipe:spsGetComponentIndex(heldNode)
+    if ci == nil then return nil end
+    for idx = 1, 2 do
+        local e = pipe:spsGetEnd(idx)
+        local c = e ~= nil and e.coupling or nil
+        if c ~= nil and c.isLiquidLane and c.washOutletKey ~= nil then
+            local far = pipe:spsGetEnd(idx == 1 and 2 or 1)
+            if far ~= nil and far.coupling == nil and far.joinedTo == nil and far.comp ~= nil and math.abs(ci - far.comp) <= 2 then
+                return c
+            end
+        end
+    end
+    return nil
+end
+
+-- [SPS 1.0.2.0] A vanilla hands target that is a VEHICLE but nothing the hands could ever pick up (tanker, tractor,
 -- trailer...) - i.e. the hull in front of a pipe. Pipes, docking stations and pallets are vehicles too and are NOT hulls.
 function SPSHoseItemHands.isHullTarget(node)
     if not nodeOk(node) or g_currentMission == nil then return false end
@@ -169,7 +206,7 @@ function SPSHoseItemHands.onUpdate(hands, dt)
         spec._spsNeedRelease = false
     end
     spec._spsThrowActive = false
-    local hadConnectText = spec._spsMode == "connect" or spec._spsMode == "stow" or spec._spsMode == "dsStow"
+    local hadConnectText = spec._spsMode == "connect" or spec._spsMode == "stow" or spec._spsMode == "dsStow" or spec._spsMode == "lance"
     spec._spsMode, spec._spsPipe, spec._spsEnd = nil, nil, nil
     spec._spsCoupling, spec._spsOwner, spec._spsIsPlaceable = nil, nil, false
     spec._spsOtherPipe, spec._spsOtherEnd = nil, nil
@@ -219,7 +256,15 @@ function SPSHoseItemHands.onUpdate(hands, dt)
         local pipe = pipeOf(spec.heldItemNode)
         if pipe ~= nil then
             local kind, idx, a1, a2, a3 = findConnectCandidate(mgr, pipe, spec.heldItemNode)
-            if kind ~= nil then
+            -- [SPS MKS8 2026-11-10] a TUBE mouth in reach of the pipe's start end wins over a fitting beside it (the MKS8's
+            -- coupler sits 0.85 m from its tube mouths, so "Connect" was always first) - the tube rule itself is strict
+            -- (start end within the holder radius and nearer than the far end), so a pipe meant for the fitting still connects
+            local tubeList = nil
+            if mgr ~= nil and mgr.findPipeHoldersForPipe ~= nil then
+                local l = mgr:findPipeHoldersForPipe(pipe, spec.heldItemNode)
+                if #l > 0 and l[1].slot ~= nil and l[1].slot.tube then tubeList = l end
+            end
+            if kind ~= nil and tubeList == nil then
                 spec._spsMode, spec._spsPipe, spec._spsEnd = (kind == "pipe") and "join" or "connect", pipe, idx
                 if kind == "pipe" then
                     spec._spsOtherPipe, spec._spsOtherEnd = a1, a2
@@ -235,13 +280,23 @@ function SPSHoseItemHands.onUpdate(hands, dt)
             -- Several in reach: SPS_STOW_NEXT / PREV (mouse wheel or , .) cycle them; the choice sticks while that
             -- holder stays in reach; nearest is the default.
             if mgr ~= nil and mgr.findPipeHoldersForPipe ~= nil then
-                local list = mgr:findPipeHoldersForPipe(pipe)
+                local list = tubeList or mgr:findPipeHoldersForPipe(pipe, spec.heldItemNode)
                 if #list > 0 then
                     local c = pickHolder(spec, list)
                     spec._spsStowList = list
                     spec._spsMode, spec._spsPipe, spec._spsHolder, spec._spsSlot = "stow", pipe, c.holder, c.slot
                     if spec.throwActionEventId ~= nil then
-                        local text = string.format(g_i18n:getText("action_spsPhysStow"), c.holder.id or 0, c.slot.family, c.free or 0, c.total or 0)
+                        local text
+                        if c.slot.family == "cage" then
+                            -- [SPS 2026-11-11] a water cage on a <cageHolder>
+                            text = string.format(g_i18n:getText("action_spsCageStow"), c.holder.id or 0)
+                        elseif c.slot.family == "bowser" then
+                            -- [SPS 2026-11-09] each bowser pipe has its own place: name the pipe, not "holder 1" (William)
+                            local keyName = ({ WT_SUCTION = "spsBowserPipe_suction", WT_WASH = "spsBowserPipe_wash", WT_SMALL = "spsBowserPipe_small" })[pipe:spsGetHoseKey() or ""]
+                            text = string.format(g_i18n:getText("action_spsPhysStowBowser"), keyName ~= nil and g_i18n:getText(keyName) or tostring(pipe:spsGetHoseKey()))
+                        else
+                            text = string.format(g_i18n:getText("action_spsPhysStow"), c.holder.id or 0, c.slot.family, c.free or 0, c.total or 0)
+                        end
                         if #list > 1 then text = text .. " " .. g_i18n:getText("action_spsPhysStowCycle") end
                         g_inputBinding:setActionEventText(spec.throwActionEventId, text)
                     end
@@ -251,6 +306,17 @@ function SPSHoseItemHands.onUpdate(hands, dt)
                 end
             end
             spec._spsStowChoice = nil
+            -- [SPS 2026-11-10] the WASH hose's free end in hand (its start on a bowser's spray outlet): right mouse starts /
+            -- stops the pour (William: "click the right mouse button with it at hand and that starts the pour")
+            local lc = SPSHoseItemHands.lanceCouplingOf(pipe, spec.heldItemNode)
+            if lc ~= nil then
+                spec._spsMode, spec._spsPipe, spec._spsLance = "lance", pipe, lc
+                if spec.throwActionEventId ~= nil then
+                    g_inputBinding:setActionEventText(spec.throwActionEventId,
+                        g_i18n:getText(lc.lancePour and "action_spsLancePourOff" or "action_spsLancePourOn"))
+                end
+                return
+            end
         end
         if hadConnectText and spec.throwActionEventId ~= nil then
             g_inputBinding:setActionEventText(spec.throwActionEventId, spec.throwText)
@@ -264,13 +330,73 @@ function SPSHoseItemHands.onUpdate(hands, dt)
     local near = player.targeter.closestTargetsByKey[HandToolHands]
     local far  = player.targeter.closestTargetsByKey[SPSHoseItemHands]
     local targetNode = near ~= nil and near.node or nil
-    -- [SPS 1.0.1.9] Look THROUGH a tanker to the pipe behind it. HandToolHands.TARGET_MASK includes VEHICLE, so when
+    -- [SPS AIM] what the aim touches (channel SPSHoseItemHands.Aim, printed when it changes, max 2/s)
+    local aimDiagOn = SPSDebugConfig ~= nil and SPSDebugConfig.isOn("SPSHoseItemHands.Aim")
+    if aimDiagOn then
+        local cam = g_cameraManager ~= nil and g_cameraManager:getActiveCamera() or nil
+        local cands = ""
+        if cam ~= nil and cam ~= 0 and mgr ~= nil and mgr.diagParkedItems ~= nil then
+            local ox, oy, oz = getWorldTranslation(cam)
+            local dx, dy, dz = localDirectionToWorld(cam, 0, 0, -1)
+            cands = mgr:diagParkedItems(ox, oy, oz, dx, dy, dz)
+        end
+        local msg = string.format("near=%s | far=%s | hung: %s", SPSHoseItemHands.aimDescribe(near), SPSHoseItemHands.aimDescribe(far), cands)
+        SPSHoseItemHands.aimLog(spec, "aim", msg)
+    end
+    -- [SPS 1.0.2.0] Look THROUGH a tanker to the pipe behind it. HandToolHands.TARGET_MASK includes VEHICLE, so when
     -- the aim crosses the plugged vehicle's hull before it reaches the pipe (the grab cube sits 10 cm inside the
     -- fitting), the tanker is the vanilla "near" target and the pipe body was never looked at - aiming at the grab
     -- cube of a plugged end gave no prompt (William 2026-10-25). A near target that is a vehicle but not a pipe, a
     -- docking station or a pallet (the only hand-pickable vehicles) is the hull: use the pipe target behind it.
     if near ~= nil and far ~= nil and SPSHoseItemHands.isHullTarget(near.node) and pipeOf(far.node) ~= nil then
         near, targetNode = nil, nil
+    end
+    -- [SPS 2026-11-11] what is HUNG on a holder and looked at (water cage / tube pipe mouth) - the item nearest the view line wins,
+    -- so several items at one node never steal each other's prompt (William: at the MKS8 rear the tube pipe took the cage's)
+    if (near == nil or SPSHoseItemHands.isHullTarget(near.node)) and mgr ~= nil and mgr.findAimedParkedItem ~= nil then
+        local cam = g_cameraManager ~= nil and g_cameraManager:getActiveCamera() or nil
+        if cam ~= nil and cam ~= 0 then
+            local ox, oy, oz = getWorldTranslation(cam)
+            local dx, dy, dz = localDirectionToWorld(cam, 0, 0, -1)
+            local item, body, t, _, kind = mgr:findAimedParkedItem(ox, oy, oz, dx, dy, dz, HandToolHands.PICKUP_DISTANCE + 1.0, 0.3)
+            if aimDiagOn then
+                SPSHoseItemHands.aimLog(spec, "rule1", string.format("view-line rule: item=%s kind=%s canPick=%s",
+                    tostring(item ~= nil and item.spsGetHoseKey and item:spsGetHoseKey()), tostring(kind),
+                    tostring(item ~= nil and body ~= nil and hands.getCanPickUpNode ~= nil and hands:getCanPickUpNode(body))))
+            end
+            if item ~= nil and body ~= nil and (hands.getCanPickUpNode == nil or hands:getCanPickUpNode(body)) then
+                local bx, by, bz = getWorldTranslation(body)
+                spec._spsFarTarget = { node = body, x = bx, y = by, z = bz, distance = math.min(t, HandToolHands.PICKUP_DISTANCE) }
+                if spec.pickUpActionEventId ~= nil then
+                    g_inputBinding:setActionEventActive(spec.pickUpActionEventId, true)
+                    local txt = (kind == "tube" and g_i18n:hasText("action_spsPhysTakeTube")) and g_i18n:getText("action_spsPhysTakeTube") or spec.pickupText
+                    g_inputBinding:setActionEventText(spec.pickUpActionEventId, txt)
+                end
+                return
+            end
+        end
+    end
+    -- [SPS MKS8 2026-11-10] aiming at a TUBE end that holds a pipe: the hull is hit (the mouth body sits inside the tube
+    -- behind the cap) - offer the pick-up of the pipe's mouth body from here (William: "the end cap as a grab")
+    if targetNode == nil or (near ~= nil and SPSHoseItemHands.isHullTarget(near.node)) then
+        local hit = near or far
+        if hit ~= nil and mgr ~= nil and mgr.findTubePipeNear ~= nil then
+            local tPipe, body = mgr:findTubePipeNear(hit.x, hit.y, hit.z, 0.8)
+            if aimDiagOn then
+                SPSHoseItemHands.aimLog(spec, "rule2", string.format("tube/near-point rule: hit=(%.2f %.2f %.2f) found=%s",
+                    hit.x, hit.y, hit.z, tostring(tPipe ~= nil and tPipe.spsGetHoseKey and tPipe:spsGetHoseKey())))
+            end
+            if tPipe ~= nil and body ~= nil and (hands.getCanPickUpNode == nil or hands:getCanPickUpNode(body)) then
+                local bx, by, bz = getWorldTranslation(body)
+                spec._spsFarTarget = { node = body, x = bx, y = by, z = bz, distance = math.min(hit.distance or 2, HandToolHands.PICKUP_DISTANCE) }
+                if spec.pickUpActionEventId ~= nil then
+                    g_inputBinding:setActionEventActive(spec.pickUpActionEventId, true)
+                    g_inputBinding:setActionEventText(spec.pickUpActionEventId,
+                        g_i18n:hasText("action_spsPhysTakeTube") and g_i18n:getText("action_spsPhysTakeTube") or spec.pickupText)
+                end
+                return
+            end
+        end
     end
     if targetNode == nil and far ~= nil and pipeOf(far.node) ~= nil then
         -- beyond the vanilla reach but a pipe body: aim at it, and offer the plain pick-up from here
@@ -373,7 +499,7 @@ function SPSHoseItemHands.onPickUpAction(hands, superFunc, actionName, inputValu
     local byKey = player ~= nil and player.targeter ~= nil and player.targeter.closestTargetsByKey or nil
     if spec ~= nil and player ~= nil and player.isOwner and spec._spsUnplugPipe ~= nil
        and spec.football == nil and not hands:getIsHoldingItem() then
-        -- [SPS 1.0.1.9] the pipe target, not the hull in front of it (see onUpdate): near only when it IS this pipe
+        -- [SPS 1.0.2.0] the pipe target, not the hull in front of it (see onUpdate): near only when it IS this pipe
         local near = byKey ~= nil and byKey[HandToolHands] or nil
         local target = (near ~= nil and pipeOf(near.node) ~= nil) and near or (byKey ~= nil and byKey[SPSHoseItemHands] or nil)
         local pipe = spec._spsUnplugPipe
@@ -387,9 +513,17 @@ function SPSHoseItemHands.onPickUpAction(hands, superFunc, actionName, inputValu
             return
         end
     end
+    if spec ~= nil and player ~= nil and player.isOwner and SPSDebugConfig ~= nil and SPSDebugConfig.isOn("SPSHoseItemHands.Aim") and not hands:getIsHoldingItem() then
+        print(string.format("[SPS AIM] PICK-UP pressed: farTarget=%s | vanilla near=%s | unplug=%s -> %s",
+            SPSHoseItemHands.aimDescribe(spec._spsFarTarget), SPSHoseItemHands.aimDescribe(byKey ~= nil and byKey[HandToolHands] or nil),
+            tostring(spec._spsUnplugPipe ~= nil),
+            (spec._spsFarTarget ~= nil and (byKey == nil or byKey[HandToolHands] == nil or SPSHoseItemHands.isHullTarget(byKey[HandToolHands].node))) and "FAR-TARGET pick-up" or "vanilla pick-up (far target ignored: vanilla near target exists or none set)"))
+    end
     -- plain pick-up of a pipe body beyond the vanilla 2 m (nothing vanilla-pickable is in range)
     if spec ~= nil and player ~= nil and player.isOwner and spec._spsFarTarget ~= nil
-       and spec.football == nil and not hands:getIsHoldingItem() and (byKey == nil or byKey[HandToolHands] == nil) then
+       and spec.football == nil and not hands:getIsHoldingItem()
+       and (byKey == nil or byKey[HandToolHands] == nil or SPSHoseItemHands.isHullTarget(byKey[HandToolHands].node)) then
+        -- the vanilla near target may be the tanker hull the pipe/cage is hung inside: what is looked at wins
         hands:pickUpTarget(spec._spsFarTarget)
         return
     end
@@ -432,6 +566,15 @@ function SPSHoseItemHands.doAction(hands, spec)
             mgr:dsStow(pipe, dh.vehicle, dh.id)
             spsInfo(string.format("[SPS PHYS] right mouse: place the docking station on holder %d of %s", dh.id or 0,
                 tostring(dh.vehicle and dh.vehicle.configFileName)))
+        end
+    elseif spec._spsMode == "lance" then
+        -- [SPS 2026-11-10] start / stop pouring from the wash hose end in hand (SPSM_LiquidLanes lancePour)
+        local lc = spec._spsLance
+        if lc ~= nil and lc.object ~= nil and SPSLiquidLaneOrigPipeEvent ~= nil then
+            local on = not lc.lancePour
+            if g_server ~= nil and mgr.applyLiquidLaneOrigPipe ~= nil then mgr:applyLiquidLaneOrigPipe(lc.object, lc.id, 3, on, 0, 0, 0, -1) end
+            SPSLiquidLaneOrigPipeEvent.sendEvent(lc.object, lc.id, 3, on, 0, 0, 0, -1)
+            spsInfo(string.format("[SPS PHYS] right mouse: wash hose pour %s", on and "ON" or "OFF"))
         end
     elseif spec._spsMode == "takeEnd" then
         mgr:physPipeDisconnect(pipe, idx)

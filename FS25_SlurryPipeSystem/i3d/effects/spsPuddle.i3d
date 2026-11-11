@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="spsPuddle" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="i3dConverter" version="1.0"/>
+  </Asset>
+
+  <!-- [SPS 1.0.1.9] LEAK PUDDLE DECALS (William 2026-11-03: "the slurry store has a slurry plane, the water troughs a
+       water plane, we use those"). One 2 m decal quad, three liquids = three shapes on the same mesh; SPSSpill.lua
+       clones the one for the puddle's fill type (child 0 slurry, 1 water, 2 milk). The diffuse of each is the game's
+       own surface - the lagoon fill plane (slurry), the fakeWater surface (water, 55 % alpha so the ground shows), a
+       creamy white with the lagoon's tonal variation (milk) - composited with the puddle OUTLINE in the alpha (soft
+       irregular rim + faint wet halo). Normal = the lagoon ripples, gloss = the game's own. decalShader, alpha
+       blended. Textures: session scratch make_puddle_tex.py; mesh = the base smallPuddle quad rescaled. -->
+
+  <Files>
+    <File fileId="1" filename="spsPuddle_slurry_diffuse.dds"/>
+    <File fileId="2" filename="spsPuddle_water_diffuse.dds"/>
+    <File fileId="3" filename="spsPuddle_milk_diffuse.dds"/>
+    <File fileId="4" filename="spsPuddle_normal.dds"/>
+    <File fileId="5" filename="$data/fillPlanes/liquidManure_specular.dds"/>
+    <File fileId="6" filename="$data/shared/fakeWater_specular.dds"/>
+    <File fileId="7" filename="$data/shaders/decalShader.xml"/>
+  </Files>
+
+
+  <Materials>
+    <Material name="spsPuddle_slurry_mat" materialId="1" alphaBlending="true" customShaderId="7">
+      <Texture fileId="1"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="5"/>
+    </Material>
+    <Material name="spsPuddle_water_mat" materialId="2" alphaBlending="true" customShaderId="7">
+      <Texture fileId="2"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="6"/>
+    </Material>
+    <Material name="spsPuddle_milk_mat" materialId="3" alphaBlending="true" customShaderId="7">
+      <Texture fileId="3"/>
+      <Normalmap fileId="4"/>
+      <Glossmap fileId="5"/>
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="spsPuddle.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <Shape name="spsPuddle_slurry" shapeId="1" castsShadows="false" receiveShadows="true" decalLayer="1" clipDistance="100" nodeId="1" materialIds="1"/>
+    <Shape name="spsPuddle_water" shapeId="1" castsShadows="false" receiveShadows="true" decalLayer="1" clipDistance="100" nodeId="2" materialIds="2"/>
+    <Shape name="spsPuddle_milk" shapeId="1" castsShadows="false" receiveShadows="true" decalLayer="1" clipDistance="100" nodeId="3" materialIds="3"/>
+  </Scene>
+
+</i3D>

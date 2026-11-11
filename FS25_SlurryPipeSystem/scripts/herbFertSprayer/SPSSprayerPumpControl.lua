@@ -5,7 +5,7 @@
 -- SPSSprayerPumpControl.lua
 -- Outside control node activatable for sprayer vehicles.
 -- Handles the full interaction sequence:
---   1. X (SPS_TOGGLE_ANIMATION_SPRAYER) — open/close cover (if loadAnimation defined)
+--   1. N (SPS_TOGGLE_ANIMATION_SPRAYER) — open/close cover / door (if loadAnimation defined)
 --   2. R (ACTIVATE_OBJECT)              — connect / disconnect pipe
 --   3. B (SPS_TOGGLE_PUMP)             — start / stop flow (valve toggle)
 --   4. Y (SPS_TOGGLE_DIRECTION)        — set load / set unload direction
@@ -117,6 +117,11 @@ function SPSSprayerPumpControl:getIsActivatable()
     -- (hold = add IBC). Player is at the coupler with an unconnected coupling.
     -- With no connect partner, only surface the key when the sprayer holds liquid to
     -- offload — an empty tank shows no Add IBC key.
+    -- [SPS 1.0.2.0] A sprayer with a loadAnimation (door / cover) must always offer X to open it,
+    -- even empty with nothing in range: the door has to be open BEFORE anything can be connected.
+    if coupling.loadAnimationName ~= nil then
+        return true
+    end
     if overlap == nil then
         local level = (self.object.getFillUnitFillLevel ~= nil)
             and (self.object:getFillUnitFillLevel(coupling.fillUnitIndex) or 0) or 0
@@ -152,7 +157,7 @@ function SPSSprayerPumpControl:update(dt)
     local hasLoadAnim = coupling.loadAnimationName ~= nil
     local animPlayed  = coupling.loadAnimPlayed == true
 
-    -- SPS_TOGGLE_ANIMATION_SPRAYER (X): only when NOT connected and has a load animation
+    -- SPS_TOGGLE_ANIMATION_SPRAYER (N): only when NOT connected and has a load animation
     if self._eventIds.anim ~= nil then
         local visible = not connected and hasLoadAnim
         g_inputBinding:setActionEventTextVisibility(self._eventIds.anim, visible)
@@ -200,6 +205,34 @@ function SPSSprayerPumpControl:update(dt)
         end
     end
 
+    -- SPS_TOGGLE_ANIMATION: shared-node walk-up animation (chem bowl): fold out / fold in text.
+    -- Hidden until the door (loadAnimation) is fully open; stays while the bowl is out so it can go back in.
+    if self._eventIds.station ~= nil then
+        local aca = self:_stationAnimControl()
+        if aca ~= nil then
+            local show = aca:_isOut()
+            if not show then
+                if not hasLoadAnim then
+                    show = true
+                elseif animPlayed and self.object.getAnimationTime ~= nil then
+                    local v = self.object
+                    local shutting = v.getIsAnimationPlaying ~= nil and v:getIsAnimationPlaying(coupling.loadAnimationName)
+                        and v.getAnimationSpeed ~= nil and (v:getAnimationSpeed(coupling.loadAnimationName) or 0) < 0
+                    show = not shutting and (v:getAnimationTime(coupling.loadAnimationName) or 0) >= 0.99
+                end
+            end
+            g_inputBinding:setActionEventTextVisibility(self._eventIds.station, show)
+            if show then g_inputBinding:setActionEventText(self._eventIds.station, aca:_buildText()) end
+        end
+    end
+
+    -- [SPS CHEM 2026-11-07] Wash out (Left Ctrl+W): shown while Chem Mixing is on; the text follows the cycle
+    if self._eventIds.wash ~= nil then
+        local show = SPSChemMix ~= nil and SPSChemMix.isOn() and SPSChemWashout ~= nil
+        g_inputBinding:setActionEventTextVisibility(self._eventIds.wash, show)
+        if show then g_inputBinding:setActionEventText(self._eventIds.wash, SPSChemWashout.actionText(self.object)) end
+    end
+
     -- SPS_TOGGLE_PUMP (B): start/stop flow — only when connected
     if self._eventIds.pump ~= nil then
         g_inputBinding:setActionEventTextVisibility(self._eventIds.pump, connected)
@@ -223,6 +256,11 @@ function SPSSprayerPumpControl:update(dt)
                 local txt = state.direction == SPS_SPRAYER_DIRECTION_FILL
                     and g_i18n:getText("action_sprayerDirLoad")
                     or  g_i18n:getText("action_sprayerDirUnload")
+                -- [SPS CHEM 2026-11-06] loading the rinse tank
+                if state.direction == SPS_SPRAYER_DIRECTION_FILL and SPSChemWashout ~= nil
+                and SPSChemWashout.isRinseTarget(self.object) and g_i18n:hasText("action_sprayerDirLoadRinse") then
+                    txt = g_i18n:getText("action_sprayerDirLoadRinse")
+                end
                 g_inputBinding:setActionEventText(self._eventIds.dir, txt)
             end
         end
@@ -238,7 +276,9 @@ function SPSSprayerPumpControl:registerCustomInput(inputContext)
     self._isHolding = false
     self._longFired = false
 
-    -- X — open / close cover animation
+    -- [SPS 1.0.2.0] N by default (was X; the bowl's walk-up animation is on X). Own action, not the base
+    -- TOGGLE_COVER: on foot other mods hold N with disableConflictingBindings (FS25_TakeSingleObjects ADD_OBJECTS),
+    -- so players need to be able to rebind the door on its own.
     local _, animId = g_inputBinding:registerActionEvent(
         InputAction.SPS_TOGGLE_ANIMATION_SPRAYER, self,
         function(target, actionName, inputValue, callbackState, isAnalog)
@@ -294,6 +334,56 @@ function SPSSprayerPumpControl:registerCustomInput(inputContext)
         g_inputBinding:setActionEventTextVisibility(dirId, false)
         self._eventIds.dir = dirId
     end
+
+    -- [SPS CHEM 2026-11-07] Wash out on foot (William: a sprayer with no water on board washes out at a washout
+    -- station from the control node): the same key and the same checks as in the cab.
+    if InputAction.SPS_CHEM_WASHOUT ~= nil and SPSChemMix ~= nil and SPSChemWashout ~= nil
+    and SPSChemMix.isChemSprayer ~= nil and SPSChemMix.isChemSprayer(self.object) then
+        local _, washId = g_inputBinding:registerActionEvent(
+            InputAction.SPS_CHEM_WASHOUT, self,
+            function(target, actionName, inputValue, callbackState, isAnalog)
+                if inputValue > 0 and SPSChemWashout.actionEventWashout ~= nil then
+                    SPSChemWashout.actionEventWashout(target.object)
+                end
+            end,
+            false, true, false, true, nil, true, false
+        )
+        if washId ~= nil then
+            g_inputBinding:setActionEventText(washId, SPSChemWashout.actionText(self.object))
+            g_inputBinding:setActionEventTextPriority(washId, GS_PRIO_VERY_HIGH)
+            g_inputBinding:setActionEventTextVisibility(washId, false)
+            self._eventIds.wash = washId
+        end
+    end
+
+    -- [SPS 1.0.2.0] Walk-up animation controls that share this node (UX5201 chem bowl) ride on this
+    -- prompt: SPS_TOGGLE_ANIMATION. One key, so the first control with a valid animation is used.
+    local aca = self:_stationAnimControl()
+    if aca ~= nil then
+        local _, stId = g_inputBinding:registerActionEvent(
+            InputAction.SPS_TOGGLE_ANIMATION, self,
+            function(target, actionName, inputValue, callbackState, isAnalog)
+                if inputValue > 0 then
+                    local a = target:_stationAnimControl()
+                    if a ~= nil then a:_onToggle() end
+                end
+            end,
+            false, true, false, true, nil, true, false
+        )
+        if stId ~= nil then
+            g_inputBinding:setActionEventText(stId, aca:_buildText())
+            g_inputBinding:setActionEventTextPriority(stId, GS_PRIO_VERY_HIGH)
+            g_inputBinding:setActionEventTextVisibility(stId, true)
+            self._eventIds.station = stId
+        end
+    end
+end
+
+function SPSSprayerPumpControl:_stationAnimControl()
+    for _, aca in ipairs(self.stationAnimControls or {}) do
+        if aca:_hasAnimation() then return aca end
+    end
+    return nil
 end
 
 function SPSSprayerPumpControl:removeCustomInput()
@@ -319,9 +409,34 @@ function SPSSprayerPumpControl:_onAnimToggle()
         coupling.loadAnimPlayed = true
         log("_onAnimToggle: open cover anim=%s", tostring(coupling.loadAnimationName))
     else
+        -- [SPS CHEM 2026-11-06] a pipe end still plugged into the coupler (connected or not - a hose whose other
+        -- end found nothing) keeps the door open, the same as the bowl being out
+        if coupling.physPipe ~= nil then
+            local txt = g_i18n:hasText("warning_spsDoorPipe") and g_i18n:getText("warning_spsDoorPipe") or "Take the pipe off before closing the door"
+            g_currentMission:showBlinkingWarning(txt, 2000)
+            log("_onAnimToggle: close BLOCKED - a pipe is plugged into coupling id=%s", tostring(coupling.id))
+            return
+        end
+        -- [SPS 1.0.2.0] a walk-up animation marked lockLoadAnimation (UX5201 chem bowl) must be put away first
+        local vEntry = g_slurryPipeManager ~= nil and g_slurryPipeManager:getSprayerVehicleEntry(self.object) or nil
+        for _, aca in ipairs(vEntry ~= nil and vEntry.animationControlActivatables or {}) do
+            if aca.locksLoadAnimation and aca:_isOut() then
+                local txt = aca.lockWarning
+                if txt ~= nil and g_i18n:hasText(txt) then txt = g_i18n:getText(txt) end
+                g_currentMission:showBlinkingWarning(txt or "Put that away before closing", 2000)
+                log("_onAnimToggle: close BLOCKED - %s is out", tostring(aca.animName))
+                return
+            end
+        end
         self.object:playAnimation(coupling.loadAnimationName, -1)
         coupling.loadAnimPlayed = false
         log("_onAnimToggle: close cover anim=%s", tostring(coupling.loadAnimationName))
+    end
+    -- [SPS 1.0.2.0] the base-game cover follows the SPS door (UX5201: toggleCover = the ladder). setCoverState
+    -- sends its own SetCoverStateEvent; it is a no-op when the cover is already in that state.
+    local cSpec = self.object.spec_cover
+    if cSpec ~= nil and cSpec.hasCovers and self.object.setCoverState ~= nil then
+        self.object:setCoverState(coupling.loadAnimPlayed and 1 or 0)
     end
 end
 

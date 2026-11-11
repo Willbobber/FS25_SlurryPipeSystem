@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<vehicle type="spsHose" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../shared/xml/schema/vehicle.xsd">
+    <!-- [SPS CHEM 2026-11-09] The 550 Water/Chem Bowser's own pipes: suction pipe (into a water course), wash hose, small
+         water hose (to a sprayer / tanker water fitting). ONE shop item, the Pipe row picks the pipe. Built by
+         tools/build_pipes_bowser.py from William's FertPump.blend export - do not hand-edit the component / mapping blocks.
+         Their START end only fits the bowser's fitting (gender "bowser"); see SPS_README_06. -->
+
+    <storeData>
+        <name>$l10n_shopItem_spsBowserPipe</name>
+        <functions>
+            <function>$l10n_function_spsBowserPipe</function>
+        </functions>
+        <image>vehicles/hoses/icon_bowserPipe.png</image>
+        <price>180</price>
+        <lifetime>600</lifetime>
+        <rotation>0</rotation>
+        <brand>SPS</brand>
+        <allowLeasing>false</allowLeasing>
+        <category>slurryTools barrels</category>   <!-- SPS tools AND the bowser's own section (William) -->
+        <shopTranslationOffset>0 0.1 -2.5</shopTranslationOffset>
+        <shopRotationOffset>0 0 0</shopRotationOffset>
+        <shopIgnoreLastComponentPositions>true</shopIgnoreLastComponentPositions>
+    </storeData>
+
+    <base>
+        <typeDesc>$l10n_typeDesc_spsHose</typeDesc>
+        <filename>vehicles/hoses/spsBowserPipe.i3d</filename>
+        <size width="0.4" length="5" height="0.3" lengthOffset="2.5"/>
+        <input allowed="false"/>
+        <canBeReset>false</canBeReset>
+        <supportsPickUp>true</supportsPickUp>
+        <componentConfigurations>
+            <componentConfiguration name="$l10n_spsBowserPipe_suction" vehicleName="$l10n_spsBowserPipe_suction" vehicleIcon="vehicles/hoses/icon_bowserPipeSuction.png" price="0" isDefault="true" numComponents="25">
+                <component index="1" mass="4" solverIterationCount="40"/>
+                <component index="2" mass="4" solverIterationCount="20"/>
+                <component index="3" mass="4" solverIterationCount="20"/>
+                <component index="4" mass="4" solverIterationCount="20"/>
+                <component index="5" mass="4" solverIterationCount="20"/>
+                <component index="6" mass="4" solverIterationCount="20"/>
+                <component index="7" mass="4" solverIterationCount="20"/>
+                <component index="8" mass="4" solverIterationCount="20"/>
+                <component index="9" mass="4" solverIterationCount="20"/>
+                <component index="10" mass="4" solverIterationCount="20"/>
+                <component index="11" mass="4" solverIterationCount="20"/>
+                <component index="12" mass="4" solverIterationCount="20"/>
+                <component index="13" mass="4" solverIterationCount="20"/>
+                <component index="14" mass="4" solverIterationCount="20"/>
+                <component index="15" mass="4" solverIterationCount="20"/>
+                <component index="16" mass="4" solverIterationCount="20"/>
+                <component index="17" mass="4" solverIterationCount="20"/>
+                <component index="18" mass="4" solverIterationCount="20"/>
+                <component index="19" mass="4" solverIterationCount="20"/>
+                <component index="20" mass="4" solverIterationCount="20"/>
+                <component index="21" mass="4" solverIterationCount="20"/>
+                <component index="22" mass="4" solverIterationCount="20"/>
+                <component index="23" mass="4" solverIterationCount="20"/>
+                <component index="24" mass="4" solverIterationCount="20"/>
+                <component index="25" mass="4" solverIterationCount="40"/>
+
+                <joint component1="1" component2="2" node="SU_joint01" transLimit="0 0 0" rotLimit="0 0 0" rotMinLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+                <joint component1="2" component2="3" node="SU_joint02" transLimit="0 0 0" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="3" component2="4" node="SU_joint03" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="4" component2="5" node="SU_joint04" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="5" component2="6" node="SU_joint05" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="6" component2="7" node="SU_joint06" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="7" component2="8" node="SU_joint07" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="8" component2="9" node="SU_joint08" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="9" component2="10" node="SU_joint09" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="10" component2="11" node="SU_joint10" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="11" component2="12" node="SU_joint11" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="12" component2="13" node="SU_joint12" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="13" component2="14" node="SU_joint13" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="14" component2="15" node="SU_joint14" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="15" component2="16" node="SU_joint15" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="16" component2="17" node="SU_joint16" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="17" component2="18" node="SU_joint17" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="18" component2="19" node="SU_joint18" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="19" component2="20" node="SU_joint19" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="20" component2="21" node="SU_joint20" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="21" component2="22" node="SU_joint21" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="22" component2="23" node="SU_joint22" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="23" component2="24" node="SU_joint23" transLimit="0 0 0" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="24" component2="25" node="SU_joint24" transLimit="0 0 0" rotLimit="0 0 0" rotMinLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+            </componentConfiguration>
+            <componentConfiguration name="$l10n_spsBowserPipe_wash" vehicleName="$l10n_spsBowserPipe_wash" vehicleIcon="vehicles/hoses/icon_bowserPipeSuction.png" price="0" numComponents="19">
+                <component index="26" mass="2" solverIterationCount="40"/>
+                <component index="27" mass="2" solverIterationCount="20"/>
+                <component index="28" mass="2" solverIterationCount="20"/>
+                <component index="29" mass="2" solverIterationCount="20"/>
+                <component index="30" mass="2" solverIterationCount="20"/>
+                <component index="31" mass="2" solverIterationCount="20"/>
+                <component index="32" mass="2" solverIterationCount="20"/>
+                <component index="33" mass="2" solverIterationCount="20"/>
+                <component index="34" mass="2" solverIterationCount="20"/>
+                <component index="35" mass="2" solverIterationCount="20"/>
+                <component index="36" mass="2" solverIterationCount="20"/>
+                <component index="37" mass="2" solverIterationCount="20"/>
+                <component index="38" mass="2" solverIterationCount="20"/>
+                <component index="39" mass="2" solverIterationCount="20"/>
+                <component index="40" mass="2" solverIterationCount="20"/>
+                <component index="41" mass="2" solverIterationCount="20"/>
+                <component index="42" mass="2" solverIterationCount="20"/>
+                <component index="43" mass="2" solverIterationCount="20"/>
+                <component index="44" mass="2" solverIterationCount="40"/>
+
+                <joint component1="1" component2="2" node="WH_joint01" transLimit="0 0 0" rotLimit="0 0 0" rotMinLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+                <joint component1="2" component2="3" node="WH_joint02" transLimit="0 0 0" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="3" component2="4" node="WH_joint03" transLimit="0 0 0" rotLimit="25 25 8" rotMinLimit="-25 -25 -8" rotLimitSpring="30 30 30" rotLimitDamping="6 6 6"/>
+                <joint component1="4" component2="5" node="WH_joint04" transLimit="0 0 0" rotLimit="25 25 8" rotMinLimit="-25 -25 -8" rotLimitSpring="30 30 30" rotLimitDamping="6 6 6"/>
+                <joint component1="5" component2="6" node="WH_joint05" transLimit="0 0 0" rotLimit="25 25 8" rotMinLimit="-25 -25 -8" rotLimitSpring="30 30 30" rotLimitDamping="6 6 6"/>
+                <joint component1="6" component2="7" node="WH_joint06" transLimit="0 0 0" rotLimit="25 25 8" rotMinLimit="-25 -25 -8" rotLimitSpring="30 30 30" rotLimitDamping="6 6 6"/>
+                <joint component1="7" component2="8" node="WH_joint07" transLimit="0 0 0" rotLimit="25 25 8" rotMinLimit="-25 -25 -8" rotLimitSpring="30 30 30" rotLimitDamping="6 6 6"/>
+                <joint component1="8" component2="9" node="WH_joint08" transLimit="0 0 0" rotLimit="25 25 8" rotMinLimit="-25 -25 -8" rotLimitSpring="30 30 30" rotLimitDamping="6 6 6"/>
+                <joint component1="9" component2="10" node="WH_joint09" transLimit="0 0 0" rotLimit="25 25 8" rotMinLimit="-25 -25 -8" rotLimitSpring="30 30 30" rotLimitDamping="6 6 6"/>
+                <joint component1="10" component2="11" node="WH_joint10" transLimit="0 0 0" rotLimit="25 25 8" rotMinLimit="-25 -25 -8" rotLimitSpring="30 30 30" rotLimitDamping="6 6 6"/>
+                <joint component1="11" component2="12" node="WH_joint11" transLimit="0 0 0" rotLimit="25 25 8" rotMinLimit="-25 -25 -8" rotLimitSpring="30 30 30" rotLimitDamping="6 6 6"/>
+                <joint component1="12" component2="13" node="WH_joint12" transLimit="0 0 0" rotLimit="25 25 8" rotMinLimit="-25 -25 -8" rotLimitSpring="30 30 30" rotLimitDamping="6 6 6"/>
+                <joint component1="13" component2="14" node="WH_joint13" transLimit="0 0 0" rotLimit="25 25 8" rotMinLimit="-25 -25 -8" rotLimitSpring="30 30 30" rotLimitDamping="6 6 6"/>
+                <joint component1="14" component2="15" node="WH_joint14" transLimit="0 0 0" rotLimit="25 25 8" rotMinLimit="-25 -25 -8" rotLimitSpring="30 30 30" rotLimitDamping="6 6 6"/>
+                <joint component1="15" component2="16" node="WH_joint15" transLimit="0 0 0" rotLimit="25 25 8" rotMinLimit="-25 -25 -8" rotLimitSpring="30 30 30" rotLimitDamping="6 6 6"/>
+                <joint component1="16" component2="17" node="WH_joint16" transLimit="0 0 0" rotLimit="25 25 8" rotMinLimit="-25 -25 -8" rotLimitSpring="30 30 30" rotLimitDamping="6 6 6"/>
+                <joint component1="17" component2="18" node="WH_joint17" transLimit="0 0 0" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="18" component2="19" node="WH_joint18" transLimit="0 0 0" rotLimit="0 0 0" rotMinLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+            </componentConfiguration>
+            <componentConfiguration name="$l10n_spsBowserPipe_small" vehicleName="$l10n_spsBowserPipe_small" vehicleIcon="vehicles/hoses/icon_bowserPipeSuction.png" price="0" numComponents="25">
+                <component index="45" mass="4" solverIterationCount="40"/>
+                <component index="46" mass="4" solverIterationCount="20"/>
+                <component index="47" mass="4" solverIterationCount="20"/>
+                <component index="48" mass="4" solverIterationCount="20"/>
+                <component index="49" mass="4" solverIterationCount="20"/>
+                <component index="50" mass="4" solverIterationCount="20"/>
+                <component index="51" mass="4" solverIterationCount="20"/>
+                <component index="52" mass="4" solverIterationCount="20"/>
+                <component index="53" mass="4" solverIterationCount="20"/>
+                <component index="54" mass="4" solverIterationCount="20"/>
+                <component index="55" mass="4" solverIterationCount="20"/>
+                <component index="56" mass="4" solverIterationCount="20"/>
+                <component index="57" mass="4" solverIterationCount="20"/>
+                <component index="58" mass="4" solverIterationCount="20"/>
+                <component index="59" mass="4" solverIterationCount="20"/>
+                <component index="60" mass="4" solverIterationCount="20"/>
+                <component index="61" mass="4" solverIterationCount="20"/>
+                <component index="62" mass="4" solverIterationCount="20"/>
+                <component index="63" mass="4" solverIterationCount="20"/>
+                <component index="64" mass="4" solverIterationCount="20"/>
+                <component index="65" mass="4" solverIterationCount="20"/>
+                <component index="66" mass="4" solverIterationCount="20"/>
+                <component index="67" mass="4" solverIterationCount="20"/>
+                <component index="68" mass="4" solverIterationCount="20"/>
+                <component index="69" mass="4" solverIterationCount="40"/>
+
+                <joint component1="1" component2="2" node="WS_joint01" transLimit="0 0 0" rotLimit="0 0 0" rotMinLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+                <joint component1="2" component2="3" node="WS_joint02" transLimit="0 0 0" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="3" component2="4" node="WS_joint03" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="4" component2="5" node="WS_joint04" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="5" component2="6" node="WS_joint05" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="6" component2="7" node="WS_joint06" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="7" component2="8" node="WS_joint07" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="8" component2="9" node="WS_joint08" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="9" component2="10" node="WS_joint09" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="10" component2="11" node="WS_joint10" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="11" component2="12" node="WS_joint11" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="12" component2="13" node="WS_joint12" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="13" component2="14" node="WS_joint13" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="14" component2="15" node="WS_joint14" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="15" component2="16" node="WS_joint15" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="16" component2="17" node="WS_joint16" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="17" component2="18" node="WS_joint17" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="18" component2="19" node="WS_joint18" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="19" component2="20" node="WS_joint19" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="20" component2="21" node="WS_joint20" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="21" component2="22" node="WS_joint21" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="22" component2="23" node="WS_joint22" transLimit="0 0 0" rotLimit="10 10 3" rotMinLimit="-10 -10 -3" rotLimitSpring="500 500 500" rotLimitDamping="50 50 50"/>
+                <joint component1="23" component2="24" node="WS_joint23" transLimit="0 0 0" rotLimit="2 2 1" rotMinLimit="-2 -2 -1" rotLimitSpring="1500 1500 1500" rotLimitDamping="100 100 100"/>
+                <joint component1="24" component2="25" node="WS_joint24" transLimit="0 0 0" rotLimit="0 0 0" rotMinLimit="0 0 0" rotLimitSpring="0 0 0" rotLimitDamping="0 0 0"/>
+            </componentConfiguration>
+        </componentConfigurations>
+        <showInVehicleMenu>true</showInVehicleMenu>
+        <mapHotspot type="TOOL"/>
+    </base>
+
+    <!-- dirt + wear (SPSHoseItem drives them by use: in service / liquid passing; see SPS_README_06) -->
+    <washable dirtDuration="90" washDuration="1" workMultiplier="4" fieldMultiplier="2"/>
+    <wearable wearDuration="600" showOnHud="false"/>
+
+    <spsHose tintable="false" startComponent="1" endComponent="25">
+        <!-- one selector: each row names its component configuration; no Length / Ends rows on this item -->
+        <spsPipeTypeConfigurations title="$l10n_configuration_spsPipeType">
+            <spsPipeTypeConfiguration name="$l10n_spsBowserPipe_suction" price="0" isDefault="true"><dependentConfiguration name="component" index="1"/></spsPipeTypeConfiguration>
+            <spsPipeTypeConfiguration name="$l10n_spsBowserPipe_wash" price="0"><dependentConfiguration name="component" index="2"/></spsPipeTypeConfiguration>
+            <spsPipeTypeConfiguration name="$l10n_spsBowserPipe_small" price="0"><dependentConfiguration name="component" index="3"/></spsPipeTypeConfiguration>
+        </spsPipeTypeConfigurations>
+        <variant config="1" hoseKey="WT_SUCTION" meshNode="SU_mesh" startNode="SU_hoseStart" endNode="SU_hoseEnd" startGender="bowser" endGender="suction" hoseMaterialIndex="0" endComponent="25" tintable="false" dirtScale="0.5"/>
+        <variant config="2" hoseKey="WT_WASH" meshNode="WH_mesh" startNode="WH_hoseStart" endNode="WH_hoseEnd" startGender="bowser" endGender="lance" hoseMaterialIndex="0" endComponent="19" tintable="false" dirtScale="0.5"/>
+        <variant config="3" hoseKey="WT_SMALL" meshNode="WS_mesh" startNode="WS_hoseStart" endNode="WS_hoseEnd" startGender="bowser" endGender="water" hoseMaterialIndex="0" endComponent="25" tintable="false" dirtScale="0.5"/>
+    </spsHose>
+
+    <i3dMappings>
+        <i3dMapping id="SU_col01" node="0>"/>
+        <i3dMapping id="SU_col02" node="1>"/>
+        <i3dMapping id="SU_col03" node="2>"/>
+        <i3dMapping id="SU_col04" node="3>"/>
+        <i3dMapping id="SU_col05" node="4>"/>
+        <i3dMapping id="SU_col06" node="5>"/>
+        <i3dMapping id="SU_col07" node="6>"/>
+        <i3dMapping id="SU_col08" node="7>"/>
+        <i3dMapping id="SU_col09" node="8>"/>
+        <i3dMapping id="SU_col10" node="9>"/>
+        <i3dMapping id="SU_col11" node="10>"/>
+        <i3dMapping id="SU_col12" node="11>"/>
+        <i3dMapping id="SU_col13" node="12>"/>
+        <i3dMapping id="SU_col14" node="13>"/>
+        <i3dMapping id="SU_col15" node="14>"/>
+        <i3dMapping id="SU_col16" node="15>"/>
+        <i3dMapping id="SU_col17" node="16>"/>
+        <i3dMapping id="SU_col18" node="17>"/>
+        <i3dMapping id="SU_col19" node="18>"/>
+        <i3dMapping id="SU_col20" node="19>"/>
+        <i3dMapping id="SU_col21" node="20>"/>
+        <i3dMapping id="SU_col22" node="21>"/>
+        <i3dMapping id="SU_col23" node="22>"/>
+        <i3dMapping id="SU_col24" node="23>"/>
+        <i3dMapping id="SU_col25" node="24>"/>
+        <i3dMapping id="SU_joint01" node="0>2"/>
+        <i3dMapping id="SU_joint02" node="1>1"/>
+        <i3dMapping id="SU_joint03" node="2>1"/>
+        <i3dMapping id="SU_joint04" node="3>1"/>
+        <i3dMapping id="SU_joint05" node="4>1"/>
+        <i3dMapping id="SU_joint06" node="5>1"/>
+        <i3dMapping id="SU_joint07" node="6>1"/>
+        <i3dMapping id="SU_joint08" node="7>1"/>
+        <i3dMapping id="SU_joint09" node="8>1"/>
+        <i3dMapping id="SU_joint10" node="9>1"/>
+        <i3dMapping id="SU_joint11" node="10>1"/>
+        <i3dMapping id="SU_joint12" node="11>1"/>
+        <i3dMapping id="SU_joint13" node="12>1"/>
+        <i3dMapping id="SU_joint14" node="13>1"/>
+        <i3dMapping id="SU_joint15" node="14>1"/>
+        <i3dMapping id="SU_joint16" node="15>1"/>
+        <i3dMapping id="SU_joint17" node="16>1"/>
+        <i3dMapping id="SU_joint18" node="17>1"/>
+        <i3dMapping id="SU_joint19" node="18>1"/>
+        <i3dMapping id="SU_joint20" node="19>1"/>
+        <i3dMapping id="SU_joint21" node="20>1"/>
+        <i3dMapping id="SU_joint22" node="21>1"/>
+        <i3dMapping id="SU_joint23" node="22>1"/>
+        <i3dMapping id="SU_joint24" node="23>1"/>
+        <i3dMapping id="SU_hoseStart" node="0>3"/>
+        <i3dMapping id="SU_hoseEnd"   node="24>2"/>
+        <i3dMapping id="SU_mesh"      node="0>4"/>
+        <i3dMapping id="WH_col01" node="25>"/>
+        <i3dMapping id="WH_col02" node="26>"/>
+        <i3dMapping id="WH_col03" node="27>"/>
+        <i3dMapping id="WH_col04" node="28>"/>
+        <i3dMapping id="WH_col05" node="29>"/>
+        <i3dMapping id="WH_col06" node="30>"/>
+        <i3dMapping id="WH_col07" node="31>"/>
+        <i3dMapping id="WH_col08" node="32>"/>
+        <i3dMapping id="WH_col09" node="33>"/>
+        <i3dMapping id="WH_col10" node="34>"/>
+        <i3dMapping id="WH_col11" node="35>"/>
+        <i3dMapping id="WH_col12" node="36>"/>
+        <i3dMapping id="WH_col13" node="37>"/>
+        <i3dMapping id="WH_col14" node="38>"/>
+        <i3dMapping id="WH_col15" node="39>"/>
+        <i3dMapping id="WH_col16" node="40>"/>
+        <i3dMapping id="WH_col17" node="41>"/>
+        <i3dMapping id="WH_col18" node="42>"/>
+        <i3dMapping id="WH_col19" node="43>"/>
+        <i3dMapping id="WH_joint01" node="25>2"/>
+        <i3dMapping id="WH_joint02" node="26>1"/>
+        <i3dMapping id="WH_joint03" node="27>1"/>
+        <i3dMapping id="WH_joint04" node="28>1"/>
+        <i3dMapping id="WH_joint05" node="29>1"/>
+        <i3dMapping id="WH_joint06" node="30>1"/>
+        <i3dMapping id="WH_joint07" node="31>1"/>
+        <i3dMapping id="WH_joint08" node="32>1"/>
+        <i3dMapping id="WH_joint09" node="33>1"/>
+        <i3dMapping id="WH_joint10" node="34>1"/>
+        <i3dMapping id="WH_joint11" node="35>1"/>
+        <i3dMapping id="WH_joint12" node="36>1"/>
+        <i3dMapping id="WH_joint13" node="37>1"/>
+        <i3dMapping id="WH_joint14" node="38>1"/>
+        <i3dMapping id="WH_joint15" node="39>1"/>
+        <i3dMapping id="WH_joint16" node="40>1"/>
+        <i3dMapping id="WH_joint17" node="41>1"/>
+        <i3dMapping id="WH_joint18" node="42>1"/>
+        <i3dMapping id="WH_hoseStart" node="25>3"/>
+        <i3dMapping id="WH_hoseEnd"   node="43>2"/>
+        <i3dMapping id="WH_mesh"      node="25>4"/>
+        <i3dMapping id="WS_col01" node="44>"/>
+        <i3dMapping id="WS_col02" node="45>"/>
+        <i3dMapping id="WS_col03" node="46>"/>
+        <i3dMapping id="WS_col04" node="47>"/>
+        <i3dMapping id="WS_col05" node="48>"/>
+        <i3dMapping id="WS_col06" node="49>"/>
+        <i3dMapping id="WS_col07" node="50>"/>
+        <i3dMapping id="WS_col08" node="51>"/>
+        <i3dMapping id="WS_col09" node="52>"/>
+        <i3dMapping id="WS_col10" node="53>"/>
+        <i3dMapping id="WS_col11" node="54>"/>
+        <i3dMapping id="WS_col12" node="55>"/>
+        <i3dMapping id="WS_col13" node="56>"/>
+        <i3dMapping id="WS_col14" node="57>"/>
+        <i3dMapping id="WS_col15" node="58>"/>
+        <i3dMapping id="WS_col16" node="59>"/>
+        <i3dMapping id="WS_col17" node="60>"/>
+        <i3dMapping id="WS_col18" node="61>"/>
+        <i3dMapping id="WS_col19" node="62>"/>
+        <i3dMapping id="WS_col20" node="63>"/>
+        <i3dMapping id="WS_col21" node="64>"/>
+        <i3dMapping id="WS_col22" node="65>"/>
+        <i3dMapping id="WS_col23" node="66>"/>
+        <i3dMapping id="WS_col24" node="67>"/>
+        <i3dMapping id="WS_col25" node="68>"/>
+        <i3dMapping id="WS_joint01" node="44>2"/>
+        <i3dMapping id="WS_joint02" node="45>1"/>
+        <i3dMapping id="WS_joint03" node="46>1"/>
+        <i3dMapping id="WS_joint04" node="47>1"/>
+        <i3dMapping id="WS_joint05" node="48>1"/>
+        <i3dMapping id="WS_joint06" node="49>1"/>
+        <i3dMapping id="WS_joint07" node="50>1"/>
+        <i3dMapping id="WS_joint08" node="51>1"/>
+        <i3dMapping id="WS_joint09" node="52>1"/>
+        <i3dMapping id="WS_joint10" node="53>1"/>
+        <i3dMapping id="WS_joint11" node="54>1"/>
+        <i3dMapping id="WS_joint12" node="55>1"/>
+        <i3dMapping id="WS_joint13" node="56>1"/>
+        <i3dMapping id="WS_joint14" node="57>1"/>
+        <i3dMapping id="WS_joint15" node="58>1"/>
+        <i3dMapping id="WS_joint16" node="59>1"/>
+        <i3dMapping id="WS_joint17" node="60>1"/>
+        <i3dMapping id="WS_joint18" node="61>1"/>
+        <i3dMapping id="WS_joint19" node="62>1"/>
+        <i3dMapping id="WS_joint20" node="63>1"/>
+        <i3dMapping id="WS_joint21" node="64>1"/>
+        <i3dMapping id="WS_joint22" node="65>1"/>
+        <i3dMapping id="WS_joint23" node="66>1"/>
+        <i3dMapping id="WS_joint24" node="67>1"/>
+        <i3dMapping id="WS_hoseStart" node="44>3"/>
+        <i3dMapping id="WS_hoseEnd"   node="68>2"/>
+        <i3dMapping id="WS_mesh"      node="44>4"/>
+    </i3dMappings>
+</vehicle>

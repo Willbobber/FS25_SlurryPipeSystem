@@ -156,9 +156,9 @@
         </TransformGroup>
         <TransformGroup name="turretSAP2" translation="-0.072741 2.12412 -0.108904" nodeId="49">
           <TransformGroup name="SPS_pipeCoupler03" translation="-1.25151 -0.875677 3.22671" rotation="-6.20323 90 0" nodeId="50">
-            <TransformGroup name="SPS_pipeCoupler03Arcs" translation="-7.26186e-08 0 0" rotation="164.091 0 -180" nodeId="51">
-              <TransformGroup name="SPS_pipeCoupler03Arc01" translation="1.5 1.67697e-06 2.5" rotation="8.54233e-13 0 -1.16786e-05" nodeId="52"/>
-              <TransformGroup name="SPS_pipeCoupler03Arc02" translation="-1.5 2.5034e-06 2.5" nodeId="53"/>
+            <TransformGroup name="SPS_pipeCoupler03Arcs" rotation="173.797 6.7773e-15 180" nodeId="51">
+              <TransformGroup name="SPS_pipeCoupler03Arc01" translation="1.5 0 2.5" nodeId="52"/>
+              <TransformGroup name="SPS_pipeCoupler03Arc02" translation="-1.5 0 2.5" nodeId="53"/>
             </TransformGroup>
             <TransformGroup name="inNode" nodeId="54"/>
             <TransformGroup name="outNode" rotation="0 180 0" nodeId="55"/>
@@ -218,7 +218,7 @@
       <TransformGroup name="liquidPipeCouplers" nodeId="89">
         <TransformGroup name="pgII20Genesis_vis" nodeId="90">
           <TransformGroup name="SPS_liquidPipeCoupler01" translation="-1.10052 1.597 -4.09451" rotation="-11.8494 77.0165 1.36342e-10" nodeId="973">
-            <TransformGroup name="SPS_liquidPipeCoupler01Arcs" translation="0 0 -0.061" rotation="180 0 -180" nodeId="974">
+            <TransformGroup name="SPS_liquidPipeCoupler01Arcs" rotation="168.151 -1.43125e-14 180" nodeId="974">
               <TransformGroup name="SPS_liquidPipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="975"/>
               <TransformGroup name="SPS_liquidPipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="976"/>
             </TransformGroup>

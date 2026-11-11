@@ -39,6 +39,12 @@
     <hose key="MM"    shape="pipe_M/M"  fluid="slurry" startEnd="male"   farEnd="male"   radius="0.07" hoseMatIndex="0"/>
     <hose key="WATER" shape="waterHose" fluid="water"  startEnd="water"  farEnd="water"  radius="0.04" hoseMatIndex="0" tintable="false"/>
     <hose key="MILK"  shape="milkHose"  fluid="milk"   startEnd="water"  farEnd="water"  radius="0.04" hoseMatIndex="0" tintable="false"/>
+    <!-- [SPS 2026-11-10] the 550 Water/Chem Bowser's own pipes drawn in ORIGINAL mode (i3d = a second template file, built by
+         tools/build_hoses_bowser.py from the same export as the physical item vehicles/hoses/spsBowserPipe.i3d). Their start end
+         (gender "bowser") only ever goes on a fitting whose acceptPipes names the key - any bowser tagged like the 550's. -->
+    <hose key="WT_SUCTION" shape="bowserSuctionHose"    i3d="bowserHoses.i3d" fluid="water" startEnd="bowser" farEnd="suction" radius="0.05" hoseMatIndex="0" tintable="false"/>
+    <hose key="WT_WASH"    shape="bowserWashHose"       i3d="bowserHoses.i3d" fluid="water" startEnd="bowser" farEnd="lance"   radius="0.02" hoseMatIndex="0" tintable="false"/>
+    <hose key="WT_SMALL"   shape="bowserWaterHoseSmall" i3d="bowserHoses.i3d" fluid="water" startEnd="bowser" farEnd="water"   radius="0.04" hoseMatIndex="0" tintable="false"/>
 
     <connectors>
         <connector name="slurryFemaleConnector01" fluid="slurry" 	 gender="female" accepts="male"/>

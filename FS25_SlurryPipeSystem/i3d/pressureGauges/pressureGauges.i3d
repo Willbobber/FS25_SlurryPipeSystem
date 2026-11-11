@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="pressureGauges.i3d" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="GIANTS Editor 64bit" version="10.0.14"/>
+  </Asset>
+
+  <Files>
+    <File fileId="4" filename="$data/shaders/vehicleShader.xml"/>
+    <File fileId="14" filename="$data/shared/clearGlass_diffuse.png"/>
+    <File fileId="2" filename="$data/shared/default_normal.dds"/>
+    <File fileId="17" filename="$data/shared/default_vmask.dds"/>
+    <File fileId="6" filename="$data/shared/detailLibrary/flat_normal.png"/>
+    <File fileId="16" filename="$data/shared/detailLibrary/metallic/clear_diffuse.png"/>
+    <File fileId="22" filename="$data/shared/detailLibrary/metallic/clear_specular.png"/>
+    <File fileId="15" filename="$data/shared/detailLibrary/metallic/glass/glassClear02_specular.png"/>
+    <File fileId="13" filename="$data/shared/detailLibrary/metallic/scratched_diffuse.png"/>
+    <File fileId="12" filename="$data/shared/detailLibrary/metallic/scratched_specular.png"/>
+    <File fileId="7" filename="$data/shared/detailLibrary/nonMetallic/metal/metalPainted_diffuse.png"/>
+    <File fileId="5" filename="$data/shared/detailLibrary/nonMetallic/metal/metalPainted_specular.png"/>
+    <File fileId="19" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_diffuse.png"/>
+    <File fileId="18" filename="$data/shared/detailLibrary/nonMetallic/plastic/plasticPainted_specular.png"/>
+    <File fileId="1" filename="$data/shared/white_diffuse.dds"/>
+    <File fileId="20" filename="pressureGaugeDecal_diffuse.dds"/>
+    <File fileId="3" filename="pressureGauges_vmask.dds"/>
+  </Files>
+
+
+  <Materials>
+    <Material name="decal_mat" materialId="2748" specularColor="0.501961 1 0" alphaBlending="true" customShaderId="4">
+      <Texture fileId="20"/>
+      <Custommap name="detailSpecular" fileId="22"/>
+      <Custommap name="detailDiffuse" fileId="16"/>
+      <CustomParameter name="alphaBlendingClipThreshold" value="0"/>
+    </Material>
+    <Material name="decal_mat" materialId="2089" specularColor="0.501961 1 0" alphaBlending="true" customShaderId="4" customShaderVariation="uvTransform">
+      <Texture fileId="20"/>
+      <Custommap name="detailSpecular" fileId="22"/>
+      <Custommap name="detailDiffuse" fileId="16"/>
+      <CustomParameter name="alphaBlendingClipThreshold" value="0"/>
+      <CustomParameter name="offsetUV" value="0.5 0 0"/>
+    </Material>
+    <Material name="decal_mat" materialId="2749" specularColor="0.501961 1 0" alphaBlending="true" customShaderId="4" customShaderVariation="uvTransform">
+      <Texture fileId="20"/>
+      <Custommap name="detailSpecular" fileId="22"/>
+      <Custommap name="detailDiffuse" fileId="16"/>
+      <CustomParameter name="alphaBlendingClipThreshold" value="0"/>
+      <CustomParameter name="offsetUV" value="0.5 0.5 0"/>
+    </Material>
+    <Material name="glassClear02_mat" materialId="2091" alphaBlending="true" customShaderId="4">
+      <Texture fileId="14"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="15"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="16"/>
+      <CustomParameter name="alphaBlendingClipThreshold" value="0"/>
+    </Material>
+    <Material name="metalPaintedBlack_mat" materialId="2096" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="5"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="7"/>
+      <CustomParameter name="colorScale" value="0.012 0.012 0.012"/>
+    </Material>
+    <Material name="plasticPaintedBlack_mat" materialId="2097" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="17"/>
+      <Custommap name="detailSpecular" fileId="18"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="19"/>
+      <CustomParameter name="colorScale" value="0.012 0.012 0.012"/>
+    </Material>
+    <Material name="silverScratchedShiny_mat" materialId="2103" customShaderId="4">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+      <Glossmap fileId="3"/>
+      <Custommap name="detailSpecular" fileId="12"/>
+      <Custommap name="detailNormal" fileId="6"/>
+      <Custommap name="detailDiffuse" fileId="13"/>
+      <CustomParameter name="colorScale" value="0.7379 0.7454 0.7529"/>
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="pressureGauges.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="pressureGaugeVert01" nodeId="2756">
+      <Shape name="case01" translation="0 0.0756993 0.0210004" shapeId="1" clipDistance="100" nodeId="2757" castsShadows="true" receiveShadows="true" materialIds="2096,2103">
+        <Shape name="glass" translation="0 -0.0756993 -0.0210004" shapeId="2" clipDistance="100" nodeId="2758" castsShadows="true" receiveShadows="true" materialIds="2091"/>
+        <TransformGroup name="needleRotNode" rotation="0 -0 151" nodeId="2759">
+          <Shape name="needle" translation="0 0 0.00610489" shapeId="3" clipDistance="100" nodeId="2760" castsShadows="true" receiveShadows="true" materialIds="2097"/>
+        </TransformGroup>
+        <TransformGroup name="decalRotNode" rotation="0 -0 -13.4984" nodeId="2761">
+          <Shape name="decal" translation="0 -0.0756993 -0.0210004" shapeId="4" clipDistance="100" nodeId="2762" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="2748"/>
+        </TransformGroup>
+        <TransformGroup name="rotZ 151 to -150" rotation="0 -0 -13.4984" nodeId="2763"/>
+      </Shape>
+    </TransformGroup>
+    <TransformGroup name="pressureGaugeVert02" translation="0.106632 0 0" nodeId="2764">
+      <Shape name="case01" translation="0 0.0756993 0.0210004" shapeId="1" clipDistance="100" nodeId="2765" castsShadows="true" receiveShadows="true" materialIds="2096,2103">
+        <Shape name="glass" translation="0 -0.0756993 -0.0210004" shapeId="2" clipDistance="100" nodeId="2766" castsShadows="true" receiveShadows="true" materialIds="2091"/>
+        <TransformGroup name="needleRotNode" rotation="0 0 151" nodeId="2767">
+          <Shape name="needle" translation="0 0 0.00610489" shapeId="3" clipDistance="100" nodeId="2768" castsShadows="true" receiveShadows="true" materialIds="2097"/>
+        </TransformGroup>
+        <TransformGroup name="decalRotNode" rotation="0 -0 -13.4984" nodeId="2769">
+          <Shape name="decal" translation="0 -0.0756993 -0.0210004" shapeId="4" clipDistance="100" nodeId="2770" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="2089"/>
+        </TransformGroup>
+        <TransformGroup name="rotZ 151 to -150" translation="0 -0.0756993 -0.0210004" rotation="0 -0 -13.4984" nodeId="2771"/>
+      </Shape>
+    </TransformGroup>
+    <TransformGroup name="pressureGaugeVert03" translation="0.215956 0 0" nodeId="2772">
+      <Shape name="case01" translation="0 0.0756993 0.0210004" shapeId="1" clipDistance="100" nodeId="2773" castsShadows="true" receiveShadows="true" materialIds="2096,2103">
+        <Shape name="glass" translation="0 -0.0756993 -0.0210004" shapeId="2" clipDistance="100" nodeId="2774" castsShadows="true" receiveShadows="true" materialIds="2091"/>
+        <TransformGroup name="needleRotNode" nodeId="2775">
+          <Shape name="needle" translation="0 0 0.00610489" shapeId="3" clipDistance="100" nodeId="2776" castsShadows="true" receiveShadows="true" materialIds="2097"/>
+        </TransformGroup>
+        <TransformGroup name="decalRotNode" rotation="0 -0 -13.4984" nodeId="2777">
+          <Shape name="decal" translation="0 -0.0756993 -0.0210004" shapeId="4" clipDistance="100" nodeId="2778" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="2749"/>
+        </TransformGroup>
+        <TransformGroup name="rotZ 151 to -150" rotation="0 -0 -13.4984" nodeId="2779"/>
+      </Shape>
+    </TransformGroup>
+    <TransformGroup name="pressureGaugeHori01" translation="0 0 0.104176" nodeId="2780">
+      <Shape name="case02" translation="0 0.095324 -2.98023e-08" rotation="-90 -0 0" shapeId="5" clipDistance="100" nodeId="2781" castsShadows="true" receiveShadows="true" materialIds="2096,2103">
+        <Shape name="glass" translation="0 -0.0756993 -0.0210004" shapeId="2" clipDistance="100" nodeId="2782" castsShadows="true" receiveShadows="true" materialIds="2091"/>
+        <TransformGroup name="needleRotNode" rotation="0 0 151" nodeId="2783">
+          <Shape name="needle" translation="0 0 0.00610489" shapeId="3" clipDistance="100" nodeId="2784" castsShadows="true" receiveShadows="true" materialIds="2097"/>
+        </TransformGroup>
+        <TransformGroup name="decalRotNode" rotation="0 -0 -13.4984" nodeId="2785">
+          <Shape name="decal" translation="0 -0.0756993 -0.0210004" shapeId="4" clipDistance="100" nodeId="2786" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="2748"/>
+        </TransformGroup>
+      </Shape>
+    </TransformGroup>
+    <TransformGroup name="pressureGaugeHori02" translation="0.106574 0 0.106493" nodeId="2787">
+      <Shape name="case02" translation="0 0.095324 -2.98023e-08" rotation="-90 -0 0" shapeId="5" clipDistance="100" nodeId="2788" castsShadows="true" receiveShadows="true" materialIds="2096,2103">
+        <Shape name="glass" translation="0 -0.0756993 -0.0210004" shapeId="2" clipDistance="100" nodeId="2789" castsShadows="true" receiveShadows="true" materialIds="2091"/>
+        <TransformGroup name="needleRotNode" rotation="0 0 151" nodeId="2790">
+          <Shape name="needle" translation="0 0 0.00610489" shapeId="3" clipDistance="100" nodeId="2791" castsShadows="true" receiveShadows="true" materialIds="2097"/>
+        </TransformGroup>
+        <TransformGroup name="decalRotNode" rotation="0 -0 -13.4984" nodeId="2792">
+          <Shape name="decal" translation="0 -0.0756993 -0.0210004" shapeId="4" clipDistance="100" nodeId="2793" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="2089"/>
+        </TransformGroup>
+      </Shape>
+    </TransformGroup>
+    <TransformGroup name="pressureGaugeHori03" translation="0.21547 0 0.10461" nodeId="2794">
+      <Shape name="case02" translation="0 0.095324 -2.98023e-08" rotation="-90 -0 0" shapeId="5" clipDistance="100" nodeId="2795" castsShadows="true" receiveShadows="true" materialIds="2096,2103">
+        <Shape name="glass" translation="0 -0.0756993 -0.0210004" shapeId="2" clipDistance="100" nodeId="2796" castsShadows="true" receiveShadows="true" materialIds="2091"/>
+        <TransformGroup name="needleRotNode" nodeId="2797">
+          <Shape name="needle" translation="0 0 0.00610489" shapeId="3" clipDistance="100" nodeId="2798" castsShadows="true" receiveShadows="true" materialIds="2097"/>
+        </TransformGroup>
+        <TransformGroup name="decalRotNode" rotation="0 -0 -13.4984" nodeId="2799">
+          <Shape name="decal" translation="0 -0.0756993 -0.0210004" shapeId="4" clipDistance="100" nodeId="2800" castsShadows="false" receiveShadows="true" decalLayer="1" materialIds="2749"/>
+        </TransformGroup>
+      </Shape>
+    </TransformGroup>
+  </Scene>
+
+</i3D>

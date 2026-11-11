@@ -156,7 +156,7 @@
       <TransformGroup name="liquidPipeCouplers" nodeId="57">
         <TransformGroup name="Cobra_vis" nodeId="58">
           <TransformGroup name="SPS_liquidPipeCoupler01" translation="-0.838375 1.228 0.182866" rotation="-46.5574 90 0" nodeId="802">
-            <TransformGroup name="SPS_liquidPipeCoupler01Arcs" translation="0 0 -0.061" rotation="180 0 -180" nodeId="803">
+            <TransformGroup name="SPS_liquidPipeCoupler01Arcs" rotation="133.443 -1.77633e-15 -180" nodeId="803">
               <TransformGroup name="SPS_liquidPipeCoupler01Arc01" translation="-1.5 0 2.5" nodeId="804"/>
               <TransformGroup name="SPS_liquidPipeCoupler01Arc02" translation="1.5 0 2.5" nodeId="805"/>
             </TransformGroup>

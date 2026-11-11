@@ -16,6 +16,9 @@
         
 		<!-- Settings menu -->
 		<text name="sps_settingsHeader"            		text="MESTSLANG SYSTEEM" />
+		<text name="sps_settingsSectionGeneral"  text="Slurry Pipe System - Algemeen" />
+		<text name="sps_settingsSectionSlurry"   text="Slurry Pipe System - Mest" />
+		<text name="sps_settingsSectionSprayers" text="Slurry Pipe System - Spuiten" />
 		<text name="sps_settingsSlurryPipe"        		text="Mestslang" />
 		<text name="sps_settingsSlurryPipeTooltip" 		text="Selecteer slangkleur" />
 		
@@ -45,6 +48,7 @@
         <text name="action_spsConnectPipe" 				text="Slang aansluiten"/>
 		<text name="action_spsDisconnectOrOpenValve" 	text="Slang loskoppelen [R] | Klep openen [R ingedrukt houden]"/>
 		<text name="action_spsCloseValve" 				text="Klep sluiten [R ingedrukt houden]"/>
+		<text name="action_spsOpenValve" 				text="Klep openen [R vasthouden]"/>
 		<text name="warning_slurryCloseValveFirst" 		text="Sluit eerst de klep voordat je loskoppelt"/>
 		<text name="action_spsLayFirstPipe"         	text="Eerste Slang plaatsen" />
 		<text name="action_spsLayPipe"              	text="Slang plaatsen | Koppelstation plaatsen [R ingedrukt houden]" />
@@ -120,14 +124,27 @@
         <text name="sps_infoTankEmpty"               text="Leeg" />
         <text name="shopItem_spsSprayerSilo"        text="Spuitmiddelsilo (4 tanks, SPS)" />
         <text name="function_spsSprayerSilo"        text="Vier aparte vloeistoftanks achter één SPS-leidingaansluiting. Stap in de schakelkast om de tank te kiezen; vloeibare kunstmest of herbicide, elke tank blijft vergrendeld op zijn inhoud tot hij leeg is. Alleen via leiding: geen laden door eronder te rijden." />
+        <text name="shopItem_spsWashoutStation"     text="Spuit-wasplaats (SPS)" />
+        <text name="function_spsWashoutStation"     text="Een wasplaats met rooster en een 80 mm slangkoppeling. Sluit de waterslang van de spuit aan en zet hem op lossen: het spoelwater loopt door het rooster weg en wordt na verloop van tijd gezuiverd. De spuit kan er ook spoelwater uit terughalen." />
 		
 		<!-- Water -->
 		<text name="warning_spsPipeTooShort"			text="Slang te kort (minimaal 2 m)" />
 		
 		<!-- Sprayer -->
 		<text name="input_SPS_TOGGLE_ANIMATION_SPRAYER"	text="Deksel openen | Deksel sluiten" />
+		<text name="input_SPS_TOGGLE_ANIMATION"	text="SPS: animatie bij het voertuig (uitloop enz.)" />
+		<text name="input_SPS_BOWSER_HOSE"	text="SPS: bowser wash hose - take / put back" />
+		<text name="warning_spsChemBowlFirst"	text="Klap eerst het inspoelvat in" />
+		<text name="warning_spsOpenDoorFirst"	text="Open eerst de deur van het chemiestation" />
+		<text name="warning_spsChemDoor"	text="Open eerst de deur van het chemiestation" />
+		<text name="warning_spsChemBowl"	text="Klap het inspoelvat uit om middel toe te voegen" />
+		<text name="warning_spsChemUseBowl"	text="Giet het middel in het inspoelvat" />
+		<text name="warning_spsChemWashout"	text="Eerst spoelen" />
+		<text name="action_spsSpoutOut"			text="Uitloop uitzwenken" />
+		<text name="action_spsSpoutBack"			text="Uitloop terugzwenken" />
 		<text name="input_SPS_TOGGLE_PUMP_SPRAYER"		text="Stroom starten | Stroom stoppen" />
 		<text name="input_SPS_TOGGLE_DIRECTION_SPRAYER"	text="Laden | Lossen" />
+		<text name="input_SPS_SELECT_TANK"				text="Volgende tank" />
 		<text name="action_sprayerCoverClosed"			text="Deksel: GESLOTEN" />
 		<text name="action_sprayerCoverOpen"			text="Deksel: OPEN" />
 		<text name="action_sprayerFlowOff"				text="Stroom: GESTOPT" />
@@ -151,21 +168,21 @@
 		<text name="sps_hudEditHint"         			text="Sleep om te verplaatsen - Scroll om te schalen - Middelste muisknop om te vergrendelen" />
 		<text name="action_spsHudEdit"       			text="Verdeler-HUD verplaatsen" />
 		<!-- SPS spreader HUD settings -->
-		<text name="sps_hudSettingsHeader"   			text="Verdeler-HUD" />
-		<text name="sps_hudSetEnabled"       			text="DB-weergave" />
+		<text name="sps_hudSettingsHeader"   			text="Slurry Pipe System - Verdeler-HUD" />
+		<text name="sps_hudSetEnabled"       			text="Verdeler-HUD" />
 		<text name="sps_hudSetEnabledTooltip"			text="Toon de verdeler-HUD (DB-pictogram, mestinformatie en secties) bovenaan het scherm." />
-		<text name="sps_hudSetImage"         			text="DB-afbeelding" />
+		<text name="sps_hudSetImage"         			text="    DB-afbeelding" />
 		<text name="sps_hudSetImageTooltip"  			text="Toon de sleepvoetafbeelding op de verdeler-HUD." />
-		<text name="sps_hudSetFill"          			text="Toon mestniveau" />
-		<text name="sps_hudSetCrust"         			text="Toon korst" />
-		<text name="sps_hudSetThick"         			text="Toon dikte" />
-		<text name="sps_hudSetRisk"          			text="Toon verstoppingsrisico" />
-		<text name="sps_hudSetPump"          			text="Toon pomp / druk" />
+		<text name="sps_hudSetFill"          			text="    Toon mestniveau" />
+		<text name="sps_hudSetCrust"         			text="    Toon korst" />
+		<text name="sps_hudSetThick"         			text="    Toon dikte" />
+		<text name="sps_hudSetRisk"          			text="    Toon verstoppingsrisico" />
+		<text name="sps_hudSetPump"          			text="    Toon pomp / druk" />
 		<text name="sps_hudSetFieldTooltip"  			text="Toon of verberg deze rij op de verdeler-HUD." />
 		<text name="warning_spsFoldIsSpsControlled" 	text="De pompomschakeling wordt geregeld door het Slurry Pipe System" />
-		<text name="sps_hudSetHideHelp"      			text="Verbergen met hulpmenu (F1)" />
+		<text name="sps_hudSetHideHelp"      			text="    Verbergen met hulpmenu (F1)" />
 		<text name="sps_hudSetHideHelpTooltip" 		text="Ja: de SPS-hud verdwijnt samen met het hulpmenu wanneer F1 wordt ingedrukt. Nee: hij blijft in beeld." />
-		<text name="sps_hudSetScale"         			text="HUD-schaal" />
+		<text name="sps_hudSetScale"         			text="    HUD-schaal" />
 		<text name="sps_hudSetScaleTooltip"  			text="Grootte van de verdeler-HUD. Kan ook worden aangepast met het scrollwiel tijdens het verplaatsen van de HUD." />
 		<text name="sps_hudPressure" 					text="Druk"/>
 		<text name="input_SPS_HUD_EDIT"          		text="Verdeler-HUD bewerken" />
@@ -197,6 +214,93 @@
 		<text name="sps_settingsIbcPersistTooltip" 		text="Ja: geleegde IBC's blijven op de kaart staan ​​(breng ze terug naar de winkel of vul ze opnieuw). Nee: ze verdwijnen zodra ze leeg zijn (standaardinstelling)."/>
 		<text name="sps_settingsPhysicalPipes" 			text="Fysieke leidingen"/>
 		<text name="sps_settingsPhysicalPipesTooltip" 	text="Nee: origineel systeem - leidingen leggen en aansluiten bij koppelingen, ketens, spuiten en water-/melkleidingen; de koopleidingen zijn verborgen in de winkel. Ja: alleen fysieke leidingen - leidingen kopen in de winkel en met je handen dragen; alle originele leidingopties staan uit. De twee systemen werken nooit samen."/>
+		<text name="sps_settingsChemMixing"			text="Chemie mengen (spuiten)"/>
+		<text name="sps_settingsChemMixingTooltip"	text="Ja: middel met de hand via het inspoelvat, water via de leiding; één middel tegelijk, met water spoelen om te wisselen. Nee: standaard direct uit silo of IBC"/>
+		<text name="fillType_liquidFertilizerConc" text="Vloeibare kunstmest concentraat"/>
+		<text name="fillType_herbicideConc" text="Herbicide concentraat"/>
+		<text name="sps_chemConcTitle" text="%s concentraat"/>
+		<text name="sps_chemStoreConcName" text="%s (concentraat)"/>
+		<text name="sps_settingsChemRatio" text="    Mengverhouding chemie"/>
+		<text name="sps_settingsChemRatioTooltip" text="Delen water per deel concentraat. In de winkel gekochte middelen (IBC, jerrycan, vat) zijn concentraat en zo geprijsd; koopstations verkopen kant-en-klare mix"/>
+		<text name="warning_spsDoorPipe" text="Haal eerst de leiding eraf voordat je de deur sluit"/>
+		<text name="sps_chemHudReadyMix" text="Kant-en-klare mix"/>
+		<text name="sps_chemHudTitle" text="Chemie-mix"/>
+		<text name="sps_chemHudEmpty" text="Leeg"/>
+		<text name="sps_chemHudDirty" text="Tank vuil met %s - eerst spoelen"/>
+		<text name="sps_chemHudWashout" text="Water / spoelen"/>
+		<text name="sps_chemHudWater" text="Water"/>
+		<text name="sps_chemHudWashing" text="%s wordt uitgespoeld"/>
+		<text name="sps_chemHudTarget" text="doel"/>
+		<text name="sps_chemHudConc" text="Concentraat"/>
+		<text name="sps_chemHudMix" text="Mix"/>
+		<text name="sps_chemHudAddWater" text="Water toevoegen"/>
+		<text name="sps_chemHudAddConc" text="Concentraat toevoegen"/>
+		<text name="input_SPS_CHEM_WASHOUT" text="Spuit uitspoelen"/>
+		<text name="action_spsChemWashout" text="Spuit uitspoelen (spoelbeurt %d van %d)"/>
+		<text name="action_spsChemWashoutStop" text="Spoelen stoppen"/>
+		<text name="action_sprayerDirLoadRinse" text="Richting: LADEN spoelwatertank"/>
+		<text name="sps_settingsChemRinses" text="    Spoelbeurten"/>
+		<text name="sps_settingsChemRinsesTooltip" text="Hoeveel spoelbeurten een spuit nodig heeft voor de tank schoon is (elke spoelbeurt eerst leegmaken)"/>
+		<text name="sps_settingsWashoutValve" text="    Wasplaatsklep"/>
+		<text name="sps_settingsWashoutValveTooltip" text="Automatisch: de klep volgt de spoelcyclus en de laad-/losstand van de spuit. Met de hand: de speler zet hem om bij de wasplaats (schoon water in / vuil water uit) en het spoelen wacht erop."/>
+		<text name="sps_settingsWashoutValveAuto" text="Automatisch"/>
+		<text name="sps_settingsWashoutValveManual" text="Met de hand"/>
+		<text name="warning_spsWashClean" text="De tank is schoon - spoelen niet nodig"/>
+		<text name="warning_spsWashChemIn" text="Maak eerst de tank leeg (er zit %s in)"/>
+		<text name="warning_spsWashDrain" text="Maak eerst het spoelwater leeg: uitspuiten of wegpompen"/>
+		<text name="warning_spsWashField" text="Spoel uit op een veld of op een spoelplaats"/>
+		<text name="warning_spsWashFold" text="Klap eerst de spuitboom uit"/>
+		<text name="warning_spsWashWaterTank" text="De spoelwatertank heeft %d l water nodig"/>
+		<text name="warning_spsWashWaterPipe" text="Sluit een wasplaats aan of voeg eerst %d l schoon water via de leiding aan de tank toe"/>
+		<text name="warning_spsWashContam" text="Niet gespoeld: resten %s zitten in de nieuwe mix - kan het gewas beschadigen"/>
+		<text name="sps_washDlgTitle" text="Spuit uitspoelen"/>
+		<text name="sps_washDlgNext" text="Spoelbeurt %d van %d klaar. Volgende spoelbeurt starten?"/>
+		<text name="sps_washDlgNextYes" text="Volgende spoelbeurt"/>
+		<text name="sps_washDlgFold" text="Boom inklappen"/>
+		<text name="sps_washDlgClean" text="Spoelen klaar - de tank is schoon. Boom inklappen?"/>
+		<text name="sps_washDlgLeave" text="Uitgeklapt laten"/>
+		<text name="sps_chemHudRinse" text="Spoelbeurt %d van %d"/>
+		<text name="sps_chemHudPhasePrep" text="Boom klapt uit"/>
+		<text name="sps_chemHudPhaseTank" text="Tank wordt gespoeld"/>
+		<text name="sps_chemHudPhaseBoom" text="Boom wordt gespoeld"/>
+		<text name="sps_chemHudPhaseFinal" text="Laatste tankspoeling"/>
+		<text name="sps_chemHudPhaseDrain" text="Spoelwater loopt via de doppen weg"/>
+		<text name="sps_chemHudPhaseReturn" text="Vuil water terug naar de wasplaats"/>
+		<text name="sps_chemHudStation" text="Wasplaats"/>
+		<text name="sps_chemHudValveClean" text="klep: schoon water in"/>
+		<text name="sps_chemHudValveDirty" text="klep: vuil water uit"/>
+		<text name="sps_chemHudValveManual" text="(met de hand gezet)"/>
+		<text name="action_spsWashValveClean" text="Wasplaatsklep: schoon water in"/>
+		<text name="action_spsWashValveDirty" text="Wasplaatsklep: vuil water uit"/>
+		<text name="warning_spsWashValveClean" text="Zet de wasplaatsklep op schoon water in"/>
+		<text name="warning_spsWashValveDirty" text="Zet de wasplaatsklep op vuil water uit"/>
+		<text name="sps_chemHudDrainPaused" text="Gepauzeerd - druk op Uitspoelen"/>
+		<text name="sps_chemHudRinsesDone" text="Spoelbeurten klaar"/>
+		<text name="sps_chemHudPoorRinse" text="Slecht gespoeld - opnieuw met Uitspoelen"/>
+		<text name="sps_chemHudResidue" text="Restant"/>
+		<text name="sps_chemHudRinseTank" text="Spoelwatertank"/>
+		<text name="sps_chemHudEmptyClean" text="Leeg - schoon"/>
+		<text name="sps_chemHudPipeFills" text="Leiding vult"/>
+		<text name="sps_chemHudMainTank" text="Hoofdtank"/>
+		<text name="sps_chemHudContam" text="Resten %s in de mix"/>
+		<text name="sps_chemBandWeak" text="Te zwak"/>
+		<text name="sps_chemBandGood" text="Goed"/>
+		<text name="sps_chemBandStrong" text="Sterk"/>
+		<text name="sps_chemBandDouble" text="Dubbele dosis"/>
+		<text name="sps_chemBandScorch" text="Verbranding"/>
+		<text name="sps_chemBandFlatten" text="Gewas vernietigd"/>
+		<text name="sps_chemInfoMix" text="Mengsterkte"/>
+		<text name="sps_chemInfoConc" text="Concentraat"/>
+		<text name="warning_spsChemWeak" text="Mengsel te zwak - niets toegediend, voeg concentraat toe of rijd nog een keer"/>
+		<text name="warning_spsChemScorch" text="Mengsel veel te sterk - het gewas verbrandt"/>
+		<text name="warning_spsChemKill" text="Mengsel veel te sterk - het gewas wordt vernietigd"/>
+		<text name="warning_spsChemContamDamage" text="Resten van %s in het mengsel beschadigen het gewas - spoel uit"/>
+		<text name="sps_settingsHoseDirt"			text="Vuil op leidingen"/>
+		<text name="sps_settingsHoseDirtTooltip"	text="Ja: de fysieke leidingen worden vuil tijdens gebruik en als ze rondslingeren (regen of de hogedrukreiniger wast ze). Nee: de leidingen worden nooit vuil; overschakelen naar Nee maakt alle leidingen eenmalig schoon."/>
+		<text name="sps_settingsHoseDirtSpeed"		text="    Snelheid vervuiling"/>
+		<text name="sps_settingsHoseDirtSpeedTooltip"	text="Hoe snel de fysieke leidingen vuil worden: 1x = eigen snelheid van de leiding, 0,25x = vier keer langzamer, 3x = drie keer sneller."/>
+		<text name="sps_settingsSpill"				text="Lekkage leidingen"/>
+		<text name="sps_settingsSpillTooltip"		text="Ja: een fysieke leiding waarvan het losse uiteinde op de grond ligt telt als aangesloten - open de tankklep en de mest loopt op de grond en vormt een plas (het uiteinde moet binnen 1,5 m boven de grond liggen). Nee: de klep blijft dicht tot de leiding is aangesloten."/>
 		<text name="sps_pipeModeTitle" 	text="Slurry Pipe System - kies je leidingsysteem"/>
 		<text name="sps_pipeModeQuestion" 	text="Welk leidingsysteem wil je in dit spel gebruiken?&#xA;&#xA;ORIGINEEL: leidingen leggen en aansluiten bij koppelingen, ketens, spuiten en water-/melkleidingen zoals voorheen.&#xA;FYSIEK (nieuw): leidingen kopen in de winkel en met je handen dragen; het originele leg-/aansluitsysteem staat uit.&#xA;&#xA;De twee werken nooit samen. Je kunt dit later wijzigen onder Instellingen > Fysieke leidingen."/>
 		<text name="sps_pipeModeExisting" 	text="Dit spel heeft al %s."/>
@@ -263,6 +367,8 @@
 		<text name="warning_spsFittingValveClosed"		text="Open eerst de kleppen op beide aansluitingen" />
 		<text name="warning_spsCloseValveFirst"		text="Sluit de klep voordat je de leiding loskoppelt" />
 		<text name="sps_laneTransfer"					text="Tank naar tank" />
+		<text name="sps_laneBowserToTanker"				text="Bowser naar tank" />
+		<text name="sps_laneTankerToBowser"				text="Tank naar bowser" />
 		<text name="warning_spsTransferOtherEmpty"		text="De andere tank is leeg" />
 		<text name="warning_spsTransferOtherFull"		text="De andere tank is vol" />
 		<text name="warning_spsTransferType"			text="De tanks bevatten verschillende vloeistoffen" />
@@ -292,6 +398,35 @@
 		<text name="configuration_spsPipeEnds"	text="Uiteinden (mestleiding)" />
 		<text name="spsPipe_typeSlurry"		text="Mestleiding 140 mm" />
 		<text name="spsPipe_typeWater"		text="Waterslang 80 mm" />
+		<text name="shopItem_spsBowserPipe"		text="550 Bowser Pipes" />
+		<text name="function_spsBowserPipe"		text="The 550 Water/Chem Bowser's own pipes (physical pipe mode). Suction pipe: start end on the bowser's water inlet, lay the far end in a river or pond and start the pump to fill the tank. Small water hose: bowser inlet to a sprayer's or tanker's water fitting. Wash hose: bowser spray outlet, the pump pours the tank out where the far end lies. Their start ends fit this bowser only." />
+		<text name="spsBowserPipe_suction"		text="Suction pipe (water course)" />
+		<text name="spsBowserPipe_wash"		text="Wash hose" />
+		<text name="spsBowserPipe_small"		text="Small water hose (sprayer / tanker)" />
+		<text name="warning_spsBowserEndNotInWater"		text="Lay the suction pipe's end in the water first" />
+		<text name="shopItem_spsCage"		text="Water Cage" />
+		<text name="function_spsCage"		text="Strainer cage for a pipe end lying in a lake, river or pond. A pipe only draws water with a cage fitted on its free end and the cage under the surface; pushing water out needs none. Small cage: 80 mm water and milk pipes, either end. Large cage: the male end of a slurry pipe. Carry it to the pipe end and join it like another pipe." />
+		<text name="spsCage_small"		text="Small cage (water / milk pipe)" />
+		<text name="spsCage_large"		text="Large cage (slurry pipe, male end)" />
+		<text name="warning_spsAddCage"		text="Fit a water cage on the pipe end first" />
+		<text name="action_spsCageStow"		text="Hang the water cage on holder %d" />
+		<text name="action_spsEngineOn"		text="Start engine" />
+		<text name="action_spsEngineOff"		text="Stop engine" />
+		<text name="action_spsPhysStowBowser"		text="Stow %s on the rack" />
+		<text name="warning_spsBowserInletValve"		text="Open the inlet valve first (R at the pump)" />
+		<text name="warning_spsWashHoldEnd"		text="Pick up the wash hose end to spray" />
+		<text name="action_spsLaySuction"		text="Lay suction pipe here" />
+		<text name="action_spsPickupSuction"		text="Remove suction pipe" />
+		<text name="action_spsReleaseSuction"		text="Release suction pipe" />
+		<text name="action_spsReturnSuction"		text="Put suction pipe back" />
+		<text name="action_spsTakeSuction"		text="Take suction pipe" />
+		<text name="action_spsTakeWash"		text="Take wash hose" />
+		<text name="action_spsReturnWash"		text="Put wash hose back" />
+		<text name="warning_spsSuctionReach"		text="Too far from the bowser for the suction pipe" />
+		<text name="action_spsLancePourOn"		text="Start pouring from the hose" />
+		<text name="action_spsLancePourOff"		text="Stop pouring" />
+		<text name="warning_spsLancePour"		text="Right mouse with the hose end in hand starts the pour" />
+		<text name="warning_spsWashEngineFirst"		text="Start the engine (B) before taking the wash hose" />
 		<text name="spsPipe_typeMilk"		text="Melkslang 80 mm" />
 		<text name="spsPipe_length4"			text="4 m" />
 		<text name="spsPipe_length6"			text="6 m" />
@@ -332,5 +467,20 @@
         <text name="function_spsTowerMixer"		text="Een door de trekker aangedreven lagunemixer op een opvouwbare toren. Laat de steunen zakken, vouw de arm in de opslag en meng de mest met de aftakas; een leiding van de pomp brengt de gemengde mest naar een tank." />
         <text name="sps_hudPipeFlow"		text="Leidingstroom" />
         <text name="input_SPS_FREE_PIPE"		text="Vastzittende leiding losmaken" />
-	</texts>
+	        <!-- [SPS MKS8 2026-11-10] lane door, tank choice, tube stow -->
+        <text name="action_spsLaneDoorOpen"		text="Open door" />
+        <text name="action_spsLaneDoorClose"	text="Close door" />
+        <text name="warning_spsLaneDoorFirst"	text="Open the door first" />
+        <text name="action_spsLaneTank"			text="Tank: %s" />
+        <text name="sps_tankN"					text="tank %d" />
+        <text name="sps_tankEmpty"				text="empty" />
+        <text name="sps_chemHudTanks"				text="Tanks" />
+        <text name="action_spsPhysTakeTube"		text="Take pipe out of the tube" />
+        <text name="sps_mks8DoorOpen"			text="Open rear door" />
+        <text name="sps_mks8DoorClose"			text="Close rear door" />
+        <text name="sps_mks8TankFront"			text="front tank" />
+        <text name="sps_mks8TankRear"			text="rear tank" />
+        <text name="sps_mks8DualTankName"		text="MKS 8 Dual Tank SPS" />
+        <text name="sps_mks8DualTankFunction"	text="Two 4,000 l tanks (water, milk, chemicals - each its own), one SPS fitting behind the rear door, two short pipes in the side tubes (grab the end, walk back)." />
+</texts>
 </l10n>

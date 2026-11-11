@@ -89,9 +89,9 @@
       <TransformGroup name="milkPipeCouplers" nodeId="761">
         <TransformGroup name="cowShedUK" nodeId="762">
           <TransformGroup name="SPS_milkPipeCoupler01" translation="-10.2356 0.346845 8.82468" rotation="-5.3312e-12 -60 3.0942e-05" nodeId="906">
-            <TransformGroup name="SPS_milkPipeCoupler01Arcs" rotation="3.40168e-05 -30 -1.4133e-05" nodeId="907">
-              <TransformGroup name="SPS_milkPipeCoupler01Arc01" translation="1.5 0 3.5" nodeId="908"/>
-              <TransformGroup name="SPS_milkPipeCoupler01Arc02" translation="-1.5 0 3.5" nodeId="909"/>
+            <TransformGroup name="SPS_milkPipeCoupler01Arcs" rotation="-3.0942e-05 -30 -3.07797e-12" nodeId="907">
+              <TransformGroup name="SPS_milkPipeCoupler01Arc01" translation="1.5 0 2.5" nodeId="908"/>
+              <TransformGroup name="SPS_milkPipeCoupler01Arc02" translation="-1.5 0 2.5" nodeId="909"/>
             </TransformGroup>
             <Shape name="sprayerConnector" shapeId="3" clipDistance="150" nodeId="910" castsShadows="true" receiveShadows="true" materialIds="868">
               <Shape name="sprayerConnectorHandle" translation="-1.70742e-09 0.06 0.082729" shapeId="4" clipDistance="150" nodeId="911" castsShadows="true" receiveShadows="true" materialIds="871"/>

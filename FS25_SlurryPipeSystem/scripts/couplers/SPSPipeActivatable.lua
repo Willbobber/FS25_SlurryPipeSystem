@@ -41,10 +41,16 @@ function SPSPipeActivatable:getIsActivatable(dirX, dirY, dirZ)
     -- disconnect prompt stays for a coupling that a PHYSICAL pipe has connected (valves, pump, flow).
     -- [SPS 1.0.1.8] ...or whose physical pipe chain ends free in the water (water intake, see
     -- SPSM_PhysPipes physFreeEndWaterPlane): the valve must be reachable there too.
-    if g_slurryPipeManager ~= nil and g_slurryPipeManager.physicalPipesEnabled == true
-       and not (self.coupling.physPipe ~= nil
-                and (self.coupling.isConnected or g_slurryPipeManager:physCouplingIsWaterFed(self.coupling))) then
-        return false
+    -- [SPS 1.0.2.0] ...or lying free on the ground with "Pipe leakage" on (physCouplingIsSpilling): valve reachable.
+    -- [SPS 1.0.2.0] ...and a coupler with its OWN manual valve is always reachable in pipe mode: the valve can be opened and
+    -- closed at any time, pipe or no pipe (William 2026-11-02).
+    if g_slurryPipeManager ~= nil and g_slurryPipeManager.physicalPipesEnabled == true then
+        local ownManualValve = self.coupling.valveType == SPS_VALVE_TYPE_MANUAL and not self.coupling.valveFromRearControl
+            and not self.coupling.isChainTerminus and not self.coupling.isChainStart
+        local pipeConnectedLike = self.coupling.physPipe ~= nil
+            and (self.coupling.isConnected or g_slurryPipeManager:physCouplingIsLiquidFed(self.coupling)   -- [SPS 1.0.2.0] water or slurry
+                 or (g_slurryPipeManager.physCouplingIsSpilling ~= nil and g_slurryPipeManager:physCouplingIsSpilling(self.coupling)))
+        if not ownManualValve and not pipeConnectedLike then return false end
     end
     if self.coupling.mountNode == nil or not entityExists(self.coupling.mountNode) then return false end
     -- AI guard: hide activatable when the owning vehicle's root is AI-driven.
@@ -194,8 +200,8 @@ end
 
 function SPSPipeActivatable:_onLongPress()
     local state = self:_getState()
-    if state == "disconnectOrOpenValve" then
-        -- Long press = open valve
+    if state == "disconnectOrOpenValve" or state == "openValve" then
+        -- Long press = open valve ("openValve" = pipe mode, nothing connected)
         if g_slurryPipeManager ~= nil then
             g_slurryPipeManager:onValveOpen(self.vehicle, self.coupling)
         end
@@ -215,8 +221,19 @@ function SPSPipeActivatable:_getState()
     -- [SPS 1.0.1.8] A physical pipe whose far end lies in the water counts as connected (water intake).
     local connectedLike = coupling.isConnected
         or (coupling.physPipe ~= nil and g_slurryPipeManager ~= nil
-            and g_slurryPipeManager.physCouplingIsWaterFed ~= nil and g_slurryPipeManager:physCouplingIsWaterFed(coupling))
+            and ((g_slurryPipeManager.physCouplingIsLiquidFed ~= nil and g_slurryPipeManager:physCouplingIsLiquidFed(coupling))   -- [SPS 1.0.2.0] water or slurry
+                 or (g_slurryPipeManager.physCouplingIsSpilling ~= nil and g_slurryPipeManager:physCouplingIsSpilling(coupling))))   -- [SPS 1.0.2.0] leak
     if not connectedLike then
+        -- [SPS 1.0.2.0] PIPE MODE: the coupler's own MANUAL valve opens and closes at any time - no pipe, a loose pipe,
+        -- a pipe end in the air (William 2026-11-02). With "Pipe leakage" on, an open valve pours onto the ground under
+        -- the coupler (no pipe) or under the free pipe end. The original "connect" prompt never shows in pipe mode.
+        if g_slurryPipeManager ~= nil and g_slurryPipeManager.physicalPipesEnabled == true then
+            if coupling.valveType == SPS_VALVE_TYPE_MANUAL and not coupling.valveFromRearControl
+               and not coupling.isChainTerminus and not coupling.isChainStart then
+                return coupling.valveOpen and "closeValve" or "openValve"
+            end
+            return nil
+        end
         if g_slurryPipeManager ~= nil then
             -- If this coupling is a chain anchor with segments, block connect to random couplers.
             -- Exception: if the chain's bez pipe (chainStartCoupling) is disconnected,
@@ -276,6 +293,8 @@ function SPSPipeActivatable:_buildActivateText()
         return g_i18n:getText("action_spsDisconnectPipe")
     elseif state == "disconnectOrOpenValve" then
         return g_i18n:getText("action_spsDisconnectOrOpenValve")
+    elseif state == "openValve" then
+        return g_i18n:getText("action_spsOpenValve")   -- [SPS 1.0.2.0] pipe mode, nothing connected
     elseif state == "closeValve" then
         -- [SPS 1.0.1.8] valve open but a running pump is not moving slurry: say why on the prompt
         local txt = g_i18n:getText("action_spsCloseValve")

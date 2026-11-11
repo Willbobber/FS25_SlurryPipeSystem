@@ -349,13 +349,13 @@ function SPSPipeChain:lockLivePipe()
 
     -- Primary activatable at pipeRoot (start of segment): offers "remove from here"
     local activatable = SPSChainActivatable.new(self, #self.segments)
-    g_currentMission.activatableObjectsSystem:addActivatable(activatable)
+    SlurryPipeManager.gateAdd(activatable)
     seg.activatable = activatable
 
     -- End activatable at detNode04 (end of segment): offers "lay more" / docking station
     local endActivatable = SPSChainActivatable.new(self, #self.segments)
     endActivatable.isEndActivatable = true
-    g_currentMission.activatableObjectsSystem:addActivatable(endActivatable)
+    SlurryPipeManager.gateAdd(endActivatable)
     seg.endActivatable = endActivatable
 
     SPSPipeChain.log("locked segment %d — primary@pipeRoot end@endConnectors", #self.segments)
@@ -405,7 +405,7 @@ function SPSPipeChain:removeFromIndex(fromIndex)
         if newLast.endActivatable == nil then
             local endAct = SPSChainActivatable.new(self, #self.segments)
             endAct.isEndActivatable = true
-            g_currentMission.activatableObjectsSystem:addActivatable(endAct)
+            SlurryPipeManager.gateAdd(endAct)
             newLast.endActivatable = endAct
         end
     end
@@ -1441,12 +1441,12 @@ function SPSPipeChain:restoreFromSaveData(data)
 
         -- Primary activatable at pipeRoot (remove from here)
         local activatable = SPSChainActivatable.new(self, #self.segments)
-        g_currentMission.activatableObjectsSystem:addActivatable(activatable)
+        SlurryPipeManager.gateAdd(activatable)
         seg.activatable = activatable
         -- End activatable at detNode04 (lay more / DS) — only for the last segment
         local endActivatable = SPSChainActivatable.new(self, #self.segments)
         endActivatable.isEndActivatable = true
-        g_currentMission.activatableObjectsSystem:addActivatable(endActivatable)
+        SlurryPipeManager.gateAdd(endActivatable)
         seg.endActivatable = endActivatable
         nextX, nextY, nextZ = segData.x, segData.y, segData.z
         local ndx = segData.x - p0x

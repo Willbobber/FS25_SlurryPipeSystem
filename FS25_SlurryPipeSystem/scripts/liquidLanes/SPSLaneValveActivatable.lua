@@ -42,7 +42,10 @@ function SPSLaneValveActivatable:getIsActivatable()
     if g_localPlayer == nil or g_slurryPipeManager == nil then return false end
     if g_slurryPipeManager.physicalPipesEnabled ~= true then return false end
     local c = self.coupling
-    if c == nil or c.physPipe == nil then return false end     -- the valve matters once a pipe is on the fitting
+    if c == nil then return false end
+    -- [SPS 1.0.2.0] the fitting's valve is reachable at ANY time in pipe mode - pipe or no pipe, connected or not
+    -- (William 2026-11-02: "the valves can be opened with or without a pipe connected or a complete connection"); with
+    -- "Pipe leakage" on an open valve leaks the barn onto the ground (SPSM_Leaks)
     local n = anchorNode(c)
     if n == nil then return false end
     if c.isVehicleSide and c.object ~= nil and c.object.getRootVehicle ~= nil then
@@ -60,7 +63,10 @@ function SPSLaneValveActivatable:getDistance(posX, posY, posZ)
     local n = anchorNode(self.coupling)
     if n == nil then return math.huge end
     local cx, cy, cz = getWorldTranslation(n)
-    return MathUtil.vector3Length(posX - cx, posY - cy, posZ - cz)
+    local d = MathUtil.vector3Length(posX - cx, posY - cy, posZ - cz)
+    -- [SPS 1.0.2.0] a bare fitting's valve prompt yields to any other prompt at the same spot (nearest wins)
+    if self.coupling ~= nil and self.coupling.physPipe == nil then d = d + 0.5 end
+    return d
 end
 
 function SPSLaneValveActivatable:activate() end

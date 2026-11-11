@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<placeable type="silo" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../shared/xml/schema/placeable.xsd">
+    <storeData>
+        <name>$l10n_shopItem_spsWashoutStation</name>
+        <functions>
+            <function>$l10n_function_spsWashoutStation</function>
+        </functions>
+        <image>placeables/washoutStation/store_washoutStation.dds</image>
+        <price>4500</price>
+        <dailyUpkeep>5</dailyUpkeep>
+        <lifetime>1000</lifetime>
+        <rotation>0</rotation>
+        <brand>NONE</brand>
+        <species>PLACEABLE</species>
+        <category>placeableMisc</category>
+        <brush>
+            <type>placeable</type>
+            <category>buildings</category>
+            <tab>containers</tab>
+        </brush>
+    </storeData>
+
+    <base>
+        <filename>placeables/washoutStation/washoutStation.i3d</filename>
+        <canBeRenamed>true</canBeRenamed>
+    </base>
+
+    <placement useRandomYRotation="false" useManualYRotation="true">
+        <testAreas>
+            <testArea startNode="testAreaStart01" endNode="testAreaEnd01"/>
+        </testAreas>
+        <sounds>
+            <place template="medImp"/>
+        </sounds>
+    </placement>
+
+    <clearAreas>
+        <clearArea startNode="clearAreaStart01" widthNode="clearAreaWidth01" heightNode="clearAreaHeight01"/>
+    </clearAreas>
+
+    <leveling requireLeveling="true" maxSmoothDistance="3" maxSlope="75" maxEdgeAngle="30">
+        <levelAreas>
+            <levelArea startNode="levelAreaStart01" widthNode="levelAreaWidth01" heightNode="levelAreaHeight01" groundType="gravel"/>
+        </levelAreas>
+    </leveling>
+
+    <indoorAreas/>
+
+    <tipOcclusionUpdateAreas>
+        <tipOcclusionUpdateArea startNode="tipOcclusionUpdateAreaStart01" endNode="tipOcclusionUpdateAreaEnd01"/>
+    </tipOcclusionUpdateAreas>
+
+    <ai>
+        <updateAreas>
+            <updateArea startNode="tipOcclusionUpdateAreaStart01" endNode="tipOcclusionUpdateAreaEnd01"/>
+        </updateAreas>
+    </ai>
+
+    <silo>
+        <storages>
+            <storage node="storage" fillTypes="WATER" capacity="20000" isExtension="false">
+                <startFillLevel fillType="WATER" fillLevel="0"/>
+            </storage>
+        </storages>
+    </silo>
+
+    <sprayerPipeSystem>
+        <washoutStation waterPriceScale="1.0" valveRadius="2.5">
+            <handle node="waterHandle"      cleanRotation="0 0 0" dirtyRotation="0 90 0"/>
+            <handle node="dirtyWaterHandle" cleanRotation="0 0 0" dirtyRotation="0 -90 0"/>
+        </washoutStation>
+        <sprayerPipeCouplings>
+            <sprayerPipeCoupling id="1" mountNodeName="SPS_liquidPipeCoupler01" flowDirection="BOTH" maxPipeLength="7.5"/>
+        </sprayerPipeCouplings>
+    </sprayerPipeSystem>
+
+    <i3dMappings>
+        <i3dMapping id="washoutStation" node="0>"/>
+		<i3dMapping id="clearAreas" node="0>0"/>
+		<i3dMapping id="clearAreaStart01" node="0>0|0"/>
+		<i3dMapping id="clearAreaHeight01" node="0>0|0|0"/>
+		<i3dMapping id="clearAreaWidth01" node="0>0|0|1"/>
+		<i3dMapping id="levelAreas" node="0>1"/>
+		<i3dMapping id="levelAreaStart01" node="0>1|0"/>
+		<i3dMapping id="levelAreaHeight01" node="0>1|0|0"/>
+		<i3dMapping id="levelAreaWidth01" node="0>1|0|1"/>
+		<i3dMapping id="testAreas" node="0>2"/>
+		<i3dMapping id="testAreaStart01" node="0>2|0"/>
+		<i3dMapping id="testAreaEnd01" node="0>2|0|0"/>
+		<i3dMapping id="tipOcclusionUpdateAreas" node="0>3"/>
+		<i3dMapping id="tipOcclusionUpdateAreaStart01" node="0>3|0"/>
+		<i3dMapping id="tipOcclusionUpdateAreaEnd01" node="0>3|0|0"/>
+		<i3dMapping id="station" node="0>4"/>
+		<i3dMapping id="storage" node="0>4|0"/>
+		<i3dMapping id="SPS_liquidPipeCoupler01" node="0>5"/>
+		<i3dMapping id="SPS_liquidPipeCoupler01Arcs" node="0>5|0"/>
+		<i3dMapping id="SPS_liquidPipeCoupler01Arc01" node="0>5|0|0"/>
+		<i3dMapping id="SPS_liquidPipeCoupler01Arc02" node="0>5|0|1"/>
+		<i3dMapping id="inNode" node="0>5|1"/>
+		<i3dMapping id="outNode" node="0>5|2"/>
+		<i3dMapping id="concreteSlab" node="0>6"/>
+		<i3dMapping id="washoutConnector" node="0>6|0"/>
+		<i3dMapping id="waterHandle" node="0>6|0|0"/>
+		<i3dMapping id="dirtyWaterHandle" node="0>6|0|1"/>
+    </i3dMappings>
+</placeable>

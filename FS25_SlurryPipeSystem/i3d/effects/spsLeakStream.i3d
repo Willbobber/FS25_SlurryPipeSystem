@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<i3D name="spsLeakStream" version="1.6" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://i3d.giants.ch/schema/i3d-1.6.xsd">
+  <Asset>
+    <Export program="i3dConverter" version="1.0"/>
+  </Asset>
+
+  <!-- [SPS 1.0.1.9] LEAK STREAM (William 2026-11-02): the base-game pipe effect tube (10 m along +Z, PIPE_EFFECT shader
+       stretches it to the controlPoint distance), lifted from the Profi2 nodeTree. Loaded ONCE as a shared i3d by
+       SPSLeakEffect.lua and cloned under a world-upright group at every leaking coupler / free pipe end while it leaks;
+       the script swaps the material for the slurry / water / milk pipe material of the liquid. Never placed in a
+       vehicle or placeable i3d. -->
+
+  <Files>
+    <File fileId="1" filename="$data/effects/slurry/slurry_diffuse.dds"/>
+    <File fileId="2" filename="$data/effects/unload/fadeMask_diffuse.png"/>
+    <File fileId="3" filename="../materials/spsSlurryPipeShader.xml"/>
+  </Files>
+
+
+  <Materials>
+    <Material name="spsLeakStream_mat" materialId="1" customShaderId="3" customShaderVariation="pipeEffect">
+      <Texture fileId="1"/>
+      <Normalmap fileId="2"/>
+    </Material>
+  </Materials>
+
+
+  <Shapes externalShapesFile="spsLeakStream.i3d.shapes">
+  </Shapes>
+
+  <Scene>
+    <TransformGroup name="spsLeakStream" nodeId="4">
+      <Shape name="pipeEffect" rotation="-90 0 180" shapeId="1" clipDistance="150" nodeId="5" castsShadows="false" receiveShadows="false" materialIds="1"/>
+    </TransformGroup>
+  </Scene>
+
+</i3D>
